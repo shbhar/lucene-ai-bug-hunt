@@ -1,0 +1,31 @@
+diff --git a/lucene/analysis/morfologik/src/test/org/apache/lucene/analysis/uk/TestUkrainianAnalyzer.java b/lucene/analysis/morfologik/src/test/org/apache/lucene/analysis/uk/TestUkrainianAnalyzer.java
+index f984ff8c18c..db307233b53 100644
+--- a/lucene/analysis/morfologik/src/test/org/apache/lucene/analysis/uk/TestUkrainianAnalyzer.java
++++ b/lucene/analysis/morfologik/src/test/org/apache/lucene/analysis/uk/TestUkrainianAnalyzer.java
+@@ -20,6 +20,7 @@ import java.io.IOException;
+ import org.apache.lucene.analysis.Analyzer;
+ import org.apache.lucene.analysis.CharArraySet;
+ import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
++import org.apache.lucene.util.BytesRef;
+ 
+ /** Test case for UkrainianAnalyzer. */
+ public class TestUkrainianAnalyzer extends BaseTokenStreamTestCase {
+@@ -94,6 +95,18 @@ public class TestUkrainianAnalyzer extends BaseTokenStreamTestCase {
+     a.close();
+   }
+ 
++  /** normalize() must apply the char mapping and lower-casing that indexing applies */
++  public void testNormalize() throws Exception {
++    Analyzer a = new UkrainianMorfologikAnalyzer();
++    assertEquals(new BytesRef("lucene"), a.normalize("dummy", "Lucene"));
++    assertEquals(new BytesRef("м'ясо"), a.normalize("dummy", "м\u2019ясо"));
++    assertEquals(new BytesRef("м'ясо"), a.normalize("dummy", "м\u02BCясо"));
++    assertEquals(new BytesRef("м'ясо"), a.normalize("dummy", "м'я\u0301со"));
++    assertEquals(new BytesRef("секрет"), a.normalize("dummy", "сек\u00ADрет"));
++    assertEquals(new BytesRef("грунт"), a.normalize("dummy", "ґрунт"));
++    a.close();
++  }
++
+   /** blast some random strings through the analyzer */
+   public void testRandomStrings() throws Exception {
+     Analyzer analyzer = new UkrainianMorfologikAnalyzer();

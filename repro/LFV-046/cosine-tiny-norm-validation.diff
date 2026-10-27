@@ -1,0 +1,97 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java b/lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java
+index 259b3576226..534c7d6110a 100644
+--- a/lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java
++++ b/lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java
+@@ -51,7 +51,7 @@ public class KnnFloatVectorField extends Field {
+       throw new IllegalArgumentException("similarity function must not be null");
+     }
+     if (similarityFunction == VectorSimilarityFunction.COSINE
+-        && VectorUtil.isZeroVector(v) == true) {
++        && VectorUtil.isZeroOrSubnormalNorm(v)) {
+       throw new IllegalArgumentException("zero vector not allowed with cosine similarity function");
+     }
+     FieldType type = new FieldType();
+@@ -144,7 +144,7 @@ public class KnnFloatVectorField extends Field {
+           "The number of vector dimensions does not match the field type");
+     }
+     if (fieldType.vectorSimilarityFunction() == VectorSimilarityFunction.COSINE
+-        && VectorUtil.isZeroVector(vector) == true) {
++        && VectorUtil.isZeroOrSubnormalNorm(vector)) {
+       throw new IllegalArgumentException(
+           "zero vector not allowed with cosine similarity configured in field type");
+     }
+@@ -170,7 +170,7 @@ public class KnnFloatVectorField extends Field {
+           "value length " + value.length + " must match field dimension " + type.vectorDimension());
+     }
+     if (type.vectorSimilarityFunction() == VectorSimilarityFunction.COSINE
+-        && VectorUtil.isZeroVector(value)) {
++        && VectorUtil.isZeroOrSubnormalNorm(value)) {
+       throw new IllegalArgumentException("zero vector not allowed with cosine similarity function");
+     }
+     fieldsData = VectorUtil.checkFinite(value);
+diff --git a/lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java b/lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java
+index 1d5973a2351..0582c5528e7 100644
+--- a/lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java
++++ b/lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java
+@@ -352,16 +352,16 @@ public final class ColumnValidation {
+   }
+ 
+   /**
+-   * Throws if a float vector has a non-finite component, or is a zero vector while {@code
+-   * similarityFunction} is {@link VectorSimilarityFunction#COSINE COSINE}. Mirrors the checks done
+-   * by {@link org.apache.lucene.document.KnnFloatVectorField}.
++   * Throws if a float vector has a non-finite component, or has a zero or subnormal squared norm
++   * (see {@link VectorUtil#isZeroOrSubnormalNorm(float[])}) while {@code similarityFunction} is
++   * {@link VectorSimilarityFunction#COSINE COSINE}. Mirrors the checks done by {@link
++   * org.apache.lucene.document.KnnFloatVectorField}.
+    */
+   public static void checkFloatVectorValue(
+       VectorColumn<?> column,
+       float[] vector,
+       VectorSimilarityFunction similarityFunction,
+       int batchDocID) {
+-    boolean isZero = true;
+     for (int i = 0; i < vector.length; i++) {
+       if (Float.isFinite(vector[i]) == false) {
+         throw new IllegalArgumentException(
+@@ -374,9 +374,9 @@ public final class ColumnValidation {
+                 + " at batch doc "
+                 + batchDocID);
+       }
+-      isZero = isZero & (vector[i] == 0);
+     }
+-    if (isZero && similarityFunction == VectorSimilarityFunction.COSINE) {
++    if (similarityFunction == VectorSimilarityFunction.COSINE
++        && VectorUtil.isZeroOrSubnormalNorm(vector)) {
+       throw zeroCosineVector(column, batchDocID);
+     }
+   }
+diff --git a/lucene/core/src/java/org/apache/lucene/util/VectorUtil.java b/lucene/core/src/java/org/apache/lucene/util/VectorUtil.java
+index 4d89ac68dcd..de900fd1dc4 100644
+--- a/lucene/core/src/java/org/apache/lucene/util/VectorUtil.java
++++ b/lucene/core/src/java/org/apache/lucene/util/VectorUtil.java
+@@ -522,6 +522,24 @@ public final class VectorUtil {
+     return true;
+   }
+ 
++  /**
++   * Returns true if the squared norm of the provided vector is zero or subnormal (below {@link
++   * Float#MIN_NORMAL}). {@link #cosine(float[], float[])} and the vector formats compute the norm
++   * in float32, so such a vector behaves like the zero vector even if some of its components are
++   * not zero, for example {@code {1e-30f, 0f}}. This requires every component to be smaller than
++   * 2^-63 in magnitude. Returns false if a component is not finite.
++   */
++  public static boolean isZeroOrSubnormalNorm(float[] v) {
++    double squaredNorm = 0;
++    for (float value : v) {
++      if (Math.abs(value) >= 0x1p-63f) {
++        return false; // value * value >= Float.MIN_NORMAL on its own
++      }
++      squaredNorm += (double) value * value;
++    }
++    return squaredNorm < Float.MIN_NORMAL; // false for NaN
++  }
++
+   /**
+    * Returns true if all dimensions of provided float16 vector, encoded as {@code short[]}, are zero
+    * (either {@code +0} or {@code -0}), false otherwise.

@@ -1,0 +1,125 @@
+diff --git a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/MultiFieldQueryParser.java b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/MultiFieldQueryParser.java
+index 85b8e08b5a7..47bf20d1697 100644
+--- a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/MultiFieldQueryParser.java
++++ b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/MultiFieldQueryParser.java
+@@ -16,10 +16,15 @@
+  */
+ package org.apache.lucene.queryparser.classic;
+ 
++import java.io.IOException;
++import java.io.UncheckedIOException;
+ import java.util.ArrayList;
+ import java.util.List;
+ import java.util.Map;
+ import org.apache.lucene.analysis.Analyzer;
++import org.apache.lucene.analysis.TokenStream;
++import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
++import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+ import org.apache.lucene.search.BooleanClause;
+ import org.apache.lucene.search.BooleanQuery;
+ import org.apache.lucene.search.BoostQuery;
+@@ -157,6 +162,18 @@ public class MultiFieldQueryParser extends QueryParser {
+           fieldQueries[i] = q;
+         }
+       }
++      if (maxTerms > 1
++          && (termPositionsAligned(fieldQueries) == false
++              || sameTermSpans(fieldQueries, queryText) == false)) {
++        // The per-field queries are not lists of the same term positions (per-field analyzers,
++        // or a graph phrase whose clauses are alternatives): keep each field's query whole.
++        for (int i = 0; i < fields.length; i++) {
++          if (fieldQueries[i] != null) {
++            clauses.add(applyBoost(fieldQueries[i], fields[i]));
++          }
++        }
++        return getMultiFieldQuery(clauses);
++      }
+       for (int termNum = 0; termNum < maxTerms; termNum++) {
+         List<Query> termClauses = new ArrayList<>();
+         for (int i = 0; i < fields.length; i++) {
+@@ -208,6 +225,85 @@ public class MultiFieldQueryParser extends QueryParser {
+     return q;
+   }
+ 
++  /**
++   * True if every non-null per-field query is a BooleanQuery with the same number of clauses, each
++   * using the occur the analysis gives to term positions under the current default operator.
++   */
++  private boolean termPositionsAligned(Query[] fieldQueries) {
++    BooleanClause.Occur positionOccur =
++        getDefaultOperator() == Operator.OR ? BooleanClause.Occur.SHOULD : BooleanClause.Occur.MUST;
++    int size = -1;
++    for (Query q : fieldQueries) {
++      if (q == null) {
++        continue;
++      }
++      if (!(q instanceof BooleanQuery bq)) {
++        return false;
++      }
++      for (BooleanClause c : bq.clauses()) {
++        if (c.occur() != positionOccur) {
++          return false;
++        }
++      }
++      if (size == -1) {
++        size = bq.clauses().size();
++      } else if (size != bq.clauses().size()) {
++        return false;
++      }
++    }
++    return true;
++  }
++
++  /**
++   * True if every field with a non-null query analyzes {@code queryText} into the same sequence of
++   * term positions, compared by the source-text span (start and end offset) of each position. Only
++   * then does clause i of one field's query cover the same query words as clause i of another's.
++   */
++  private boolean sameTermSpans(Query[] fieldQueries, String queryText) {
++    List<long[]> first = null;
++    for (int i = 0; i < fields.length; i++) {
++      if (fieldQueries[i] == null) {
++        continue;
++      }
++      List<long[]> spans = termSpans(fields[i], queryText);
++      if (first == null) {
++        first = spans;
++      } else if (first.size() != spans.size()) {
++        return false;
++      } else {
++        for (int j = 0; j < spans.size(); j++) {
++          if (first.get(j)[0] != spans.get(j)[0] || first.get(j)[1] != spans.get(j)[1]) {
++            return false;
++          }
++        }
++      }
++    }
++    return true;
++  }
++
++  /** The [start, end) source span of each term position of {@code text} analyzed for field. */
++  private List<long[]> termSpans(String field, String text) {
++    List<long[]> spans = new ArrayList<>();
++    try (TokenStream ts = getAnalyzer().tokenStream(field, text)) {
++      OffsetAttribute offset = ts.addAttribute(OffsetAttribute.class);
++      PositionIncrementAttribute posInc = ts.addAttribute(PositionIncrementAttribute.class);
++      ts.reset();
++      while (ts.incrementToken()) {
++        if (posInc.getPositionIncrement() > 0 || spans.isEmpty()) {
++          spans.add(new long[] {offset.startOffset(), offset.endOffset()});
++        } else { // a token stacked on the previous position (synonym, ...): widen that span
++          long[] last = spans.get(spans.size() - 1);
++          last[0] = Math.min(last[0], offset.startOffset());
++          last[1] = Math.max(last[1], offset.endOffset());
++        }
++      }
++      ts.end();
++    } catch (IOException e) {
++      throw new UncheckedIOException(e);
++    }
++    return spans;
++  }
++
+   /**
+    * Combines the per-position field-disjunction groups built above when a single getFieldQuery call
+    * is analyzed into more than one term (e.g. because the query text reached this method as one

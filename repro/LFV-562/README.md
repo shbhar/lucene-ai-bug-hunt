@@ -1,0 +1,53 @@
+# Polygon.fromGeoJSON rejects a valid GeoJSON Feature whose properties (or another non-geometry member object) contain a member named "type", throwing ParseException 'can only handle type... but got &lt;value&gt;' (every release since 6.2.0)
+
+Bug LFV-562 · Area: core / geo GeoJSON parsing (Polygon.fromGeoJSON, SimpleGeoJSONPolygonParser) · Priority: low · Impact: wrong error · Novelty: new
+
+AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+
+## What it shows
+
+You call Polygon.fromGeoJSON on a standard GeoJSON Feature whose geometry is a single Polygon and whose properties contain an ordinary data member named "type", for example {"type": "Feature", "geometry": {...Polygon...}, "properties": {"type": "multipolygon"}}, and expect the polygon back, because the javadoc accepts a Polygon 'optionally embedded under a "type: Feature"' and GeoJSON allows any JSON object as properties. Instead it throws ParseException 'can only handle type FeatureCollection (if it has a single polygon geometry), Feature, Polygon or MultiPolygon, but got multipolygon' ('type should be a string, but got: 3.0' for {"type": 3}), because the parser reads every "type" member outside crs as a GeoJSON object type, wherever it sits, while it reads "coordinates" only at geometry positions. The same Feature without the "type" property parses, and a "coordinates" key inside properties is ignored.
+
+## Expected vs actual
+
+- Expected: The test passes: it asserts the documented behaviour.
+- Actual: It throws ParseException 'can only handle type FeatureCollection (if it has a single polygon geometry), Feature, Polygon or MultiPolygon, but got multipolygon' ('type should be a string, but got: 3.0' for {"type": 3}), because the parser reads every "type" member outside crs as a GeoJSON object type, wherever it sits, while it reads "coordinates" only at geometry positions.
+
+## Files
+
+- [src/org/apache/lucene/geo/TestGeoJSONTypeMemberInProperties.java](src/org/apache/lucene/geo/TestGeoJSONTypeMemberInProperties.java) (JUnit test)
+- [src/org/apache/lucene/geo/TestGeoJSONTypeMemberInPropertiesOld.java](src/org/apache/lucene/geo/TestGeoJSONTypeMemberInPropertiesOld.java) (JUnit test)
+
+## Run it
+
+- Tested on Lucene main ea57360912ed (2026-10-24): reproduced.
+- How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).
+- Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.
+
+```bash
+# Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp "$CP" $(find src -name '*.java')
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.geo.TestGeoJSONTypeMemberInProperties
+
+# run 2: assertions on, seed DEADBEEF, default flags
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp "classes:$CP" org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.geo.TestGeoJSONTypeMemberInPropertiesOld
+```
+
+Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Feedback
+
+Open an issue in [lucene-ai-bug-hunt](https://github.com/shbhar/lucene-ai-bug-hunt/issues). Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.

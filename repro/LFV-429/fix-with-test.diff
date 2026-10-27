@@ -1,0 +1,293 @@
+diff --git a/lucene/backward-codecs/src/test/org/apache/lucene/backward_index/TestReorderingMergeKeepsPre99Blocks.java b/lucene/backward-codecs/src/test/org/apache/lucene/backward_index/TestReorderingMergeKeepsPre99Blocks.java
+new file mode 100644
+index 00000000000..3873e76ef7d
+--- /dev/null
++++ b/lucene/backward-codecs/src/test/org/apache/lucene/backward_index/TestReorderingMergeKeepsPre99Blocks.java
+@@ -0,0 +1,247 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.backward_index;
++
++import java.io.IOException;
++import java.io.InputStream;
++import java.nio.file.Path;
++import java.util.Map;
++import java.util.concurrent.Executor;
++import org.apache.lucene.index.CodecReader;
++import org.apache.lucene.index.DirectoryReader;
++import org.apache.lucene.index.FilterMergePolicy;
++import org.apache.lucene.index.IndexWriter;
++import org.apache.lucene.index.IndexWriterConfig;
++import org.apache.lucene.index.LeafReader;
++import org.apache.lucene.index.LeafReaderContext;
++import org.apache.lucene.index.LogDocMergePolicy;
++import org.apache.lucene.index.MergePolicy;
++import org.apache.lucene.index.MergeTrigger;
++import org.apache.lucene.index.SegmentCommitInfo;
++import org.apache.lucene.index.SegmentInfos;
++import org.apache.lucene.index.SerialMergeScheduler;
++import org.apache.lucene.index.Sorter;
++import org.apache.lucene.index.StoredFields;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.util.LuceneTestCase;
++import org.apache.lucene.tests.util.TestUtil;
++
++/**
++ * A merge whose {@code OneMerge#reorder} renumbers doc IDs must keep document blocks (children
++ * followed by their parent, added with {@link IndexWriter#addDocuments}) together when no parent
++ * field identifies them: IndexWriter then skips the reordering ("Don't reorder if blocks can't be
++ * identified using the parent field."). Segments written before Lucene 9.9 do not record {@code
++ * LeafMetaData#hasBlocks}, so they must be treated as possibly holding blocks.
++ *
++ * <p>blocks.9.8.0.zip and blocks.9.9.2.zip hold the same 120 blocks (377 documents, 1 to 3 children
++ * per block, no parent field) in 3 segments, written with IndexWriter#addDocuments by the Lucene
++ * 9.8.0 and the Lucene 9.9.2 release. A child's stored "id" is "b{N}c{J}", its parent's is "b{N}".
++ */
++public class TestReorderingMergeKeepsPre99Blocks extends LuceneTestCase {
++
++  public void testForceMergeKeepsBlocksWrittenBy980() throws IOException {
++    assertForceMergeKeepsBlocks("9.8.0");
++  }
++
++  /** Control: 9.9+ segments record hasBlocks, so IndexWriter skips the reordering. */
++  public void testForceMergeKeepsBlocksWrittenBy992() throws IOException {
++    assertForceMergeKeepsBlocks("9.9.2");
++  }
++
++  public void testAddIndexesKeepsBlocksWrittenBy980() throws IOException {
++    assertAddIndexesKeepsBlocks("9.8.0");
++  }
++
++  /** Control: 9.9+ segments record hasBlocks, so IndexWriter skips the reordering. */
++  public void testAddIndexesKeepsBlocksWrittenBy992() throws IOException {
++    assertAddIndexesKeepsBlocks("9.9.2");
++  }
++
++  private void assertForceMergeKeepsBlocks(String writtenBy) throws IOException {
++    try (Directory dir = newFSDirectory(unzip(writtenBy))) {
++      assertFixture(dir, writtenBy);
++      try (IndexWriter w = new IndexWriter(dir, reorderingConfig())) {
++        w.forceMerge(1);
++      }
++      assertBlocksIntact(dir);
++    }
++  }
++
++  private void assertAddIndexesKeepsBlocks(String writtenBy) throws IOException {
++    try (Directory src = newFSDirectory(unzip(writtenBy));
++        Directory dst = newDirectory()) {
++      assertFixture(src, writtenBy);
++      try (DirectoryReader reader = DirectoryReader.open(src)) {
++        CodecReader[] leaves = new CodecReader[reader.leaves().size()];
++        for (int i = 0; i < leaves.length; i++) {
++          leaves[i] = (CodecReader) reader.leaves().get(i).reader();
++        }
++        // addIndexes(CodecReader...) only accepts segments of the same created major version
++        IndexWriterConfig iwc = reorderingConfig().setIndexCreatedVersionMajor(9);
++        try (IndexWriter w = new IndexWriter(dst, iwc)) {
++          w.addIndexes(leaves);
++        }
++      }
++      assertBlocksIntact(dst);
++    }
++  }
++
++  private Path unzip(String writtenBy) throws IOException {
++    Path path = createTempDir("blocks." + writtenBy);
++    try (InputStream in = getClass().getResourceAsStream("blocks." + writtenBy + ".zip")) {
++      assertNotNull("missing fixture blocks." + writtenBy + ".zip", in);
++      TestUtil.unzip(in, path);
++    }
++    return path;
++  }
++
++  private static IndexWriterConfig reorderingConfig() {
++    return new IndexWriterConfig()
++        .setCodec(TestUtil.getDefaultCodec())
++        .setMergeScheduler(new SerialMergeScheduler())
++        .setMergePolicy(new ReversingMergePolicy(new LogDocMergePolicy()));
++  }
++
++  private static void assertFixture(Directory dir, String writtenBy) throws IOException {
++    try (DirectoryReader reader = DirectoryReader.open(dir)) {
++      assertEquals(3, reader.leaves().size());
++      assertEquals(377, reader.maxDoc());
++      for (LeafReaderContext ctx : reader.leaves()) {
++        LeafReader leaf = ctx.reader();
++        assertEquals(writtenBy, leaf.getMetaData().minVersion().toString());
++        assertNull(leaf.getFieldInfos().getParentField());
++        // hasBlocks is only recorded since 9.9.0
++        assertEquals(writtenBy.equals("9.9.2"), leaf.getMetaData().hasBlocks());
++      }
++      assertEquals(0, childrenJoinedToWrongParent(reader));
++    }
++  }
++
++  private static void assertBlocksIntact(Directory dir) throws IOException {
++    try (DirectoryReader reader = DirectoryReader.open(dir)) {
++      assertEquals(1, reader.leaves().size());
++      assertEquals(377, reader.maxDoc());
++      LeafReader merged = reader.leaves().get(0).reader();
++      assertEquals(
++          "children joined to the wrong parent after the merge, out of 257"
++              + " (merged segment hasBlocks="
++              + merged.getMetaData().hasBlocks()
++              + ")",
++          0,
++          childrenJoinedToWrongParent(reader));
++    }
++  }
++
++  /**
++   * Block joins pair every child with the next parent document of its segment. Returns how many
++   * children that pairing attaches to a parent other than their own, or to no parent.
++   */
++  private static int childrenJoinedToWrongParent(DirectoryReader reader) throws IOException {
++    int wrong = 0;
++    for (LeafReaderContext ctx : reader.leaves()) {
++      LeafReader leaf = ctx.reader();
++      StoredFields storedFields = leaf.storedFields();
++      String[] ids = new String[leaf.maxDoc()];
++      for (int doc = 0; doc < ids.length; doc++) {
++        ids[doc] = storedFields.document(doc).get("id");
++      }
++      for (int doc = 0; doc < ids.length; doc++) {
++        int c = ids[doc].indexOf('c');
++        if (c < 0) {
++          continue; // a parent
++        }
++        int next = doc + 1;
++        while (next < ids.length && ids[next].indexOf('c') >= 0) {
++          next++;
++        }
++        if (next == ids.length || ids[next].equals(ids[doc].substring(0, c)) == false) {
++          wrong++;
++        }
++      }
++    }
++    return wrong;
++  }
++
++  /** Renumbers the documents of every merged segment in reverse order. */
++  private static class ReversingMergePolicy extends FilterMergePolicy {
++
++    ReversingMergePolicy(MergePolicy in) {
++      super(in);
++    }
++
++    @Override
++    public MergeSpecification findMerges(
++        MergeTrigger mergeTrigger, SegmentInfos segmentInfos, MergeContext mergeContext)
++        throws IOException {
++      return reverse(super.findMerges(mergeTrigger, segmentInfos, mergeContext));
++    }
++
++    @Override
++    public MergeSpecification findForcedMerges(
++        SegmentInfos segmentInfos,
++        int maxSegmentCount,
++        Map<SegmentCommitInfo, Boolean> segmentsToMerge,
++        MergeContext mergeContext)
++        throws IOException {
++      return reverse(
++          super.findForcedMerges(segmentInfos, maxSegmentCount, segmentsToMerge, mergeContext));
++    }
++
++    @Override
++    public MergeSpecification findMerges(CodecReader... readers) throws IOException {
++      return reverse(super.findMerges(readers));
++    }
++
++    private static MergeSpecification reverse(MergeSpecification spec) {
++      if (spec == null) {
++        return null;
++      }
++      MergeSpecification reversed = new MergeSpecification();
++      for (OneMerge merge : spec.merges) {
++        reversed.add(
++            new OneMerge(merge) {
++              @Override
++              public CodecReader wrapForMerge(CodecReader reader) throws IOException {
++                return merge.wrapForMerge(reader);
++              }
++
++              @Override
++              public Sorter.DocMap reorder(CodecReader reader, Directory dir, Executor executor) {
++                final int maxDoc = reader.maxDoc();
++                return new Sorter.DocMap() {
++                  @Override
++                  public int size() {
++                    return maxDoc;
++                  }
++
++                  @Override
++                  public int oldToNew(int docID) {
++                    return maxDoc - 1 - docID;
++                  }
++
++                  @Override
++                  public int newToOld(int docID) {
++                    return maxDoc - 1 - docID;
++                  }
++                };
++              }
++            });
++      }
++      return reversed;
++    }
++  }
++}
+diff --git a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+index 45b59fa46dd..4b9cc59fd48 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+@@ -3225,6 +3225,17 @@ public class IndexWriter
+     return seqNo;
+   }
+ 
++  /**
++   * Returns whether a leaf may contain document blocks. {@link LeafMetaData#hasBlocks()} is only
++   * recorded since 9.9.0, so a leaf with documents written by an older version may hold blocks that
++   * it does not report.
++   */
++  private static boolean mayHaveBlocks(LeafMetaData metaData) {
++    return metaData.hasBlocks()
++        || metaData.minVersion() == null
++        || metaData.minVersion().onOrAfter(Version.LUCENE_9_9_0) == false;
++  }
++
+   private void validateMergeReader(CodecReader leaf) {
+     LeafMetaData segmentMeta = leaf.getMetaData();
+     if (segmentInfos.getIndexCreatedVersionMajor() != segmentMeta.createdVersionMajor()) {
+@@ -3549,7 +3560,7 @@ public class IndexWriter
+     final boolean hasIndexSort = config.getIndexSort() != null;
+     // Don't reorder if blocks can't be identified using the parent field.
+     final boolean hasBlocksButNoParentField =
+-        readers.stream().map(LeafReader::getMetaData).anyMatch(LeafMetaData::hasBlocks)
++        readers.stream().map(LeafReader::getMetaData).anyMatch(IndexWriter::mayHaveBlocks)
+             && readers.stream()
+                 .map(CodecReader::getFieldInfos)
+                 .map(FieldInfos::getParentField)
+@@ -5546,7 +5557,7 @@ public class IndexWriter
+       final boolean hasIndexSort = config.getIndexSort() != null;
+       // Don't reorder if blocks can't be identified using the parent field.
+       final boolean hasBlocksButNoParentField =
+-          mergeReaders.stream().map(LeafReader::getMetaData).anyMatch(LeafMetaData::hasBlocks)
++          mergeReaders.stream().map(LeafReader::getMetaData).anyMatch(IndexWriter::mayHaveBlocks)
+               && mergeReaders.stream()
+                   .map(CodecReader::getFieldInfos)
+                   .map(FieldInfos::getParentField)

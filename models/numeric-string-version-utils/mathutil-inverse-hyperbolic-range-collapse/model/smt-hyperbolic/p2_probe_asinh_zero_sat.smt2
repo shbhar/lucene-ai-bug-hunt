@@ -1,0 +1,13 @@
+(set-logic QF_FP)
+(define-fun one () Float64 ((_ to_fp 11 53) RNE 1.0))
+(define-fun T () Float64 ((_ to_fp 11 53) RNE 13407807929942597099574024998205846127479365820592393377723561443721764030073546976801874298166903427690031858186486050853753882811946569946433649006084096.0))
+(declare-const a Float64)
+(define-fun asinhArg () Float64 (fp.add RNE (fp.sqrt RNE (fp.add RNE (fp.mul RNE a a) one)) a))
+(define-fun acoshArg () Float64 (fp.add RNE (fp.sqrt RNE (fp.sub RNE (fp.mul RNE a a) one)) a))
+(define-fun atanhArg () Float64 (fp.div RNE (fp.add RNE one a) (fp.sub RNE one a)))
+(define-fun pos () Bool (and (fp.isPositive a) (not (fp.isZero a)) (not (fp.isInfinite a)) (not (fp.isNaN a))))
+
+(assert pos)
+(assert (fp.eq asinhArg one))
+(check-sat)
+(get-value (a))

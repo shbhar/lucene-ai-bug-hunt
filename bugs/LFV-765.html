@@ -1,0 +1,1170 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Sampled facets on a concurrent searcher sample large slices twice</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-765 &middot; sampling-manager-reduce-samples-already-sampled-slices</p><h1 id='top'>Sampled facets on a concurrent searcher sample large slices twice</h1><p class='tldr'>Sample facets with <code>RandomSamplingFacetsCollector.createManager</code> on an <code class='nw'>IndexSearcher</code> with an executor and two or more slices, and the merge samples each large slice's sample again, so amortized counts come out too low: 256 instead of 2,048 in a two-segment example, with no error. Since 10.0.0; 9.x is correct.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 167</span><span class='sub'>Released 10.0 regression that silently makes amortized facet counts 8x to 64x too low on ordinary sampled queries once facet sampling meets an executor with two or more slices, which is worse than the single-opt-in, up-to-2x LFV-437, so it heads the facet-count rows just above LFV-303.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>10.0.0 (#13542, 2024)<span class='sub'>introduced 2024-09-10 &middot; about 2 years</span></dd></div><div><dt>Affected</dt><dd>10.0.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div><dt>Found by</dt><dd>code reading, confirmed by JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>RandomSamplingFacetsCollector</code> counts facets on a random sample of about <code class='nw'>sampleSize</code> hits, and <code>amortizeFacetCounts</code> divides each count by the sampling rate to estimate the real count. <code class='nw'>createManager</code> runs one such collector per slice of a concurrent search and merges them; the merge reads each slice's sample where it needs the slice's hits.</p><figure class='visual' id='sampling-manager-reduce-samples-already-sampled-slices-short-visual'><div class='frame'><a class='still' href='../assets/LFV-765/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-765/bug.png' alt='The two-segment example: 2 segments of 1,024 documents labelled color/red, createManager(128, 42L), one slice per segment. With one slice the sampler keeps 64 + 64 = 128 hits at 1 in 16 and amortizes red to 2,048. With two slices each slice keeps 128 of its 1,024 hits (1 in 8); the merge treats those 256 as all the hits and keeps 8 + 8 = 16 at 1 in 16, so red is amortized to 256 while getSamplingRate() still says 1/16. The fixed merge samples the 2,048 original hits once and keeps 128.' width='1920' height='1080'></a></div><figcaption>The two-segment example: each slice keeps 128 of its 1,024 hits, the merge takes those 256 for all the hits and keeps 16; the fixed merge samples the 2,048 original hits once and keeps 128. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index 2,048 documents in 2 segments of 1,024, all with the facet label <code class='nw'>color/red</code>. Sample them with <code>RandomSamplingFacetsCollector.createManager(128, 42L)</code> on an <code class='nw'>IndexSearcher</code> that has an executor and one slice per segment.</span></li><li><span>You expect what a searcher without an executor (one slice) gives: 128 sampled hits, <code>getSamplingRate()</code> 1/16, and <code>amortizeFacetCounts</code> scaling <code class='nw'>red</code> back to 2,048.</span></li><li><span>You get 16 sampled hits and an amortized count of 256, 8x too low, while <code>getSamplingRate()</code> still says 1/16 and <code>getOriginalMatchingDocs()</code> holds 256 hits instead of 2,048. No error.</span></li><li><span>Why: each slice already keeps its own sample, 128 of its 1,024 hits (1 in 8). The merge takes those 256 sampled hits for all the hits and samples them again at 1 in 16: 16 are left, an applied rate of 1/128.</span></li><li><span>Default slicing does it too: 10 segments of 2,000 documents (2 slices of 5) with <code class='nw'>sampleSize</code> 1,000 give 100 sampled and an amortized 2,000 instead of 1,000 and 20,000. Every release since 10.0.0; 9.x samples once.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that sample facets through <code class='nw'>createManager</code> on an <code class='nw'>IndexSearcher</code> with an executor, when a search has 2 or more slices (default slicing: more than 5 segments, or 2 segments over 250,000 docs each; or intra-segment partitions) and a slice has at least about 2 x <code class='nw'>sampleSize</code> hits. Those hits then count too little, by the slice's sampling ratio, silently.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>877 words</span></summary><div class='body'><p><code>RandomSamplingFacetsCollector</code> counts facets on a random sample of about <code class='nw'>sampleSize</code> hits when a query matches more, and <code>amortizeFacetCounts</code> divides the sampled counts by <code>getSamplingRate()</code> to estimate the real ones. Its <code>createManager(sampleSize, seed)</code> is the <code class='nw'>CollectorManager</code> "for concurrent random sampling": on an <code class='nw'>IndexSearcher</code> with an executor it gives each slice its own collector and merges them. Since #13542 (10.0.0) the merge builds the merged collector's original hits from each slice collector's <code>getMatchingDocs()</code>, which that class overrides to return the slice's own sample. The merged collector then samples those samples again, while <code>getSamplingRate()</code> reports only the second stage. The hits of every slice with at least about 2 x <code class='nw'>sampleSize</code> hits are thinned twice, so a label's amortized count is low in proportion to its hits in such slices; with equal slices, as in every repro, the sample is <code>sampleSize^2 x numSlices / totalHits</code> and every count is low by exactly <code>sliceHits / sampleSize</code> (8x, 10x, 16x and 64x). Hits in smaller slices are sampled once and counted correctly. <code>getOriginalMatchingDocs()</code> returns the union of the per-slice samples instead of the original hits. Default slicing is enough (an index with more than 5 segments has 2 or more slices), and intra-segment partitions do it on one segment. No error is raised. A searcher without an executor (or whose search has one slice), and every 9.x release (where the merge read <code>getOriginalMatchingDocs()</code>, as the design asked), sample once. Merging each slice's original hits fixes it; the whole facet test suite passes.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Facet sampling</strong>: <code>RandomSamplingFacetsCollector(sampleSize, seed)</code> keeps about <code class='nw'>sampleSize</code> hits when a query matches more: it walks the hits in bins of <code>(int) (totalHits / sampleSize)</code> and keeps one random hit per bin. <code>getSamplingRate()</code> is <code>sampleSize / totalHits</code>. <code>getMatchingDocs()</code> returns the sample, <code>getOriginalMatchingDocs()</code> all hits.</li><li><strong>Amortizing</strong>: <code>amortizeFacetCounts(result, config, searcher)</code> divides each sampled count by the sampling rate (capped by the label's drill-down term docFreq) to estimate the real count.</li><li><strong>Slices</strong>: an <code class='nw'>IndexSearcher</code> built with an executor splits the index into slices and runs one collector per slice in parallel; a <code class='nw'>CollectorManager</code> creates the collectors and its <code class='nw'>reduce</code> merges them. Without an executor there is one slice. Default slicing gives each segment above 250,000 documents its own slice and groups the others, largest first, until a group has 5 segments or more than 250,000 documents (so a group can exceed 250,000); #13542 (10.0.0) added intra-segment partitions.</li><li><strong><code>createManager(sampleSize, seed)</code></strong>: the sampler's <code class='nw'>CollectorManager</code>, documented as "a CollectorManager for concurrent random sampling through RandomSamplingFacetsCollector".</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>Each slice gets its own <code>RandomSamplingFacetsCollector</code> (<code>RandomSamplingFacetsCollector.java:269-271</code>). Its <code>getMatchingDocs()</code> is overridden: once the slice's hits exceed <code class='nw'>sampleSize</code> it samples them at <code>sampleSize / sliceHits</code> and returns the sample, one <code class='nw'>MatchingDocs</code> per segment whose <code class='nw'>totalHits</code> is copied from the original (<code class='nw'>:118-141</code>, <code class='nw'>:209</code>). The unsampled list is <code>getOriginalMatchingDocs()</code> (<code class='nw'>:143-146</code>).</li><li>With 2 or more collectors, <code class='nw'>reduce</code> builds a <code>ReducedRandomSamplingFacetsCollector</code> (<code class='nw'>:279-282</code>) that fills its <em>original</em> hits from <code>FacetsCollectorManager.reduceMatchingDocs(facetsCollectors)</code> (<code class='nw'>:291-292</code>). That helper merges the partitions of one segment and reads each collector through <code>getMatchingDocs()</code> (<code>FacetsCollectorManager.java:93-114</code>, line 102): the slice samples.</li><li>When facet counting asks the merged collector for <code>getMatchingDocs()</code>, it sums the copied totals (the real hit count), sets the rate to <code>sampleSize / totalHits</code> and samples the union of the slice samples again (<code>RandomSamplingFacetsCollector.java:125-140</code>). <code>getSamplingRate()</code> returns this second rate only.</li><li><code>amortizeFacetCounts</code> divides by that rate (<code class='nw'>:240</code>), so the hits of each slice that the first stage thinned count too little, by that slice's <code>sliceHits / sampleSize</code>. The first stage drops hits only when a slice has at least about 2 x <code class='nw'>sampleSize</code> hits (bin size 2 or more, <code class='nw'>:164</code>); a smaller slice's hits reach the merge whole, are sampled once and are counted correctly. An executed probe with one slice of 10,000 hits labelled <code class='nw'>color/x</code> and one of 100 hits labelled <code class='nw'>color/y</code>, <code class='nw'>sampleSize</code> 1,000, gives <code class='nw'>x</code> 1,010 instead of 10,000 and <code class='nw'>y</code> a correct 100; with the fix, 10,000 and 100.</li><li>Without an executor the searcher has one slice (<code>IndexSearcher.java:226-231</code>), <code class='nw'>reduce</code> returns that collector unchanged (<code>RandomSamplingFacetsCollector.java:279-281</code>), and the result is correct; so is any search whose leaves form one slice.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-every-document-labelled-color-red-so-the-true-co'>The numbers (every document labelled <code class='nw'>color/red</code>, so the true count is the hit count; main, assertions on and off)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-every-document-labelled-color-red-so-the-true-co" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-every-document-labelled-color-red-so-the-true-co"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>index and slices</th><th><code class='nw'>sampleSize</code></th><th>one slice: sampled / originals / amortized</th><th>several slices: sampled / originals / amortized</th></tr></thead><tbody><tr><td>2 segments x 1,024, one slice per segment (2 slices)</td><td>128</td><td>128 / 2,048 / 2,048</td><td><strong>16 / 256 / 256</strong> (8x low)</td></tr><tr><td>10 segments x 2,000, default slicing (2 slices)</td><td>1,000</td><td>1,000 / 20,000 / 20,000</td><td><strong>100 / 2,000 / 2,000</strong> (10x low)</td></tr><tr><td>1 segment of 65,536, 4 intra-segment partitions</td><td>1,024</td><td>1,024 / 65,536 / 65,536</td><td><strong>64 / 4,096 / 4,096</strong> (16x low)</td></tr><tr><td>2 segments x 262,144, default slicing (2 slices)</td><td>4,096</td><td>4,096 / 524,288 / 524,288</td><td><strong>64</strong> sampled, amortized <strong>8,192</strong> (64x low)</td></tr></tbody></table></div><p><code>getSamplingRate()</code> is the same in both columns (1/16, 0.05, 1/64, 1/128). The rate applied in the first row is 1/8 x 1/16 = 1/128. In every row (equal slices, integer ratios) the sample size equals <code>sampleSize^2 x numSlices / totalHits</code>; with unequal slices it does not (the probe above samples 110 hits where the formula gives 198).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>404 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications that sample facets with <code class='nw'>createManager</code> on a searcher built with an executor, on queries whose hits far exceed <code class='nw'>sampleSize</code>, which is when sampling is used. Taxonomy and sorted-set facet counts both read the merged collector's <code>getMatchingDocs()</code> (read); every repro that counted facets used sorted-set facets, and the taxonomy path was read, not run.</li><li><strong>Default vs opt-in.</strong> Two opt-ins, facet sampling and an executor; after that, default slicing is enough (10 segments of 2,000 documents form 2 slices), and intra-segment partitions trigger it on one segment. <code>IndexSearcher.search(Query, Collector)</code> is deprecated in favour of the <code class='nw'>CollectorManager</code> path "due to its support for concurrency", so <code class='nw'>createManager</code> is the documented way to sample. The executor constructor is <code>@lucene.experimental</code>.</li><li><strong>Scale.</strong> Deterministic: every sampled query on such a searcher whose search has 2 or more slices, one or more of them with at least about 2 x <code class='nw'>sampleSize</code> hits. A label's amortized count is low in proportion to its hits in those slices; with equal slices, as in every repro, every label is low by exactly <code>sliceHits / sampleSize</code>: 8x, 10x, 16x and 64x. The error grows with the slice size. Hits in smaller slices are counted correctly (executed probe: a label in a 10,000-hit slice amortizes to 1,010 instead of 10,000, one in a 100-hit slice to a correct 100).</li><li><strong>Silent.</strong> No exception or log line. <code>getSamplingRate()</code> and <code>MatchingDocs.totalHits</code> look normal, and in these integer-ratio repros the result even looks self-consistent (sampled / originals equals the reported rate), because the "original hits" are already a sample.</li><li><strong>Second broken promise.</strong> The class javadoc says "If you require the original set of hits, you can call getOriginalMatchingDocs()". On the merged collector it returns the slice samples (2,000 of 20,000), so the two-pass recipe of the facet user guide (the demo module's facet package overview: find the top facets on the sample, then count them exactly "over the entire matching document set") loses hits too.</li><li><strong>How likely.</strong> Plausible: deterministic once both opt-ins meet, but no report exists in the two years since 10.0.0, and no issue in the Elasticsearch, OpenSearch or Solr repositories mentions the collector.</li><li><strong>Not affected.</strong> Which documents match, top hits, exact (unsampled) facet counts and the index; searchers without an executor, and searches with one slice; hits in slices below about 2 x <code class='nw'>sampleSize</code> hits; queries with at most <code class='nw'>sampleSize</code> hits; 9.x. Nothing is stored wrong, so a fix needs no reindex.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit class for <code class='nw'>lucene/facet</code>, public API only. Each test runs the same sampled query on a searcher without an executor (one slice) and on one with several slices, and compares the original hits, the sample and the amortized count of <code class='nw'>color/red</code>. All 3 tests fail on main: two segments, default slicing, and partitions of one segment.</p><figure class='code'><figcaption><span class='fname'>TestSamplingManagerSlices.java (lucene/facet, public API)</span><span class='meta'>188 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Function;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.IndexSearcher.LeafSlice;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.NamedThreadFactory;
+
+/**
+ * {@link RandomSamplingFacetsCollector#createManager} on a searcher with several slices must sample
+ * the hits once, as it does on a searcher with one slice. Every document has the label color/red,
+ * so the true count of that label is the number of hits.
+ */
+public class TestSamplingManagerSlices extends LuceneTestCase {
+
+  private static final String DIM = &quot;color&quot;;
+  private static final FacetsConfig CONFIG = new FacetsConfig();
+
+  /** Default slicing: 10 segments of 2,000 documents are searched as 2 slices of 5 segments. */
+  public void testDefaultSlicing() throws Exception {
+    check(10, 2_000, 1_000, null);
+  }
+
+  /** The smallest case: 2 segments of 1,024 documents, one slice per segment. */
+  public void testOneSlicePerSegment() throws Exception {
+    check(2, 1_024, 128, leaves -&gt; IndexSearcher.slices(leaves, 1, 1, false));
+  }
+
+  /** Intra-segment concurrency: one segment of 65,536 documents searched as 4 partitions. */
+  public void testSegmentPartitions() throws Exception {
+    check(1, 1 &lt;&lt; 16, 1_024, leaves -&gt; IndexSearcher.slices(leaves, 1 &lt;&lt; 14, 5, true));
+  }
+
+  /** What one sampled search returned. */
+  private record Sample(
+      int slices, int originalHits, int sampledHits, double samplingRate, long amortized) {
+    @Override
+    public String toString() {
+      return slices
+          + (slices == 1 ? &quot; slice&quot; : &quot; slices&quot;)
+          + &quot;: original hits &quot;
+          + originalHits
+          + &quot;, sampled &quot;
+          + sampledHits
+          + &quot;, getSamplingRate &quot;
+          + samplingRate
+          + &quot;, amortized count &quot;
+          + amortized;
+    }
+  }
+
+  private void check(
+      int numSegments,
+      int docsPerSegment,
+      int sampleSize,
+      Function&lt;List&lt;LeafReaderContext&gt;, LeafSlice[]&gt; slicer)
+      throws IOException {
+    int numDocs = numSegments * docsPerSegment;
+    ExecutorService executor =
+        Executors.newFixedThreadPool(4, new NamedThreadFactory(&quot;TestSamplingManagerSlices&quot;));
+    try (Directory dir = index(numSegments, docsPerSegment);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      assertEquals(numSegments, reader.leaves().size());
+      IndexSearcher oneSlice = new IndexSearcher(reader); // no executor: one slice
+      IndexSearcher manySlices =
+          slicer == null
+              ? new IndexSearcher(reader, executor)
+              : new IndexSearcher(reader, executor) {
+                @Override
+                protected LeafSlice[] slices(List&lt;LeafReaderContext&gt; leaves) {
+                  return slicer.apply(leaves);
+                }
+              };
+
+      Sample expected = sample(oneSlice, sampleSize);
+      Sample actual = sample(manySlices, sampleSize);
+      String msg =
+          &quot;true count &quot;
+              + numDocs
+              + &quot;, sampleSize &quot;
+              + sampleSize
+              + &quot; | &quot;
+              + expected
+              + &quot; | &quot;
+              + actual;
+      if (VERBOSE) {
+        System.out.println(msg);
+      }
+
+      // Control: one slice samples sampleSize hits and amortizes them to the true count.
+      assertEquals(msg, 1, expected.slices());
+      assertEquals(msg, numDocs, expected.originalHits());
+      assertEquals(msg, sampleSize, expected.sampledHits());
+      assertEquals(msg, numDocs, expected.amortized());
+
+      // Several slices: about the same sample and amortized count, and the same original hits.
+      assertTrue(msg, actual.slices() &gt; 1);
+      assertTrue(msg, actual.amortized() &gt;= numDocs / 2 &amp;&amp; actual.amortized() &lt;= 2L * numDocs);
+      assertTrue(
+          msg, actual.sampledHits() &gt;= sampleSize / 2 &amp;&amp; actual.sampledHits() &lt;= 2 * sampleSize);
+      assertEquals(msg, numDocs, actual.originalHits());
+    } finally {
+      TestUtil.shutdownExecutorService(executor);
+    }
+  }
+
+  /** {@code numSegments} segments of {@code docsPerSegment} documents, all labelled color/red. */
+  private static Directory index(int numSegments, int docsPerSegment) throws IOException {
+    Directory dir = new ByteBuffersDirectory();
+    IndexWriterConfig iwc =
+        new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE).setRAMBufferSizeMB(256);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int s = 0; s &lt; numSegments; s++) {
+        for (int i = 0; i &lt; docsPerSegment; i++) {
+          Document doc = new Document();
+          doc.add(new SortedSetDocValuesFacetField(DIM, &quot;red&quot;));
+          w.addDocument(CONFIG.build(doc));
+        }
+        w.commit(); // one segment each
+      }
+    }
+    return dir;
+  }
+
+  private static Sample sample(IndexSearcher searcher, int sampleSize) throws IOException {
+    RandomSamplingFacetsCollector fc =
+        searcher.search(
+            MatchAllDocsQuery.INSTANCE,
+            RandomSamplingFacetsCollector.createManager(sampleSize, 42L));
+    SortedSetDocValuesReaderState state =
+        new DefaultSortedSetDocValuesReaderState(searcher.getIndexReader(), CONFIG);
+    FacetResult counts = new SortedSetDocValuesFacetCounts(state, fc).getTopChildren(10, DIM);
+    FacetResult amortized = fc.amortizeFacetCounts(counts, CONFIG, searcher);
+    assertEquals(1, amortized.labelValues.length);
+    return new Sample(
+        searcher.getSlices().length,
+        countHits(fc.getOriginalMatchingDocs()),
+        countHits(fc.getMatchingDocs()),
+        fc.getSamplingRate(),
+        amortized.labelValues[0].value.longValue());
+  }
+
+  private static int countHits(List&lt;FacetsCollector.MatchingDocs&gt; matchingDocs) throws IOException {
+    int n = 0;
+    for (FacetsCollector.MatchingDocs md : matchingDocs) {
+      DocIdSetIterator it = md.bits().iterator();
+      while (it.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        n++;
+      }
+    }
+    return n;
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestSamplingManagerSlices.java $LUCENE/lucene/facet/src/test/org/apache/lucene/facet/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:facet:test --tests TestSamplingManagerSlices -Ptests.seed=5EED0765 -Ptests.asserts=true
+# also with -Ptests.asserts=false; nothing depends on the seed
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>With several slices, the one-slice numbers: 128 sampled, 2,048 original hits and an amortized count of 2,048 (default slicing: 1,000, 20,000 and 20,000).</dd></div><div class='got'><dt>Observed</dt><dd>16 sampled, 256 original hits and an amortized count of 256 (default slicing: 100, 2,000 and 2,000; 4 partitions of 65,536: 64, 4,096 and 4,096), with <code>getSamplingRate()</code> unchanged.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-765/'>repro/LFV-765/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>4 more files (620 lines) · 3,243 words</span></summary><div class='body'><p>Every document has the facet label <code class='nw'>color/red</code>, so the label's true count is the number of hits. Each test builds the index with <code class='nw'>NoMergePolicy</code> and one commit per segment, runs <code>MatchAllDocsQuery</code> through <code>RandomSamplingFacetsCollector.createManager(sampleSize, 42L)</code> once on <code>new IndexSearcher(reader)</code> (the one-slice control, which must sample exactly <code class='nw'>sampleSize</code> and amortize to the true count) and once on an <code>IndexSearcher(reader, executor)</code> with several slices, and counts the original hits, the sampled hits and the amortized count of <code class='nw'>red</code> (sorted-set facets). The several-slice oracle is loose on purpose (sample and amortized count within a factor of 2, original hits equal), so other correct fixes pass too. The sampler seed is fixed and the sizes divide evenly, so nothing depends on the test seed; <code>-Ptests.verbose=true</code> prints the numbers of a passing run. It sits next to <code>TestRandomSamplingFacetsCollector</code>, uses nothing package-private, and passes <code>:lucene:facet:check</code> (google-java-format, ecj lint, forbidden-apis). On 10.0.0 to 10.3.2 replace <code>MatchAllDocsQuery.INSTANCE</code> (added in 10.4.0) with <code>new MatchAllDocsQuery()</code>; it does not compile on 9.x. The three tests use equal slices, integer ratios and one label; unequal slices, skewed labels and the docFreq cap of <code>amortizeFacetCounts</code> are not covered (the fact check's probe ran one case of unequal slices: the large slice's label 1,010 instead of 10,000, the small slice's a correct 100).</p><p>The other files: the finder's original test (2 tests, including default slicing on 2 x 262,144 documents, 64x low; it uses a thread pool that Lucene's forbidden-apis rejects), an independent reproducer's class (default slicing on 4 x 2^18 documents and 4 partitions), and the devil's advocate's probe (<code>getOriginalMatchingDocs()</code> 2,000 instead of 20,000).</p><div class="hd hd-3"><h3 id='code-2-h'>TestSamplingManagerReduceResamples.java (the finder&#x27;s test)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>2 tests: 2 x 1,024 documents with one slice per segment (16 against 128 sampled, amortized 256 against 2,048) and default slicing on 2 x 262,144 documents (64 against 4,096, amortized 8,192 against 524,288). Fails 2 of 2 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>) and on all 12 releases 10.0.0 to 10.5.2; its 9.x variant passes on all 19 releases 9.2.0 to 9.12.3; passes with either fix.</p><figure class='code'><figcaption><span class='fname'>TestSamplingManagerReduceResamples.java (the finder&#x27;s test)</span><span class='meta'>197 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.search.CollectorManager;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * RandomSamplingFacetsCollector.createManager: with more than one slice, the reduced collector
+ * samples the hits that the per-slice collectors already sampled, so the sample (and every
+ * amortized count) is far smaller than with the sequential collector on the same index.
+ *
+ * &lt;p&gt;Every document has the facet label color/red, so the exact count is the number of hits. The
+ * sequential collector samples sampleSize hits and amortizes them back to the hit count. The
+ * collector manager, run on a searcher whose slices each hold one segment, returns a sample of
+ * about sampleSize^2 * numSlices / totalHits hits, and an amortized count that is low by the
+ * per-slice sampling ratio.
+ */
+public class TestSamplingManagerReduceResamples extends LuceneTestCase {
+
+  private static final String DIM = &quot;color&quot;;
+
+  /** Two segments of {@code docsPerSegment} documents, every one labelled color/red. */
+  private static Directory buildIndex(FacetsConfig config, int docsPerSegment) throws IOException {
+    Directory dir = new ByteBuffersDirectory();
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setMergePolicy(NoMergePolicy.INSTANCE)
+            .setRAMBufferSizeMB(256)
+            .setMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int seg = 0; seg &lt; 2; seg++) {
+        for (int i = 0; i &lt; docsPerSegment; i++) {
+          Document doc = new Document();
+          doc.add(new SortedSetDocValuesFacetField(DIM, &quot;red&quot;));
+          w.addDocument(config.build(doc));
+        }
+        w.commit();
+      }
+    }
+    return dir;
+  }
+
+  private static int sampledDocCount(FacetsCollector fc) throws IOException {
+    int n = 0;
+    for (FacetsCollector.MatchingDocs md : fc.getMatchingDocs()) {
+      DocIdSetIterator it = md.bits().iterator();
+      while (it.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  private static long amortizedRedCount(
+      RandomSamplingFacetsCollector fc, FacetsConfig config, IndexSearcher searcher)
+      throws IOException {
+    SortedSetDocValuesReaderState state =
+        new DefaultSortedSetDocValuesReaderState(searcher.getIndexReader(), config);
+    FacetResult res = new SortedSetDocValuesFacetCounts(state, fc).getTopChildren(10, DIM);
+    FacetResult amortized = fc.amortizeFacetCounts(res, config, searcher);
+    assertEquals(1, amortized.labelValues.length);
+    assertEquals(&quot;red&quot;, amortized.labelValues[0].label);
+    return amortized.labelValues[0].value.longValue();
+  }
+
+  private void checkManagerMatchesSequential(
+      IndexReader reader, IndexSearcher concurrentSearcher, FacetsConfig config, int sampleSize)
+      throws IOException {
+    int totalHits = reader.numDocs();
+    assertTrue(&quot;needs more than one slice&quot;, concurrentSearcher.getSlices().length &gt; 1);
+
+    // Sequential: one collector over the whole index.
+    IndexSearcher sequentialSearcher = new IndexSearcher(reader);
+    CollectorManager&lt;RandomSamplingFacetsCollector, RandomSamplingFacetsCollector&gt; single =
+        RandomSamplingFacetsCollector.createManager(sampleSize, 42L);
+    RandomSamplingFacetsCollector seq = sequentialSearcher.search(new MatchAllDocsQuery(), single);
+    int seqSampled = sampledDocCount(seq);
+    long seqAmortized = amortizedRedCount(seq, config, sequentialSearcher);
+
+    // The same manager on a searcher with one slice per segment.
+    CollectorManager&lt;RandomSamplingFacetsCollector, RandomSamplingFacetsCollector&gt; manager =
+        RandomSamplingFacetsCollector.createManager(sampleSize, 42L);
+    RandomSamplingFacetsCollector conc = concurrentSearcher.search(new MatchAllDocsQuery(), manager);
+    int concSampled = sampledDocCount(conc);
+    long concAmortized = amortizedRedCount(conc, config, concurrentSearcher);
+
+    String msg =
+        &quot;totalHits=&quot;
+            + totalHits
+            + &quot; sampleSize=&quot;
+            + sampleSize
+            + &quot; sequential: sampled=&quot;
+            + seqSampled
+            + &quot; rate=&quot;
+            + seq.getSamplingRate()
+            + &quot; amortized=&quot;
+            + seqAmortized
+            + &quot; | manager over &quot;
+            + concurrentSearcher.getSlices().length
+            + &quot; slices: sampled=&quot;
+            + concSampled
+            + &quot; rate=&quot;
+            + conc.getSamplingRate()
+            + &quot; amortized=&quot;
+            + concAmortized;
+    System.out.println(msg);
+
+    // Controls: the sequential sample has the documented size and amortizes to the exact count.
+    assertEquals(msg, sampleSize, seqSampled);
+    assertEquals(msg, totalHits, seqAmortized);
+    // Both report the documented sampling ratio sampleSize / totalHits.
+    assertEquals(msg, (double) sampleSize / totalHits, seq.getSamplingRate(), 0d);
+    assertEquals(msg, (double) sampleSize / totalHits, conc.getSamplingRate(), 0d);
+    // The concurrent sample must have about the same size (the bins only shift at segment
+    // boundaries) and amortize to about the same count.
+    assertTrue(msg, Math.abs(concSampled - sampleSize) &lt;= 2);
+    assertTrue(msg, concAmortized &gt;= totalHits / 2);
+  }
+
+  /** One slice per segment through the documented IndexSearcher#slices hook; small index. */
+  public void testOneSlicePerSegment() throws Exception {
+    FacetsConfig config = new FacetsConfig();
+    // 2 x 1024 hits, sampleSize 128: ratio 1/16 overall, 1/8 per slice (exact in binary).
+    try (Directory dir = buildIndex(config, 1024);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      assertEquals(2, reader.leaves().size());
+      ExecutorService executor = Executors.newFixedThreadPool(2);
+      try {
+        IndexSearcher searcher =
+            new IndexSearcher(reader, executor) {
+              @Override
+              protected LeafSlice[] slices(List&lt;LeafReaderContext&gt; leaves) {
+                return IndexSearcher.slices(leaves, 1, 1, false);
+              }
+            };
+        checkManagerMatchesSequential(reader, searcher, config, 128);
+      } finally {
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(30, TimeUnit.SECONDS));
+      }
+    }
+  }
+
+  /** Default slicing: segments above 250,000 documents get a slice of their own. */
+  public void testDefaultSlicesLargeSegments() throws Exception {
+    FacetsConfig config = new FacetsConfig();
+    // 2 x 2^18 hits, sampleSize 2^12: ratio 2^-7 overall, 2^-6 per slice (exact in binary).
+    try (Directory dir = buildIndex(config, 1 &lt;&lt; 18);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      assertEquals(2, reader.leaves().size());
+      ExecutorService executor = Executors.newFixedThreadPool(2);
+      try {
+        IndexSearcher searcher = new IndexSearcher(reader, executor);
+        checkManagerMatchesSequential(reader, searcher, config, 1 &lt;&lt; 12);
+      } finally {
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(30, TimeUnit.SECONDS));
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestSamplingManagerMultiSlice.java (independent reproducer)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>3 tests in a foreign package: a one-slice control; default slicing on 4 x 2^18 documents with four labels (64 sampled instead of 4,096, <code>getSamplingRate()</code> 1/256 while 1/16,384 was applied, amortized label counts 3,072 to 5,632 against 262,144); 4 partitions of one 2^16-document segment (64 instead of 1,024). 2 of 3 fail on main, 10.5.2 and 10.0.0; 9.12.3 and both fixes pass.</p><figure class='code'><figcaption><span class='fname'>TestSamplingManagerMultiSlice.java (independent reproducer)</span><span class='meta'>206 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>package verify.sampling;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.FacetResult;
+import org.apache.lucene.facet.FacetsCollector.MatchingDocs;
+import org.apache.lucene.facet.FacetsConfig;
+import org.apache.lucene.facet.LabelAndValue;
+import org.apache.lucene.facet.RandomSamplingFacetsCollector;
+import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.search.CollectorManager;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.NamedThreadFactory;
+
+/**
+ * Independent check: the CollectorManager returned by RandomSamplingFacetsCollector.createManager
+ * should give about sampleSize sampled hits (ratio sampleSize / totalHits, per the constructor
+ * javadoc) and amortized counts close to the true counts, whatever the number of slices.
+ *
+ * &lt;p&gt;Only public API is used. Power-of-two sizes keep 1 / samplingRate integral, so the bin-size
+ * truncation of createSample plays no part.
+ */
+public class TestSamplingManagerMultiSlice extends LuceneTestCase {
+
+  private static final int NUM_LABELS = 4;
+  private static final long SEED = 42L;
+
+  /** Builds an index with the given segment sizes (one flush per segment, no merges). */
+  private static DirectoryReader buildIndex(Directory dir, FacetsConfig config, int... segSizes)
+      throws IOException {
+    IndexWriterConfig iwc = new IndexWriterConfig();
+    iwc.setCodec(TestUtil.getDefaultCodec());
+    iwc.setMergePolicy(NoMergePolicy.INSTANCE);
+    iwc.setMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH);
+    iwc.setRAMBufferSizeMB(512);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      int id = 0;
+      for (int segSize : segSizes) {
+        for (int i = 0; i &lt; segSize; i++, id++) {
+          Document doc = new Document();
+          doc.add(new SortedSetDocValuesFacetField(&quot;color&quot;, &quot;c&quot; + (id % NUM_LABELS)));
+          w.addDocument(config.build(doc));
+        }
+        w.commit();
+      }
+    }
+    DirectoryReader r = DirectoryReader.open(dir);
+    assertEquals(&quot;precondition: segment count&quot;, segSizes.length, r.leaves().size());
+    return r;
+  }
+
+  private record Stats(
+      int slices, int totalHits, int sampled, double rate, int[] amortized, int[] sampledCounts) {
+    String describe() {
+      return &quot;slices=&quot;
+          + slices
+          + &quot; totalHits=&quot;
+          + totalHits
+          + &quot; sampled=&quot;
+          + sampled
+          + &quot; getSamplingRate=&quot;
+          + rate
+          + &quot; effectiveRate=&quot;
+          + ((double) sampled / totalHits)
+          + &quot; sampledLabelCounts=&quot;
+          + java.util.Arrays.toString(sampledCounts)
+          + &quot; amortizedLabelCounts=&quot;
+          + java.util.Arrays.toString(amortized);
+    }
+  }
+
+  private static Stats measure(
+      IndexSearcher searcher, FacetsConfig config, SortedSetDocValuesReaderState state, int sampleSize)
+      throws IOException {
+    CollectorManager&lt;RandomSamplingFacetsCollector, RandomSamplingFacetsCollector&gt; m =
+        RandomSamplingFacetsCollector.createManager(sampleSize, SEED);
+    RandomSamplingFacetsCollector c = searcher.search(new MatchAllDocsQuery(), m);
+    int totalHits = 0;
+    int sampled = 0;
+    List&lt;MatchingDocs&gt; mds = c.getMatchingDocs();
+    for (MatchingDocs md : mds) {
+      totalHits += md.totalHits();
+      DocIdSetIterator it = md.bits().iterator();
+      while (it.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        sampled++;
+      }
+    }
+    SortedSetDocValuesFacetCounts counts = new SortedSetDocValuesFacetCounts(state, c);
+    FacetResult res = counts.getTopChildren(NUM_LABELS, &quot;color&quot;);
+    FacetResult am = c.amortizeFacetCounts(res, config, searcher);
+    int[] amortized = new int[NUM_LABELS];
+    int[] sampledCounts = new int[NUM_LABELS];
+    if (res != null) {
+      for (LabelAndValue lv : res.labelValues) {
+        sampledCounts[Integer.parseInt(lv.label.substring(1))] = lv.value.intValue();
+      }
+      for (LabelAndValue lv : am.labelValues) {
+        amortized[Integer.parseInt(lv.label.substring(1))] = lv.value.intValue();
+      }
+    }
+    return new Stats(
+        searcher.getSlices().length, totalHits, sampled, c.getSamplingRate(), amortized, sampledCounts);
+  }
+
+  /** The documented outcome, with a generous factor-2 tolerance. */
+  private static void assertSampleMatchesContract(
+      String what, Stats s, int sampleSize, int numDocs) {
+    String msg = what + &quot;: sampleSize=&quot; + sampleSize + &quot; &quot; + s.describe();
+    System.out.println(msg);
+    assertEquals(msg, numDocs, s.totalHits);
+    assertTrue(
+        &quot;sample size should be about sampleSize (ratio sampleSize/totalHits): &quot; + msg,
+        s.sampled &gt;= sampleSize / 2 &amp;&amp; s.sampled &lt;= 2 * sampleSize);
+    int trueCount = numDocs / NUM_LABELS;
+    for (int i = 0; i &lt; NUM_LABELS; i++) {
+      assertTrue(
+          &quot;amortized count of c&quot; + i + &quot; should be about the true count &quot; + trueCount + &quot;: &quot; + msg,
+          s.amortized[i] &gt;= trueCount / 2 &amp;&amp; s.amortized[i] &lt;= 2 * trueCount);
+    }
+  }
+
+  // 4 segments of 2^18 docs: each is above the default 250,000 docs per slice, so the default
+  // IndexSearcher slicing gives one slice per segment.
+  private static final int SEG = 1 &lt;&lt; 18;
+  private static final int SAMPLE_A = 1 &lt;&lt; 12; // ratio 2^12 / 2^20 = 1/256
+
+  private void runIndexA(boolean withExecutor) throws Exception {
+    FacetsConfig config = new FacetsConfig();
+    try (Directory dir = new ByteBuffersDirectory();
+        DirectoryReader r = buildIndex(dir, config, SEG, SEG, SEG, SEG)) {
+      SortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(r, config);
+      if (withExecutor == false) {
+        Stats s = measure(new IndexSearcher(r), config, state, SAMPLE_A);
+        assertEquals(&quot;precondition: one slice without executor&quot;, 1, s.slices);
+        assertSampleMatchesContract(&quot;no executor (control)&quot;, s, SAMPLE_A, 4 * SEG);
+      } else {
+        ExecutorService ex = Executors.newFixedThreadPool(4, new NamedThreadFactory(&quot;v1-sampling&quot;));
+        try {
+          Stats s = measure(new IndexSearcher(r, ex), config, state, SAMPLE_A);
+          assertEquals(&quot;precondition: default slicing gives 4 slices&quot;, 4, s.slices);
+          assertSampleMatchesContract(&quot;executor, default slicing&quot;, s, SAMPLE_A, 4 * SEG);
+        } finally {
+          ex.shutdown();
+          assertTrue(ex.awaitTermination(30, TimeUnit.SECONDS));
+        }
+      }
+    }
+  }
+
+  public void testControlNoExecutorOneSlice() throws Exception {
+    runIndexA(false);
+  }
+
+  public void testDefaultSlicingWithExecutor() throws Exception {
+    runIndexA(true);
+  }
+
+  // One segment of 2^16 docs split into 4 intra-segment partitions of 2^14 docs.
+  private static final int ONE_SEG = 1 &lt;&lt; 16;
+  private static final int SAMPLE_B = 1 &lt;&lt; 10; // ratio 2^10 / 2^16 = 1/64
+
+  public void testIntraSegmentPartitions() throws Exception {
+    FacetsConfig config = new FacetsConfig();
+    ExecutorService ex = Executors.newFixedThreadPool(4, new NamedThreadFactory(&quot;v1-sampling&quot;));
+    try (Directory dir = new ByteBuffersDirectory();
+        DirectoryReader r = buildIndex(dir, config, ONE_SEG)) {
+      SortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(r, config);
+      // control: same executor, default slicing (one slice, the segment is small)
+      Stats control = measure(new IndexSearcher(r, ex), config, state, SAMPLE_B);
+      assertEquals(&quot;precondition: one slice by default&quot;, 1, control.slices);
+      assertSampleMatchesContract(&quot;executor, one slice (control)&quot;, control, SAMPLE_B, ONE_SEG);
+
+      IndexSearcher partitioned =
+          new IndexSearcher(r, ex) {
+            @Override
+            protected LeafSlice[] slices(List&lt;LeafReaderContext&gt; leaves) {
+              return IndexSearcher.slices(leaves, ONE_SEG / 4, 5, true);
+            }
+          };
+      Stats s = measure(partitioned, config, state, SAMPLE_B);
+      assertEquals(&quot;precondition: 4 partitions&quot;, 4, s.slices);
+      assertSampleMatchesContract(&quot;executor, 4 intra-segment partitions&quot;, s, SAMPLE_B, ONE_SEG);
+    } finally {
+      ex.shutdown();
+      assertTrue(ex.awaitTermination(30, TimeUnit.SECONDS));
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestSamplingReduceV3Check.java (devil&#x27;s advocate probe)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Default slicing on 10 x 2,000 documents (2 slices), <code class='nw'>sampleSize</code> 1,000: the merged collector's <code>getOriginalMatchingDocs()</code> holds 2,000 hits instead of 20,000 and its sample 100 instead of 1,000; correct on 9.12.3 and with either fix.</p><figure class='code'><figcaption><span class='fname'>TestSamplingReduceV3Check.java (devil&#x27;s advocate probe)</span><span class='meta'>125 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.search.CollectorManager;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Two extra checks of RandomSamplingFacetsCollector.createManager with more than one slice, both
+ * with default IndexSearcher slicing (an executor and ten small segments, which default slicing
+ * groups five per slice):
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;the reduced collector&#x27;s getOriginalMatchingDocs() must hold every hit (class javadoc: &quot;If
+ *       you require the original set of hits, you can call getOriginalMatchingDocs()&quot;);
+ *   &lt;li&gt;the reduced sample must have about sampleSize hits (constructor javadoc: sampling ratio
+ *       sampleSize / totalN).
+ * &lt;/ul&gt;
+ */
+public class TestSamplingReduceV3Check extends LuceneTestCase {
+
+  private static Directory buildIndex(FacetsConfig config, int segments, int docsPerSegment)
+      throws IOException {
+    Directory dir = new ByteBuffersDirectory();
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setMergePolicy(NoMergePolicy.INSTANCE)
+            .setRAMBufferSizeMB(256)
+            .setMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int seg = 0; seg &lt; segments; seg++) {
+        for (int i = 0; i &lt; docsPerSegment; i++) {
+          Document doc = new Document();
+          doc.add(new SortedSetDocValuesFacetField(&quot;color&quot;, &quot;red&quot;));
+          w.addDocument(config.build(doc));
+        }
+        w.commit();
+      }
+    }
+    return dir;
+  }
+
+  private static int count(List&lt;FacetsCollector.MatchingDocs&gt; mds) throws IOException {
+    int n = 0;
+    for (FacetsCollector.MatchingDocs md : mds) {
+      DocIdSetIterator it = md.bits().iterator();
+      while (it.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  public void testDefaultSlicingTenSmallSegments() throws Exception {
+    FacetsConfig config = new FacetsConfig();
+    int segments = 10;
+    int docsPerSegment = 2000;
+    int sampleSize = 1000;
+    try (Directory dir = buildIndex(config, segments, docsPerSegment);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      assertEquals(segments, reader.leaves().size());
+      int totalHits = reader.numDocs();
+      ExecutorService executor = Executors.newFixedThreadPool(2);
+      try {
+        IndexSearcher searcher = new IndexSearcher(reader, executor);
+        int numSlices = searcher.getSlices().length;
+        CollectorManager&lt;RandomSamplingFacetsCollector, RandomSamplingFacetsCollector&gt; manager =
+            RandomSamplingFacetsCollector.createManager(sampleSize, 42L);
+        RandomSamplingFacetsCollector reduced = searcher.search(new MatchAllDocsQuery(), manager);
+        int original = count(reduced.getOriginalMatchingDocs());
+        int sampled = count(reduced.getMatchingDocs());
+        String msg =
+            &quot;slices=&quot;
+                + numSlices
+                + &quot; totalHits=&quot;
+                + totalHits
+                + &quot; sampleSize=&quot;
+                + sampleSize
+                + &quot; reduced.getOriginalMatchingDocs()=&quot;
+                + original
+                + &quot; reduced.getMatchingDocs()=&quot;
+                + sampled
+                + &quot; samplingRate=&quot;
+                + reduced.getSamplingRate();
+        System.out.println(msg);
+        assertEquals(&quot;default slicing must give 2 slices: &quot; + msg, 2, numSlices);
+        assertEquals(&quot;original hits: &quot; + msg, totalHits, original);
+        assertTrue(&quot;sample size: &quot; + msg, Math.abs(sampled - sampleSize) &lt;= sampleSize / 10);
+      } finally {
+        executor.shutdown();
+        assertTrue(executor.awaitTermination(30, TimeUnit.SECONDS));
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>TestFactCheckMixedSlices.java (fact check&#x27;s unequal-slice probe)</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>One slice of 10,000 hits labelled <code class='nw'>color/x</code> and one of 100 hits labelled <code class='nw'>color/y</code> (one slice per segment), <code class='nw'>sampleSize</code> 1,000: on main <code class='nw'>x</code> amortizes to 1,010 instead of 10,000 and <code class='nw'>y</code> to a correct 100 (110 sampled hits); with fix A, 10,000 and 100. Hits of a slice too small for its own pass to drop any are counted correctly. A print-only probe (it passes either way).</p><figure class='code'><figcaption><span class='fname'>TestFactCheckMixedSlices.java (fact check&#x27;s unequal-slice probe)</span><span class='meta'>92 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>package org.apache.lucene.facet;
+
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.sortedset.DefaultSortedSetDocValuesReaderState;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.IndexSearcher.LeafSlice;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.NamedThreadFactory;
+
+/**
+ * Fact-check probe: two slices of very different size. Segment A has 10,000 docs labelled color/x,
+ * segment B has 100 docs labelled color/y; sampleSize 1,000; one slice per segment. Prints the
+ * amortized count of each label for one slice (no executor) and for two slices.
+ */
+public class TestFactCheckMixedSlices extends LuceneTestCase {
+  private static final FacetsConfig CONFIG = new FacetsConfig();
+
+  public void testMixedSliceSizes() throws Exception {
+    ExecutorService executor =
+        Executors.newFixedThreadPool(2, new NamedThreadFactory(&quot;TestFactCheckMixedSlices&quot;));
+    Directory dir = new ByteBuffersDirectory();
+    try (IndexWriter w =
+        new IndexWriter(
+            dir, new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE))) {
+      for (int i = 0; i &lt; 10_000; i++) {
+        Document d = new Document();
+        d.add(new SortedSetDocValuesFacetField(&quot;color&quot;, &quot;x&quot;));
+        w.addDocument(CONFIG.build(d));
+      }
+      w.commit();
+      for (int i = 0; i &lt; 100; i++) {
+        Document d = new Document();
+        d.add(new SortedSetDocValuesFacetField(&quot;color&quot;, &quot;y&quot;));
+        w.addDocument(CONFIG.build(d));
+      }
+      w.commit();
+    }
+    try (DirectoryReader reader = DirectoryReader.open(dir)) {
+      assertEquals(2, reader.leaves().size());
+      IndexSearcher one = new IndexSearcher(reader);
+      IndexSearcher two =
+          new IndexSearcher(reader, executor) {
+            @Override
+            protected LeafSlice[] slices(List&lt;LeafReaderContext&gt; leaves) {
+              return IndexSearcher.slices(leaves, 1, 1, false);
+            }
+          };
+      String a = run(one);
+      String b = run(two);
+      System.out.println(&quot;FACTCHECK one slice: &quot; + a);
+      System.out.println(&quot;FACTCHECK two slices: &quot; + b);
+    } finally {
+      dir.close();
+      TestUtil.shutdownExecutorService(executor);
+    }
+  }
+
+  private static String run(IndexSearcher s) throws Exception {
+    RandomSamplingFacetsCollector fc =
+        s.search(new MatchAllDocsQuery(), RandomSamplingFacetsCollector.createManager(1000, 42L));
+    SortedSetDocValuesReaderState state =
+        new DefaultSortedSetDocValuesReaderState(s.getIndexReader(), CONFIG);
+    FacetResult counts = new SortedSetDocValuesFacetCounts(state, fc).getTopChildren(10, &quot;color&quot;);
+    FacetResult am = fc.amortizeFacetCounts(counts, CONFIG, s);
+    StringBuilder sb = new StringBuilder();
+    sb.append(&quot;slices=&quot;).append(s.getSlices().length).append(&quot; rate=&quot;).append(fc.getSamplingRate());
+    for (int i = 0; i &lt; counts.labelValues.length; i++) {
+      sb.append(&quot; | &quot;)
+          .append(counts.labelValues[i].label)
+          .append(&quot;: sampled &quot;)
+          .append(counts.labelValues[i].value)
+          .append(&quot;, amortized &quot;)
+          .append(am.labelValues[i].value);
+    }
+    return sb.toString();
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also 10.5.2 and 10.0.0 (release jars)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java; only this platform was run)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestSamplingManagerSlices.java $LUCENE/lucene/facet/src/test/org/apache/lucene/facet/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:facet:test --tests TestSamplingManagerSlices -Ptests.seed=5EED0765 -Ptests.asserts=true
+# also with -Ptests.asserts=false; add -Ptests.verbose=true to print the numbers when it passes
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, -Ptests.asserts=true (the same with false)
+TestSamplingManagerSlices &gt; testDefaultSlicing FAILED
+    java.lang.AssertionError: true count 20000, sampleSize 1000 | 1 slice: original hits 20000, sampled 1000, getSamplingRate 0.05, amortized count 20000 | 2 slices: original hits 2000, sampled 100, getSamplingRate 0.05, amortized count 2000
+TestSamplingManagerSlices &gt; testOneSlicePerSegment FAILED
+    java.lang.AssertionError: true count 2048, sampleSize 128 | 1 slice: original hits 2048, sampled 128, getSamplingRate 0.0625, amortized count 2048 | 2 slices: original hits 256, sampled 16, getSamplingRate 0.0625, amortized count 256
+TestSamplingManagerSlices &gt; testSegmentPartitions FAILED
+    java.lang.AssertionError: true count 65536, sampleSize 1024 | 1 slice: original hits 65536, sampled 1024, getSamplingRate 0.015625, amortized count 65536 | 4 slices: original hits 4096, sampled 64, getSamplingRate 0.015625, amortized count 4096
+3 tests completed, 3 failed
+
+# the same messages on 10.5.2 and 10.0.0; with fix A or fix B (verbose run), e.g.:
+true count 20000, sampleSize 1000 | 1 slice: original hits 20000, sampled 1000, getSamplingRate 0.05, amortized count 20000 | 2 slices: original hits 20000, sampled 1000, getSamplingRate 0.05, amortized count 20000</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc fixes one ratio, "sampling size / totalN", and <code>getSamplingRate()</code> "Returns the sampling rate that was used": it says 1/16, while 1/128 was applied.</li><li>The design (LUCENE-10484) says "the reduction should call getOriginalMatchingDocs instead of getMatchingDocs"; 9.x did, and samples once.</li><li>#13542 changed that line to merge partitions of one segment; it never discusses sample size or rate.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>339 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> Constructor javadoc: "If the number of hits is greater than the size, sampling will be done using a sample ratio of sampling size / totalN" (<code>RandomSamplingFacetsCollector.java:97-100</code>). <code>getSamplingRate()</code>: "Returns the sampling rate that was used" (<code class='nw'>:256</code>). Class javadoc: the original hits through <code>getOriginalMatchingDocs()</code>, and amortized counts (<code class='nw'>:38-40</code>). <code class='nw'>createManager</code>: "a CollectorManager for concurrent random sampling through RandomSamplingFacetsCollector" (<code class='nw'>:261-264</code>), the same sampler run concurrently. All four break once a search has 2 or more slices and one of them has at least about 2 x <code class='nw'>sampleSize</code> hits.</li><li><strong>Design.</strong> LUCENE-10484 (#11520, an issue migrated from JIRA, by @javanna): "the reduction should call getOriginalMatchingDocs instead of getMatchingDocs, which modifies the internal totalHits when called". Its implementation (#765: <code class='nw'>7ed0f3d7adb</code> on main, released in 9.2.0 as the branch_9x commit <code class='nw'>b0ecba4fb24</code>) added each collector's <code>getOriginalMatchingDocs()</code>.</li><li><strong>History.</strong> #13542 (@javanna, 2024-09-10, intra-segment concurrency) replaced that loop with the new shared helper <code>reduceMatchingDocs</code>, so that partitions of one segment merge into one <code class='nw'>MatchingDocs</code>. Its PR body names <code class='nw'>createManager</code> only for that merge ("returned multiple MatchingDocs instances that pointed to the same LeafReaderContext"), and a 2024-07-22 comment by the author lists <code>TestRandomSamplingFacetsCollector.testRandomSampling</code> among the facet tests that failed before the facet code was adapted to partitions; no PR or review comment discusses sample size or rate. Every 9.x release, 9.2.0 to 9.12.3, samples once (executed).</li><li><strong>Tests.</strong> <code>TestRandomSamplingFacetsCollector</code> states the intended sample size ("10% of total docs, 20% of the hits", line 96) but asserts only a chi-square over segments and <code>amortized == min(5 x sampled, numDocs / 10)</code> (<code class='nw'>:133</code>, <code class='nw'>:135-148</code>). Neither checks the query-wide sample size or compares an amortized count with the true count; the amortized check divides by the merged collector's own rate, so it holds either way, and the test is not built to see this bug.</li><li><strong>Effect size.</strong> 16 sampled hits where 128 were asked for, and 256 where 2,048 is the true count, is not sampling noise: the bias is deterministic and the reported rate is wrong.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>264 words</span></summary><div class='body'><p>The strongest "works as designed" case: <code class='nw'>sampleSize</code> is only "the preferred sample size"; the executor constructor and <code>search(Query, CollectorManager)</code> are <code>@lucene.experimental</code>; <code class='nw'>createManager</code> never promises the result of one collector; reusing <code>reduceMatchingDocs</code> was deliberate, #13542 was reviewed, and its author saw <code>TestRandomSamplingFacetsCollector</code> fail during that work; <code>FacetsCollector.getMatchingDocs()</code> is documented as "the documents matched by the query", so the sampling override, not the helper, could be blamed; per-slice sampling could be read as a memory saving; the upstream test accepts the result.</p><p>Why it fails: the same javadoc sentence fixes the ratio, <code>sampleSize / totalN</code>, and <code>getSamplingRate()</code> reports a rate that was not applied, so the estimates are biased, not merely noisy. <code>getOriginalMatchingDocs()</code> stops returning the original hits. Whichever side is blamed, the sampler's own documented rate and original-hits contract break, and the design issue settled the reduce on <code>getOriginalMatchingDocs</code> exactly because <code class='nw'>getMatchingDocs</code> is the sampling override ("which modifies the internal totalHits when called"). <code>@lucene.experimental</code> allows API change, not wrong results, and the deprecation of <code>search(Query, Collector)</code> sends users to exactly this path. The reuse was deliberate for the partition merge; nothing in the PR discusses the sample, and every 9.x release reduced the originals. Nor is per-slice sampling a memory saving: each slice collector holds its original hits until the reduce in either case, and each sampled segment is a new bit set of the segment's full size (<code>RandomSamplingFacetsCollector.java:162</code>). The upstream test never checks the sample size. <strong>Verdict: a regression</strong> (adjudication: confirmed, high; the reproducer, the intended-lens review and the devil's advocate: real; the cross-model reviews rated the intended case weak).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Reduce each slice's original hits</strong></p><p class='short'>In <code>ReducedRandomSamplingFacetsCollector</code>, merge each slice's original hits instead of its sample: wrap each slice's <code>getOriginalMatchingDocs()</code> in a plain <code class='nw'>FacetsCollector</code> and pass those to <code>reduceMatchingDocs</code>, which still merges partitions of one segment. The repro, upstream <code>TestRandomSamplingFacetsCollector</code> and the whole facet suite pass, assertions on and off.</p><pre class='snippet' tabindex='0'><code>      super(sampleSize, seed);
+-      this.getOriginalMatchingDocs()
+-          .addAll(FacetsCollectorManager.reduceMatchingDocs(facetsCollectors));
++      // Reduce the per-slice ORIGINAL hits: getMatchingDocs() of a slice collector returns that
++      // slice&#x27;s own sample, and this collector samples the reduced hits again.
++      List&lt;FacetsCollector&gt; originals = new ArrayList&lt;&gt;(facetsCollectors.size());
++      for (RandomSamplingFacetsCollector fc : facetsCollectors) {
++        FacetsCollector original = new FacetsCollector(false);
++        original.getMatchingDocs().addAll(fc.getOriginalMatchingDocs());
++        originals.add(original);
++      }
++      this.getOriginalMatchingDocs().addAll(FacetsCollectorManager.reduceMatchingDocs(originals));</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 706 words</span></summary><div class='body'><p>Both validated fixes restore the one-slice numbers in every repro: the same sample sizes, rates and counts. Which documents a fixed seed picks can still differ from one slice, because the merge iterates a hash map of segments. Both were validated through gradle on main only (10.x was run with the release jars, without a fix), and neither was benchmarked. Workaround until a fix ships: run sampled facet collection on an <code class='nw'>IndexSearcher</code> without an executor, which every test's control shows to be correct, or make sure the search has one slice, for which <code class='nw'>reduce</code> returns the one collector unchanged (<code>RandomSamplingFacetsCollector.java:279-281</code>). The new test is a ready regression test. Open draft PR #16847 touches both files but not the merge. Only query-time results change; no reindex.</p><div class="hd hd-3"><h3 id='fix-reduce-originals'>Reduce each slice's original hits <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-reduce-originals" target="_self" aria-label="Link to this section" aria-describedby="fix-reduce-originals"><span aria-hidden="true">#</span></a></div><p><code>RandomSamplingFacetsCollector.java:291-292</code>, the finder's sketch, +9/-2 lines in one file: wrap each slice's <code>getOriginalMatchingDocs()</code> in a plain <code class='nw'>FacetsCollector</code> and give those to <code>FacetsCollectorManager.reduceMatchingDocs</code>, which keeps merging partitions of one segment.</p><pre class='snippet' tabindex='0'><code>      super(sampleSize, seed);
+-      this.getOriginalMatchingDocs()
+-          .addAll(FacetsCollectorManager.reduceMatchingDocs(facetsCollectors));
++      // Reduce the per-slice ORIGINAL hits: getMatchingDocs() of a slice collector returns that
++      // slice&#x27;s own sample, and this collector samples the reduced hits again.
++      List&lt;FacetsCollector&gt; originals = new ArrayList&lt;&gt;(facetsCollectors.size());
++      for (RandomSamplingFacetsCollector fc : facetsCollectors) {
++        FacetsCollector original = new FacetsCollector(false);
++        original.getMatchingDocs().addAll(fc.getOriginalMatchingDocs());
++        originals.add(original);
++      }
++      this.getOriginalMatchingDocs().addAll(FacetsCollectorManager.reduceMatchingDocs(originals));</code></pre><p class='k'>Trade-offs</p><ul><li>One throwaway <code class='nw'>FacetsCollector</code> per slice. It relies on <code>FacetsCollector.getMatchingDocs()</code> returning its own mutable list, as the plain <code>FacetsCollectorManager</code> reduce already does.</li><li>Side benefit: nothing asks the slice collectors for a sample any more, so the per-slice sampling work (a bit set per segment per slice) disappears.</li><li>The merged collector samples once, with its bins running over the merged segments in hash-map order, as today.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: the new test fails 3 of 3 on stock with assertions on and off; with the fix, the new test and upstream <code>TestRandomSamplingFacetsCollector</code> pass 4 of 4, on and off, and <code>TestRandomSamplingFacetsCollector</code> passes 20 of 20 iterations; the whole <code>:lucene:facet:test</code> passes, 40 suites and 309 tests, 0 failures, with assertions on (7 skipped) and off (8 skipped); <code>:lucene:facet:check -x test</code> (google-java-format, ecj lint, forbidden-apis) passes.</li><li>Standalone runner with the fix shadowed: the new test 3 of 3 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), printing the one-slice numbers for every several-slice search. The same sketch already passed the finder's, the independent reproducer's, the second verifier's and the devil's advocate's tests, the adjudication's re-run and upstream <code>TestRandomSamplingFacetsCollector</code> (2 seeds).</li></ul><div class="hd hd-3"><h3 id='fix-accessor-parameter'>Give reduceMatchingDocs the accessor to read <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-accessor-parameter" target="_self" aria-label="Link to this section" aria-describedby="fix-accessor-parameter"><span aria-hidden="true">#</span></a></div><p>+19/-3 lines over <code>FacetsCollectorManager.java</code> (+15/-2) and <code>RandomSamplingFacetsCollector.java</code> (+4/-1): an overload of the package-private helper that takes the accessor (the old signature delegates with <code>FacetsCollector::getMatchingDocs</code>), and the sampler's merge passing <code>RandomSamplingFacetsCollector::getOriginalMatchingDocs</code>.</p><pre class='snippet' tabindex='0'><code>   static Collection&lt;FacetsCollector.MatchingDocs&gt; reduceMatchingDocs(
+       final Collection&lt;? extends FacetsCollector&gt; facetsCollectors) {
++    return reduceMatchingDocs(facetsCollectors, FacetsCollector::getMatchingDocs);
++  }
++
++  static &lt;C extends FacetsCollector&gt; Collection&lt;FacetsCollector.MatchingDocs&gt; reduceMatchingDocs(
++      final Collection&lt;? extends C&gt; facetsCollectors,
++      final Function&lt;? super C, List&lt;FacetsCollector.MatchingDocs&gt;&gt; matchingDocsOf) {
+     ...
+-    for (FacetsCollector facetsCollector : facetsCollectors) {
+-      for (FacetsCollector.MatchingDocs matchingDocs : facetsCollector.getMatchingDocs()) {
++    for (C facetsCollector : facetsCollectors) {
++      for (FacetsCollector.MatchingDocs matchingDocs : matchingDocsOf.apply(facetsCollector)) {
+
+   // RandomSamplingFacetsCollector, ReducedRandomSamplingFacetsCollector:
+       this.getOriginalMatchingDocs()
+-          .addAll(FacetsCollectorManager.reduceMatchingDocs(facetsCollectors));
++          .addAll(
++              FacetsCollectorManager.reduceMatchingDocs(
++                  facetsCollectors, RandomSamplingFacetsCollector::getOriginalMatchingDocs));</code></pre><p class='k'>Trade-offs</p><ul><li>Makes the dependency explicit for any future subclass whose <code>getMatchingDocs()</code> is not the collected set, and avoids fix A's per-slice wrapper collectors (it adds a <code class='nw'>Function</code> call per collector instead).</li><li>Touches the shared helper (package-private, so no public API change) instead of one file.</li></ul><p class='k'>What the checks validated</p><ul><li>Same worktree, gradle: the new test and upstream <code>TestRandomSamplingFacetsCollector</code> pass 4 of 4; the whole <code>:lucene:facet:test</code> passes, 40 suites and 309 tests, 0 failures (assertions on); <code>:lucene:facet:check -x test</code> passes.</li><li>Standalone runner: the new test 3 of 3 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), the finder's test 2 of 2, the independent reproducer's 3 of 3 and the devil's advocate's probe 1 of 1.</li></ul><div class="hd hd-3"><h3 id='fix-revert-hunk'>Revert the #13542 hunk (not a fix)</h3><a class="hlink" href="#fix-revert-hunk" target="_self" aria-label="Link to this section" aria-describedby="fix-revert-hunk"><span aria-hidden="true">#</span></a></div><p>Putting back the 9.x loop over <code>getOriginalMatchingDocs()</code> restores the numbers for whole-segment slices, which shows the cause.</p><p class='k'>Trade-offs</p><p>It drops the partition merge #13542 needed: with intra-segment partitions the merged collector would again hold several <code class='nw'>MatchingDocs</code> for one segment, the failure #13542 fixed. Not proposed.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Products that show or threshold sampled facet counts from a concurrent searcher (for example, hiding values below a minimum count) under-report them silently; which documents match, and the index, are unaffected.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code reading. Checking which shared helpers call methods that subclasses override, an AI hunting AI tool saw that the merge step reads the sampling collector's overridden <code>getMatchingDocs()</code>, and git history showed that #13542 had replaced <code>getOriginalMatchingDocs()</code> there. A public-API JUnit comparing one slice with several confirmed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>151 words</span></summary><div class='body'><p><strong>Method: code reading</strong> (the hunt's "non-formal" tier), a hunt unit ("override-hook and accessor-bypass inventory"), 2026-10-27, stock main jars.</p><ul><li>While checking each documented option on every entry path, here the sequential collector against the <code class='nw'>CollectorManager</code> path of the facet collectors, the hunting AI tool saw that <code>reduceMatchingDocs</code> calls the overridable accessor <code>getMatchingDocs()</code>, which <code>RandomSamplingFacetsCollector</code> overrides to sample. <code>git log -S</code> on both spellings of the merge showed that #13542 replaced <code>getOriginalMatchingDocs()</code> with that call.</li><li>It wrote a differential public-API JUnit (the same manager on a one-slice and a several-slice searcher) and a bounded matrix over the real classes (755 cells, 0 contradictions with the prediction derived from the code, on main and with the fix).</li><li>Then independent AI tools reproduced, reviewed and judged it (see the checks); the devil's advocate added the <code>getOriginalMatchingDocs()</code> symptom and the small-segment default-slicing trigger, and this doc's test combined the three triggers into one upstream-ready class.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): about 170 logged queries and checks over GitHub, four mailing lists, JIRA, downstream repositories and the web, plus the changed files of all 408 open PRs. Nearest: #13542, which introduced it, and LUCENE-10484 (#11520), whose design says the merge must use <code>getOriginalMatchingDocs</code>.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>No issue, PR, review comment, commit, JIRA ticket, list thread, downstream report or web page found reports that <code class='nw'>createManager</code> samples the slice samples a second time, that its several-slice sample is too small, or that its amortized counts come out low. Not fixed upstream: no commit touched <code>RandomSamplingFacetsCollector.java</code> since <code class='nw'>fafd6af004e</code> on main, branch_10x or branch_10_5, and <code class='nw'>CHANGES.txt</code> has no entry for a fix (it lists only LUCENE-5476, which added the sampler, LUCENE-10484 and GITHUB#13542; 2026-10-27).</p><p>Nearest items, none of them a report: #13542 (introduced it; its PR body names <code class='nw'>createManager</code> only for the partition merge); #11520 / #765 (LUCENE-10484, the design and the correct first merge); open draft #16847 (long doc ids, touches both files, leaves the merge unchanged); #6539 (LUCENE-5476, the sequential sampler); #11041, #240, #13503, #12474, #13745, #13753 (CollectorManager migration and partition concurrency, no sampling). Gaps: keyword search only; inline review threads read in full only for #13542 and #765; private reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene)</th><td class='when'>2026-10-27</td><td>two scripted prior-report search runs (51 queries each) plus the finder's (45), and 25 manual searches: class and method names (<code>RandomSamplingFacetsCollector</code>, <code class='nw'>createManager</code>, <code>reduceMatchingDocs</code>, <code>getOriginalMatchingDocs</code>), symptoms and labels; 16 items read in full</td><td>no report; the items listed above</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>4 text searches; the changed files of all 408 open apache/lucene PRs, plus the full 438-file list of draft #16847</td><td>#16847 is the only open PR that touches both files; it leaves the merge unchanged. #13334 touches <code>FacetsCollectorManager.java</code> only (a keepScores constructor), unrelated to sampling</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-27</td><td>dev@, java-user@, issues@ and commits@ through the tool runs, plus 12 direct archive queries; the JIRA archive through the tool runs</td><td>no report; two java-user@ threads on sampling (2015, 2024) without concurrency</td></tr><tr><th scope='row'>Downstream repositories and web</th><td class='when'>2026-10-27</td><td>Elasticsearch, OpenSearch, Solr, Lucene.NET and all of GitHub; 8 web searches</td><td>no report; no issue in Elasticsearch, OpenSearch or Solr mentions the collector</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #13542 (<code class='nw'>fafd6af004e</code>, merged 2024-09-10), first released in 10.0.0. All 12 releases from 10.0.0 to 10.5.2 and main fail; all 19 releases from 9.2.0, where <code class='nw'>createManager</code> appeared, to 9.12.3 pass. Restoring only that hunk's old text makes the repro pass. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>A regression.</strong> <code class='nw'>createManager</code> came with LUCENE-10484 (#765, <code class='nw'>7ed0f3d7adb</code> on main, 2022-04-05; first released in 9.2.0 through its branch_9x commit <code class='nw'>b0ecba4fb24</code>), whose merge added each collector's <code>getOriginalMatchingDocs()</code>. <strong>Introduced by</strong> #13542 "Add support for intra-segment search concurrency" (@javanna, <code class='nw'>fafd6af004e</code>, merged 2024-09-10 on main, not backported to branch_9x), which replaced that loop with <code>FacetsCollectorManager.reduceMatchingDocs(facetsCollectors)</code>, a helper of the same commit that reads <code>getMatchingDocs()</code>. <code>git blame</code> gives <code>RandomSamplingFacetsCollector.java:291-292</code> and <code>FacetsCollectorManager.java:102</code> to that commit, and <code>git tag --contains</code> starts at 10.0.0. <code>RandomSamplingFacetsCollector.java</code> is the same blob in <code class='nw'>fafd6af004e</code>, in all 12 10.x releases and at main. Not executed: the parent commit and <code class='nw'>fafd6af004e</code> as full source builds (only the one hunk was swapped back).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test: 3 of 3 fail (gradle and the standalone runner, assertions on and off); the one-slice controls are correct</td></tr><tr><th scope='row'>10.0.0, 10.1.0, 10.2.0, 10.2.1, 10.2.2, 10.3.0, 10.3.1, 10.3.2, 10.4.0, 10.5.0, 10.5.1, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test: 2 of 2 fail with identical numbers (<code class='nw'>-da</code> too on 10.0.0 and 10.5.2); this doc's test: 3 of 3 fail on 10.5.2 and 10.0.0</td></tr><tr><th scope='row'>9.2.0 to 9.12.3 (19 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the 9.x variant of the finder's test passes 2 of 2 (<code class='nw'>-da</code> too on 9.12.3): several slices give the one-slice sample</td></tr><tr><th scope='row'>9.1.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td><code class='nw'>createManager</code> does not exist (compile error)</td></tr><tr><th scope='row'>10.0.0 and main with only the #13542 hunk restored</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> cause check</span></td><td>the finder's test passes 2 of 2</td></tr><tr><th scope='row'>main + fix A or fix B</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>every repro passes; upstream <code>TestRandomSamplingFacetsCollector</code> and the whole facet suite pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and an adjudication found it real with their own executed tests; read-only reviews by another model family agreed on the root cause, one with a procedural not_real because it could not run Java. The adjudication confirmed it with high confidence, and this doc's test reproduced it on main, 10.5.2 and 10.0.0.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>542 words</span></summary><div class='body'><p>Every check that ran code used stock jars with assertions on and off. The reviews by the other model family were read-only (their client could not execute code); a separate run re-ran the finder's test for them, and it failed as claimed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-API JUnit fails 2 of 2 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 10.0.0; the 9.x variant passes on 9.12.3; the fix sketch passes; a 755-cell matrix over the real classes matches the prediction with and without the fix.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not_real (low, procedural)</span></td><td>OpenAI GPT-5.6, read-only: could not run Java and may not say real without its own run; agreed with the root cause and rated its own counter-argument weak; a separate re-run failed 2 of 2.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test in a foreign package: default slicing on 4 x 2^18 documents (64 sampled instead of 4,096) and 4 partitions of one segment (64 instead of 1,024); the control passes; 10.5.2 and 10.0.0 fail, 9.12.3 passes; the fix passes 3 of 3.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>OpenAI GPT-5.6, read-only: the intended case is weak and the inputs are in contract; the verifier's own JUnit fails 2 of 2 on main and passes with the fix; corrected the claim that #13542 never names <code class='nw'>createManager</code>.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Rejected the preferred-size, experimental-API and deliberate-reuse case; found that <code>getOriginalMatchingDocs()</code> returns only the samples (2,000 of 20,000) and that default slicing on 10 small segments triggers it.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test with a new seed: 2 of 3 fail with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, 3 of 3 pass with the fix; upstream <code>TestRandomSamplingFacetsCollector</code> passes with the fix (2 seeds).</td></tr><tr><th scope='row'>security assessment</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> none</span></td><td>Application configuration triggers it; counts only go down, the sample stays a subset of the query's hits, and the work goes down, not up.</td></tr><tr><th scope='row'>registry re-runs and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Fresh seeds on main: the finder's test fails 2 of 2 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>) and passes with the fix; the independent reproduction's fails 2 of 3 and passes 3 of 3 with the fix; a fourth independent re-run kept the score.</td></tr><tr><th scope='row'>this doc's validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, both fixes validated</span></td><td>New 3-test class: 3 of 3 fail on main (gradle and standalone, <code class='nw'>-ea</code> and <code class='nw'>-da</code>), 10.5.2 and 10.0.0; with fix A or B it passes, and so do upstream <code>TestRandomSamplingFacetsCollector</code>, the whole facet suite and <code>:lucene:facet:check</code>.</td></tr><tr><th scope='row'>doc fact checks and diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> holds after wording fixes</span></td><td>An independent fact check re-ran the gradle repro (assertions on, off, random seed), the standalone runs on main, 10.5.2 and 10.0.0, both fixes and the facet suite, and found one overclaim, now fixed: with unequal slices only the hits of slices with at least about 2 x <code class='nw'>sampleSize</code> hits are thinned (its probe). A read-only cross-model fact check and a pixel-level diagram check confirmed the mechanism, the numbers and the history; their wording corrections are applied. One suggestion was not taken: to mark the bug as known because the 2022 design issue states the rule this regression breaks (that issue predates the bug and reports no defect).</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-765/bug.png' download='sampling-manager-reduce-samples-already-sampled-slices-bug.png' target='_self'>PNG</a> <span class='n'>483 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,501 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-765, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>RandomSamplingFacetsCollector.createManager samples the hits twice when a search has more than one slice: the reduce reads each slice's already-sampled getMatchingDocs() as its original hits, so the sample is far too small and every amortized facet count is biased low (regression from #13542, 10.0.0 onward)</dd></div><div><dt>Area</dt><dd>facet / sampling (RandomSamplingFacetsCollector.createManager reduce, FacetsCollectorManager.reduceMatchingDocs)</dd></div><div><dt>Priority</dt><dd>Medium, rank 167: Released 10.0 regression that silently makes amortized facet counts 8x to 64x too low on ordinary sampled queries once facet sampling meets an executor with two or more slices, which is worse than the single-opt-in, up-to-2x LFV-437, so it heads the facet-count rows just above LFV-303.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits applications that opt in to facet sampling through RandomSamplingFacetsCollector.createManager on an IndexSearcher with an executor, on every sampled query whose search has 2 or more slices (or intra-segment partitions) with a slice of at least about 2 x sampleSize hits; default slicing gives 2 or more slices to any index with more than 5 segments or with several segments above 250,000 docs, so no extreme scale is needed: the sample shrinks to about sampleSize^2 x numSlices / totalHits, getSamplingRate() reports only the second-stage rate, and every amortized count comes out low by the hidden per-slice ratio (8x to 64x low in the repros), with no error, -ea and -da alike; a searcher without an executor uses one slice and is correct; every release from 10.0.0 to 10.5.2 and main [exec], 9.12.3 correct [exec].</dd></div><div><dt>Summary</dt><dd>You count facets on a sample of a large result set with RandomSamplingFacetsCollector.createManager(sampleSize, seed) on an IndexSearcher that has an executor, and expect what a one-slice search gives: about sampleSize sampled hits, taken at the rate sampleSize / totalHits that getSamplingRate() reports, so that amortizeFacetCounts estimates the real counts. Instead, with two or more slices the reduce fills the reduced collector's original hits from FacetsCollectorManager.reduceMatchingDocs, which calls each slice collector's getMatchingDocs(), the accessor RandomSamplingFacetsCollector overrides to return that slice's sample; the reduced collector then samples those samples again. The sample shrinks to about sampleSize^2 x numSlices / totalHits and every amortized count is low by the per-slice ratio, with no error: 2 segments of 1,024 matching docs with sampleSize 128 and one slice per segment give 16 sampled hits and an amortized count of 256 instead of 128 and 2,048, and default slicing on 2 segments of 262,144 docs with sampleSize 4,096 gives 64 sampled hits and 8,192 instead of 4,096 and 524,288.</dd></div><div><dt>Introduced</dt><dd>fafd6af004e0c39582043b797555d6eeb9aa7638, apache/lucene#13542 'Add support for intra-segment search concurrency' (javanna; closes #9721; not backported to branch_9x): it replaced the reduce over each collector's getOriginalMatchingDocs() (7ed0f3d7adb, LUCENE-10484 / #765, first released in 9.2.0, correct) with FacetsCollectorManager.reduceMatchingDocs(facetsCollectors), a new helper of the same commit that loops over the overridable, sampled getMatchingDocs() [exec: release bracket 9.12.3 pass / 10.0.0 fail, and shadowing only that hunk back to the parent commit's text makes the repro pass on the 10.0.0 jars and on main; read: git blame of RandomSamplingFacetsCollector.java:291-292 and FacetsCollectorManager.java:102 on main, git log -S on both reduce spellings]. A regression; the parent commit itself was not built (2024-09-10)</dd></div><div><dt>First affected version</dt><dd>10.0.0 [exec: fails with -ea and -da]; 9.12.3, the last 9.x release, is correct [exec: passes with -ea and -da]; createManager first shipped in 9.2.0 with a correct reduce [exec: all 19 releases 9.2.0..9.12.3 pass]; 9.1.0 has no createManager [exec: compile error]</dd></div><div><dt>Affected versions</dt><dd>Every release from 10.0.0 to 10.5.2, and main a9779ef3c193; not fixed upstream. [exec] The finder's repro fails with identical numbers on all 12 releases 10.0.0, 10.1.0, 10.2.0, 10.2.1, 10.2.2, 10.3.0, 10.3.1, 10.3.2, 10.4.0, 10.5.0, 10.5.1 and 10.5.2 (-da also on 10.0.0 and 10.5.2) and on main (-ea and -da); the independent reproduction's own test fails on 10.0.0, 10.5.2 and main; the intended-behaviour check's probe fails on 10.5.2 and main. Not affected [exec]: 9.2.0 through 9.12.3 (19 releases; the 9.x API variant gives the same sample for 2 slices as for one), and 9.1.0 and older (no createManager). [read] RandomSamplingFacetsCollector.java is the same blob (32cda39b013) in fafd6af004e, in all 12 10.x releases, on the branch_10x, branch_10_6 and branch_10_5 heads (refs fetched 2026-10-24) and at main a9779ef3c193; no commit has touched it since fafd6af004e on main, branch_10x or branch_10_5 (GitHub commit history read 2026-10-27), and CHANGES.txt on upstream main a95c754ee00 has no fix entry.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, read-only; the prior-report record, verdict new): about 170 logged queries and checks: two scripted prior-report searches (51 queries each over GitHub issues and PRs, commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web) plus the finder's run (45 queries); 25 manual GitHub searches (apache/lucene, all of GitHub, Elasticsearch, OpenSearch, Solr, Lucene.NET); 4 open-PR text searches, a changed-file sweep of all 408 open apache/lucene PRs and the full 438-file list of draft #16847; the commit history of the three files on main, branch_10x and branch_10_5; CHANGES.txt; 12 direct lists.apache.org queries; 8 web searches; 16 issues, PRs and threads read in full; none reports the bug and none is by the owner shbhar. Closest items, the cause and the design rather than reports: #13542 (javanna, merged 2024-09-10) introduced it; its PR body names 'RandomSampligFacetsCollector#createManager' only as returning several MatchingDocs per leaf, the reason for the partition merge, and no comment or review discusses sample size or rate; #11520 / #765 (LUCENE-10484, 2022) designed createManager and states 'the reduction should call getOriginalMatchingDocs instead of getMatchingDocs'; open draft #16847 touches both files for long doc ids but leaves the reduce unchanged; #6539 (LUCENE-5476) is the original sequential sampler; #13503, #12474, #13745, #13753 (facet and partition concurrency) never mention sampling. Not fixed upstream: no commit on RandomSamplingFacetsCollector.java since fafd6af004e on main, branch_10x or branch_10_5, and no CHANGES.txt entry. Gaps: keyword-based search; inline review threads read in full only for #13542 and #765; private channels not searchable</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the 10.5.2 and 10.0.0 release jars (this doc's test). The follow-up ran the finder's test on all 12 releases from 10.0.0 to 10.5.2 and its 9.x variant on all 19 releases from 9.2.0 to 9.12.3; the cross-model reviews read <code class='nw'>ea57360912ed</code>, whose facet module is identical. Both fixes were validated in the scratch worktree: this doc's test, upstream <code>TestRandomSamplingFacetsCollector</code> (also 20 iterations with fix A), the whole <code class='nw'>lucene/facet</code> suite (assertions on and off with fix A, on with fix B) and <code>:lucene:facet:check -x test</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/RandomSamplingFacetsCollector.java:32-41 (class javadoc: &#x27;If you require the original set of hits, you can call getOriginalMatchingDocs()&#x27;, amortizeFacetCounts), :94-102 (sampleSize javadoc: &#x27;preferred sample size&#x27;, &#x27;a sample ratio of sampling size / totalN&#x27;), :111-141 (getMatchingDocs override returning the sample once totalHits &gt; sampleSize), :143-146 (getOriginalMatchingDocs), :255-259 (getSamplingRate: &#x27;the sampling rate that was used&#x27;), :261-285 (createManager: &#x27;for concurrent random sampling&#x27;; reduce returns the single collector for one slice), :287-293 (ReducedRandomSamplingFacetsCollector fills its original docs from FacetsCollectorManager.reduceMatchingDocs(facetsCollectors)) @ a9779ef3c193</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/FacetsCollectorManager.java:93-113 (reduceMatchingDocs; line 102 iterates facetsCollector.getMatchingDocs()) @ a9779ef3c193</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:106-108 (MAX_DOCS_PER_SLICE 250,000, MAX_SEGMENTS_PER_SLICE 5), :226-231 (no executor: one slice over all leaves) @ a9779ef3c193</code></li><li><code>upstream apache/lucene#13542, #11520, #765, #16847 (read-only, as cited in the prior-report record and)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/RandomSamplingFacetsCollector.java:118-146, :164, :209, :240, :269-282, :287-294 @ a9779ef3c193</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/FacetsCollectorManager.java:93-114 (line 102) @ a9779ef3c193</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:106, :108 (MAX_DOCS_PER_SLICE, MAX_SEGMENTS_PER_SLICE), :226-231 (no executor: one slice), :323-390 (slices; descending sort :351, group closes at :375 after docSum += maxDoc at :374) @ a9779ef3c193</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/taxonomy/FastTaxonomyFacetCounts.java:57; lucene/facet/src/java/org/apache/lucene/facet/sortedset/SortedSetDocValuesFacetCounts.java:75 @ a9779ef3c193</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:199-201 (@lucene.experimental executor constructor), :634-638 (deprecated search(Query, Collector)) @ a9779ef3c193</code></li><li><code>lucene/MIGRATE.md:1050-1054 (LUCENE-10002)</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/RandomSamplingFacetsCollector.java:38 (getOriginalMatchingDocs promise) @ a9779ef3c193</code></li><li><code>lucene/demo/src/java/org/apache/lucene/demo/facet/package-info.java:383-385 @ a9779ef3c193</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/RandomSamplingFacetsCollector.java:132-134 (no sampling at or below sampleSize), :164 (binSize), :279-281 (one collector returned as is) @ a9779ef3c193</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/RandomSamplingFacetsCollector.java:38-40, :97-100, :256, :261-264 @ a9779ef3c193</code></li><li><code>lucene/facet/src/test/org/apache/lucene/facet/TestRandomSamplingFacetsCollector.java:96, :133, :135-148 @ a9779ef3c193</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/FacetsCollector.java:76-79 (getMatchingDocs javadoc); lucene/facet/src/java/org/apache/lucene/facet/RandomSamplingFacetsCollector.java:162 (new FixedBitSet(maxdoc) per sampled segment) @ a9779ef3c193</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/FacetsCollectorManager.java:82 (ReducedFacetsCollector adds to getMatchingDocs()), :100 and :113 (the merge returns HashMap values) @ a9779ef3c193</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/RandomSamplingFacetsCollector.java:279-281 (one collector returned unchanged: the one-slice workaround) @ a9779ef3c193</code></li><li><code>upstream apache/lucene#13542 PR body item 2 (TestStringValueFacetCounts failures; read-only, 2026-10-27)</code></li></ul></dd></div><div><dt>Prior reports</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:2315 (GITHUB#13542), :4203-4204 (LUCENE-10484), :12433 (LUCENE-5476) @ a9779ef3c193</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestSamplingManagerSlices.java (lucene/facet, public API): <a href='../repro/LFV-765/TestSamplingManagerSlices.java'><code>repro/LFV-765/TestSamplingManagerSlices.java</code></a> (188 lines)</li><li>TestSamplingManagerReduceResamples.java (the finder&#x27;s test): <a href='../repro/LFV-765/TestSamplingManagerReduceResamples.java'><code>repro/LFV-765/TestSamplingManagerReduceResamples.java</code></a> (197 lines)</li><li>TestSamplingManagerMultiSlice.java (independent reproducer): <a href='../repro/LFV-765/TestSamplingManagerMultiSlice.java'><code>repro/LFV-765/TestSamplingManagerMultiSlice.java</code></a> (206 lines)</li><li>TestSamplingReduceV3Check.java (devil&#x27;s advocate probe): <a href='../repro/LFV-765/TestSamplingReduceV3Check.java'><code>repro/LFV-765/TestSamplingReduceV3Check.java</code></a> (125 lines)</li><li>TestFactCheckMixedSlices.java (fact check&#x27;s unequal-slice probe): <a href='../repro/LFV-765/TestFactCheckMixedSlices.java'><code>repro/LFV-765/TestFactCheckMixedSlices.java</code></a> (92 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>The PNG is the still.</p><ul class='paths'><li><a href='../assets/LFV-765/bug.png'><code>assets/LFV-765/bug.png</code></a> (483 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

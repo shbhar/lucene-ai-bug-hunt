@@ -1,0 +1,841 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Classic QueryParser: since #16446 a stopword right before AND/OR changes which documents match</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-284 &middot; multiterm-group-absorbs-conjunction-after-stopword</p><h1 id='top'>Classic QueryParser: since #16446 a stopword right before AND/OR changes which documents match</h1><p class='tldr'>With the classic <code class='nw'>QueryParser</code> at its default settings, a stopword typed right before AND or OR changes the results: <code>apple banana the AND cherry</code> matches 3 of 5 documents, <code>apple banana AND cherry</code> matches 2. It came with #16446 and is unreleased (main and branch_10_6).</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 86</span><span class='sub'>An unreleased 10.6 regression in the default classic QueryParser silently changes matches for a stopword right before AND/OR, and the parser is broader than LFV-229&#x27;s new Thai dictionary feature, so it heads the unreleased rows.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>#16446, merged 2026-10-22; not released<span class='sub'>introduced 2026-10-22</span></dd></div><div class='wide'><dt>Affected</dt><dd>main and branch_10_6 (future 10.6.0); 10.5.2 and earlier are not affected</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>Z3 model of the parser's clause step, then exhaustive checks and a JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a formal tool&#x27;s own output and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>By default the classic QueryParser analyses consecutive plain words as one run, but keeps the word right before AND/OR out of it, so the operator binds to that word. Since #16446 the run is a single clause. When that word is dropped by the analyzer, AND/OR binds to the whole run.</p><figure class='visual' id='multiterm-group-absorbs-conjunction-after-stopword-short-visual'><div class='frame'><a class='still' href='../assets/LFV-284/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-284/bug.png' alt='Diagram of the bug: the clause list the classic QueryParser builds for apple banana the AND cherry on Lucene 10.5.2 (the AND makes banana required) and on main since #16446 (the AND makes the whole run apple banana required), and the documents each version matches.' width='1920' height='1080'></a></div><figcaption>How the classic QueryParser builds the clause list for <code>apple banana the AND cherry</code> on 10.5.2 and on main since #16446, and which documents match. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index five documents: "apple cherry", "apple banana cherry", "banana cherry", "cherry" and "apple banana", with an analyzer that drops "the". Parse <code>apple banana AND cherry</code> with the classic <code class='nw'>QueryParser</code> at its defaults: <code>body:apple +body:banana +body:cherry</code>, 2 hits.</span></li><li><span>Type the stopword before AND: <code>apple banana the AND cherry</code>. You expect the same 2 hits; 10.5.2 gives them, and so does main with <code>splitOnWhitespace=true</code>.</span></li><li><span>Main gives 3 hits: <code>+(body:apple body:banana) +body:cherry</code>. "apple cherry" now matches although it has no banana.</span></li><li><span>Why: by default the parser analyses <code>apple banana</code> together, and since #16446 adds it as one clause. <code class='nw'>the</code> adds nothing, so AND's "make the preceding clause required" step hits the whole group instead of banana.</span></li><li><span>With AND as the default operator, <code>apple banana the OR cherry</code> goes wrong both ways: a document with only "cherry" now matches, one with only "apple" no longer does. No error in either case.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Users who parse query strings with the classic <code class='nw'>QueryParser</code> or <code>MultiFieldQueryParser</code> at default settings, with an analyzer that drops a token (any stop filter, or the default <code class='nw'>StandardAnalyzer</code> for a lone <code class='nw'>,</code>), can be affected when a query has two or more words, then the dropped token, then AND (OR default) or OR (AND default). Rare shape; unreleased code only.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>692 words</span></summary><div class='body'><p>With the default <code>splitOnWhitespace=false</code>, the classic <code class='nw'>QueryParser</code> sends a run of consecutive plain words to the analyzer as one string, but keeps a word that is followed by AND/OR out of the run, so that the operator binds to that one word. #16446 (merged 2026-10-22, milestone 10.6.0) changed how the run is added: one clause for the whole run instead of one clause per word position. When the word right before AND/OR is dropped by the analyzer (a stopword, or with the default <code class='nw'>StandardAnalyzer</code> a lone <code class='nw'>,</code> or en dash), it adds no clause, and the operator's "make the preceding clause required (or optional)" step lands on the whole run.</p><p>So <code>apple banana the AND cherry</code> parses to <code>+(body:apple body:banana) +body:cherry</code> instead of <code>body:apple +body:banana +body:cherry</code>: on five documents it matches 3 instead of 2. Under the AND default, <code>apple banana the OR cherry</code> becomes <code>(+body:apple +body:banana) body:cherry</code> instead of <code>+body:apple body:banana body:cherry</code>, which gains and loses documents. 10.5.2 and <code>splitOnWhitespace=true</code> give the stopword-free parse. MultiFieldQueryParser is affected the same way. No error is raised. Only main and <code class='nw'>branch_10_6</code> contain it; a fix that adds a run's positions as separate clauses again, without changing their flags, passes the whole queryparser suite but has two known gaps (per-field analyzers, and subclasses that return alternatives).</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Run</strong>: two or more consecutive plain words with no operator between them. With <code>splitOnWhitespace=false</code>, the default since 7.0.0, the parser analyses a run as one string.</li><li><strong>Dropped token</strong>: a word for which the analyzer emits no token (a stopword, or a lone <code class='nw'>,</code> with <code class='nw'>StandardAnalyzer</code>), so it produces no clause.</li><li><strong>Default operator</strong>: OR unless set to AND; it decides whether plain words are optional (SHOULD) or required (MUST).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#what-the-bug-is-the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>MultiTerm</code> takes a following word only if the token after it is not <code class='nw'>:</code>, <code class='nw'>*</code>, <code class='nw'>~</code>, <code class='nw'>^</code>, <code class='nw'>AND</code> or <code class='nw'>OR</code> (<code>disallowedPostMultiTerm</code>, <code>QueryParser.jj:167-171</code>, lookaheads <code class='nw'>:389-391</code>). In <code>apple banana the AND cherry</code> the run is <code>apple banana</code>; <code class='nw'>the</code> stays out because AND follows it.</li><li>The run is analysed once (<code>QueryParser.jj:398</code>, <code class='nw'>:404</code>); <code class='nw'>newFieldQuery</code> passes the default operator's occur, so the result is a <code class='nw'>BooleanQuery</code> with one clause per position (<code>QueryParserBase.java:405-411</code>).</li><li><strong>Since #16446</strong> it is added as one clause, <code>addClause(clauses, CONJ_NONE, MOD_NONE, firstQuery)</code> (<code>QueryParser.jj:405</code>). Before, <code>addMultiTermClauses</code> added the positions one by one: unchanged when all were <code class='nw'>TermQuery</code>s, otherwise each child with the default operator's occur (10.5.2 <code>QueryParserBase.java:421-448</code>).</li><li><code class='nw'>the</code> analyses to nothing: <code class='nw'>addClause</code> returns at <code>if (q == null) return;</code> (<code>QueryParserBase.java:369</code>) and adds no clause.</li><li><code>AND cherry</code>: "If this term is introduced by AND, make the preceding term required" sets the last clause in the list to MUST (<code>QueryParserBase.java:349-355</code>); under the AND default, OR sets it to SHOULD (<code class='nw'>:357-365</code>). That last clause is now the whole run, so <code class='nw'>banana</code> loses its own MUST. In 10.5.2 it was <code class='nw'>banana</code>.</li><li>MultiFieldQueryParser builds one field disjunction per position and, since #16446, combines them with the default operator (<code>MultiFieldQueryParser.java:205</code>); the run is again one clause, with the same result.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-field-body-stop-set-the'>The numbers (field <code class='nw'>body</code>, stop set {"the"})</h3><a class="hlink" href="#what-the-bug-is-the-numbers-field-body-stop-set-the" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-field-body-stop-set-the"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>default operator</th><th>query</th><th>10.5.2, or <code>splitOnWhitespace=true</code></th><th>main, default settings</th></tr></thead><tbody><tr><td>OR</td><td><code>apple banana AND cherry</code></td><td><code>body:apple +body:banana +body:cherry</code>: d1, d2</td><td>the same</td></tr><tr><td>OR</td><td><code>apple banana the AND cherry</code></td><td>the same: d1, d2</td><td><code>+(body:apple body:banana) +body:cherry</code>: <strong>d0, d1, d2</strong></td></tr><tr><td>AND</td><td><code>apple banana OR cherry</code></td><td><code>+body:apple body:banana body:cherry</code>: d0, d1, d4</td><td>the same</td></tr><tr><td>AND</td><td><code>apple banana the OR cherry</code></td><td>the same: d0, d1, d4</td><td><code>(+body:apple +body:banana) body:cherry</code>: <strong>d0-d4</strong></td></tr></tbody></table></div><p>Documents: d0 "apple cherry", d1 "apple banana cherry", d2 "banana cherry", d3 "cherry", d4 "apple banana". <code class='nw'>&amp;&amp;</code> and <code class='nw'>||</code> behave like AND and OR. A document with only "apple" is lost under the AND default (security probe).</p><p>Not affected: a stopword that is not next to the operator, a single word before the stopword (<code>apple the AND cherry</code>), <code>splitOnWhitespace=true</code>, and the operator that equals the default (only the structure changes). A run that analyses to one unit, such as one multi-word synonym, was already bound as a unit on 10.5.2.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>304 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Users can be affected with default parser settings (<code>splitOnWhitespace=false</code>, either default operator) with any analyzer that drops a token: a stop filter (<code class='nw'>EnglishAnalyzer</code>, or <code class='nw'>StandardAnalyzer</code> with a stop set), and the default <code class='nw'>StandardAnalyzer</code> with an empty stop set for a space-separated <code class='nw'>,</code> or en dash: <code>apple banana , AND cherry</code> gives <code>+(apple banana) +cherry</code> on main and <code>apple +banana +cherry</code> on 10.5.2.</li><li><strong>What it takes.</strong> Two or more plain words that survive analysis, then the dropped token, then <code class='nw'>AND</code>/<code class='nw'>&amp;&amp;</code> (OR default) or <code class='nw'>OR</code>/<code class='nw'>||</code> (AND default). A field-qualified or modified dropped word (<code>apple banana title:the AND cherry</code>, <code>apple banana -the AND cherry</code>) gives the same wrong parse for both parsers and both default operators (run by the fact check). Code that joins a user's text with <code> AND </code> produces the shape whenever the text ends with a stopword after two real words, though the package docs say the parser "is designed for human-entered text, not for program-generated text" (<code>package-info.java:82-85</code>).</li><li><strong>What goes wrong.</strong> A query of the wrong structure, silently. OR default with AND: it can only add documents. AND default with OR: it can gain and lose documents (both were observed). On the same build, <code>splitOnWhitespace=true</code> and <code class='nw'>false</code> now disagree for analyzers that emit one token per word.</li><li><strong>Scale.</strong> Deterministic; no index size or data shape is involved (40 of 40 runs fail). No prevalence was measured; the registry rates it rare.</li><li><strong>Release status.</strong> Unreleased: main (11.0.0-SNAPSHOT) and <code class='nw'>branch_10_6</code> (the future 10.6.0). <code class='nw'>branch_10x</code> does not contain #16446.</li><li><strong>Downstream (by code reading, not run).</strong> Elasticsearch's and OpenSearch's <code class='nw'>query_string</code> parsers extend the classic parser with the default <code>splitOnWhitespace</code> and would inherit the change on a Lucene with #16446 (both use 10.5.2 today). Solr keeps its own grammar copy and is not affected.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit file on the public API: two one-document indexes, each checked first with the stopword-free query (passes) and then with <code class='nw'>the</code> added (fails on main). It fails with assertions on and off, passes on 10.5.2 and with the fix, and does not depend on the seed.</p><figure class='code'><figcaption><span class='fname'>TestStopwordBeforeConjunction.java (2 tests, public API)</span><span class='meta'>89 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queryparser.classic;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenFilter;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * With the default splitOnWhitespace=false, consecutive plain terms are parsed together
+ * (QueryParser.jj MultiTerm) and, since #16446, added as ONE clause. When a stopword sits between
+ * such a run and an AND/OR, the stopword&#x27;s clause is null and the conjunction adjusts the run&#x27;s
+ * clause instead of the term just before the stopword, so the stopword changes which documents
+ * match. Without the stopword, with splitOnWhitespace=true, and in 10.5.2, the conjunction applies
+ * to the last real term.
+ */
+public class TestStopwordBeforeConjunction extends LuceneTestCase {
+
+  private static Analyzer stopAnalyzer() {
+    return new MockAnalyzer(
+        random(), MockTokenizer.WHITESPACE, true, MockTokenFilter.ENGLISH_STOPSET);
+  }
+
+  private static int count(Directory dir, Query q) throws Exception {
+    try (IndexReader r = DirectoryReader.open(dir)) {
+      return new IndexSearcher(r).count(q);
+    }
+  }
+
+  private Directory index(String text) throws Exception {
+    Directory dir = newDirectory();
+    try (RandomIndexWriter w =
+        new RandomIndexWriter(random(), dir, new IndexWriterConfig(stopAnalyzer()))) {
+      Document d = new Document();
+      d.add(new TextField(&quot;body&quot;, text, Field.Store.NO));
+      w.addDocument(d);
+    }
+    return dir;
+  }
+
+  /** OR (default) operator: &quot;banana&quot; must stay required whether or not &quot;the&quot; is typed. */
+  public void testAndAfterStopwordDefaultOperatorOr() throws Exception {
+    try (Directory dir = index(&quot;apple cherry&quot;)) {
+      QueryParser qp = new QueryParser(&quot;body&quot;, stopAnalyzer());
+      Query withoutStopword = qp.parse(&quot;apple banana AND cherry&quot;);
+      assertEquals(withoutStopword.toString(), 0, count(dir, withoutStopword));
+      Query withStopword = qp.parse(&quot;apple banana the AND cherry&quot;);
+      assertEquals(withStopword.toString(), 0, count(dir, withStopword));
+    }
+  }
+
+  /** AND operator: &quot;apple&quot; must stay required whether or not &quot;the&quot; is typed. */
+  public void testOrAfterStopwordDefaultOperatorAnd() throws Exception {
+    try (Directory dir = index(&quot;cherry&quot;)) {
+      QueryParser qp = new QueryParser(&quot;body&quot;, stopAnalyzer());
+      qp.setDefaultOperator(QueryParser.Operator.AND);
+      Query withoutStopword = qp.parse(&quot;apple banana OR cherry&quot;);
+      assertEquals(withoutStopword.toString(), 0, count(dir, withoutStopword));
+      Query withStopword = qp.parse(&quot;apple banana the OR cherry&quot;);
+      assertEquals(withStopword.toString(), 0, count(dir, withStopword));
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># save as $LUCENE/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestStopwordBeforeConjunction.java
+cd $LUCENE
+./gradlew :lucene:queryparser:test --tests TestStopwordBeforeConjunction -Dtests.seed=DEADBEEF
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>apple banana the AND cherry</code> parses like <code>apple banana AND cherry</code> (<code>body:apple +body:banana +body:cherry</code>): 0 hits on "apple cherry".</dd></div><div class='got'><dt>Observed</dt><dd><code>+(body:apple body:banana) +body:cherry</code>: 1 hit on "apple cherry"; under the AND default, <code>(+body:apple +body:banana) body:cherry</code> matches "cherry".</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-284/'>repro/LFV-284/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (410 lines) · 2,267 words</span></summary><div class='body'><p><code>TestStopwordBeforeConjunction</code> uses <code class='nw'>QueryParser</code>, <code class='nw'>MockAnalyzer</code> (whitespace tokenizer, lowercase, English stop set), <code>RandomIndexWriter</code>, <code class='nw'>newDirectory()</code> and <code>IndexSearcher#count</code>. The OR-default test indexes "apple cherry" and checks <code>apple banana AND cherry</code> and <code>apple banana the AND cherry</code>; the AND-default test indexes "cherry" and checks the OR forms. Both stopword-free queries match 0 documents; the stopword forms match 1 on main. The file passes the module's google-java-format, ecj and forbidden-APIs checks.</p><p>Below it: an independent five-document test that also compares with <code>splitOnWhitespace=true</code> and has two controls, and the recommended fix with its tests as one diff.</p><div class="hd hd-3"><h3 id='code-2-h'>TestStopwordConjunctionBinding.java (independent check: 5 documents, 3 bug cases, 2 controls)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Written by an independent reproducer from the claim alone. Under gradle, change its javadoc <code class='nw'>'&amp;&amp;'</code> to <code>{@code &amp;&amp;}</code> (doclint rejects the bare entity). On main 3 of 5 fail (AND, <code class='nw'>&amp;&amp;</code>, OR); on 10.5.2, 10.0.0 and 9.12.3 all 5 pass.</p><figure class='code'><figcaption><span class='fname'>TestStopwordConjunctionBinding.java (independent check: 5 documents, 3 bug cases, 2 controls)</span><span class='meta'>157 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queryparser.classic;
+
+import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check: with the default splitOnWhitespace=false, does a stopword placed directly
+ * before AND/OR change which documents the classic QueryParser matches?
+ *
+ * &lt;p&gt;Only public API is used (QueryParser, StandardAnalyzer with an explicit stop set, IndexSearcher).
+ * The tests assert that the query with the stopword matches exactly the same documents as (1) the
+ * same query without the stopword and (2) the same query parsed with splitOnWhitespace=true.
+ */
+public class TestStopwordConjunctionBinding extends LuceneTestCase {
+
+  private static final String F = &quot;body&quot;;
+  private static final String[] DOCS = {
+    &quot;apple cherry&quot;, // d0: no banana
+    &quot;apple banana cherry&quot;, // d1
+    &quot;banana cherry&quot;, // d2: no apple
+    &quot;cherry&quot;, // d3: only cherry
+    &quot;apple banana&quot; // d4: no cherry
+  };
+
+  private static Analyzer stopAnalyzer() {
+    return new StandardAnalyzer(new CharArraySet(Arrays.asList(&quot;the&quot;), true));
+  }
+
+  private static Set&lt;String&gt; hits(Directory dir, Query q) throws Exception {
+    try (DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      Set&lt;String&gt; out = new TreeSet&lt;&gt;();
+      for (ScoreDoc sd : s.search(q, 100).scoreDocs) {
+        out.add(s.storedFields().document(sd.doc).get(&quot;id&quot;));
+      }
+      return out;
+    }
+  }
+
+  private static Directory index(Analyzer a) throws Exception {
+    Directory dir = newDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+      for (int i = 0; i &lt; DOCS.length; i++) {
+        Document d = new Document();
+        d.add(new StoredField(&quot;id&quot;, &quot;d&quot; + i));
+        d.add(new TextField(F, DOCS[i], Field.Store.NO));
+        w.addDocument(d);
+      }
+    }
+    return dir;
+  }
+
+  private static Query parse(String text, QueryParser.Operator op, boolean sow) throws Exception {
+    QueryParser qp = new QueryParser(F, stopAnalyzer());
+    qp.setDefaultOperator(op);
+    qp.setSplitOnWhitespace(sow);
+    return qp.parse(text);
+  }
+
+  private void check(String withStop, String withoutStop, QueryParser.Operator op)
+      throws Exception {
+    // Default must be splitOnWhitespace=false (documented DEFAULT_SPLIT_ON_WHITESPACE).
+    assertFalse(new QueryParser(F, stopAnalyzer()).getSplitOnWhitespace());
+    try (Directory dir = index(stopAnalyzer())) {
+      Query withStopDefault = parse(withStop, op, false);
+      Query withoutStopDefault = parse(withoutStop, op, false);
+      Query withStopSow = parse(withStop, op, true);
+      Set&lt;String&gt; hWithStopDefault = hits(dir, withStopDefault);
+      Set&lt;String&gt; hWithoutStopDefault = hits(dir, withoutStopDefault);
+      Set&lt;String&gt; hWithStopSow = hits(dir, withStopSow);
+      String msg =
+          &quot;op=&quot;
+              + op
+              + &quot; [&#x27;&quot;
+              + withStop
+              + &quot;&#x27; sow=false -&gt; &quot;
+              + withStopDefault
+              + &quot; hits &quot;
+              + hWithStopDefault
+              + &quot;] [&#x27;&quot;
+              + withoutStop
+              + &quot;&#x27; sow=false -&gt; &quot;
+              + withoutStopDefault
+              + &quot; hits &quot;
+              + hWithoutStopDefault
+              + &quot;] [&#x27;&quot;
+              + withStop
+              + &quot;&#x27; sow=true -&gt; &quot;
+              + withStopSow
+              + &quot; hits &quot;
+              + hWithStopSow
+              + &quot;]&quot;;
+      System.out.println(msg);
+      // Sanity: with sow=true the stopword does not change the matches.
+      assertEquals(&quot;sow=true control: &quot; + msg, hWithoutStopDefault, hWithStopSow);
+      // Claim under test: with the default sow=false the stopword must not change the matches.
+      assertEquals(&quot;sow=false (default): &quot; + msg, hWithoutStopDefault, hWithStopDefault);
+    }
+  }
+
+  /** Default operator OR: &#x27;a b the AND c&#x27; vs &#x27;a b AND c&#x27;. */
+  public void testAndAfterStopwordOrOperator() throws Exception {
+    check(&quot;apple banana the AND cherry&quot;, &quot;apple banana AND cherry&quot;, QueryParser.Operator.OR);
+  }
+
+  /** Default operator AND: &#x27;a b the OR c&#x27; vs &#x27;a b OR c&#x27;. */
+  public void testOrAfterStopwordAndOperator() throws Exception {
+    check(&quot;apple banana the OR cherry&quot;, &quot;apple banana OR cherry&quot;, QueryParser.Operator.AND);
+  }
+
+  /** Symbolic operator form &#x27;&amp;&amp;&#x27; with default OR. */
+  public void testAmpAmpAfterStopwordOrOperator() throws Exception {
+    check(&quot;apple banana the &amp;&amp; cherry&quot;, &quot;apple banana &amp;&amp; cherry&quot;, QueryParser.Operator.OR);
+  }
+
+  /** Control: a stopword NOT adjacent to the conjunction; must pass on every version. */
+  public void testControlStopwordNotBeforeConjunction() throws Exception {
+    check(&quot;the apple banana AND cherry&quot;, &quot;apple banana AND cherry&quot;, QueryParser.Operator.OR);
+  }
+
+  /** Control: a single term before the stopword (no multi-term run); must pass everywhere. */
+  public void testControlSingleTermBeforeStopword() throws Exception {
+    check(&quot;apple the AND cherry&quot;, &quot;apple AND cherry&quot;, QueryParser.Operator.OR);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>Fix with tests: fix-with-tests.diff (QueryParserBase +46, one call site, 2 new tests)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>Fix with tests: fix-with-tests.diff (QueryParserBase +46, one call site, 2 new tests)</span><span class='meta'>253 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>diff --git a/lucene/queryparser/src/generated/checksums/regenerateClassicQueryParser.json b/lucene/queryparser/src/generated/checksums/regenerateClassicQueryParser.json
+index 18b10946710..560660d74df 100644
+--- a/lucene/queryparser/src/generated/checksums/regenerateClassicQueryParser.json
++++ b/lucene/queryparser/src/generated/checksums/regenerateClassicQueryParser.json
+@@ -1,7 +1,7 @@
+ {
+     &quot;lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/ParseException.java&quot;: &quot;d4f22934f0f8eb7ae70f47339cf04cac297a044b&quot;,
+-    &quot;lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java&quot;: &quot;131825beb108a267d3f0e374f3392bb283f02e2b&quot;,
+-    &quot;lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj&quot;: &quot;655505e6e190a9be3f4b2ec28962f61c2c4caec7&quot;,
++    &quot;lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java&quot;: &quot;9f84a97570f752684b05fb3c7cf5fbbf405040bc&quot;,
++    &quot;lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj&quot;: &quot;97e40b3646dc936db27ce2f13089a8e2d1a0d0a1&quot;,
+     &quot;lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserConstants.java&quot;: &quot;80d2d516553d87539dce33f732e774a67fb800ea&quot;,
+     &quot;lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserTokenManager.java&quot;: &quot;1263b08f33f1b5e8642f4733ea830b3b03628942&quot;,
+     &quot;lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/Token.java&quot;: &quot;5748b8acdf890eb94fa39c9d7ac86fc35e688438&quot;,
+diff --git a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java
+index 361437da043..6aa04b7c5e0 100644
+--- a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java
++++ b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java
+@@ -744,7 +744,7 @@ public class QueryParser extends QueryParserBase implements QueryParserConstants
+     }
+     if (splitOnWhitespace == false) {
+       firstQuery = getFieldQuery(field, discardEscapeChar(text.image), false);
+-      addClause(clauses, CONJ_NONE, MOD_NONE, firstQuery);
++      addMultiTermRunClauses(clauses, firstQuery);
+     }
+     {
+       if (&quot;&quot; != null) return firstQuery;
+diff --git a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj
+index d4260d79e6a..5321d324ce9 100644
+--- a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj
++++ b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj
+@@ -402,7 +402,7 @@ Query MultiTerm(String field, List&lt;BooleanClause&gt; clauses) : {
+   {
+     if (splitOnWhitespace == false) {
+       firstQuery = getFieldQuery(field, discardEscapeChar(text.image), false);
+-      addClause(clauses, CONJ_NONE, MOD_NONE, firstQuery);
++      addMultiTermRunClauses(clauses, firstQuery);
+     }
+     return firstQuery;
+   }
+diff --git a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java
+index 21be388d39e..0b9e237382c 100644
+--- a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java
++++ b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java
+@@ -21,9 +21,11 @@ import java.text.DateFormat;
+ import java.util.Calendar;
+ import java.util.Date;
+ import java.util.HashMap;
++import java.util.HashSet;
+ import java.util.List;
+ import java.util.Locale;
+ import java.util.Map;
++import java.util.Set;
+ import java.util.TimeZone;
+ import java.util.regex.Matcher;
+ import java.util.regex.Pattern;
+@@ -46,6 +48,7 @@ import org.apache.lucene.search.MultiTermQuery;
+ import org.apache.lucene.search.PhraseQuery;
+ import org.apache.lucene.search.PrefixQuery;
+ import org.apache.lucene.search.Query;
++import org.apache.lucene.search.QueryVisitor;
+ import org.apache.lucene.search.RegexpQuery;
+ import org.apache.lucene.search.TermRangeQuery;
+ import org.apache.lucene.search.WildcardQuery;
+@@ -389,6 +392,49 @@ public abstract class QueryParserBase extends QueryBuilder
+     else throw new RuntimeException(&quot;Clause cannot be both required and prohibited&quot;);
+   }
+ 
++  /**
++   * Adds the query analyzed from a run of consecutive plain terms (splitOnWhitespace=false). If the
++   * query is a BooleanQuery with one clause per term position, that is, all its clauses have the
++   * default operator&#x27;s occur and cover the same fields, they are added one by one, as if the terms
++   * had been parsed separately, so that a following AND/OR still applies to the run&#x27;s last position
++   * when a term that the analyzer drops sits in between. Clauses are never re-flagged, and a
++   * per-field disjunction (MultiFieldQueryParser, one position) is not split: any other query is
++   * added as a single clause.
++   */
++  void addMultiTermRunClauses(List&lt;BooleanClause&gt; clauses, Query q) {
++    if (q instanceof BooleanQuery bq
++        &amp;&amp; bq.getMinimumNumberShouldMatch() == 0
++        &amp;&amp; bq.clauses().isEmpty() == false) {
++      Occur defaultOccur = operator == OR_OPERATOR ? Occur.SHOULD : Occur.MUST;
++      Set&lt;String&gt; fields = fieldsOf(bq.clauses().get(0).query());
++      boolean positions = true;
++      for (BooleanClause clause : bq.clauses()) {
++        if (clause.occur() != defaultOccur || fields.equals(fieldsOf(clause.query())) == false) {
++          positions = false;
++          break;
++        }
++      }
++      if (positions) {
++        clauses.addAll(bq.clauses());
++        return;
++      }
++    }
++    addClause(clauses, CONJ_NONE, MOD_NONE, q);
++  }
++
++  private static Set&lt;String&gt; fieldsOf(Query q) {
++    Set&lt;String&gt; fields = new HashSet&lt;&gt;();
++    q.visit(
++        new QueryVisitor() {
++          @Override
++          public boolean acceptField(String field) {
++            fields.add(field);
++            return true;
++          }
++        });
++    return fields;
++  }
++
+   /**
+    * @exception org.apache.lucene.queryparser.classic.ParseException throw in overridden method to
+    *     disallow
+diff --git a/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java b/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java
+index 1f399a80634..b654587106c 100644
+--- a/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java
++++ b/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java
+@@ -455,4 +455,17 @@ public class TestMultiFieldQueryParser extends LuceneTestCase {
+     // to addMultiTermClauses issue where default operator is ignored
+     assertEquals(expected, parser.parse(&quot;+foo bar the&quot;).toString());
+   }
++
++  public void testConjunctionAfterDroppedTermBindsToLastTerm() throws Exception {
++    MultiFieldQueryParser parser =
++        new MultiFieldQueryParser(
++            new String[] {&quot;field1&quot;, &quot;field2&quot;},
++            new MockAnalyzer(
++                random(), MockTokenizer.WHITESPACE, true, MockTokenFilter.ENGLISH_STOPSET));
++    assertEquals(parser.parse(&quot;foo bar AND baz&quot;), parser.parse(&quot;foo bar the AND baz&quot;));
++    // a run that analyzes to one position keeps its field disjunction as one clause
++    assertEquals(parser.parse(&quot;foo AND baz&quot;), parser.parse(&quot;foo the the AND baz&quot;));
++    parser.setDefaultOperator(QueryParserBase.AND_OPERATOR);
++    assertEquals(parser.parse(&quot;foo bar OR baz&quot;), parser.parse(&quot;foo bar the OR baz&quot;));
++  }
+ }
+diff --git a/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java b/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java
+index cd39990b079..f9685705421 100644
+--- a/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java
++++ b/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java
+@@ -49,6 +49,7 @@ import org.apache.lucene.tests.analysis.MockAnalyzer;
+ import org.apache.lucene.tests.analysis.MockBytesAnalyzer;
+ import org.apache.lucene.tests.analysis.MockLowerCaseFilter;
+ import org.apache.lucene.tests.analysis.MockSynonymAnalyzer;
++import org.apache.lucene.tests.analysis.MockTokenFilter;
+ import org.apache.lucene.tests.analysis.MockTokenizer;
+ import org.apache.lucene.tests.index.RandomIndexWriter;
+ 
+@@ -646,6 +647,17 @@ public class TestQueryParser extends QueryParserTestBase {
+     assertEquals(query, dumb.parse(&quot;guinea pig&quot;));
+   }
+ 
++  public void testConjunctionAfterDroppedTermBindsToLastTerm() throws Exception {
++    Analyzer a =
++        new MockAnalyzer(random(), MockTokenizer.WHITESPACE, true, MockTokenFilter.ENGLISH_STOPSET);
++    QueryParser qp = new QueryParser(FIELD, a);
++    // &quot;the&quot; is dropped by the analyzer: it must not change what AND/OR applies to
++    assertEquals(qp.parse(&quot;apple banana AND cherry&quot;), qp.parse(&quot;apple banana the AND cherry&quot;));
++    assertEquals(qp.parse(&quot;apple banana &amp;&amp; cherry&quot;), qp.parse(&quot;apple banana the &amp;&amp; cherry&quot;));
++    qp.setDefaultOperator(QueryParser.Operator.AND);
++    assertEquals(qp.parse(&quot;apple banana OR cherry&quot;), qp.parse(&quot;apple banana the OR cherry&quot;));
++  }
++
+   // TODO: Move to QueryParserTestBase once standard flexible parser gets this capability
+   public void testOperatorsAndMultiWordSynonyms() throws Exception {
+     Analyzer a = new MockSynonymAnalyzer();
+@@ -705,21 +717,21 @@ public class TestQueryParser extends QueryParserTestBase {
+ 
+     assertQueryEquals(&quot;field:(guinea pig)&quot;, a, &quot;((+guinea +pig) cavy)&quot;);
+ 
+-    assertQueryEquals(&quot;+small guinea pig&quot;, a, &quot;+small (((+guinea +pig) cavy))&quot;);
+-    assertQueryEquals(&quot;-small guinea pig&quot;, a, &quot;-small (((+guinea +pig) cavy))&quot;);
+-    assertQueryEquals(&quot;!small guinea pig&quot;, a, &quot;-small (((+guinea +pig) cavy))&quot;);
+-    assertQueryEquals(&quot;NOT small guinea pig&quot;, a, &quot;-small (((+guinea +pig) cavy))&quot;);
+-    assertQueryEquals(&quot;small* guinea pig&quot;, a, &quot;small* (((+guinea +pig) cavy))&quot;);
+-    assertQueryEquals(&quot;small? guinea pig&quot;, a, &quot;small? (((+guinea +pig) cavy))&quot;);
+-    assertQueryEquals(&quot;\&quot;small\&quot; guinea pig&quot;, a, &quot;small (((+guinea +pig) cavy))&quot;);
+-
+-    assertQueryEquals(&quot;guinea pig +running&quot;, a, &quot;(((+guinea +pig) cavy)) +running&quot;);
+-    assertQueryEquals(&quot;guinea pig -running&quot;, a, &quot;(((+guinea +pig) cavy)) -running&quot;);
+-    assertQueryEquals(&quot;guinea pig !running&quot;, a, &quot;(((+guinea +pig) cavy)) -running&quot;);
+-    assertQueryEquals(&quot;guinea pig NOT running&quot;, a, &quot;(((+guinea +pig) cavy)) -running&quot;);
+-    assertQueryEquals(&quot;guinea pig running*&quot;, a, &quot;(((+guinea +pig) cavy)) running*&quot;);
+-    assertQueryEquals(&quot;guinea pig running?&quot;, a, &quot;(((+guinea +pig) cavy)) running?&quot;);
+-    assertQueryEquals(&quot;guinea pig \&quot;running\&quot;&quot;, a, &quot;(((+guinea +pig) cavy)) running&quot;);
++    assertQueryEquals(&quot;+small guinea pig&quot;, a, &quot;+small ((+guinea +pig) cavy)&quot;);
++    assertQueryEquals(&quot;-small guinea pig&quot;, a, &quot;-small ((+guinea +pig) cavy)&quot;);
++    assertQueryEquals(&quot;!small guinea pig&quot;, a, &quot;-small ((+guinea +pig) cavy)&quot;);
++    assertQueryEquals(&quot;NOT small guinea pig&quot;, a, &quot;-small ((+guinea +pig) cavy)&quot;);
++    assertQueryEquals(&quot;small* guinea pig&quot;, a, &quot;small* ((+guinea +pig) cavy)&quot;);
++    assertQueryEquals(&quot;small? guinea pig&quot;, a, &quot;small? ((+guinea +pig) cavy)&quot;);
++    assertQueryEquals(&quot;\&quot;small\&quot; guinea pig&quot;, a, &quot;small ((+guinea +pig) cavy)&quot;);
++
++    assertQueryEquals(&quot;guinea pig +running&quot;, a, &quot;((+guinea +pig) cavy) +running&quot;);
++    assertQueryEquals(&quot;guinea pig -running&quot;, a, &quot;((+guinea +pig) cavy) -running&quot;);
++    assertQueryEquals(&quot;guinea pig !running&quot;, a, &quot;((+guinea +pig) cavy) -running&quot;);
++    assertQueryEquals(&quot;guinea pig NOT running&quot;, a, &quot;((+guinea +pig) cavy) -running&quot;);
++    assertQueryEquals(&quot;guinea pig running*&quot;, a, &quot;((+guinea +pig) cavy) running*&quot;);
++    assertQueryEquals(&quot;guinea pig running?&quot;, a, &quot;((+guinea +pig) cavy) running?&quot;);
++    assertQueryEquals(&quot;guinea pig \&quot;running\&quot;&quot;, a, &quot;((+guinea +pig) cavy) running&quot;);
+ 
+     assertQueryEquals(&quot;\&quot;guinea pig\&quot;~2&quot;, a, &quot;\&quot;guinea pig\&quot; cavy&quot;);
+ 
+@@ -890,9 +902,9 @@ public class TestQueryParser extends QueryParserTestBase {
+     assertEquals(&quot;*bersetzung uber*ung&quot;, parser.parse(&quot;*bersetzung über*ung&quot;).toString(FIELD));
+     parser.setAllowLeadingWildcard(false);
+     assertEquals(
+-        &quot;(motley crue) motl?* cru?&quot;, parser.parse(&quot;Mötley Cr\u00fce Mötl?* Crü?&quot;).toString(FIELD));
++        &quot;motley crue motl?* cru?&quot;, parser.parse(&quot;Mötley Cr\u00fce Mötl?* Crü?&quot;).toString(FIELD));
+     assertEquals(
+-        &quot;(renee zellweger) ren?? zellw?ger&quot;,
++        &quot;renee zellweger ren?? zellw?ger&quot;,
+         parser.parse(&quot;Renée Zellweger Ren?? Zellw?ger&quot;).toString(FIELD));
+   }
+ 
+@@ -900,8 +912,7 @@ public class TestQueryParser extends QueryParserTestBase {
+     Analyzer a = new ASCIIAnalyzer();
+     QueryParser parser = new QueryParser(FIELD, a);
+     assertEquals(&quot;ubersetzung ubersetz*&quot;, parser.parse(&quot;übersetzung übersetz*&quot;).toString(FIELD));
+-    assertEquals(
+-        &quot;(motley crue) motl* cru*&quot;, parser.parse(&quot;Mötley Crüe Mötl* crü*&quot;).toString(FIELD));
++    assertEquals(&quot;motley crue motl* cru*&quot;, parser.parse(&quot;Mötley Crüe Mötl* crü*&quot;).toString(FIELD));
+     assertEquals(&quot;rene? zellw*&quot;, parser.parse(&quot;René? Zellw*&quot;).toString(FIELD));
+   }
+ 
+@@ -918,10 +929,10 @@ public class TestQueryParser extends QueryParserTestBase {
+     assertEquals(
+         &quot;ubersetzung ubersetzung~1&quot;, parser.parse(&quot;Übersetzung Übersetzung~0.9&quot;).toString(FIELD));
+     assertEquals(
+-        &quot;(motley crue) motley~1 crue~2&quot;,
++        &quot;motley crue motley~1 crue~2&quot;,
+         parser.parse(&quot;Mötley Crüe Mötley~0.75 Crüe~0.5&quot;).toString(FIELD));
+     assertEquals(
+-        &quot;(renee zellweger) renee~0 zellweger~2&quot;,
++        &quot;renee zellweger renee~0 zellweger~2&quot;,
+         parser.parse(&quot;Renée Zellweger Renée~0.9 Zellweger~&quot;).toString(FIELD));
+   }
+ 
+@@ -1027,14 +1038,4 @@ public class TestQueryParser extends QueryParserTestBase {
+       return false;
+     }
+   }
+-
+-  @Override
+-  protected String multiTermGroup(String str) {
+-    return &quot;(&quot; + str + &quot;)&quot;;
+-  }
+-
+-  @Override
+-  protected String multiTermGroupDAO(String str) {
+-    return &quot;+(&quot; + str + &quot;)&quot;;
+-  }
+ }
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>git apply fix-with-tests.diff &amp;&amp; ./gradlew :lucene:queryparser:test -Dtests.seed=DEADBEEF &amp;&amp; ./gradlew :lucene:queryparser:check -x test
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed and a9779ef3c193: affected; branch_10_6 classic package at 88c0bd4c346 (over the 10.5.2 jars): affected; 10.5.2, 10.0.0, 9.12.3, 8.11.4, 7.0.0: not affected</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main ea57360912ed, seed DEADBEEF (the same with assertions off and on main a9779ef3c193)
+TestStopwordBeforeConjunction &gt; testOrAfterStopwordDefaultOperatorAnd FAILED
+    java.lang.AssertionError: (+body:apple +body:banana) body:cherry expected:&lt;0&gt; but was:&lt;1&gt;
+TestStopwordBeforeConjunction &gt; testAndAfterStopwordDefaultOperatorOr FAILED
+    java.lang.AssertionError: +(body:apple body:banana) +body:cherry expected:&lt;0&gt; but was:&lt;1&gt;
+
+# 10.5.2 release jars: 2 of 2 pass. With the fix: 2 of 2 pass.
+
+# independent test, main (3 of 5 fail; both controls pass)
+op=OR  &#x27;apple banana the AND cherry&#x27; sow=false -&gt; +(body:apple body:banana) +body:cherry hits [d0, d1, d2]
+       &#x27;apple banana AND cherry&#x27;     sow=false -&gt; body:apple +body:banana +body:cherry hits [d1, d2]
+       &#x27;apple banana the AND cherry&#x27; sow=true  -&gt; body:apple +body:banana +body:cherry hits [d1, d2]
+op=AND &#x27;apple banana the OR cherry&#x27;  sow=false -&gt; (+body:apple +body:banana) body:cherry hits [d0, d1, d2, d3, d4]
+       &#x27;apple banana OR cherry&#x27;      sow=false -&gt; +body:apple body:banana body:cherry hits [d0, d1, d4]</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The grammar ends a run before a word followed by AND/OR, so the operator binds to that word, never to a run; a test asserts <code>guinea pig AND dogs</code> -&gt; <code>guinea +pig ...</code>.</li><li>#16446's own test says a stopword next to a term must not change the parse.</li><li>10.5.2 and <code>splitOnWhitespace=true</code> give the stopword-free parse; no change was announced.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>272 words</span></summary><div class='body'><ul><li><strong>The code's own rule.</strong> <code class='nw'>addClause</code>: "If this term is introduced by AND, make the preceding term required" (<code>QueryParserBase.java:349</code>) and "If this term is introduced by OR, make the preceding term optional" (<code class='nw'>:358</code>). The grammar makes sure that preceding clause is never a run of plain words by ending runs before AND/OR (<code>QueryParser.jj:167-171</code>); it can still be a field-qualified term, a phrase or a parenthesized group (<code class='nw'>:297-372</code>).</li><li><strong>The docs.</strong> "The AND operator matches documents where both terms exist" (<code>package-info.java:300</code>); "The OR operator links two terms" (<code class='nw'>:284</code>). <code>setSplitOnWhitespace</code> only says "Whether query text should be split on whitespace prior to analysis" (<code>QueryParser.jj:152</code>).</li><li><strong>Upstream tests.</strong> LUCENE-2605's test: "Operators should interrupt multiword analysis of adjacent words if they associate", with <code>guinea pig AND dogs</code> -&gt; <code>guinea +pig +Synonym(dog dogs)</code> (<code>TestQueryParser.java:656</code>, <code class='nw'>:679</code>). #16446's <code>testDefaultOperatorAppliesStopwordNextToTerm</code>: <code>+foo bar the</code> must parse like <code>+foo bar</code> (<code>TestMultiFieldQueryParser.java:439-456</code>). No test covers a run, a dropped token, then AND/OR.</li><li><strong>History.</strong> #16446 fixed two MultiFieldQueryParser bugs (#16441, #16443). In its thread the changed expectations were called "cosmetic", producing "exactly same results", and the author, after re-running the #10355 boolean precedence cases (<code>A AND B OR C AND D</code>, ...) on 8.11.3, 10.5.1 and the PR, said "the general clause handling isn't affected"; a maintainer noted it would be a breaking change before merging and backporting it to 10.6. <code class='nw'>CHANGES.txt</code> (under 11.0.0 on main) lists only the removal of <code>addMultiTermClauses</code> and the two MultiFieldQueryParser fixes; <code class='nw'>MIGRATE.md</code> has nothing, and on <code class='nw'>branch_10_6</code> (the future 10.6.0) the backport adds no <code class='nw'>CHANGES.txt</code> entry at all.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>284 words</span></summary><div class='body'><p>The strongest "works as designed" case (review, the independent reproduction, the intended-behaviour check, adjudication): no document says how AND/OR binds next to a dropped token, and the package docs say "the query parser syntax may change from release to release" (<code>package-info.java:74</code>); <code class='nw'>addClause</code>'s rule (adjust the last surviving clause) is old and unchanged, and main's result equals the long-standing parse of the explicit <code>(apple banana) the AND cherry</code>; the flexible <code>StandardQueryParser</code> already gives a third answer (<code>appl banana +cherri</code>) on both versions; committers have called odd classic AND/OR results expected before (#8535); the package docs say the parser "is designed for human-entered text, not for program-generated text" (<code>package-info.java:82-85</code>), which weakens the case of code that joins text with AND (not a person typing it); and grouping the run is coherent in itself (<code>(apple OR banana) AND cherry</code>), most of all for <code>MultiFieldQueryParser</code>, where #16446 deliberately combines a run's positions into one unit.</p><p>Why it fails: the change was described as not changing results and nothing announces it; it makes <code>splitOnWhitespace</code> true and false disagree on one build; the grammar and the upstream tests bind an operator to the word before it; and #16446's own test says a stopword next to a term must not change the parse. Which reading applies depends only on whether a dropped word was typed. <strong>The independent reproduction, the intended-behaviour check and the adjudication classify it as real</strong> (the intended-behaviour check and the adjudication with medium confidence, because the contract is implicit; the independent reproduction records none); the runs show the change, not intent, so the issue should present it as an unannounced side effect of #16446 found before release.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A. Add a run's positions as separate clauses again, without re-flagging them (two known gaps)</strong></p><p class='short'>Add a run's per-position clauses one by one again, as 10.5.2 did, when all carry the default occur and cover the same fields, so nothing is re-flagged. The repro and the whole queryparser suite (536 tests) pass. Two known gaps: per-field analyzers that drop a word in only some fields keep the bug; a subclass returning alternatives gets them split.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>6 options · 1,063 words</span></summary><div class='body'><p>One fix was built and validated in a scratch worktree at <code class='nw'>ea57360912ed</code> (option A), together with a simpler variant that has a known corner (A1). A probe after the fact check found two shapes option A gets wrong (below), so an upstream fix may need a different test of what a term position is. Any fix must keep #16441 (a per-field disjunction must not be re-flagged MUST under the AND default), #16443 (positions combined with the default operator) and multi-word synonym grouping.</p><div class="hd hd-3"><h3 id='fix-flatten-positions'>A. Add a run's positions as separate clauses again, without re-flagging them (two known gaps) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-flatten-positions" target="_self" aria-label="Link to this section" aria-describedby="fix-flatten-positions"><span aria-hidden="true">#</span></a></div><p>A package-private <code>QueryParserBase.addMultiTermRunClauses</code> replaces the <code class='nw'>addClause</code> call in <code class='nw'>MultiTerm</code> (<code>QueryParser.jj:405</code>; <code class='nw'>QueryParser.java</code> and the checksum file regenerated). If the run's query is a <code class='nw'>BooleanQuery</code> without <code>minimumNumberShouldMatch</code> whose clauses all have the default operator's occur and all cover the same fields (one clause per position), the clauses are added as they are; any other query is added as one clause, as on main. The same-occur guard keeps #16441 fixed (<code>+foo bar the</code> still parses like <code>+foo bar</code>); the same-fields guard keeps a one-position MultiFieldQueryParser field disjunction in one piece.</p><pre class='snippet' tabindex='0'><code>  void addMultiTermRunClauses(List&lt;BooleanClause&gt; clauses, Query q) {
+    if (q instanceof BooleanQuery bq
+        &amp;&amp; bq.getMinimumNumberShouldMatch() == 0
+        &amp;&amp; bq.clauses().isEmpty() == false) {
+      Occur defaultOccur = operator == OR_OPERATOR ? Occur.SHOULD : Occur.MUST;
+      Set&lt;String&gt; fields = fieldsOf(bq.clauses().get(0).query());
+      boolean positions = true;
+      for (BooleanClause clause : bq.clauses()) {
+        if (clause.occur() != defaultOccur || fields.equals(fieldsOf(clause.query())) == false) {
+          positions = false;
+          break;
+        }
+      }
+      if (positions) {
+        clauses.addAll(bq.clauses());
+        return;
+      }
+    }
+    addClause(clauses, CONJ_NONE, MOD_NONE, q);
+  }
+  // fieldsOf(q): the fields that q.visit(...) reports through QueryVisitor#acceptField</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Output strings go back to 10.5.2's.</strong> Ordinary runs print flat again (<code>motley crue motl* cru*</code> instead of <code>(motley crue) motl* cru*</code>), so the fix reverts #16446's expectation changes in <code class='nw'>TestQueryParser</code> (the <code class='nw'>multiTermGroup</code> overrides, 14 synonym and 5 ASCII-folding strings). Matches of those queries do not change. #16446 knowingly accepted and tested the grouping; option B keeps it.</li><li><strong>Two guards decide what a position is, and they can be wrong both ways.</strong> Gap 1, per-field analyzers (executed): <code>MultiFieldQueryParser</code> over <code class='nw'>t</code> and <code class='nw'>b</code>, where <code class='nw'>b</code> also drops <code class='nw'>banana</code>; <code>apple banana the AND cherry</code> gives <code>+((t:apple b:apple) (t:banana)) +(t:cherry b:cherry)</code> on main and with the fix (the positions cover different fields, so the guard declines), while 10.5.2, <code>splitOnWhitespace=true</code> and the stopword-free query give <code>(t:apple b:apple) +(t:banana) +(t:cherry b:cherry)</code>: the bug remains. Gap 2, a subclass whose <code class='nw'>getFieldQuery</code> returns two same-field SHOULD alternatives <code>body:x body:y</code> for the run (executed): main gives <code>+(body:x body:y) +body:z</code> for <code>a b the AND z</code>, the fix <code>body:x +body:y +body:z</code> (as 10.5.2 did), so a document with only x and z is lost against main. Also by reading: <code class='nw'>fieldsOf</code> ignores MUST_NOT children (<code>QueryVisitor.getSubVisitor</code> returns <code class='nw'>EMPTY_VISITOR</code>, <code>QueryVisitor.java:79-82</code>) and gives an empty set for a query that reports no field.</li><li>Scores, rewritten queries and query-cache keys of the flattened queries were not compared; the tests and probes compare parses and match sets only.</li><li>Not run on <code class='nw'>branch_10_6</code> (the code uses <code class='nw'>instanceof</code> patterns and <code class='nw'>BooleanClause</code> record accessors, both on 10.x), on x86, or in a benchmark (the check runs once per run, at parse time).</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree at <code class='nw'>ea57360912ed</code>, JDK 25: the finder's and the independent tests go from 5 of 7 failing to 7 of 7 passing; with the fix as shadow sources over the stock jars they pass with assertions on and off, and the security probe's 4 tests pass.</li><li>Whole <code>lucene/queryparser</code> suite with the fix and its tests: 30 classes, 536 tests, 0 failures, 1 skipped; <code>:lucene:queryparser:check -x test</code> passes (google-java-format, ecj, forbidden APIs, generated-file checksums). <code>regenerateClassicQueryParser</code> gives a <code class='nw'>QueryParser.java</code> identical to the hand edit. The 2 new tests fail on the stock sources.</li><li>Translation-validation harness: two words and a stopword, every query of up to 5 symbols (434,688 evaluations): 48 + 48 mismatches on stock, 0 with the fix. All six analyzer families up to 4 symbols (6,366,096 evaluations): identical counts with and without the fix.</li><li>Not covered by these runs: per-field analyzers and <code class='nw'>getFieldQuery</code> overrides; the gap probe (a public-API <code class='nw'>main()</code> class) ran them on stock main, with the fix as shadow sources and on 10.5.2.</li></ul><div class="hd hd-3"><h3 id='fix-flatten-same-occur'>A1. The same without the same-fields guard <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-flatten-same-occur" target="_self" aria-label="Link to this section" aria-describedby="fix-flatten-same-occur"><span aria-hidden="true">#</span></a></div><p>Flatten whenever every clause has the default occur.</p><p class='k'>Trade-offs</p><p>Passes the repro and the whole module suite, but re-breaks a corner that main gets right: MultiFieldQueryParser, OR default, <code>apple the the AND cherry</code> gives <code>t:apple +b:apple +(t:cherry b:cherry)</code> instead of <code>+(t:apple b:apple) +(t:cherry b:cherry)</code>, which is what main and <code>splitOnWhitespace=true</code> give (10.5.2 had the same flaw as A1).</p><p class='k'>What the checks validated</p><p>Module suite with the finder's, the independent and a probe test: 33 classes, 541 tests, 0 failures; the corner shown by a parse probe.</p><div class="hd hd-3"><h3 id='fix-split-at-conjunction'>B. Keep the grouping; split the run only when a conjunction reaches it</h3><a class="hlink" href="#fix-split-at-conjunction" target="_self" aria-label="Link to this section" aria-describedby="fix-split-at-conjunction"><span aria-hidden="true">#</span></a></div><p>Remember the clause <code class='nw'>MultiTerm</code> added; when <code class='nw'>addClause</code> is about to apply AND/OR to it (which only happens when the tokens in between were dropped), replace it by its per-position clauses first.</p><p class='k'>Trade-offs</p><p>Keeps every <code class='nw'>toString()</code> and test expectation of #16446 and changes only the buggy shape; needs parser state across <code class='nw'>addClause</code> calls and the same position guards. Not built.</p><div class="hd hd-3"><h3 id='fix-no-conjunction-across-drop'>C. Do not apply a conjunction across a dropped token</h3><a class="hlink" href="#fix-no-conjunction-across-drop" target="_self" aria-label="Link to this section" aria-describedby="fix-no-conjunction-across-drop"><span aria-hidden="true">#</span></a></div><p>Skip the previous-clause adjustment when the clause just before the operator was dropped.</p><p class='k'>Trade-offs</p><p>Tried as an <code class='nw'>addClause</code> override on main (not as a patch): it gives <code>(apple banana) +cherry</code>, which matches neither 10.5.2 nor <code>splitOnWhitespace=true</code>, and keeps the long-standing <code>drop AND stop AND roll</code> -&gt; <code>+drop +roll</code>, because the first AND still makes <code class='nw'>drop</code> required. A wider variant that also ignores the AND that introduces a dropped token gives the same <code>(apple banana) +cherry</code> and changes that test to <code>drop +roll</code>. Both live in <code class='nw'>addClause</code>, so they also change <code>splitOnWhitespace=true</code> (by reading). Not recommended.</p><div class="hd hd-3"><h3 id='fix-revert-line'>D. Revert the MultiTerm line of #16446</h3><a class="hlink" href="#fix-revert-line" target="_self" aria-label="Link to this section" aria-describedby="fix-revert-line"><span aria-hidden="true">#</span></a></div><p>Restore <code>addMultiTermClauses</code>.</p><p class='k'>Trade-offs</p><p>Makes the repro pass (executed in the history check) but brings back the re-flagging that #16441 fixed: the old method re-added non-<code class='nw'>TermQuery</code> clauses with the default occur. Not acceptable.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround until a fix ships</h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p><code>setSplitOnWhitespace(true)</code> gives the 10.5.2 parse, but changes multi-word synonym handling; or leave out any dropped token (a stopword, a lone <code class='nw'>,</code>) before an explicit operator.</p><p class='k'>Trade-offs</p><p>Application-side only.</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Formal first signal: an AI tool modelled the parser's clause step in the Z3 SMT solver to prove that splitting on whitespace or not gives the same matches. Within the model it held up to 3 clauses and failed at 4 with <code>a b &lt;stopword&gt; AND +c</code> (the same as <code>... AND c</code>). Exhaustive checks and a JUnit confirmed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>219 words</span></summary><div class='body'><p><strong>Method: SMT (Z3) proof attempt, then bounded-exhaustive translation validation on the stock jar</strong> (the hunt's "formal" tier: the solver produced the first signal).</p><ul><li>In a hunt unit (classic query parser, 2026-10-26) the finder, an AI tool, transcribed <code>QueryParserBase.addClause</code> and the <code class='nw'>MultiTerm</code> rule into a Z3 model and asked whether <code>splitOnWhitespace=false</code> and <code class='nw'>true</code> give the same match set for every clause sequence of up to 6 items, both operators, all modifiers and conjunctions, stopwords anywhere. The model is a single-field Boolean abstraction of bare clauses (no real token streams, synonyms, fields, MultiFieldQueryParser, scoring or subclasses). Within it: proved (unsat) up to length 3; counterexample at length 4: <code>a b &lt;stopword&gt; AND +c</code> under the OR default (the <code class='nw'>+</code> is redundant after AND, so it equals <code>a b &lt;stopword&gt; AND c</code>, the JUnit's shape).</li><li>Controls: without stopwords the equivalence is proved up to length 7; a mutant without the grammar's "no AND/OR right after a run" rule fails from length 3 (vacuity check).</li><li>An independent reference grammar and match-set semantics, checked against the real <code class='nw'>QueryParser</code> and <code>MultiFieldQueryParser</code> on every query of up to 5 symbols over two words and a stopword, found only mismatches of the shape <code>w w &lt;stopword&gt; AND|OR x</code>. The finder then wrote the public-API JUnit; the independent checks, history, prior-report search and security assessment followed.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-26): 59 tool queries and about 30 manual searches over Lucene issues, PRs, commits, mailing lists, the JIRA archive, downstream trackers and the web. The closest item is #16446 itself, whose thread discussed a different stopword case.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: nobody, the owner included, has reported or discussed this bug. Not fixed upstream: no commit after #16446 touches the classic package on main or <code class='nw'>branch_10_6</code>, and no open PR touches its parser files. Limits: GitHub search returns at most 50 results per query (2 broad queries were truncated), only 4 JIRA-archive queries ran, and a report worded without the searched words could be missed; the threads where a report would most likely appear were read in full.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits</th><td class='when'>2026-10-26</td><td>a scripted prior-report search (16 issue/PR and 3 commit queries) plus manual GitHub searches; every issue and PR opened since 2026-10-10; commit history of the classic package on main, branch_10_6, branch_10x and branch_10_5</td><td>#16446 (the cause; its thread discussed the trailing stopword in <code>+small hello the</code>, which it fixed), #16443, #16441 (closed on 2026-10-26 as fixed by #16446; still open when searched), #16442, #16667, and older stopword-and-operator items #1181, #1113, #8255, #8535 with other mechanisms</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the changed files of the 188 open PRs updated since 2026-07-01; title searches over all open PRs</td><td>none touches QueryParser.jj, QueryParser.java, QueryParserBase.java or MultiFieldQueryParser.java</td></tr><tr><th scope='row'>Mailing lists</th><td class='when'>2026-10-26</td><td>28 queries over dev@, java-user@, issues@ and commits@; archives since 2026-08-01 read</td><td>only review requests for #16446, with no discussion of semantics</td></tr><tr><th scope='row'>JIRA archive, downstream and web</th><td class='when'>2026-10-26</td><td>4 JIRA-archive, 2 downstream-repository and 6 web queries; two Solr JIRA issues read</td><td>no report; Solr issues have other mechanisms</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced on 2026-10-22 by #16446 (commit <code class='nw'>c71ef11c549</code>, backported to branch_10_6 as <code class='nw'>88c0bd4c346</code>), which made a run of words one clause. In no release: 10.5.2, 10.0.0, 9.12.3, 8.11.4 and 7.0.0 pass; main and branch_10_6 fail.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #16446 "MultiFieldQueryParser: default operator is not honored between term positions" (by @OlivierJaquemet, co-author @epotyom; merged 2026-10-22 by @msokolov as <code class='nw'>c71ef11c549</code> on main, backport <code class='nw'>88c0bd4c346</code> on <code class='nw'>branch_10_6</code>; milestone 10.6.0). One line of <code class='nw'>MultiTerm</code> went from <code>addMultiTermClauses(clauses, firstQuery)</code> to <code>addClause(clauses, CONJ_NONE, MOD_NONE, firstQuery)</code>, and <code>addMultiTermClauses</code> was removed. <code class='nw'>addClause</code>'s order (adjust the previous clause, then return on a dropped term) dates from the 2001 initial import.</p><p>The <code>splitOnWhitespace=false</code> path came with LUCENE-2605 in 6.2.0 (opt-in) and became the default in 7.0.0; from 6.2.0 to 10.5.2 the run was flattened, one clause per position. No build was made at the exact commits; the queryparser module is unchanged between <code class='nw'>c71ef11c549</code> and <code class='nw'>ea57360912ed</code>.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code>, <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>finder's test 2 of 2 and the independent test 3 of 5 fail, assertions on and off</td></tr><tr><th scope='row'><code class='nw'>branch_10_6</code> from <code class='nw'>88c0bd4c346</code> (future 10.6.0)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> source over 10.5.2 jars</span></td><td>the classic package at the backport fails 2 of 2; at its parent <code class='nw'>aac3c7ae947</code> it passes</td></tr><tr><th scope='row'>main + parent's parser sources / <code class='nw'>MultiTerm</code> call reverted</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> bisect</span></td><td>both pass (the revert also needs the parent's <code class='nw'>QueryParserBase</code>, since main removed the old method): the <code class='nw'>MultiTerm</code> call of #16446 causes it</td></tr><tr><th scope='row'>10.5.2, 10.0.0, 9.12.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>pass (release jars)</td></tr><tr><th scope='row'>8.11.4, 7.0.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>pass (release jars; test-framework imports adapted)</td></tr><tr><th scope='row'>6.2.0 - 6.6.6</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> read</span></td><td>opt-in path, run flattened the same way</td></tr><tr><th scope='row'>fix (scratch worktree)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>repro tests pass; queryparser suite 536 tests, 0 failures</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and an adjudication, all running tests on main, and a "works as designed" review from another model family (OpenAI GPT-5.6, reading only) say real. A refute review that could not run code said "not real" mainly procedurally. The fix passed the queryparser suite; a later probe found two gaps.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>332 words</span></summary><div class='body'><p>Every check ran on main <code class='nw'>ea57360912ed</code>; the GPT-5.6 reviews could read code but not run it, and the harness that drove them re-ran the finder's repro.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Z3 counterexample at length 4, translation-validation mismatches only of this shape, JUnit 2 of 2 fail on main (assertions on and off), 40 of 40 over 20 iterations, passes on 10.5.2.</td></tr><tr><th scope='row'>works-as-designed review (GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>Agreed on the root cause and the inputs; rated the intended case moderate, not persuasive. A separate run re-ran the repro: fails.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 5-test JUnit from the claim alone: 3 of 5 fail on main, 5 of 5 pass on 10.5.2, 10.0.0 and 9.12.3; restoring per-position clauses makes all pass.</td></tr><tr><th scope='row'>Refute review (GPT-5.6, reading only)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not_real, low (mainly procedural)</span></td><td> it agreed with the root cause. Its one substantive contrary item: the package docs warn that the syntax may change and that the parser targets human-entered text (answered in the devil's-advocate case). A separate run's own check with new words: 6 of 6 cases differ on main, 0 of 12 on 10.5.2.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>Built the strongest works-as-designed case and showed why it fails; an 80-parse probe added the <code class='nw'>,</code> trigger with the default StandardAnalyzer and the MultiFieldQueryParser form.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, medium</span></td><td>Re-ran the independent reproduction's test: 3 of 5 fail on main, 0 of 5 on 10.5.2. Medium because the contract is implicit.</td></tr><tr><th scope='row'>history, prior art, security</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> introduced by #16446; new; security none</span></td><td>11 executed history runs pin the one line; no prior report; a 4-test security probe shows a separately added restriction always holds.</td></tr><tr><th scope='row'>re-runs and fix</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces; fix passes the suite, two gaps</span></td><td>Follow-up re-runs and newer main <code class='nw'>a9779ef3c193</code> reproduce; the recommended fix passes the repro, the module suite and <code class='nw'>check</code>; a probe after the fact checks shows two shapes it gets wrong (per-field analyzers, subclass alternatives).</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-284/bug.png' download='multiterm-group-absorbs-conjunction-after-stopword-bug.png' target='_self'>PNG</a> <span class='n'>499 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,623 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-284, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>Classic QueryParser with the default splitOnWhitespace=false: since #16446 an AND/OR that directly follows a token the analyzer drops (such as a stopword) binds to the whole preceding run of plain terms instead of the last term, so typing the stopword changes which documents match (unreleased regression on main and branch_10_6)</dd></div><div><dt>Area</dt><dd>queryparser / classic QueryParser and MultiFieldQueryParser (QueryParser.jj MultiTerm run grouping, QueryParserBase.addClause conjunction step)</dd></div><div><dt>Priority</dt><dd>Medium, rank 86: An unreleased 10.6 regression in the default classic QueryParser silently changes matches for a stopword right before AND/OR, and the parser is broader than LFV-229&#x27;s new Thai dictionary feature, so it heads the unreleased rows.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that parse query strings with the classic QueryParser or MultiFieldQueryParser at default settings (splitOnWhitespace=false) and an analyzer that drops a token (a stop filter such as EnglishAnalyzer's, or even the default StandardAnalyzer for a space-separated ',' or en dash) get different matches with no error whenever a query has two or more plain terms, then the dropped token, then AND/&amp;&amp; under the default OR operator (extra documents match) or OR/|| under the AND default (matches change in both directions); no scale or special index is needed, but the query shape is uncommon, and only unreleased code is affected (main since c71ef11c549 and branch_10_6, the future 10.6.0; 10.5.2 and every earlier release are not).</dd></div><div><dt>Summary</dt><dd>You parse 'apple banana the AND cherry' with the classic QueryParser at its default settings and an analyzer that drops 'the', and expect the same query as for 'apple banana AND cherry', namely body:apple +body:banana +body:cherry, which is what Lucene 10.5.2 returns and what main returns with splitOnWhitespace=true. On main you get +(body:apple body:banana) +body:cherry, so a document containing only 'apple cherry' now matches; with the AND default operator, 'apple banana the OR cherry' becomes (+body:apple +body:banana) body:cherry instead of +body:apple body:banana body:cherry, so a document with only 'cherry' matches and one with only 'apple' no longer does. The cause is #16446, which now adds the analysed run 'apple banana' as one clause: the stopword yields no clause, so the following conjunction's 'make the preceding clause required (or optional)' step in addClause changes the whole run instead of 'banana'.</dd></div><div><dt>Introduced</dt><dd>c71ef11c549d4fcf4126936ddc0066e60029cab2 ('MultiFieldQueryParser: default operator is not honored between term positions (#16446)'; PR apache/lucene#16446 by OlivierJaquemet with co-author epotyom, which fixes #16443 and supersedes PR #16442 for #16441; merged 2026-10-22 by msokolov, milestone 10.6.0), backported to branch_10_6 as 88c0bd4c346 (2026-10-22, parent aac3c7ae947). It changed one line of the MultiTerm production (QueryParser.jj:405, generated QueryParser.java:747) from addMultiTermClauses(clauses, firstQuery), which put each position of an all-TermQuery run into the clause list, to addClause(clauses, CONJ_NONE, MOD_NONE, firstQuery), and removed QueryParserBase.addMultiTermClauses; addClause itself, which applies a conjunction's adjustment to the last clause before returning on a null query, has had that order since the 2001 initial import bd3948c539e. [exec: main's jars with the parent's (7cecf795236) QueryParser, QueryParserBase and MultiFieldQueryParser shadowed pass, with main's sources, that call changed back to addMultiTermClauses and the parent's QueryParserBase (main removed the method) pass, stock main fails; the branch_10_6 classic package at aac3c7ae947 passes and at 88c0bd4c346 fails over 10.5.2 jars; read: git blame and git log -L of MultiTerm. No build at the exact commits; git diff c71ef11c549 ea57360912ed -- lucene/queryparser is empty] (2026-10-22 (c71ef11c549 on main; backport 88c0bd4c346 on branch_10_6 the same day))</dd></div><div><dt>First affected version</dt><dd>unreleased (no release contains it; 10.5.2, the latest release, passes [exec]; the first release expected to contain it is 10.6.0, because the backport 88c0bd4c346 is on branch_10_6 and the PR milestone is 10.6.0; on main, CHANGES lists #16441/#16443 under 11.0.0)</dd></div><div><dt>Affected versions</dt><dd>main (11.0.0-SNAPSHOT) from c71ef11c549 through ea57360912ed [exec, -ea and -da: finder, the independent reproduction, a separate run, the intended-behaviour check, adjudication, history follow-up and this follow-up]; branch_10_6 from 88c0bd4c346 [exec: that branch's classic-package source shadowed over 10.5.2 jars, no full branch build; the package is the same at the branch tip 2763db11b0a]. Not affected: 7.0.0, 8.11.4, 9.12.3, 10.0.0 and 10.5.2 [exec, release jars; 7.0.0 and 8.11.4 with a copy of the test that only changes five test-framework imports]; 6.2.0 .. 6.6.6 [read: splitOnWhitespace=false was opt-in and addMultiTermClauses flattened the run the same way]; before 6.2.0 the splitOnWhitespace=false path did not exist; branch_10x (10.7.0 in development) does not contain #16446 [read]. Not fixed upstream as of 2026-10-26. All runs on JDK 25.0.3, aarch64 Linux; x86 not checked (no vector or platform-dependent code is involved).</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>formal: Z3/cvc5</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; the prior-report record, verdict new: a scripted prior-report search with 59 queries (16 GitHub issue/PR, 3 commit, 2 downstream-repository, 28 mailing-list over dev@, java-user@, issues@ and commits@, 4 JIRA-archive, 6 web), 30 recorded manual searches and reads (GitHub search on apache/lucene and downstream repositories, the commits API on main, branch_10_6, branch_10x and branch_10_5, the changed files of the 188 open apache/lucene PRs updated since 2026-07-01, every issue and PR opened since 2026-10-10, list archives since 2026-08-01, two Solr JIRA issues), plus the finder's 12-query run and the intended-behaviour check's 15 list queries; 21 hits read, none the same bug, none by the owner shbhar). Related, not reports: apache/lucene#16446 (merged 2026-10-22), the change that introduced the bug; its thread discussed a different stopword case ('+small hello the' under the AND default, which it fixed) and called the changed test expectations 'cosmetic' with 'exactly same results'; #16443 (closed by #16446) and #16441 (closed on 2026-10-26 by javanna as fixed by #16446; it was still open at the search, although CHANGES listed it as fixed), the MultiFieldQueryParser bugs #16446 fixes; #16442 (closed unmerged, superseded by #16446); #16667 (a rewrite follow-up to a #16446 review note); older stopword-and-operator items #1181, #1113, #8255 and #8535, different cases. Not fixed upstream: no commit after #16446 on main or branch_10_6 touches queryparser/classic, and no open PR touches QueryParser.jj, QueryParser.java, QueryParserBase.java or MultiFieldQueryParser.java. Gaps: GitHub search returns the first 50 results per query (2 broad queries truncated); only 4 JIRA-archive queries; keyword search can miss a report that uses none of the queried words; the bug is 4 days old, so the likeliest places for a report (the #16441/#16443/#16446 threads and issues opened since the merge) were read in full.</dd></div><div><dt>Lucene commit tested</dt><dd>2026-10-26 on main <code class='nw'>ea57360912ed</code> (commit of 2026-10-24) through gradle and the standalone harness, with assertions on and off; again on main <code class='nw'>a9779ef3c193</code> (2026-10-26); the 10.5.2, 10.0.0, 9.12.3, 8.11.4 and 7.0.0 release jars; main with the parent commit's parser sources, and with the <code class='nw'>MultiTerm</code> call reverted (plus the parent's <code class='nw'>QueryParserBase</code>, since main removed the old method); the <code class='nw'>branch_10_6</code> classic package before and at the backport, over the 10.5.2 jars; the fix in a scratch worktree at <code class='nw'>ea57360912ed</code> (whole queryparser suite and checks).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj:376-409 (at ea57360912ed) (MultiTerm: with splitOnWhitespace=false the run is analysed as one string and added by addClause(clauses, CONJ_NONE, MOD_NONE, firstQuery) at :405), :167-171 (disallowedPostMultiTerm = {COLON, STAR, FUZZY_SLOP, CARAT, AND, OR}: a term followed by AND/OR ends the run)</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java:745-748 (at ea57360912ed) (generated MultiTerm, addClause at :747)</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:346-369 (at ea57360912ed) (addClause: AND makes clauses.get(size-1) MUST, comment &#x27;If this term is introduced by AND, make the preceding term required&#x27; at :349; OR under the AND default makes it SHOULD; then &#x27;if (q == null) return;&#x27; at :369)</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/package-info.java:74 (at ea57360912ed) (&#x27;the query parser syntax may change from release to release&#x27;)</code></li><li><code>lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java:439-456 (at ea57360912ed) (testDefaultOperatorAppliesStopwordNextToTerm, added by #16446: &#x27;+foo bar the&#x27; must parse like &#x27;+foo bar&#x27;)</code></li><li><code>lucene/queryparser/src/test/org/apache/lucene/queryparser/util/QueryParserTestBase.java:532 (at ea57360912ed) (&#x27;drop AND stop AND roll&#x27; -&gt; &#x27;+drop +roll&#x27;: a conjunction after a stopword applies to the last surviving clause)</code></li><li><code>lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java:656, (at ea57360912ed) 679 (&#x27;Operators should interrupt multiword analysis of adjacent words if they associate&#x27;; &#x27;guinea pig AND dogs&#x27; -&gt; &#x27;guinea +pig +Synonym(dog dogs)&#x27;)</code></li><li><code>lucene/CHANGES.txt:132, (at ea57360912ed) 262, 264 (#16441 and #16443 entries under 11.0.0; no entry announces a change for the plain QueryParser)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj:112, 167-171, 264-293, 376-409 (MultiTerm; addClause at :405)</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:346-389 (addClause: :349-355 AND step, :357-365 OR step, :369 return on null), :405-411 (newFieldQuery)</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/MultiFieldQueryParser.java:143-209 (getFieldQuery; :205 getMultiTermPositionQuery)</code></li><li><code>git show c71ef11c549 (the MultiTerm change and the removed addMultiTermClauses)</code></li><li><code>git show releases/lucene/10.5.2:lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:421-448 (addMultiTermClauses: :437-438 all-TermQuery runs added unchanged, :439-448 otherwise each child with the default occur)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/package-info.java:82-85 (designed for human-entered text)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:349, 358</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj:152, 167-171, 297-372 (Clause and Term)</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/package-info.java:74, 82-85, 284, 300</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java:656, 679; lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java:439-456; lucene/queryparser/src/test/org/apache/lucene/queryparser/util/QueryParserTestBase.java:532</code></li><li><code>Lucene main ea57360912ed: lucene/CHANGES.txt:6, 132, 262-264</code></li><li><code>git show --stat 88c0bd4c346 (no CHANGES.txt); a Lucene clone origin/branch_10_6 (2763db11b0a) lucene/CHANGES.txt has no #16441/#16443/#16446 entry</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>git show c71ef11c549 (the removed addMultiTermClauses re-flags non-TermQuery clauses)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/QueryVisitor.java:79-82 (getSubVisitor: EMPTY_VISITOR for MUST_NOT)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestStopwordBeforeConjunction.java (2 tests, public API): <a href='../repro/LFV-284/TestStopwordBeforeConjunction.java'><code>repro/LFV-284/TestStopwordBeforeConjunction.java</code></a> (89 lines)</li><li>TestStopwordConjunctionBinding.java (independent check: 5 documents, 3 bug cases, 2 controls): <a href='../repro/LFV-284/TestStopwordConjunctionBinding.java'><code>repro/LFV-284/TestStopwordConjunctionBinding.java</code></a> (157 lines)</li><li>Fix with tests: fix-with-tests.diff (QueryParserBase +46, one call site, 2 new tests): <a href='../repro/LFV-284/fix-with-tests.diff'><code>repro/LFV-284/fix-with-tests.diff</code></a> (253 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A summary diagram (PNG), made in parallel with this doc from an executed probe on main and 10.5.2. The picture uses its own two-document index (doc 0 "apple cherry", doc 1 "banana cherry"), numbered differently from the table above.</p><ul class='paths'><li><a href='../assets/LFV-284/bug.png'><code>assets/LFV-284/bug.png</code></a> (499 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

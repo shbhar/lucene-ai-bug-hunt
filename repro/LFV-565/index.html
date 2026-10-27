@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SmartChineseAnalyzer.normalize only lower-cases, but indexing folds full-width Latin letters and digits to half-width (in the tokenizer&#x27;s SegTokenFilter), so full-width prefix, wildcard, regexp, range and fuzzy terms from the query parsers miss documents that the same word as a term query finds (LFV-565)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>SmartChineseAnalyzer.normalize only lower-cases, but indexing folds full-width Latin letters and digits to half-width (in the tokenizer&#x27;s SegTokenFilter), so full-width prefix, wildcard, regexp, range and fuzzy terms from the query parsers miss documents that the same word as a term query finds</h1>
+<p class="facts small"><span>Bug LFV-565</span><span>Area: analysis-smartcn / language analyzers (SmartChineseAnalyzer normalization: Analyzer#normalize vs the width and case folding inside HMMChineseTokenizer&#x27;s SegTokenFilter, used by the query parsers for multi-term queries)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-565.html">Bug page for LFV-565</a></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You index the text &#x27;我们使用Ｌｕｃｅｎｅ&#x27; (or &#x27;我们使用Lucene&#x27;) with the stock SmartChineseAnalyzer and search with the classic QueryParser: the term query &#x27;Ｌｕｃｅｎｅ&#x27; and the half-width prefix &#x27;Luc*&#x27; find the document, so you expect the full-width prefix &#x27;Ｌｕｃ*&#x27; to find it too. Instead it finds 0 documents, with no error: the tokenizer&#x27;s SegTokenFilter folds full-width Latin letters and digits to half-width and lower-cases A-Z, so the index holds &#x27;lucen&#x27;, but SmartChineseAnalyzer.normalize, which the query parsers apply to prefix, wildcard, regexp, range and fuzzy terms, is only a LowerCaseFilter, so the query term stays full-width (&#x27;ｌｕｃ*&#x27;). Likewise Analyzer.normalize returns &#x27;ａｂｃ&#x27; for &#x27;ＡＢＣ&#x27; and &#x27;１２３&#x27; for &#x27;１２３&#x27; (the index holds &#x27;abc&#x27; and &#x27;123&#x27;) and &#x27;é&#x27; for &#x27;É&#x27; (the index keeps &#x27;É&#x27;).</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> <code>normalize(&quot;ＡＢＣ&quot;)</code> returns <code>abc</code>, and <code>Ｌｕｃ*</code>, <code>Ｌｕｃｅｎ~1</code> and <code>[Ｌｕａ TO Ｌｕｚ]</code> each find the document, as the control <code>Luc*</code> does.</li><li><b>Actual:</b> <code>normalize(&quot;ＡＢＣ&quot;)</code> returns <code>ａｂｃ</code>, and <code>body:ｌｕｃ*</code>, <code>body:ｌｕｃｅｎ~1</code> and <code>body:[ｌｕａ TO ｌｕｚ]</code> find 0 documents; the control finds 1.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/analysis/cn/smart/TestSmartChineseNormalize.java"><code>src/org/apache/lucene/analysis/cn/smart/TestSmartChineseNormalize.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main ea57360912ed (2026-10-24): reproduced.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/smartcn/build/libs/lucene-analysis-smartcn-$V.jar
+CP=$CP:$LUCENE/lucene/facet/build/libs/lucene-facet-$V.jar
+CP=$CP:$LUCENE/lucene/queries/build/libs/lucene-queries-$V.jar
+CP=$CP:$LUCENE/lucene/queryparser/build/libs/lucene-queryparser-$V.jar
+CP=$CP:$LUCENE/lucene/sandbox/build/libs/lucene-sandbox-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.cn.smart.TestSmartChineseNormalize</code></pre>
+<p class="small">The module(s) facet also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the bug page</h2><ul><li><a href="TestSmartChineseAnalyzerNormalize.java"><code>TestSmartChineseAnalyzerNormalize.java</code></a></li><li><a href="TestSmartChineseNormalize.java"><code>TestSmartChineseNormalize.java</code></a></li><li><a href="TestSmartCnNormalizeVsIndex.java"><code>TestSmartCnNormalizeVsIndex.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

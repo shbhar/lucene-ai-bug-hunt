@@ -1,0 +1,253 @@
+diff --git a/lucene/queryparser/src/generated/checksums/regenerateClassicQueryParser.json b/lucene/queryparser/src/generated/checksums/regenerateClassicQueryParser.json
+index 18b10946710..560660d74df 100644
+--- a/lucene/queryparser/src/generated/checksums/regenerateClassicQueryParser.json
++++ b/lucene/queryparser/src/generated/checksums/regenerateClassicQueryParser.json
+@@ -1,7 +1,7 @@
+ {
+     "lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/ParseException.java": "d4f22934f0f8eb7ae70f47339cf04cac297a044b",
+-    "lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java": "131825beb108a267d3f0e374f3392bb283f02e2b",
+-    "lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj": "655505e6e190a9be3f4b2ec28962f61c2c4caec7",
++    "lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java": "9f84a97570f752684b05fb3c7cf5fbbf405040bc",
++    "lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj": "97e40b3646dc936db27ce2f13089a8e2d1a0d0a1",
+     "lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserConstants.java": "80d2d516553d87539dce33f732e774a67fb800ea",
+     "lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserTokenManager.java": "1263b08f33f1b5e8642f4733ea830b3b03628942",
+     "lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/Token.java": "5748b8acdf890eb94fa39c9d7ac86fc35e688438",
+diff --git a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java
+index 361437da043..6aa04b7c5e0 100644
+--- a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java
++++ b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.java
+@@ -744,7 +744,7 @@ public class QueryParser extends QueryParserBase implements QueryParserConstants
+     }
+     if (splitOnWhitespace == false) {
+       firstQuery = getFieldQuery(field, discardEscapeChar(text.image), false);
+-      addClause(clauses, CONJ_NONE, MOD_NONE, firstQuery);
++      addMultiTermRunClauses(clauses, firstQuery);
+     }
+     {
+       if ("" != null) return firstQuery;
+diff --git a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj
+index d4260d79e6a..5321d324ce9 100644
+--- a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj
++++ b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj
+@@ -402,7 +402,7 @@ Query MultiTerm(String field, List<BooleanClause> clauses) : {
+   {
+     if (splitOnWhitespace == false) {
+       firstQuery = getFieldQuery(field, discardEscapeChar(text.image), false);
+-      addClause(clauses, CONJ_NONE, MOD_NONE, firstQuery);
++      addMultiTermRunClauses(clauses, firstQuery);
+     }
+     return firstQuery;
+   }
+diff --git a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java
+index 21be388d39e..0b9e237382c 100644
+--- a/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java
++++ b/lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java
+@@ -21,9 +21,11 @@ import java.text.DateFormat;
+ import java.util.Calendar;
+ import java.util.Date;
+ import java.util.HashMap;
++import java.util.HashSet;
+ import java.util.List;
+ import java.util.Locale;
+ import java.util.Map;
++import java.util.Set;
+ import java.util.TimeZone;
+ import java.util.regex.Matcher;
+ import java.util.regex.Pattern;
+@@ -46,6 +48,7 @@ import org.apache.lucene.search.MultiTermQuery;
+ import org.apache.lucene.search.PhraseQuery;
+ import org.apache.lucene.search.PrefixQuery;
+ import org.apache.lucene.search.Query;
++import org.apache.lucene.search.QueryVisitor;
+ import org.apache.lucene.search.RegexpQuery;
+ import org.apache.lucene.search.TermRangeQuery;
+ import org.apache.lucene.search.WildcardQuery;
+@@ -389,6 +392,49 @@ public abstract class QueryParserBase extends QueryBuilder
+     else throw new RuntimeException("Clause cannot be both required and prohibited");
+   }
+ 
++  /**
++   * Adds the query analyzed from a run of consecutive plain terms (splitOnWhitespace=false). If the
++   * query is a BooleanQuery with one clause per term position, that is, all its clauses have the
++   * default operator's occur and cover the same fields, they are added one by one, as if the terms
++   * had been parsed separately, so that a following AND/OR still applies to the run's last position
++   * when a term that the analyzer drops sits in between. Clauses are never re-flagged, and a
++   * per-field disjunction (MultiFieldQueryParser, one position) is not split: any other query is
++   * added as a single clause.
++   */
++  void addMultiTermRunClauses(List<BooleanClause> clauses, Query q) {
++    if (q instanceof BooleanQuery bq
++        && bq.getMinimumNumberShouldMatch() == 0
++        && bq.clauses().isEmpty() == false) {
++      Occur defaultOccur = operator == OR_OPERATOR ? Occur.SHOULD : Occur.MUST;
++      Set<String> fields = fieldsOf(bq.clauses().get(0).query());
++      boolean positions = true;
++      for (BooleanClause clause : bq.clauses()) {
++        if (clause.occur() != defaultOccur || fields.equals(fieldsOf(clause.query())) == false) {
++          positions = false;
++          break;
++        }
++      }
++      if (positions) {
++        clauses.addAll(bq.clauses());
++        return;
++      }
++    }
++    addClause(clauses, CONJ_NONE, MOD_NONE, q);
++  }
++
++  private static Set<String> fieldsOf(Query q) {
++    Set<String> fields = new HashSet<>();
++    q.visit(
++        new QueryVisitor() {
++          @Override
++          public boolean acceptField(String field) {
++            fields.add(field);
++            return true;
++          }
++        });
++    return fields;
++  }
++
+   /**
+    * @exception org.apache.lucene.queryparser.classic.ParseException throw in overridden method to
+    *     disallow
+diff --git a/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java b/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java
+index 1f399a80634..b654587106c 100644
+--- a/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java
++++ b/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestMultiFieldQueryParser.java
+@@ -455,4 +455,17 @@ public class TestMultiFieldQueryParser extends LuceneTestCase {
+     // to addMultiTermClauses issue where default operator is ignored
+     assertEquals(expected, parser.parse("+foo bar the").toString());
+   }
++
++  public void testConjunctionAfterDroppedTermBindsToLastTerm() throws Exception {
++    MultiFieldQueryParser parser =
++        new MultiFieldQueryParser(
++            new String[] {"field1", "field2"},
++            new MockAnalyzer(
++                random(), MockTokenizer.WHITESPACE, true, MockTokenFilter.ENGLISH_STOPSET));
++    assertEquals(parser.parse("foo bar AND baz"), parser.parse("foo bar the AND baz"));
++    // a run that analyzes to one position keeps its field disjunction as one clause
++    assertEquals(parser.parse("foo AND baz"), parser.parse("foo the the AND baz"));
++    parser.setDefaultOperator(QueryParserBase.AND_OPERATOR);
++    assertEquals(parser.parse("foo bar OR baz"), parser.parse("foo bar the OR baz"));
++  }
+ }
+diff --git a/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java b/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java
+index cd39990b079..f9685705421 100644
+--- a/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java
++++ b/lucene/queryparser/src/test/org/apache/lucene/queryparser/classic/TestQueryParser.java
+@@ -49,6 +49,7 @@ import org.apache.lucene.tests.analysis.MockAnalyzer;
+ import org.apache.lucene.tests.analysis.MockBytesAnalyzer;
+ import org.apache.lucene.tests.analysis.MockLowerCaseFilter;
+ import org.apache.lucene.tests.analysis.MockSynonymAnalyzer;
++import org.apache.lucene.tests.analysis.MockTokenFilter;
+ import org.apache.lucene.tests.analysis.MockTokenizer;
+ import org.apache.lucene.tests.index.RandomIndexWriter;
+ 
+@@ -646,6 +647,17 @@ public class TestQueryParser extends QueryParserTestBase {
+     assertEquals(query, dumb.parse("guinea pig"));
+   }
+ 
++  public void testConjunctionAfterDroppedTermBindsToLastTerm() throws Exception {
++    Analyzer a =
++        new MockAnalyzer(random(), MockTokenizer.WHITESPACE, true, MockTokenFilter.ENGLISH_STOPSET);
++    QueryParser qp = new QueryParser(FIELD, a);
++    // "the" is dropped by the analyzer: it must not change what AND/OR applies to
++    assertEquals(qp.parse("apple banana AND cherry"), qp.parse("apple banana the AND cherry"));
++    assertEquals(qp.parse("apple banana && cherry"), qp.parse("apple banana the && cherry"));
++    qp.setDefaultOperator(QueryParser.Operator.AND);
++    assertEquals(qp.parse("apple banana OR cherry"), qp.parse("apple banana the OR cherry"));
++  }
++
+   // TODO: Move to QueryParserTestBase once standard flexible parser gets this capability
+   public void testOperatorsAndMultiWordSynonyms() throws Exception {
+     Analyzer a = new MockSynonymAnalyzer();
+@@ -705,21 +717,21 @@ public class TestQueryParser extends QueryParserTestBase {
+ 
+     assertQueryEquals("field:(guinea pig)", a, "((+guinea +pig) cavy)");
+ 
+-    assertQueryEquals("+small guinea pig", a, "+small (((+guinea +pig) cavy))");
+-    assertQueryEquals("-small guinea pig", a, "-small (((+guinea +pig) cavy))");
+-    assertQueryEquals("!small guinea pig", a, "-small (((+guinea +pig) cavy))");
+-    assertQueryEquals("NOT small guinea pig", a, "-small (((+guinea +pig) cavy))");
+-    assertQueryEquals("small* guinea pig", a, "small* (((+guinea +pig) cavy))");
+-    assertQueryEquals("small? guinea pig", a, "small? (((+guinea +pig) cavy))");
+-    assertQueryEquals("\"small\" guinea pig", a, "small (((+guinea +pig) cavy))");
+-
+-    assertQueryEquals("guinea pig +running", a, "(((+guinea +pig) cavy)) +running");
+-    assertQueryEquals("guinea pig -running", a, "(((+guinea +pig) cavy)) -running");
+-    assertQueryEquals("guinea pig !running", a, "(((+guinea +pig) cavy)) -running");
+-    assertQueryEquals("guinea pig NOT running", a, "(((+guinea +pig) cavy)) -running");
+-    assertQueryEquals("guinea pig running*", a, "(((+guinea +pig) cavy)) running*");
+-    assertQueryEquals("guinea pig running?", a, "(((+guinea +pig) cavy)) running?");
+-    assertQueryEquals("guinea pig \"running\"", a, "(((+guinea +pig) cavy)) running");
++    assertQueryEquals("+small guinea pig", a, "+small ((+guinea +pig) cavy)");
++    assertQueryEquals("-small guinea pig", a, "-small ((+guinea +pig) cavy)");
++    assertQueryEquals("!small guinea pig", a, "-small ((+guinea +pig) cavy)");
++    assertQueryEquals("NOT small guinea pig", a, "-small ((+guinea +pig) cavy)");
++    assertQueryEquals("small* guinea pig", a, "small* ((+guinea +pig) cavy)");
++    assertQueryEquals("small? guinea pig", a, "small? ((+guinea +pig) cavy)");
++    assertQueryEquals("\"small\" guinea pig", a, "small ((+guinea +pig) cavy)");
++
++    assertQueryEquals("guinea pig +running", a, "((+guinea +pig) cavy) +running");
++    assertQueryEquals("guinea pig -running", a, "((+guinea +pig) cavy) -running");
++    assertQueryEquals("guinea pig !running", a, "((+guinea +pig) cavy) -running");
++    assertQueryEquals("guinea pig NOT running", a, "((+guinea +pig) cavy) -running");
++    assertQueryEquals("guinea pig running*", a, "((+guinea +pig) cavy) running*");
++    assertQueryEquals("guinea pig running?", a, "((+guinea +pig) cavy) running?");
++    assertQueryEquals("guinea pig \"running\"", a, "((+guinea +pig) cavy) running");
+ 
+     assertQueryEquals("\"guinea pig\"~2", a, "\"guinea pig\" cavy");
+ 
+@@ -890,9 +902,9 @@ public class TestQueryParser extends QueryParserTestBase {
+     assertEquals("*bersetzung uber*ung", parser.parse("*bersetzung über*ung").toString(FIELD));
+     parser.setAllowLeadingWildcard(false);
+     assertEquals(
+-        "(motley crue) motl?* cru?", parser.parse("Mötley Cr\u00fce Mötl?* Crü?").toString(FIELD));
++        "motley crue motl?* cru?", parser.parse("Mötley Cr\u00fce Mötl?* Crü?").toString(FIELD));
+     assertEquals(
+-        "(renee zellweger) ren?? zellw?ger",
++        "renee zellweger ren?? zellw?ger",
+         parser.parse("Renée Zellweger Ren?? Zellw?ger").toString(FIELD));
+   }
+ 
+@@ -900,8 +912,7 @@ public class TestQueryParser extends QueryParserTestBase {
+     Analyzer a = new ASCIIAnalyzer();
+     QueryParser parser = new QueryParser(FIELD, a);
+     assertEquals("ubersetzung ubersetz*", parser.parse("übersetzung übersetz*").toString(FIELD));
+-    assertEquals(
+-        "(motley crue) motl* cru*", parser.parse("Mötley Crüe Mötl* crü*").toString(FIELD));
++    assertEquals("motley crue motl* cru*", parser.parse("Mötley Crüe Mötl* crü*").toString(FIELD));
+     assertEquals("rene? zellw*", parser.parse("René? Zellw*").toString(FIELD));
+   }
+ 
+@@ -918,10 +929,10 @@ public class TestQueryParser extends QueryParserTestBase {
+     assertEquals(
+         "ubersetzung ubersetzung~1", parser.parse("Übersetzung Übersetzung~0.9").toString(FIELD));
+     assertEquals(
+-        "(motley crue) motley~1 crue~2",
++        "motley crue motley~1 crue~2",
+         parser.parse("Mötley Crüe Mötley~0.75 Crüe~0.5").toString(FIELD));
+     assertEquals(
+-        "(renee zellweger) renee~0 zellweger~2",
++        "renee zellweger renee~0 zellweger~2",
+         parser.parse("Renée Zellweger Renée~0.9 Zellweger~").toString(FIELD));
+   }
+ 
+@@ -1027,14 +1038,4 @@ public class TestQueryParser extends QueryParserTestBase {
+       return false;
+     }
+   }
+-
+-  @Override
+-  protected String multiTermGroup(String str) {
+-    return "(" + str + ")";
+-  }
+-
+-  @Override
+-  protected String multiTermGroupDAO(String str) {
+-    return "+(" + str + ")";
+-  }
+ }

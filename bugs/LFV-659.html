@@ -1,0 +1,704 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>ICUTokenizer drops a word, and the emoji after it, when a ZERO WIDTH JOINER sits between them</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-659 &middot; icutokenizer-word-zwj-emoji-dropped</p><h1 id='top'>ICUTokenizer drops a word, and the emoji after it, when a ZERO WIDTH JOINER sits between them</h1><p class='tldr'><code class='nw'>ICUTokenizer</code> silently drops a word that runs straight into an invisible ZERO WIDTH JOINER (U+200D) and an emoji, and the emoji too: <code>hello world</code>+ZWJ+<code>😀 again</code> gives only <code class='nw'>hello</code>, <code class='nw'>again</code>, so a search for <code class='nw'>world</code> misses the document. Every release since 7.4.0 (2018) and main.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 105</span><span class='sub'>Since 7.4.0 the default ICUTokenizer silently drops a whole word plus the emoji when a ZWJ sits between them; the tokenizer is widely used but the input is rare.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.4.0 (2018: the ICU 60.2 word-break rules, LUCENE-8122/8175)<span class='sub'>introduced 2018-03-26 &middot; about 8 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>7.4.0 to 10.5.2 and main (67 releases executed); 7.0.0-7.3.1 keep the word</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>Exhaustive comparison with StandardTokenizer over generated strings, then a JUnit (no formal tool)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>ICUTokenizer</code> asks ICU's word breaker for pieces of text and keeps only pieces with a nonzero rule status (a word, a number, an emoji). A word glued to an emoji by an invisible joiner becomes one piece with status 0, and the tokenizer throws it away.</p><figure class='visual' id='icutokenizer-word-zwj-emoji-dropped-short-visual'><div class='frame'><a class='still' href='../assets/LFV-659/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-659/bug.png' alt='Summary diagram in three panels. Panel 1: the text hello world + U+200D + U+1F600 + again (20 Java chars, the invisible ZWJ at char 11) indexed with new ICUTokenizer(), and a TermQuery for world. Panel 2: the segments hello (status 200), space (0), world+ZWJ+emoji as one segment (status 0), space (0), again (200); Default.rbbi&#x27;s word rule takes the ZWJ and chains into WB3c, which has no status; isEmoji reads only the first code point, w; ICUTokenizer.java:211 skips every status-0 segment; ICU&#x27;s own ROOT rules also give status 0. Panel 3, executed on main with -ea and -da: the expected tokens hello, world, emoji, again versus the actual hello, again; TermQuery body:world finds 0 documents instead of 1; silent, the stored value is intact and CheckIndex is clean; an NFKC_CF char filter in front is a workaround, ICUFoldingFilter after the tokenizer is not; 2024, abc, an ideograph and a Malayalam word are lost too, also with cjkAsWords=false. Footer: since 7.4.0 (2018, the ICU 60.2 word-break rules, 2dcf263b5207); lost on all 67 releases 7.4.0-10.5.2 and on main; 7.0.0-7.3.1 keep the word; fix A (validated) ends the text after such a ZWJ, so the word and the emoji become tokens.' width='1920' height='1080'></a></div><figcaption>How <code>hello world</code>+ZWJ+<code>😀 again</code> becomes one status-0 segment that <code class='nw'>ICUTokenizer</code> skips, and what the tokens and a <code class='nw'>TermQuery</code> for <code class='nw'>world</code> look like with and without the joiner. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index <code>hello world</code>+ZWJ+<code>😀 again</code> with <code>new ICUTokenizer()</code>: an invisible ZERO WIDTH JOINER (U+200D) sits between <code class='nw'>world</code> and <code class='nw'>😀</code> (offset 11 of 20 Java chars, counting from 0). On screen it looks like <code>hello world😀 again</code>. Stray joiners turn up in pasted social-media text and in Malayalam written in an older spelling.</span></li><li><span>You expect four tokens, as with a space before the emoji, without the joiner, or with <code>StandardTokenizer</code>: <code class='nw'>hello</code>, <code class='nw'>world</code>, <code class='nw'>😀</code>, <code class='nw'>again</code>.</span></li><li><span>You get two: <code class='nw'>hello</code>, <code class='nw'>again</code>. Next to the same text with a space and without the joiner, <code>TermQuery(body:world)</code> finds 2 of 3 documents, never the one with the joiner. <code class='nw'>abc</code>, <code class='nw'>2024</code>, <code class='nw'>中</code> and <code class='nw'>日本語</code> vanish the same way.</span></li><li><span>Why: Unicode rule WB3c keeps <code class='nw'>world</code>+ZWJ+<code class='nw'>😀</code> in one piece. Lucene's break rules give that piece rule status 0, which <code class='nw'>ICUTokenizer</code> treats as a non-token; the emoji check reads only its first character <code class='nw'>w</code>, and <code class='nw'>ICUTokenizer</code> skips every status-0 piece. In unspaced Japanese, Chinese, Thai or Myanmar text the whole run before the joiner goes, such as a whole sentence.</span></li><li><span>No error: nothing throws, CheckIndex is clean and the stored text keeps the word. Fix A ends the break iterator's text after such a joiner where the piece would be skipped: <code class='nw'>world</code>+ZWJ and <code class='nw'>😀</code> become tokens, as with <code>StandardTokenizer</code>, and the ICU module's tests run with 0 failures (10 skipped).</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Users of <code class='nw'>ICUTokenizer</code> (optional analysis-icu module), default config, <code class='nw'>cjkAsWords=false</code> or <code class='nw'>icu</code> factory defaults. It takes a word directly followed by U+200D and an emoji: stray joiners in pasted text, or Malayalam in the older joiner spelling. Each hit silently loses the emoji and the run before it: one word, or a whole unspaced Japanese, Chinese, Thai or Myanmar sentence.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>953 words</span></summary><div class='body'><p><code class='nw'>ICUTokenizer</code> with its default configuration emits no token for <code class='nw'>abc</code> + U+200D + 👍, and <code>hello world</code> + U+200D + 😀 + <code> again</code> gives only <code class='nw'>hello</code> and <code class='nw'>again</code>: the word and the emoji are both gone. With a space instead of the ZERO WIDTH JOINER, or without it, both are tokens, and <code>StandardTokenizer</code> keeps both (<code class='nw'>world</code>+ZWJ, <code class='nw'>😀</code>). Unicode word-break rule WB3c (ZWJ × Extended_Pictographic) keeps <code class='nw'>world</code> ZWJ <code class='nw'>😀</code> in one segment; in Lucene's break rules (and in ICU's own root rules) that segment ends in a rule without a status, so its rule status is 0, which <code class='nw'>ICUTokenizer</code> treats as a non-token; <code>BreakIteratorWrapper</code>'s emoji check reads only the segment's first code point, a letter; and <code class='nw'>ICUTokenizer</code> skips every status-0 segment. Letters, digits, ideographs and kana are hit alike, with <code class='nw'>cjkAsWords</code> true or false; a <code class='nw'>TermQuery</code> for the word misses the document. Nothing throws, <code class='nw'>CheckIndex</code> is clean and the stored value keeps the text. It started in 7.4.0 with the 2018 ICU rule upgrade: a public-API probe loses the word on all 67 releases from 7.4.0 to 10.5.2 and on main, and keeps it on all 7 releases 7.0.0-7.3.1. In unspaced text that a dictionary segments (Japanese or Chinese with the default <code class='nw'>cjkAsWords=true</code>, Thai, Myanmar) one trigger loses the whole run before the joiner, such as a whole Japanese sentence. Fix A (+76/-4 in <code>BreakIteratorWrapper</code>) ends the break iterator's text right after such a joiner, but only where the segment holding it would be skipped: the word and the emoji become separate tokens (the same tokens as <code>StandardTokenizer</code> for the tested Latin, digit, single-ideograph and Malayalam inputs), the repro and an exact-token test pass, and the ICU module's tests run with 0 failures.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Rule status</strong>: ICU's word breaker cuts text into segments and labels each with the status of the rule that ended it: 200 for a word with letters, 100 for a number, 300 for kana, 400 for ideographs, and 0 when that rule has no status tag (spaces, punctuation). <code class='nw'>ICUTokenizer</code> treats status 0 as a non-token and keeps only segments with a nonzero status ("skipping over non-tokens (rule status 0)", <code>ICUTokenizer.java:209-214</code>).</li><li><strong>ZERO WIDTH JOINER (ZWJ, U+200D)</strong>: an invisible character that glues emoji into one picture, as in 👩‍❤️‍👩. Unicode rule WB4 attaches a ZWJ to the word before it, and rule WB3c ("ZWJ × Extended_Pictographic") forbids a break between a ZWJ and a following emoji.</li><li><strong>Emoji status</strong>: ICU gives a lone emoji status 0 as well, so Lucene's <code>BreakIteratorWrapper</code> re-labels a segment as <code class='nw'>&lt;EMOJI&gt;</code> when its first code point is an emoji.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-main-a9779ef3c193'>The bug (main <code class='nw'>a9779ef3c193</code>)</h3><a class="hlink" href="#what-the-bug-is-the-bug-main-a9779ef3c193" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-main-a9779ef3c193"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>Default.rbbi</code> runs under <code class='nw'>!!chain</code> (<code class='nw'>:46</code>). The word rules end in <code class='nw'>$ExFm*</code>, which includes the ZWJ (<code class='nw'>:116</code>, <code class='nw'>:122-131</code>; the Hangul rule at <code class='nw'>:127</code> does not, the separate Hangul bug), and WB3c <code>$ZWJ $Extended_Pict;</code> (<code class='nw'>:104-107</code>) has no status tag. The match of <code class='nw'>world</code>+ZWJ continues into WB3c, so <code class='nw'>world</code>+ZWJ+<code class='nw'>😀</code> is one segment, and its status is 0. <code class='nw'>world</code>+ZWJ alone gets 200.</li><li>ICU4J 78.3's own ROOT word iterator gives the same 0. With <code class='nw'>cjkAsWords=true</code>, Han and kana runs use exactly that iterator (<code>DefaultICUTokenizerConfig.java:73</code>, <code class='nw'>:113-114</code>); its dictionary splits <code class='nw'>ひらがな</code>+ZWJ+👍 into four pieces, all with status 0.</li><li><code>BreakIteratorWrapper.calcStatus</code> (<code class='nw'>:57-66</code>) changes the status only when <code class='nw'>isEmoji</code> (<code class='nw'>:75-91</code>) holds, and <code class='nw'>isEmoji</code> reads only the first code point (<code class='nw'>:78</code>), here <code class='nw'>w</code>.</li><li><code>ICUTokenizer.incrementTokenBuffer</code> skips the segment (<code>ICUTokenizer.java:211</code>): the word and the emoji are lost together.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-main-ea-and-da-the-same-with-cjkaswords-false-un'>The numbers (main, <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the same with <code class='nw'>cjkAsWords=false</code> unless noted)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-main-ea-and-da-the-same-with-cjkaswords-false-un" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-main-ea-and-da-the-same-with-cjkaswords-false-un"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>input (ZWJ = U+200D)</th><th>ICUTokenizer</th><th>StandardTokenizer</th><th>ICUTokenizer with fix A</th></tr></thead><tbody><tr><td><code>hello world</code>+ZWJ+<code>😀 again</code></td><td><code class='nw'>hello</code>, <code class='nw'>again</code></td><td><code class='nw'>hello</code>, <code class='nw'>world</code>+ZWJ, <code class='nw'>😀</code>, <code class='nw'>again</code></td><td>same as StandardTokenizer</td></tr><tr><td><code class='nw'>abc</code>+ZWJ+<code class='nw'>👍</code></td><td>none</td><td><code class='nw'>abc</code>+ZWJ, <code class='nw'>👍</code></td><td>same</td></tr><tr><td><code class='nw'>2024</code>+ZWJ+<code class='nw'>👍</code></td><td>none</td><td><code class='nw'>2024</code>+ZWJ, <code class='nw'>👍</code></td><td>same</td></tr><tr><td><code>foo 中</code>+ZWJ+<code>👍 bar</code></td><td><code class='nw'>foo</code>, <code class='nw'>bar</code></td><td><code class='nw'>foo</code>, <code class='nw'>中</code>+ZWJ, <code class='nw'>👍</code>, <code class='nw'>bar</code></td><td>same</td></tr><tr><td><code class='nw'>日本語</code>+ZWJ+<code class='nw'>👍</code>, default config</td><td>none</td><td><code class='nw'>日</code>, <code class='nw'>本</code>, <code class='nw'>語</code>+ZWJ, <code class='nw'>👍</code></td><td><code class='nw'>日本語</code>+ZWJ, <code class='nw'>👍</code></td></tr><tr><td><code class='nw'>日本語</code>+ZWJ+<code class='nw'>👍</code>, <code class='nw'>cjkAsWords=false</code></td><td><code class='nw'>日</code>, <code class='nw'>本</code></td><td>as above</td><td><code class='nw'>日</code>, <code class='nw'>本</code>, <code class='nw'>語</code>+ZWJ, <code class='nw'>👍</code></td></tr><tr><td><code>meet in Paris</code>+ZWJ+<code>❤️ soon</code></td><td><code class='nw'>meet</code>, <code class='nw'>in</code>, <code class='nw'>soon</code></td><td><code class='nw'>meet</code>, <code class='nw'>in</code>, <code class='nw'>Paris</code>+ZWJ, <code class='nw'>❤️</code>, <code class='nw'>soon</code></td><td>same</td></tr><tr><td>Malayalam <code class='nw'>അവന്</code>+ZWJ+<code class='nw'>😂</code> (older chillu spelling)</td><td>none</td><td>word+ZWJ, <code class='nw'>😂</code></td><td>same</td></tr><tr><td><code class='nw'>abcℹ</code>+ZWJ+<code class='nw'>👍</code> (the word ends in U+2139, an emoji that is also a letter)</td><td>none</td><td><code class='nw'>abcℹ</code>+ZWJ, <code class='nw'>👍</code></td><td>same</td></tr><tr><td>controls: <code>abc 👍</code>, <code class='nw'>abc👍</code>, <code class='nw'>abc</code>+ZWJ, <code class='nw'>😂</code>+ZWJ+<code class='nw'>👍</code></td><td>all kept</td><td>all kept</td><td>unchanged</td></tr></tbody></table></div><p>Search over three documents, <code>hello world</code>+ZWJ+<code>😀 again</code>, the same with a space, and without the joiner: <code>TermQuery(body:world)</code> finds 2 (never the first), <code>TermQuery(body:😀)</code> 2, <code>TermQuery(body:hello)</code> 3. In a query, the text analyzes to nothing and the classic <code class='nw'>QueryParser</code> drops the clause (<code>QueryParserBase.java:367-369</code>): <code>+report -secret</code>+ZWJ+<code class='nw'>🔒</code> parses to <code class='nw'>+body:report</code>.</p><p><strong>How much one trigger loses:</strong> the run of letters, digits or ideographs before the joiner, up to about 4,000 chars (the tokenizer reads 4096-char chunks). In space-separated text that is one word. In unspaced text that a dictionary segments it is the whole run: <code class='nw'>私は日本語が好きです</code>+ZWJ+<code class='nw'>👍</code> gives no token with the default config (6 tokens lost; with <code class='nw'>cjkAsWords=false</code> only the last kana), <code class='nw'>我爱北京天安门</code>+ZWJ+<code class='nw'>👍</code> none (4 tokens), a Thai run (<code class='nw'>สวัสดีครับ</code>) or a Myanmar run before ZWJ+<code class='nw'>👍</code> none with either config, and a 1003-char Japanese run none. Fix A restores all of them.</p><p><strong>Related loss, same mechanism:</strong> a stray ZWJ before an emoji at the start of the text or after a space loses the emoji: ZWJ+<code>😀 cd</code> gives <code class='nw'>cd</code> only. Fix A restores it too.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>338 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Applications that analyze text with <code class='nw'>ICUTokenizer</code>: <code>new ICUTokenizer()</code>, <code>new ICUTokenizer(new DefaultICUTokenizerConfig(false, true))</code> (both executed), or the <code class='nw'>icu</code> factory with default parameters, which builds the same config (<code>ICUTokenizerFactory.java:96-97, 112, 156</code>; read). Lucene's default analysis (<code class='nw'>StandardAnalyzer</code>) is not affected. The class is <code>@lucene.experimental</code>.</li><li><strong>What triggers it.</strong> A run of letters, digits, ideographs or kana immediately followed by U+200D and an emoji: an Extended_Pictographic character that is not also a letter, such as 👍 (U+2139 ℹ is both, so <code class='nw'>abc</code>+ZWJ+<code class='nw'>ℹ</code> stays one word). The run may itself end in an emoji-like letter or a digit: <code class='nw'>abcℹ</code>+ZWJ+<code class='nw'>👍</code> and <code class='nw'>abc1️⃣</code>+ZWJ+<code class='nw'>👍</code> also give no token. Ordinary keyboards do not type a joiner between a word and an emoji; realistic sources are stray joiners in pasted or generated social-media text and Malayalam in the older <code>&lt;consonant, virama, ZWJ&gt;</code> chillu spelling (the newer one-character chillu letters are not affected). How often real text has it was not measured; the registry rates it rare.</li><li><strong>What goes wrong.</strong> That word and that emoji are not in the field's terms: a <code class='nw'>TermQuery</code>, a phrase or a <code class='nw'>MUST_NOT</code> exclusion on the word misses the document, and in a query the clause disappears.</li><li><strong>Silent and deterministic.</strong> No exception, CheckIndex clean, stored value intact, the rest of the text tokenized normally, the same with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</li><li><strong>Not more than that.</strong> No hang: the probe's 1M- and 4M-char inputs finished, the bug pattern faster than a control (it emits fewer tokens), with time roughly proportional to size. Memory was not measured.</li><li><strong>Long-lived.</strong> Every release since 7.4.0 (2018). A fix changes tokens only of texts that hit the pattern; existing indexes need a reindex to gain the lost words.</li><li><strong>Workaround until a fix ships:</strong> an <code>ICUNormalizer2CharFilter</code> (NFKC_CF) in front of the tokenizer removes the joiner, and the word and emoji become tokens; it also splits real emoji ZWJ sequences (👩‍❤️‍👩 becomes three emoji). A token filter after the tokenizer (<code class='nw'>ICUFoldingFilter</code>) does not help.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for the ICU module's tests, public API only: a word, a mid-sentence word, digits, ideographs and a Malayalam word, each followed by ZWJ and an emoji, checked with both <code class='nw'>cjkAsWords</code> settings, plus controls. It fails 5 of 6, with and without assertions, on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestICUTokenizerWordZwjEmoji.java (JUnit, 6 tests, drop-in for the ICU module&#x27;s tests)</span><span class='meta'>108 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.icu.segmentation;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * A word directly followed by ZERO WIDTH JOINER (U+200D) and an emoji must not vanish from the
+ * tokens, together with the emoji. With a space instead of the ZWJ, or without the ZWJ, both are
+ * tokens.
+ */
+public class TestICUTokenizerWordZwjEmoji extends BaseTokenStreamTestCase {
+
+  private static final String ZWJ = &quot;\u200D&quot;;
+  private static final String THUMBS_UP = &quot;👍&quot;; // U+1F44D
+  private static final String TEARS_OF_JOY = &quot;😂&quot;; // U+1F602
+
+  private static List&lt;String&gt; tokens(boolean cjkAsWords, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (ICUTokenizer tokenizer =
+        new ICUTokenizer(new DefaultICUTokenizerConfig(cjkAsWords, true))) {
+      CharTermAttribute term = tokenizer.addAttribute(CharTermAttribute.class);
+      tokenizer.setReader(new StringReader(text));
+      tokenizer.reset();
+      while (tokenizer.incrementToken()) {
+        out.add(term.toString());
+      }
+      tokenizer.end();
+    }
+    return out;
+  }
+
+  /**
+   * Each part of the text must be inside some token, with the default and the other config.
+   * (escape() is BaseTokenStreamTestCase&#x27;s.)
+   */
+  private static void assertKept(String text, String... parts) throws IOException {
+    for (boolean cjkAsWords : new boolean[] {true, false}) {
+      List&lt;String&gt; tokens = tokens(cjkAsWords, text);
+      for (String part : parts) {
+        boolean found = false;
+        for (String token : tokens) {
+          found |= token.contains(part);
+        }
+        assertTrue(
+            String.format(
+                Locale.ROOT,
+                &quot;cjkAsWords=%s: \&quot;%s\&quot; of \&quot;%s\&quot; is in no token; tokens: %s&quot;,
+                cjkAsWords,
+                escape(part),
+                escape(text),
+                escape(tokens.toString())),
+            found);
+      }
+    }
+  }
+
+  /** Controls: these pass on affected versions too. */
+  public void testControls() throws Exception {
+    assertEquals(List.of(&quot;abc&quot;, THUMBS_UP), tokens(true, &quot;abc &quot; + THUMBS_UP)); // space
+    assertEquals(List.of(&quot;abc&quot;, THUMBS_UP), tokens(true, &quot;abc&quot; + THUMBS_UP)); // no ZWJ
+    assertEquals(List.of(&quot;abc&quot; + ZWJ), tokens(true, &quot;abc&quot; + ZWJ)); // ZWJ, no emoji
+    // an emoji ZWJ sequence stays one token
+    assertEquals(
+        List.of(TEARS_OF_JOY + ZWJ + THUMBS_UP), tokens(true, TEARS_OF_JOY + ZWJ + THUMBS_UP));
+  }
+
+  public void testWordThenZwjEmoji() throws Exception {
+    assertKept(&quot;abc&quot; + ZWJ + THUMBS_UP, &quot;abc&quot;, THUMBS_UP);
+  }
+
+  public void testWordThenZwjEmojiMidSentence() throws Exception {
+    assertKept(&quot;hello world&quot; + ZWJ + THUMBS_UP + &quot; again&quot;, &quot;hello&quot;, &quot;world&quot;, THUMBS_UP, &quot;again&quot;);
+  }
+
+  public void testNumberThenZwjEmoji() throws Exception {
+    assertKept(&quot;2024&quot; + ZWJ + THUMBS_UP, &quot;2024&quot;, THUMBS_UP);
+  }
+
+  public void testIdeographsThenZwjEmoji() throws Exception {
+    assertKept(&quot;foo 日本語&quot; + ZWJ + THUMBS_UP + &quot; bar&quot;, &quot;foo&quot;, &quot;語&quot;, THUMBS_UP);
+  }
+
+  /** Malayalam written with the older ZWJ form of a chillu letter: NA, VIRAMA, ZWJ. */
+  public void testMalayalamZwjChilluThenEmoji() throws Exception {
+    assertKept(&quot;\u0D05\u0D35\u0D28\u0D4D&quot; + ZWJ + TEARS_OF_JOY, &quot;\u0D05\u0D35\u0D28&quot;, TEARS_OF_JOY);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a Lucene checkout ($LUCENE) of main; JAVA_HOME = a JDK 25
+cp TestICUTokenizerWordZwjEmoji.java \
+   $LUCENE/lucene/analysis/icu/src/test/org/apache/lucene/analysis/icu/segmentation/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:icu:test \
+  --tests TestICUTokenizerWordZwjEmoji -Ptests.seed=5EED0659 -Ptests.asserts=true
+# also with -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>world</code> and the emoji are each inside some token, as with a space: <code class='nw'>hello</code>, <code class='nw'>world</code>, <code class='nw'>👍</code>, <code class='nw'>again</code>.</dd></div><div class='got'><dt>Observed</dt><dd><code>cjkAsWords=true: "world" of "hello world\u200d\ud83d\udc4d again" is in no token; tokens: [hello, again]</code></dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-659/'>repro/LFV-659/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (250 lines) · 1,609 words</span></summary><div class='body'><p>Three repros, all on the public API (<code class='nw'>ICUTokenizer</code>, <code>DefaultICUTokenizerConfig</code>):</p><ul><li><strong>The repro</strong> <code>TestICUTokenizerWordZwjEmoji</code> (6 tests): <code class='nw'>abc</code>, <code>hello world ... again</code>, <code class='nw'>2024</code>, <code>foo 日本語 ... bar</code> and the Malayalam word <code class='nw'>അവന്</code> (older ZWJ chillu spelling), each directly followed by ZWJ and an emoji, with <code class='nw'>cjkAsWords</code> true and false, plus one control test (a space, no ZWJ, a ZWJ without an emoji, an emoji-led ZWJ sequence). Its oracle is fix-neutral: every word and the emoji must be inside some token, so it passes whether a fix emits one glued token or the word plus the emoji. It is permissive on purpose (it would also accept the whole input as one token); fix A comes with a test of exact tokens. Nothing in it is randomized. It passes the module's format check. It needs <code>org.apache.lucene.tests</code> (9.1 and later).</li><li><strong>The finder's JUnit</strong> <code>TestICUTokenizerZwjEmoji</code> (4 tests): 3 of 4 fail on main with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, on 10.5.2 and on 9.12.3.</li><li><strong>Verifier the independent reproduction's JUnit</strong> <code class='nw'>TestZwjWordEmoji</code> (10 tests, 4 controls): 6 of 10 fail on main with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, on 10.5.2 and on 9.12.3; its controls pass.</li></ul><p>Pass <code class='nw'>-Ptests.asserts</code> explicitly: without it Lucene's build picks assertions from the seed.</p><div class="hd hd-3"><h3 id='code-2-h'>TestICUTokenizerZwjEmoji.java (the finder&#x27;s JUnit, 4 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails 3 of 4 on main <code class='nw'>a9779ef3c193</code> (<code class='nw'>-ea</code> and <code class='nw'>-da</code>, several seeds), on 10.5.2 and on 9.12.3; <code class='nw'>testControls</code> passes.</p><figure class='code'><figcaption><span class='fname'>TestICUTokenizerZwjEmoji.java (the finder&#x27;s JUnit, 4 tests)</span><span class='meta'>98 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.icu.segmentation;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * A word that ends in ZERO WIDTH JOINER (U+200D) and is directly followed by an emoji is dropped by ICUTokenizer
+ * together with the emoji. UAX #29 rule WB3c (ZWJ x Extended_Pictographic) keeps the whole run in one segment, the
+ * break rules give that segment rule status 0 (&quot;not a word&quot;), and the emoji check only looks at its first code
+ * point, so the segment is skipped.
+ *
+ * &lt;p&gt;Uses only public API: ICUTokenizer, DefaultICUTokenizerConfig, StandardTokenizer.
+ */
+public class TestICUTokenizerZwjEmoji extends BaseTokenStreamTestCase {
+
+  private static List&lt;String&gt; terms(Tokenizer t, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    t.setReader(new StringReader(text));
+    CharTermAttribute term = t.addAttribute(CharTermAttribute.class);
+    t.reset();
+    while (t.incrementToken()) {
+      out.add(term.toString());
+    }
+    t.end();
+    t.close();
+    return out;
+  }
+
+  private static String esc(String s) {
+    StringBuilder sb = new StringBuilder(&quot;\&quot;&quot;);
+    s.codePoints().forEach(cp -&gt; sb.append(cp &lt; 0x80 ? String.valueOf((char) cp) : String.format(&quot;\\u{%X}&quot;, cp)));
+    return sb.append(&#x27;&quot;&#x27;).toString();
+  }
+
+  /** Every given substring of the input must be part of some token. */
+  private static void assertKept(Tokenizer t, String text, String... parts) throws IOException {
+    List&lt;String&gt; tokens = terms(t, text);
+    String all = String.join(&quot;|&quot;, tokens);
+    List&lt;String&gt; e = new ArrayList&lt;&gt;();
+    for (String tok : tokens) e.add(esc(tok));
+    for (String p : parts) {
+      assertTrue(esc(p) + &quot; of input &quot; + esc(text) + &quot; is missing from the tokens &quot; + e, all.contains(p));
+    }
+  }
+
+  // Malayalam &quot;avan&quot; written with the ZWJ form of the chillu (NA + VIRAMA + ZWJ)
+  private static final String MALAYALAM_WORD = &quot;\u0D05\u0D35\u0D28\u0D4D&quot;;
+  private static final String ZWJ = &quot;\u200D&quot;;
+  private static final String EMOJI = &quot;\uD83D\uDE02&quot;; // U+1F602 FACE WITH TEARS OF JOY
+
+  /** Controls: with a space before the emoji, or without the ZWJ, both the word and the emoji are tokens. */
+  public void testControls() throws Exception {
+    assertEquals(
+        List.of(MALAYALAM_WORD + ZWJ, EMOJI), terms(new ICUTokenizer(), MALAYALAM_WORD + ZWJ + &quot; &quot; + EMOJI));
+    assertEquals(List.of(&quot;abc&quot;, &quot;\uD83D\uDC4D&quot;), terms(new ICUTokenizer(), &quot;abc\uD83D\uDC4D&quot;));
+    // StandardTokenizer (UAX #29, JFlex) keeps both
+    assertEquals(
+        List.of(MALAYALAM_WORD + ZWJ, EMOJI), terms(new StandardTokenizer(), MALAYALAM_WORD + ZWJ + EMOJI));
+  }
+
+  public void testMalayalamChilluZwjThenEmoji() throws Exception {
+    assertKept(new ICUTokenizer(), MALAYALAM_WORD + ZWJ + EMOJI, MALAYALAM_WORD, EMOJI);
+  }
+
+  public void testLatinWordZwjThenEmoji() throws Exception {
+    assertKept(new ICUTokenizer(), &quot;abc&quot; + ZWJ + &quot;\uD83D\uDC4D&quot;, &quot;abc&quot;, &quot;\uD83D\uDC4D&quot;);
+  }
+
+  public void testCjkNotAsWordsConfig() throws Exception {
+    assertKept(
+        new ICUTokenizer(new DefaultICUTokenizerConfig(false, true)),
+        MALAYALAM_WORD + ZWJ + EMOJI,
+        MALAYALAM_WORD,
+        EMOJI);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestZwjWordEmoji.java (verifier the independent reproduction&#x27;s JUnit, 6 bug tests and 4 controls)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Fails 6 of 10 on main (<code class='nw'>-ea</code> and <code class='nw'>-da</code>, seeds C0FFEE01, 7A11D6E5, 2EA1D0C5), on 10.5.2 and on 9.12.3; the 4 controls pass.</p><figure class='code'><figcaption><span class='fname'>TestZwjWordEmoji.java (verifier the independent reproduction&#x27;s JUnit, 6 bug tests and 4 controls)</span><span class='meta'>152 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.icu.segmentation;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check: a word directly followed by ZERO WIDTH JOINER and an Extended_Pictographic
+ * emoji. Public API only (ICUTokenizer, DefaultICUTokenizerConfig).
+ *
+ * &lt;p&gt;Expected (the assertion): the word&#x27;s letters survive in some token, as they do without the
+ * ZWJ, with a space, or with the ZWJ but no emoji. The bug tests fail if the word vanishes; the
+ * control tests must pass.
+ */
+public class TestZwjWordEmoji extends LuceneTestCase {
+
+  private static final String ZWJ = &quot;\u200D&quot;;
+  private static final String THUMBS_UP = new String(Character.toChars(0x1F44D));
+  private static final String TEARS_OF_JOY = new String(Character.toChars(0x1F602));
+  // Malayalam &quot;avan&quot; spelled with the ZWJ chillu form: a, va, na, virama (ZWJ follows)
+  private static final String MALAYALAM = &quot;\u0D05\u0D35\u0D28\u0D4D&quot;;
+
+  private static List&lt;String&gt; tokens(Tokenizer tok, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    CharTermAttribute term = tok.addAttribute(CharTermAttribute.class);
+    TypeAttribute type = tok.addAttribute(TypeAttribute.class);
+    tok.setReader(new StringReader(text));
+    tok.reset();
+    while (tok.incrementToken()) {
+      out.add(term.toString() + &quot;/&quot; + type.type());
+    }
+    tok.end();
+    tok.close();
+    return out;
+  }
+
+  private static List&lt;String&gt; defaultTokens(String text) throws IOException {
+    return tokens(new ICUTokenizer(), text);
+  }
+
+  private static List&lt;String&gt; noCjkTokens(String text) throws IOException {
+    return tokens(new ICUTokenizer(new DefaultICUTokenizerConfig(false, true)), text);
+  }
+
+  private static String esc(String s) {
+    StringBuilder sb = new StringBuilder();
+    s.codePoints()
+        .forEach(
+            cp -&gt; {
+              if (cp &gt;= 0x20 &amp;&amp; cp &lt; 0x7F) sb.appendCodePoint(cp);
+              else sb.append(String.format(&quot;\\u{%X}&quot;, cp));
+            });
+    return sb.toString();
+  }
+
+  private static void assertSomeTokenContains(List&lt;String&gt; toks, String input, String needle) {
+    for (String t : toks) {
+      if (t.contains(needle)) return;
+    }
+    fail(
+        &quot;\&quot;&quot;
+            + esc(needle)
+            + &quot;\&quot; of input \&quot;&quot;
+            + esc(input)
+            + &quot;\&quot; is in no token; tokens=&quot;
+            + esc(toks.toString()));
+  }
+
+  // ---------------- bug cases (expected to fail on affected versions) ----------------
+
+  public void testLatinWordZwjEmojiDefault() throws Exception {
+    String in = &quot;abc&quot; + ZWJ + THUMBS_UP;
+    assertSomeTokenContains(defaultTokens(in), in, &quot;abc&quot;);
+  }
+
+  public void testLatinWordZwjEmojiInSentence() throws Exception {
+    // &quot;world&quot; sits in the middle of normal text
+    String in = &quot;hello world&quot; + ZWJ + THUMBS_UP + &quot; again&quot;;
+    List&lt;String&gt; toks = defaultTokens(in);
+    assertSomeTokenContains(toks, in, &quot;hello&quot;);
+    assertSomeTokenContains(toks, in, &quot;again&quot;);
+    assertSomeTokenContains(toks, in, &quot;world&quot;);
+  }
+
+  public void testMalayalamZwjEmojiDefault() throws Exception {
+    String in = MALAYALAM + ZWJ + TEARS_OF_JOY;
+    assertSomeTokenContains(defaultTokens(in), in, MALAYALAM);
+  }
+
+  public void testMalayalamZwjEmojiNoCjkConfig() throws Exception {
+    String in = MALAYALAM + ZWJ + TEARS_OF_JOY;
+    assertSomeTokenContains(noCjkTokens(in), in, MALAYALAM);
+  }
+
+  public void testDigitsZwjEmojiDefault() throws Exception {
+    String in = &quot;2024&quot; + ZWJ + THUMBS_UP;
+    assertSomeTokenContains(defaultTokens(in), in, &quot;2024&quot;);
+  }
+
+  public void testEmojiAlsoLost() throws Exception {
+    String in = &quot;abc&quot; + ZWJ + THUMBS_UP;
+    assertSomeTokenContains(defaultTokens(in), in, THUMBS_UP);
+  }
+
+  // ---------------- controls (must pass everywhere) ----------------
+
+  public void testControlNoZwj() throws Exception {
+    String in = &quot;abc&quot; + THUMBS_UP;
+    List&lt;String&gt; toks = defaultTokens(in);
+    assertEquals(List.of(&quot;abc/&lt;ALPHANUM&gt;&quot;, THUMBS_UP + &quot;/&lt;EMOJI&gt;&quot;), toks);
+  }
+
+  public void testControlSpace() throws Exception {
+    String in = &quot;abc &quot; + THUMBS_UP;
+    List&lt;String&gt; toks = defaultTokens(in);
+    assertEquals(List.of(&quot;abc/&lt;ALPHANUM&gt;&quot;, THUMBS_UP + &quot;/&lt;EMOJI&gt;&quot;), toks);
+  }
+
+  public void testControlZwjNoEmoji() throws Exception {
+    String in = &quot;abc&quot; + ZWJ;
+    assertSomeTokenContains(defaultTokens(in), in, &quot;abc&quot;);
+    String ml = MALAYALAM + ZWJ;
+    assertSomeTokenContains(defaultTokens(ml), ml, MALAYALAM);
+  }
+
+  public void testControlZwjEmojiStartingWithEmoji() throws Exception {
+    // emoji ZWJ sequence starting with an emoji is kept (upstream testEmojiSequence analogue)
+    String in = TEARS_OF_JOY + ZWJ + THUMBS_UP;
+    assertEquals(List.of(in + &quot;/&lt;EMOJI&gt;&quot;), defaultTokens(in));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT), ICU4J 78.3; also the 10.5.2 and 9.12.3 release jars</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java and ICU4J logic; only this platform was run)</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, scratch worktree at a9779ef3c193, stock, -Ptests.asserts=true
+TestICUTokenizerWordZwjEmoji &gt; testWordThenZwjEmoji FAILED
+    java.lang.AssertionError: cjkAsWords=true: &quot;abc&quot; of &quot;abc\u200d\ud83d\udc4d&quot; is in no token; tokens: []
+TestICUTokenizerWordZwjEmoji &gt; testMalayalamZwjChilluThenEmoji FAILED
+    java.lang.AssertionError: cjkAsWords=true: &quot;\u0d05\u0d35\u0d28&quot; of &quot;\u0d05\u0d35\u0d28\u0d4d\u200d\ud83d\ude02&quot; is in no token; tokens: []
+TestICUTokenizerWordZwjEmoji &gt; testNumberThenZwjEmoji FAILED
+    java.lang.AssertionError: cjkAsWords=true: &quot;2024&quot; of &quot;2024\u200d\ud83d\udc4d&quot; is in no token; tokens: []
+TestICUTokenizerWordZwjEmoji &gt; testWordThenZwjEmojiMidSentence FAILED
+    java.lang.AssertionError: cjkAsWords=true: &quot;world&quot; of &quot;hello world\u200d\ud83d\udc4d again&quot; is in no token; tokens: [hello, again]
+TestICUTokenizerWordZwjEmoji &gt; testIdeographsThenZwjEmoji FAILED
+    java.lang.AssertionError: cjkAsWords=true: &quot;\u8a9e&quot; of &quot;foo \u65e5\u672c\u8a9e\u200d\ud83d\udc4d bar&quot; is in no token; tokens: [foo, bar]
+6 tests completed, 5 failed
+
+# the same 5 failures with -Ptests.asserts=false, and through the repro runner:
+#   main -ea (seed 5EED0659), main -da (5EED065A), 10.5.2 -da (5EED065E), 9.12.3 -da (5EED065F)
+# with fix A: 6 tests, 0 failed (runner -ea and -da; gradle module runs); with fix B: 6 of 6 pass</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>ICUTokenizer</code> "Breaks text into words according to UAX #29"; its only documented tailoring is dictionary breaking.</li><li>Lucene already keeps ICU's status-0 emoji as <code class='nw'>&lt;EMOJI&gt;</code> tokens, and <code>StandardTokenizer</code>, also UAX #29, keeps both the word and the emoji.</li><li>A regression: 7.3.1 keeps the word; the 2018 rule upgrade that lost it never discussed this input.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>309 words</span></summary><div class='body'><ul><li><strong>The contract is word segmentation.</strong> "Breaks text into words according to UAX #29: Unicode Text Segmentation" (<code>ICUTokenizer.java:31</code>). <code>DefaultICUTokenizerConfig</code> "Generally tokenizes Unicode text according to UAX#29" with one listed tailoring, dictionary breaking for Thai, Lao, Myanmar, Khmer and CJK (<code>DefaultICUTokenizerConfig.java:28-38</code>). The module overview presents it "As a more thorough replacement for StandardTokenizer" (<code class='nw'>overview.html:67</code>).</li><li><strong>Lucene overrides ICU's status for emoji on purpose.</strong> <code>BreakIteratorWrapper</code> exists for "emitting a rule status for emoji sequences" (<code>BreakIteratorWrapper.java:25-26</code>): ICU gives a lone emoji status 0, and Lucene keeps it as <code class='nw'>&lt;EMOJI&gt;</code>. Upstream <code>testEmojiTokenization</code> expects <code class='nw'>poo💩poo</code> to give <code class='nw'>poo</code>, <code class='nw'>💩</code>, <code class='nw'>poo</code> (<code>TestICUTokenizer.java:491-497</code>); every upstream emoji test with a ZWJ starts with an emoji (<code class='nw'>:456-465</code>, <code class='nw'>:506-519</code>).</li><li><strong>Lucene's UAX #29 reference keeps this text.</strong> <code>StandardTokenizer</code> gives <code class='nw'>a</code>+ZWJ, <code class='nw'>🛑</code> for the WordBreakTest line <code>0061 × 200D × 1F6D1</code>; Lucene's test generator skips that line on purpose, "because it conflicts with TR#51 v11.0 rules" (<code>generateJavaUnicodeWordBreakTest.pl:130-141</code>), and its oracle counts every segment that holds a letter, digit, ideograph or Extended_Pictographic character as a token (<code>WordBreakTestUnicode_12_1_0.java:28-39</code>).</li><li><strong>A regression.</strong> 7.3.1 gives <code class='nw'>abc</code> for <code class='nw'>abc</code>+ZWJ+👍; 7.4.0 gives nothing. With ICU4J held at 61.1, the 7.3.1 rule file gives <code class='nw'>abc</code> status 200 and the 7.4.0 rule file gives the joined segment status 0.</li><li><strong>No sign it was decided.</strong> The status-0 skip dates from the class's first commit (LUCENE-2414, 2010); that commit's wrapper for dictionary iterators gave a status-0 segment a word or number status when it held a letter or digit. The 2018 upgrade that brought WB3c (LUCENE-8122 / #9170, LUCENE-8175 / #9223) and the emoji status (LUCENE-8125 / #9173) never discusses a word before ZWJ and an emoji; no javadoc, test, CHANGES or MIGRATE entry accepts dropping such text. No evidence was found that the 2018 change meant this text to disappear.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>294 words</span></summary><div class='body'><p>Strongest case for "intended" (rated moderate by the cross-model review lenses and the cross-model fact check): UAX #29 WB3c forbids a break between a ZWJ and an emoji, so one segment is correct; ICU's own root iterator also returns status 0, <code class='nw'>Default.brk</code> is meant to be "the same as ROOT, except no dictionary segmentation for cjk" (<code>DefaultICUTokenizerConfig.java:80</code>), and ICU calls the status "secondary information" (ICU-20966, closed as a caller-side choice); a test rule file documents that status 0 is "not tokenized by ICUTokenizer" (<code>Latin-break-only-on-whitespace.rbbi:27</code>); valid emoji ZWJ sequences start with an emoji, LUCENE-8125 calls its emoji check "very conservative", <code>StandardTokenizer</code> departs from WB3c on purpose with an explicit TR #51 emoji grammar (<code>StandardTokenizerImpl.jflex:166-208</code>), and the class is <code>@lucene.experimental</code>.</p><p>Why it fails: the segmentation is not the defect, dropping the segment is. Skipping status 0 is Lucene's own choice (<code>ICUTokenizer.java:211</code>), and ICU-20966 puts exactly that choice on the caller. Lucene already refuses to drop ICU's status-0 emoji; a status-0 segment that holds a word is the same situation. ROOT parity is about boundaries: Lucene already sets its own status for emoji, and the test rule file uses status 0 for whitespace, a segment with no content. <code>StandardTokenizer</code>, also documented as UAX #29, keeps both, and 7.3.1 kept the word. <code>@lucene.experimental</code> marks API that may change, not license to lose valid text. The case is stronger for the lost word than for the lost emoji: before 7.4.0 there were no emoji tokens, so only the word is a regression. <strong>Verdict: not intended, a defect.</strong> Keep the claim precise in the issue: the text must not vanish; whether the right output is one token (<code class='nw'>world</code>+ZWJ+😀) or the word plus the emoji is a maintainer choice.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: end the break iterator's text after a ZWJ where the joined segment would be skipped</strong></p><p class='short'>In <code>BreakIteratorWrapper</code>, end the break iterator's text right after a ZWJ before an emoji where the segment holding it would be skipped (+76/-4). The word and the emoji become separate tokens (<code class='nw'>world</code>+ZWJ, <code class='nw'>😀</code>, as with <code>StandardTokenizer</code>); the repro and an exact-token test pass, and the ICU module's 174 tests run with 0 failures (10 skipped).</p><pre class='snippet' tabindex='0'><code>    for (int i = pieceStart; i &lt; length - 1; i++) {
+      if (text[start + i] == 0x200D
+          &amp;&amp; EXTENDED_PICTOGRAPHIC.contains(UTF16.charAt(text, 0, start + length, start + i + 1))
+          &amp;&amp; emojiBefore(i) == false
+          &amp;&amp; isSkipped(i)) {
+        textIterator.setText(text, start + pieceStart, i + 1 - pieceStart);
+        rbbi.setText(textIterator);
+        return;
+      }
+    }
+    rbbi.first();</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 1,331 words</span></summary><div class='body'><p>Fix A and fix B were each validated with the repro through the repro runner and with gradle in a scratch worktree at <code class='nw'>a9779ef3c193</code> (OpenJDK 25.0.3); fix A also with an exact-token test and the module's static checks. Option C was not run. Neither fix was benchmarked. Whichever shape is chosen, file the related ICU status-0 bugs (Han letters such as 々 with <code class='nw'>cjkAsWords=false</code>; a Hangul syllable before Extend, Format or ZWJ) separately and cross-reference them: their repros still fail with fix A and pass with fix B.</p><div class="hd hd-3"><h3 id='fix-split-after-zwj'>A: end the break iterator's text after a ZWJ where the joined segment would be skipped <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-split-after-zwj" target="_self" aria-label="Link to this section" aria-describedby="fix-split-after-zwj"><span aria-hidden="true">#</span></a></div><p><code>BreakIteratorWrapper</code> looks in each script run for a U+200D directly followed by an Extended_Pictographic character. If the code point before that ZWJ (Extend, Format and ZWJ characters skipped) is an emoji that cannot end a word, the ZWJ is inside an emoji sequence and nothing changes. Otherwise the wrapper asks the break iterator for the segment that holds the ZWJ (<code class='nw'>following()</code>, <code class='nw'>getRuleStatus()</code>, <code class='nw'>previous()</code>). Only if that segment has status 0 and does not start with an emoji, exactly when the tokenizer would skip it, the break iterator gets the text up to and including that ZWJ, and the rest as the next piece; <code class='nw'>current()</code> and <code class='nw'>next()</code> add the piece offset. One file, +76/-4.</p><p>The result: the word plus its ZWJ, then the emoji, as two tokens, with both configs. For Latin, digits, single ideographs and Malayalam these are <code>StandardTokenizer</code>'s tokens (<code class='nw'>world</code>+ZWJ <code class='nw'>&lt;ALPHANUM&gt;</code>, <code class='nw'>😀</code> <code class='nw'>&lt;EMOJI&gt;</code>); the word token is what <code class='nw'>ICUTokenizer</code> already gives for the word plus ZWJ alone. Words that end in an emoji-like letter or a keycap digit (<code class='nw'>abcℹ</code>+ZWJ+<code class='nw'>👍</code>, <code class='nw'>abc1️⃣</code>+ZWJ+<code class='nw'>👍</code>) are covered too. On a dictionary path it gives what the tokenizer gives for the run plus ZWJ alone, then the emoji (<code class='nw'>日本語</code>+ZWJ, <code class='nw'>👍</code> with <code class='nw'>cjkAsWords=true</code>, where <code>StandardTokenizer</code> splits the ideographs); whole Japanese and Chinese sentences and Thai and Myanmar runs come back token for token. It also restores the emoji after a stray ZWJ (ZWJ+<code>😀 cd</code> gives <code class='nw'>😀</code>, <code class='nw'>cd</code>). Emoji-led sequences stay one <code class='nw'>&lt;EMOJI&gt;</code> token: <code class='nw'>😂</code>+ZWJ+<code class='nw'>👍</code>, 👩‍❤️‍👩, 👨🏼‍⚕️, a keycap or a flag before ZWJ + emoji, tag sequences, <code class='nw'>ℹ</code>+ZWJ+<code class='nw'>👍</code>.</p><p>An earlier version decided from the character before the ZWJ alone and missed words ending in an emoji-like letter or keycap digit (<code class='nw'>aℹ</code>+ZWJ+<code class='nw'>👍</code> still gave no token); the cross-model fact check found it, and the final fix asks the break iterator instead.</p><pre class='snippet' tabindex='0'><code>    for (int i = pieceStart; i &lt; length - 1; i++) {
+      if (text[start + i] == 0x200D
+          &amp;&amp; EXTENDED_PICTOGRAPHIC.contains(UTF16.charAt(text, 0, start + length, start + i + 1))
+          &amp;&amp; emojiBefore(i) == false
+          &amp;&amp; isSkipped(i)) {
+        textIterator.setText(text, start + pieceStart, i + 1 - pieceStart);
+        rbbi.setText(textIterator);
+        return;
+      }
+    }
+    rbbi.first();</code></pre><p class='k'>Trade-offs</p><ul><li><strong>A deliberate deviation from UAX #29 WB3c.</strong> <code>StandardTokenizer</code> also breaks there (its grammar replaces WB3c with TR #51's emoji sequences); the class javadoc promises UAX #29, so CHANGES should say so.</li><li><strong>The word token keeps its trailing ZWJ</strong> (<code class='nw'>world</code>+ZWJ), as <code class='nw'>ICUTokenizer</code> and <code>StandardTokenizer</code> already do for <code class='nw'>world</code>+ZWJ alone. The bare word matches after a filter that removes U+200D: with <code class='nw'>ICUFoldingFilter</code>, <code>TermQuery(body:world)</code> finds 2 of 2 documents (1 of 2 on stock); with the tokenizer alone 1 of 2, as with <code>StandardTokenizer</code>.</li><li><strong>Scope:</strong> tokens change only where a segment that holds a ZWJ before an Extended_Pictographic character would be skipped today: the word cases here and the stray-ZWJ cases. This holds for every break iterator, including custom rule files given to the <code class='nw'>icu</code> factory: their text is split only where their own segment would be skipped (reasoned from the code, not run).</li><li><strong>Not covered:</strong> a Hangul word before ZWJ + emoji keeps only the emoji, because Hangul + ZWJ has status 0 even without an emoji, and the Han status-0 letters such as 々: their repros still fail with fix A.</li><li><strong>Cost:</strong> one pass over each script run looking for U+200D; at each ZWJ before an emoji a short walk back, and, unless an emoji precedes the ZWJ, one lookup on the break iterator. A rough timing (4M chars per text, median of 21 runs, stock and fix interleaved, one shared host with up to about 20% run-to-run spread): no clear difference on plain Latin, CJK or emoji text without a ZWJ; Malayalam with ZWJ chillus about 10-16% slower; text made only of emoji ZWJ sequences about 50-85% slower; text where every word has the pattern about 1.7 times the same text without the ZWJ (about 2.2 times stock, which skips those segments); <code class='nw'>ℹ</code>+ZWJ+<code class='nw'>👍</code> repeated about 2.1-2.4 times; a 4M-char chain without spaces about 3.6 times. The cost grows with the number of ZWJs before an emoji; the fix was not optimized further. Not benchmarked.</li><li>Tokens change only for affected texts; existing indexes need a reindex to gain the lost words.</li></ul><p class='k'>What the checks validated</p><ul><li>The repro: 5 of 6 fail on stock, 6 of 6 pass with the fix (the repro runner <code class='nw'>-ea</code> and <code class='nw'>-da</code>; gradle module runs).</li><li>An exact-token test, <code>TestICUTokenizerZwjEmojiSplit</code> (10 tests: tokens and types with both configs, offsets for one input, words ending in an emoji-like letter or keycap, the dictionary path, stray ZWJs, emoji sequences unchanged, random strings): 10 of 10 pass with the fix (<code class='nw'>-ea</code> and <code class='nw'>-da</code>); on stock 7 of 10 fail; with the earlier version of fix A 2 of 10 fail.</li><li>All of <code>:lucene:analysis:icu:test</code> with both new tests: 18 suites, 174 tests, 0 failed, 10 skipped, with assertions on (seed 5EED0659) and off (seed 0DA50659); <code class='nw'>TestICUTokenizer</code> 45 of 45. Stock with the repro: 17 suites, 164 tests, 5 failed (all in the repro), the same 10 skipped (<code>TestICUTokenizerCJK</code>, <code class='nw'>@AwaitsFix</code> LUCENE-8222).</li><li><code>:lucene:analysis:icu:check -x test</code> passes (checkGoogleJavaFormat, ecjLint, forbiddenApis, the rbbi checksum check).</li><li>Token probes on the inputs above, the kana, ideograph and dictionary-script probes, the edge cases and the search check: identical to the earlier version on every earlier input.</li></ul><div class="hd hd-3"><h3 id='fix-status-rescue'>B: keep the joined segment as one word token <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-status-rescue" target="_self" aria-label="Link to this section" aria-describedby="fix-status-rescue"><span aria-hidden="true">#</span></a></div><p>In <code class='nw'>calcStatus</code>, a status-0 segment that holds a letter becomes WORD_LETTER, one with a digit WORD_NUMBER (+19/-2; the shape of verifier the independent reproduction's root-cause probe). It keeps UAX #29 boundaries exactly, and it also keeps the Han and Hangul status-0 segments of the related bugs (one fix site for three bugs): their repros pass with fix B (4 of 4 and 6 of 6).</p><p class='k'>Trade-offs</p><ul><li><strong>The output is one glued token</strong> <code class='nw'>world</code>+ZWJ+<code class='nw'>😀</code> <code class='nw'>&lt;ALPHANUM&gt;</code>: <code>TermQuery(body:world)</code> still misses the document, even with <code class='nw'>ICUFoldingFilter</code> (the folded term is <code class='nw'>world😀</code>), and the emoji is no <code class='nw'>&lt;EMOJI&gt;</code> token.</li><li><strong>Types change on the dictionary path:</strong> <code class='nw'>ひらがな</code>+ZWJ+<code class='nw'>👍</code> gives four <code class='nw'>&lt;ALPHANUM&gt;</code> tokens; stock types <code class='nw'>ひらがな</code> as <code>&lt;IDEOGRAPHIC&gt;</code>.</li><li><strong>The emoji after a stray ZWJ stays lost</strong> (ZWJ+<code>😀 cd</code> gives <code class='nw'>cd</code>).</li><li><strong>Wider behaviour change:</strong> every status-0 segment that holds a letter or digit becomes a token, not only this pattern (including the segments of the related Han and Hangul bugs).</li></ul><p class='k'>What the checks validated</p><ul><li>The repro: 6 of 6 pass (the repro runner <code class='nw'>-ea</code>).</li><li><code>:lucene:analysis:icu:test</code> with the new test: 17 suites, 164 tests, 0 failed, 10 skipped (assertions on, seed 5EED0659); <code class='nw'>TestICUTokenizer</code> 45 of 45. Verifier the independent reproduction earlier ran its probe of this shape against upstream <code class='nw'>TestICUTokenizer</code>: 45 of 45.</li></ul><div class="hd hd-3"><h3 id='fix-rules'>C: change the break rules instead</h3><a class="hlink" href="#fix-rules" target="_self" aria-label="Link to this section" aria-describedby="fix-rules"><span aria-hidden="true">#</span></a></div><p>Give WB3c chains that start with a word the word's status in <code class='nw'>Default.rbbi</code> (keeps one glued token), or apply WB3c only to a ZWJ after an emoji, then regenerate <code class='nw'>Default.brk</code>. Not run.</p><p class='k'>Trade-offs</p><p>Neither covers Japanese-script runs with <code class='nw'>cjkAsWords=true</code>, which use ICU's ROOT iterator (<code>DefaultICUTokenizerConfig.java:73</code>, <code class='nw'>:113-114</code>), and a tailored WB3c has to be carried across ICU upgrades. ICU may want to know too, since its root rules give the same status 0; both validated fixes are Lucene-side.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that match analyzed text to exclude or flag content should know that a ZERO WIDTH JOINER plus an emoji right after a word hides that word from <code class='nw'>ICUTokenizer</code>; an <code>ICUNormalizer2CharFilter</code> (NFKC_CF) in front prevents it.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A security check of a related ICU bug first noticed <code class='nw'>ab</code>+ZWJ+<code>😀 cd</code> giving only <code class='nw'>cd</code>. A hunt then compared <code class='nw'>ICUTokenizer</code> with <code>StandardTokenizer</code> over 2,593,337 generated strings in two configs: every "X + ZWJ + emoji" string lost X, for every letter, digit and ideograph class tried. No formal tool was involved.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>235 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation of the stock jar against a reference</strong> (the hunt's semi-formal tier for the hunt; the first signal was non-formal).</p><ul><li><strong>First signal (2026-10-26).</strong> While assessing the security of the ICUTokenizer surrogate-split bug (LFV-445), an AI tool ran a public-API probe on main and saw <code class='nw'>ab</code>+ZWJ+<code>😀 cd</code> give only <code class='nw'>cd</code>, with ICU's root word iterator giving that span status 0. It noted that this "may deserve its own candidate" and did not investigate further.</li><li><strong>The hunt (2026-10-27, main <code class='nw'>a9779ef3c193</code>).</strong> A hunt unit on ICUTokenizer's script iterator ran a harness over 2,593,337 generated strings in two configurations, with a "content dropped" oracle against <code>StandardTokenizer</code>. Every string with X + ZWJ + 👍 (U+1F44D) dropped X, for every letter, digit and ideograph class in its alphabet; a buffer-boundary harness also flagged the WB3c rule. The finder reduced it to a public-API JUnit.</li><li><strong>Checks.</strong> Claude verifiers wrote their own tests (the independent reproduction: Latin, mid-sentence, Malayalam with both configs, digits, the emoji, 4 controls, plus a root-cause probe; the intended-behaviour check: a devil's advocate who found Lucene's WordBreakTest stance and the NFKC_CF workaround). Review records by a model from another family (OpenAI GPT-5.6, executed mode) wrote and ran their own tests: both "real, high". An adjudication re-ran the independent reproduction's test with a fresh seed, and an independent audit added new inputs (<code>see you tomorrow</code>, <code class='nw'>Paris</code>+ZWJ+❤️, <code class='nw'>x9</code>).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No report found (2026-10-27, 240 logged queries and reads over Lucene, Solr, ICU and downstream issues, JIRA, mailing lists, the web and all open Lucene PRs). The nearest items design the emoji status (#9173) or show a different consumer dropping status-0 emoji (ICU-20966).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Novelty <code class='nw'>new</code>: no issue, PR, commit, JIRA ticket (LUCENE, SOLR, ICU), list thread or web page reports ICUTokenizer losing a word directly followed by U+200D and an Extended_Pictographic character, or such a segment getting status 0. Closest items, none the same bug: #9173 / LUCENE-8125 (designed the emoji status, "not a perfect science", "very conservative"; its tests and 14 comments cover only ZWJ sequences that start with an emoji); #9170 / LUCENE-8122 and #9413 / LUCENE-8366 (brought and reshaped WB3c); open #6140 / LUCENE-5076 (a first-code-point loop in an older <code class='nw'>calcStatus</code> that LUCENE-8125 removed; no ZWJ, emoji or lost text); ICU-20966 (a browser engine dropped WORD_NONE segments holding a lone bullet or emoji; ICU called the status secondary and closed it as caller-side). Cite #9173 and ICU-20966 in the issue. None is by the owner. Gaps: keyword search only; the literal-U+200D GitHub query was rate-limited (the <code class='nw'>ZWJ</code>, "zero width joiner" and <code class='nw'>200D</code> queries cover it); some forums only through the web index; private security reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>scripted prior-report search (2 runs) and the finder's run</th><td class='when'>2026-10-27</td><td>185 queries over apache/lucene issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web</td><td>no report; #9173 the nearest</td></tr><tr><th scope='row'>GitHub (manual)</th><td class='when'>2026-10-27</td><td>40 searches over apache/lucene, elastic/elasticsearch, opensearch-project/OpenSearch, apache/solr, unicode-org/icu and unicode-org/icu4x; related issues read in full</td><td>#9173, #9170, #9413, #6140, #9573 and downstream configuration issues; none about this bug</td></tr><tr><th scope='row'>ICU and ASF JIRA</th><td class='when'>2026-10-27</td><td>11 ICU JIRA and 9 LUCENE/SOLR queries</td><td>ICU-20966 (different consumer, no letters involved)</td></tr><tr><th scope='row'>Mailing lists and web</th><td class='when'>2026-10-27</td><td>20 Lucene and Solr list queries, 10 extra web queries</td><td>nothing reporting this bug</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>changed files of all 409 open apache/lucene PRs</td><td>only #16911 (deletes branch_10x files), not a fix</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 7.4.0 by the 2018 ICU word-break rule upgrade (<code class='nw'>2dcf263b5207</code>, LUCENE-8122/8175), which added rule WB3c without a status. A public-API probe loses the word on all 67 releases 7.4.0-10.5.2 and on main, and keeps it on all 7 releases 7.0.0-7.3.1. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced</strong> by <code class='nw'>2dcf263b5207</code> (branch_7x, shipped in 7.4.0; on master <code class='nw'>4522e45bdadd</code>), @rmuir, 2018-03-26, "LUCENE-8175: un-revert "LUCENE-8122: Upgrade analysis/icu to ICU 60.2"" (JIRA patch era, no PR; issues #9170 and #9223). Its <code class='nw'>Default.rbbi</code> let the word macros absorb a trailing ZWJ and added WB3c <code>$ZWJ ($Extended_Pict | $EmojiNRK);</code> with no status. It re-lands <code class='nw'>07407a5b53bf</code> / <code class='nw'>96be7b432ebd</code> (2018-01-08), reverted on 2018-02-20 for an unrelated ICU4J concurrency bug before any release. With ICU4J held at 61.1, the 7.3.1 rule file gives <code class='nw'>abc</code> status 200 and the 7.4.0 one gives the joined segment status 0, so the rule change alone causes it.</p><p><strong>Older ingredients</strong>, not regressions by themselves: the status-0 skip (LUCENE-2414, 2010) and the first-code-point emoji check (LUCENE-8125, also 7.4.0). Later rule rewrites (LUCENE-8366 / ICU 62.1 in 7.5.0, #13239 / ICU 74.2, #14386 / ICU 77.1 in 10.2.0) kept the behaviour, so <code>git blame</code> on today's lines points at them. <strong>Not fixed upstream:</strong> after LUCENE-8366 (June 2018), which changed <code class='nw'>isEmoji</code>'s character set and rewrote much of <code class='nw'>Default.rbbi</code>, <code>BreakIteratorWrapper.java</code> has had only formatting commits, <code>ICUTokenizer.java</code> only formatting commits since the March 2018 re-land, and <code class='nw'>Default.rbbi</code> only the two ICU upgrades, which kept the behaviour; the only open PR touching these files deletes them on branch_10x.</p><p><strong>Caveats:</strong> no commit-level bisect (the 2018 commits use the old build system and were not built); the 7.3.1 to 7.4.0 release boundary and the same-ICU rule-file isolation stand in for it. The rule probe compiles the <code class='nw'>.rbbi</code> source rather than loading the shipped <code class='nw'>Default.brk</code>; the release sweep loads the shipped jars.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this page's JUnit fails 5 of 6 with -ea and -da; the finder's 3 of 4; the independent reproduction's 6 of 10</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this page's JUnit fails 5 of 6 (-da); the probe drops 5 of 5 bug-case words with -ea and -da</td></tr><tr><th scope='row'>10.0.0-10.5.1, 9.0.0-9.12.2, 8.0.0-8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the probe drops 5 of 5 bug-case words, 0 of 4 controls</td></tr><tr><th scope='row'>7.4.0-7.7.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first affected</span></td><td>the probe drops 5 of 5; the independent reproduction's main() variant drops all 4 bug inputs on 7.4.0</td></tr><tr><th scope='row'>7.0.0-7.3.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the probe keeps all words (emoji were not tokens before 7.4.0)</td></tr><tr><th scope='row'>7.3.1 vs 7.4.0 rule files, ICU4J 61.1</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> isolation</span></td><td>7.3.1 rules: <code class='nw'>abc</code> status 200; 7.4.0 rules: <code class='nw'>abc</code>+ZWJ+👍 status 0</td></tr><tr><th scope='row'>main with fix A</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix</span></td><td>the repro passes 6 of 6 and the exact-token test 10 of 10 (-ea and -da); the ICU module's 174 tests: 0 failed, 10 skipped</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Reproduced by the finder, independent verifiers with their own tests, cross-model reviews by OpenAI GPT-5.6 that ran their own tests (both real, high), an adjudication with a fresh seed and an independent audit with new inputs, all with and without assertions.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>465 words</span></summary><div class='body'><p>Each check worked from the code and its own runs. This page's runs added a new repro, two fixes, gradle runs of the whole ICU module, kana and ideograph probes and a search check.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder's harness and JUnit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Every string with X + ZWJ + 👍 (U+1F44D) in 2,593,337 x 2 configs dropped X; the JUnit fails 3 of 4 on main with -ea and -da, on 10.5.2 and on 9.12.3.</td></tr><tr><th scope='row'>Cross-model review, refute lens (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Its own JUnit fails both defect cases with -ea and over 3 iterations with -da; the status diagnostic shows one WORD_NONE span; release probe fails on 7.4.0 and 10.5.2, passes on 7.3.0. Intended argument: moderate.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 10-test JUnit fails 6 of 10 on main (-ea, -da), 10.5.2 and 9.12.3, controls pass; 7.4.0 and 8.11.4 affected, 7.3.0 not; a root-cause probe makes it pass and upstream TestICUTokenizer 45/45.</td></tr><tr><th scope='row'>Cross-model review, intended lens (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Own test reproduces the full token loss; Lucene's rules and ICU ROOT both give WORD_NONE; "ICU ROOT parity is the best closure argument, but Lucene already tailors ICU status to produce searchable emoji tokens, so parity is not dispositive".</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>No intended argument survives; also loses digits and an ideograph mid-sentence; found Lucene's WordBreakTest stance and the NFKC_CF char-filter workaround; the atomic chillu is unaffected.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's JUnit with seed 7A11D6E5: 6 of 10 fail with -ea and with -da, 0 with the root-cause probe.</td></tr><tr><th scope='row'>History</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> regression in 7.4.0</span></td><td>67 affected releases and 7 clean ones executed; rule-file isolation with ICU4J 61.1.</td></tr><tr><th scope='row'>Security screen</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> none</span></td><td>No hang or amplification, CheckIndex clean, stored text intact, nothing from other documents; a query clause that analyzes to nothing is dropped.</td></tr><tr><th scope='row'>Credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Finder's JUnit 3 of 4 with -ea and -da; own probe with new inputs; an indexed Paris+ZWJ+❤️ document is not found by body:Paris.</td></tr><tr><th scope='row'>This page's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> fails 5 of 6 on main, 10.5.2, 9.12.3; fix A passes</span></td><td>The repro runner and gradle, -ea and -da; the whole ICU module and its static checks with fix A and its exact-token test; fix B; token, kana, edge-case, extent, search and timing probes.</td></tr><tr><th scope='row'>Fact checks of this page (independent, and OpenAI GPT-5.6)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> bug confirmed; fix A revised</span></td><td>Both re-ran the repro on main (and on 10.5.2 and 9.12.3) and confirmed the bug, the release boundary and the security classification. They found an input the first fix A missed (a word ending in an emoji-like letter, <code class='nw'>aℹ</code>+ZWJ+<code class='nw'>👍</code>), the wider loss in dictionary-segmented text, and text errors. Fix A was revised and re-validated, and the text corrected.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-659/bug.png' download='icutokenizer-word-zwj-emoji-dropped-bug.png' target='_self'>PNG</a> <span class='n'>456 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,610 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-659, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>ICUTokenizer silently drops a word that is directly followed by ZERO WIDTH JOINER and an emoji, together with the emoji, because the joined 'word ZWJ emoji' segment gets rule status 0 (UAX #29 WB3c chain in Default.rbbi) and the emoji check looks only at its first code point</dd></div><div><dt>Area</dt><dd>analysis / ICU (ICUTokenizer rule status: Default.rbbi WB3c chain, BreakIteratorWrapper emoji status, status-0 skip)</dd></div><div><dt>Priority</dt><dd>Medium, rank 105: Since 7.4.0 the default ICUTokenizer silently drops a whole word plus the emoji when a ZWJ sits between them; the tokenizer is widely used but the input is rare.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that analyze text with ICUTokenizer (the analysis-icu module: new ICUTokenizer() with the default config or with cjkAsWords=false, and by code reading the 'icu' factory with default parameters) silently lose a letter, digit or ideograph run together with the following emoji whenever the run is immediately followed by U+200D and an Extended_Pictographic character ('abc' ZWJ U+1F44D, '2024' ZWJ U+1F44D, 'hello world' ZWJ U+1F44D ' again' losing 'world', or a Malayalam word in the legacy ZWJ chillu encoding before an emoji), so a TermQuery for that word misses the document, deterministically with -ea and -da and at any input size, in every release from 7.4.0 to 10.5.2; nothing throws, CheckIndex is clean, the stored value is intact, the rest of the text is tokenized normally, and an ICUNormalizer2CharFilter (NFKC_CF) in front hides it.</dd></div><div><dt>Summary</dt><dd>You index text through the stock ICUTokenizer in which a word runs straight into an invisible ZERO WIDTH JOINER (U+200D) and then an emoji, for example 'abc' + U+200D + U+1F44D, or a Malayalam word written in the older ZWJ chillu form followed by an emoji, and expect the word and the emoji to be tokens, as they are with a space before the emoji, without the ZWJ, or with StandardTokenizer. Instead neither appears: Unicode rule WB3c (ZWJ x Extended_Pictographic) keeps 'word ZWJ emoji' in one segment, the break rules give that segment rule status 0 ('not a word'), BreakIteratorWrapper's emoji check looks only at the segment's first code point (a letter), and ICUTokenizer skips every status-0 segment, so 'hello world' + U+200D + U+1F44D + ' again' gives only [hello, again]. A TermQuery for the lost word finds nothing, with no error.</dd></div><div><dt>Introduced</dt><dd>2dcf263b5207243f6854c0e48d2496036f678eee (branch_7x, the commit that shipped in 7.4.0; same change on master 4522e45bdadd4268a9270135130fc28a7f46c627), by rmuir, 2018-03-26, 'LUCENE-8175: un-revert "LUCENE-8122: Upgrade analysis/icu to ICU 60.2"' (JIRA patch era, no PR; issues LUCENE-8122 / #9170 and LUCENE-8175 / #9223, neither discussing word + ZWJ + emoji input or rule statuses). Its Default.rbbi added $ZWJ, let the word macros absorb a trailing ZWJ, and added the UAX #29 WB3c rule '$ZWJ ($Extended_Pict | $EmojiNRK);' with no status tag, so under !!chain a word ending in ZWJ chains into a status-less rule [read: git log -S/-G, blame -w -M -C and merge-base --is-ancestor in the full-history clone; exec: with ICU4J held at 61.1, the 7.3.1 rule file gives the 'abc' segment status 200 and the 7.4.0 rule file gives the merged 'abc' ZWJ U+1F44D segment status 0]. It re-lands 07407a5b53bf (master) / 96be7b432ebd (branch_7x) of 2018-01-08, reverted 2018-02-20 for an unrelated ICU4J concurrency bug before any release. Older ingredients that are not regressions by themselves: the status-0 skip in ICUTokenizer (LUCENE-2414, 5abbf3429cf, 2010) and the first-code-point isEmoji of LUCENE-8125 (c0b92e27942 / 23bff7dbc20, same day, also 7.4.0). Later rule rewrites kept the behaviour [exec on both sides]: LUCENE-8366 (2ea416ee3d2, ICU 62.1, 7.5.0, current form of Default.rbbi:107), #13239 (54a2e11434d, ICU 74.2, current form of :122) and #14386 (ICU 77.1, 10.2.0), so git blame on today's lines does not point at the introduction. (2018-03-26 (shipped re-land 2dcf263b5207 / 4522e45bdadd); first landed 2018-01-08 (07407a5b53bf / 96be7b432ebd), reverted 2018-02-20 before any release)</dd></div><div><dt>First affected version</dt><dd>7.4.0 [exec] (7.3.1, the last release before, keeps the word [exec], as do all of 7.0.0-7.3.1; before 7.4.0 ICUTokenizer emitted no emoji tokens at all, so only the lost word is a regression, the lost emoji only relative to the same version's 'abc U+1F44D' output)</dd></div><div><dt>Affected versions</dt><dd>Every release from 7.4.0 to 10.5.2 (the latest release) and main a9779ef3c193; never fixed. [exec] the follow-up's public-API main() probe ZwjHistoryMain drops 5 of 5 bug-case words and 0 of 4 controls on all 67 releases 7.4.0-7.7.3, 8.0.0-8.11.4, 9.0.0-9.12.3 and 10.0.0-10.5.2 and on main (-ea; -da also on 9.12.3, 10.5.2 and main), and 0 of 5 on all 7 releases 7.0.0-7.3.1; the finder's JUnit fails 3 of 4 on main (-ea and -da), 10.5.2 and 9.12.3; the independent reproduction's JUnit fails 6 of 10 on main (-ea and -da), 10.5.2 and 9.12.3, and its main() variant on 8.11.4 and 7.4.0 (7.3.0 keeps the words); the cross-model reviewers' release probes fail on 7.4.0 and 10.5.2 and pass on 7.3.0; the intended-behaviour check re-ran the finder's JUnit on 10.5.2. 8.8.2-8.11.4 are untagged in the history clone and were run from checksum-verified release jars. [read] upstream main and branch_10x: BreakIteratorWrapper.java and ICUTokenizer.java have only formatting commits since 2018, Default.rbbi only the ICU upgrades #13239 and #14386 (both executed on either side), and no open PR fixes it, so the unreleased 10.x and 11.0 lines are affected. JDK 25.0.3, aarch64; pure Java and ICU4J logic.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27 plus the finder's run, read-only; the prior-report record: 240 logged queries and reads, namely two hunt prior-report tool runs (140 queries over apache/lucene issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web), 40 manual GitHub searches over apache/lucene, elastic/elasticsearch, opensearch-project/OpenSearch, apache/solr, unicode-org/icu and unicode-org/icu4x, 11 ICU JIRA and 9 ASF JIRA (LUCENE, SOLR) queries, 20 Lucene and Solr list queries, 10 extra web queries, live commit lists for the 4 files and the changed files of all 409 open apache/lucene PRs; plus the finder's tool run of 45 queries). Not fixed upstream: BreakIteratorWrapper.java and ICUTokenizer.java have only formatting commits since 2018 and Default.rbbi only the ICU upgrades #13239 (74.2) and #14386 (77.1), which kept the behaviour; the only open PR touching the files is #16911 ('Decommission branch 10x', which deletes them on branch_10x). Related items, none reporting this bug: #9173 / LUCENE-8125 (origin of the emoji status, called 'not a perfect science' and 'very conservative' by its author; its tests and comments cover only ZWJ sequences that start with an emoji), #9170 / LUCENE-8122 and #9413 / LUCENE-8366 (the ICU upgrades that brought and reshaped the WB3c rule), open #6140 / LUCENE-5076 (a first-code-point loop in an older calcStatus that LUCENE-8125 removed; no ZWJ, emoji or lost text), ICU-20966 (ICU JIRA: a browser engine dropped WORD_NONE segments for a lone bullet or emoji; ICU called the rule status 'secondary information' and closed it as caller-side), #9573 / LUCENE-8527 (StandardTokenizer emoji grammar), open #10793 / LUCENE-9754 (script-run splitting, loses no text), elastic/elasticsearch#31224 and jolicode/emoji-search#21 (an emoji on its own eliminated under a custom rule file before 7.4, closed as configuration). None of them is by the owner (shbhar). Gaps: the literal-U+200D GitHub query was rate-limited and not retried (the 'ZWJ', 'zero width joiner' and '200D' queries cover it); Wikimedia Phabricator, the Elastic and OpenSearch forums and Stack Overflow were covered only through the web index; private reports to security@lucene.apache.org are not visible.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-27) on OpenJDK 25.0.3, Linux aarch64, ICU4J 78.3: this page's JUnit through the repro runner with -ea and -da and through gradle in a scratch worktree (stock, fix A, fix B; the worktree was removed after the runs); the whole ICU module test suite with fix A (assertions on and off) and its static checks; the 10.5.2 and 9.12.3 release jars; a public-API probe on all 74 releases 7.0.0-10.5.2 (history step).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/icu/src/data/uax29/Default.rbbi :46 (!!chain), :105-107 (WB3c &#x27;$ZWJ $Extended_Pict;&#x27;, no status), :122 (&#x27;[^$CR $LF $Newline $ExFm] $ExFm*;&#x27;, &#x27;no special rule status value&#x27;)</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/BreakIteratorWrapper.java :25 (&#x27;emitting a rule status for emoji sequences&#x27;), :57-66 (calcStatus), :75-91 (isEmoji reads only the first code point)</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizer.java :31 (&#x27;Breaks text into words according to UAX #29&#x27;), :38 (@lucene.experimental), :41 (IOBUFFER = 4096), :209-214 (skip status-0 segments; test at :211)</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/DefaultICUTokenizerConfig.java :28-38 (tailorings: dictionary breaking only), :73 (cjkBreakIterator = ICU ROOT word instance), :81-82 (Default.brk), :111-122 (Japanese script to the ROOT iterator, others to Default.brk); lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizerFactory.java :96, :112, :156 (default parameters build DefaultICUTokenizerConfig) [read]</code></li><li><code>lucene/analysis/icu/src/test/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizer.java :491-497 (testEmojiTokenization &#x27;poo&#x27; U+1F4A9 &#x27;poo&#x27; -&gt; poo, U+1F4A9, poo)</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/analysis/standard/generateJavaUnicodeWordBreakTest.pl :129-140 (special-cases &#x27;0061 x 200D x 1F6D1&#x27; for StandardTokenizer)</code></li><li><code>SECURITY.md :28, :38, :42, :50 (threat model; cited by the security record)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/icu/src/data/uax29/Default.rbbi:46, 104-107, 116, 122-131</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/BreakIteratorWrapper.java:25-26, 57-66, 75-91</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizer.java:31, 38, 69-70, 209-214</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/DefaultICUTokenizerConfig.java:28-38, 73, 81-82, 111-123</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:367-369</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizer.java:38 (@lucene.experimental), :69-70 (default config)</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizerFactory.java:96-97, 112, 156</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizer.java:31, 211</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/DefaultICUTokenizerConfig.java:28-38, 80</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/BreakIteratorWrapper.java:25-26</code></li><li><code>lucene/analysis/icu/src/test/org/apache/lucene/analysis/icu/segmentation/Latin-break-only-on-whitespace.rbbi:27-28</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.jflex:166-208</code></li><li><code>lucene/analysis/icu/src/java/overview.html:58, 67</code></li><li><code>lucene/analysis/icu/src/test/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizer.java:456-465, 491-497, 506-519</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/analysis/standard/generateJavaUnicodeWordBreakTest.pl:130-141; WordBreakTestUnicode_12_1_0.java:28-39</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestICUTokenizerWordZwjEmoji.java (JUnit, 6 tests, drop-in for the ICU module&#x27;s tests): <a href='../repro/LFV-659/TestICUTokenizerWordZwjEmoji.java'><code>repro/LFV-659/TestICUTokenizerWordZwjEmoji.java</code></a> (108 lines)</li><li>TestICUTokenizerZwjEmoji.java (the finder&#x27;s JUnit, 4 tests): <a href='../repro/LFV-659/TestICUTokenizerZwjEmoji.java'><code>repro/LFV-659/TestICUTokenizerZwjEmoji.java</code></a> (98 lines)</li><li>TestZwjWordEmoji.java (verifier the independent reproduction&#x27;s JUnit, 6 bug tests and 4 controls): <a href='../repro/LFV-659/TestZwjWordEmoji.java'><code>repro/LFV-659/TestZwjWordEmoji.java</code></a> (152 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>The drawn example uses the emoji U+1F600; the repro mostly uses U+1F44D, which behaves the same way.</p><ul class='paths'><li><a href='../assets/LFV-659/bug.png'><code>assets/LFV-659/bug.png</code></a> (456 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

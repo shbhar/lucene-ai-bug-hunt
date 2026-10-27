@@ -1,0 +1,19 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/index/StandardDirectoryReader.java b/lucene/core/src/java/org/apache/lucene/index/StandardDirectoryReader.java
+index 5afacf0b3d2..c2b9682a0a9 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/StandardDirectoryReader.java
++++ b/lucene/core/src/java/org/apache/lucene/index/StandardDirectoryReader.java
+@@ -537,7 +537,13 @@ public final class StandardDirectoryReader extends DirectoryReader {
+       SegmentInfos sis = SegmentInfos.readLatestCommit(directory);
+ 
+       // we loaded SegmentInfos from the directory
+-      return sis.getVersion() == segmentInfos.getVersion();
++      if (sis.getVersion() != segmentInfos.getVersion()) {
++        return false;
++      }
++      // An NRT reader can hold an uncommitted version. If its writer ended without committing, a
++      // later writer starts again from the last commit's version and can commit that same number
++      // with different content, so also require that no newer commit exists:
++      return writer == null || sis.getSegmentsFileName().equals(segmentInfos.getSegmentsFileName());
+     } else {
+       return writer.nrtIsCurrent(segmentInfos);
+     }

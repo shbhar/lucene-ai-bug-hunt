@@ -1,0 +1,829 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Vector similarity queries tell the query cache they are cacheable, so one reader&#x27;s or one search&#x27;s result is served to another</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-106 &middot; vector-similarity-query-cacheable-but-reader-dependent</p><h1 id='top'>Vector similarity queries tell the query cache they are cacheable, so one reader&#x27;s or one search&#x27;s result is served to another</h1><p class='tldr'><code>FloatVectorSimilarityQuery</code> and siblings tell the query cache their per-segment result is shareable, but it has one reader's deletions, one search's timeout and the filter baked in: other readers and searches get 2 hits instead of 3, 0 instead of 3, or a document the filter rejects. Affected: 9.10.0-10.5.2 and main.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>High, rank 5</span><span class='sub'>Released 9.10-10.5.2 with the default shared query cache, a vector similarity query used as a filter or count can cache another reader&#x27;s live-docs view, a timed-out result or a non-cacheable filter and keep serving wrong hits from ordinary point-in-time and timeout patterns, just below LFV-044 because the threshold vector query in a non-scoring context is a niche experimental API.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>9.10.0 (#12679, 2023); timeout case 10.0.0 (#13285)<span class='sub'>introduced 2023-12-11 &middot; about 2 years</span></dd></div><div><dt>Affected</dt><dd>9.10.0 to 10.5.2 (19 releases) and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>code reading (Weight inputs vs. cache key)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The query cache stores one doc set per query and segment and shares it between readers whose deletions differ, so the set must ignore deletions; each search removes its own deleted docs afterwards. This query builds its set with the current reader's deletions, the search's timeout and the filter, and still says "cacheable".</p><figure class='visual' id='vector-similarity-query-cacheable-but-reader-dependent-short-visual'><div class='frame'><a class='still' href='../assets/LFV-106/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-106/bug.png' alt='Summary card titled &quot;Vector similarity queries: a shared query cache hands one reader&#x27;s result to another&quot; (docs 0-5 in one segment; doc 1 deleted in the newer reader only). Three steps: 1, q = new FloatVectorSimilarityQuery.Adaptive(&quot;v&quot;, new float[] {0, 1}, 0.15f, 1f, null) matches docs 0, 1, 2 (similarity 1.0, 0.5, 0.2; decay 1 = exact search); 2, newSearcher.count(q) = 2, right, and because isCacheable is true the shared cache stores {0, 2} under (q, core of segment _0); 3, oldSearcher.count(q): same query, same core, a cache hit, so the older reader gets {0, 2}. Expected: docs 0, 1, 2 = 3. Actual: docs 0 and 2 and an empty slot = 2; doc 1 is live in oldReader, yet missing. Notes: timeout (10.0.0 and later), a timed-out search caches an empty set and a later search without a timeout gets 0, not 3; filter on doc values (9.10.0 and later), doc 2 updated in place to fail the filter is still returned, 3, not 2; controls (TermQuery in the same order, separate caches, isCacheable returning false) are right. Why box: scorerSupplier builds the set from getLiveDocs(), the searcher&#x27;s timeout and the filter, yet isCacheable returns true; the cache key is the query plus the segment core, which ignores deletions and doc-values updates. Affected: 9.10.0 to 10.5.2 and main (timeout case 10.0.0 and later); in 9.10.0 to 10.5.2 a plain new IndexSearcher(reader) already shares a default LRUQueryCache (it caches after repeated use, on segments of 10,000+ docs), on main only an installed cache does; ByteVectorSimilarityQuery (9.10.0 and later) and Float16VectorSimilarityQuery (main only) use the same Weight.' width='1920' height='1080'></a></div><figcaption>Six docs in one segment, doc 1 deleted only in the newer reader: the newer reader fills the shared cache with {0, 2}, and the older reader is handed that set instead of {0, 1, 2}. The record also covers the timeout and the doc-values filter cases. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index docs 0-5 in one segment, doc i with vector (i, 1). <code>FloatVectorSimilarityQuery</code> with target (0, 1) and threshold 0.15 matches docs 0, 1, 2 (similarity 1.0, 0.5, 0.2). Run it as a count or filter, so the query cache may store its result.</span></li><li><span>Open reader A, delete doc 1, reopen as reader B. Both share the segment, and the cache keys entries on query + segment, so one entry serves both. B counts first and correctly gets 2.</span></li><li><span>You expect A, where doc 1 still exists, to count 3. Instead it gets 2, hits <code>[0, 2]</code>: the cache hands A set B built with B's deletion applied. <code class='nw'>TermQuery</code> in the same order gives 3.</span></li><li><span>Same flaw, two more ways: a search whose timeout fires caches its empty result, so a later search without a timeout gets 0, not 3 (10.0.0 and later, approximate path); and after doc 2's filter field is updated in place, the newer reader still gets 3, doc 2 included, although the filter now rejects it.</span></li><li><span>No error is raised. On 9.10.0-10.5.2 a plain <code>new IndexSearcher(reader)</code> already shares a default cache: a zero-configuration probe fails on every release, and with the same settings installed explicitly on main, 12,000 docs and 6 repeated searches give the older reader 11,999 instead of 12,000.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone running a vector similarity query without scores (<code>IndexSearcher#count</code>, <code>ConstantScoreQuery</code>, a FILTER or MUST_NOT clause) through a query cache shared by readers or searchers: the default on 9.10.0-10.5.2, an installed cache on main. It then takes an older reader searched after a newer one, a timed-out search, or a filter on doc values updated in place.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>876 words</span></summary><div class='body'><p><code>FloatVectorSimilarityQuery</code>, <code>ByteVectorSimilarityQuery</code> and <code>Float16VectorSimilarityQuery</code> (the last on main only) share one <code class='nw'>Weight</code> that runs the vector search per segment and builds the matching set with three inputs that are not part of the segment: the reader's live docs, the searcher's timeout (on the approximate path), and the filter. Yet its <code class='nw'>isCacheable</code> returns <code class='nw'>true</code>. <code class='nw'>LRUQueryCache</code> keys entries on the query and the segment core, which readers that differ only in deletions or doc-values updates share, so the first reader or search that fills the entry decides what the others get in non-scoring use (<code>IndexSearcher#count</code>, <code>ConstantScoreQuery</code>, a FILTER or MUST_NOT clause, also inside a scoring query): an older point-in-time reader misses a document only a newer reader deleted (2 instead of 3 in the diagram's example, 99 instead of 100 in the test), a search without a timeout gets an earlier timed-out search's empty result (0 instead of 100), and a filter on doc values updated in place lets through a document it now rejects (100 instead of 99). As a MUST_NOT clause the stale set excludes too little, so the parent query returns too much (1 instead of 0; 100 instead of 0 after a timeout). No error is raised. It has been in every release since the query appeared in 9.10.0 (the timeout case since 10.0.0); on 9.10.0-10.5.2 the default <code class='nw'>IndexSearcher</code> cache is enough, on main an application must install a cache.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Query cache</strong>: <code class='nw'>LRUQueryCache</code> stores, per query and per segment, the set of documents a non-scoring query matches, and reuses it. Its javadoc: "these cache and policy instances can be shared across several queries and readers" (<code>LRUQueryCache.java:80</code>). In 9.x and 10.x releases every <code class='nw'>IndexSearcher</code> shares one static default cache with <code>UsageTrackingQueryCachingPolicy</code> (10.5.2 <code>IndexSearcher.java:83-99</code>); on main the default is <code class='nw'>null</code> (<code>IndexSearcher.java:84</code>, #14187).</li><li><strong>Segment core</strong>: readers opened at different times, or wrapped views of one reader, share a segment's core when only its deletions or doc-values updates differ. The cache key uses the core (<code>getCoreCacheHelper()</code>), documented to cache "regardless of deletions"; readers with "different sets of deleted documents or doc values updates may be considered equal" (<code>LeafReader.java:65-69</code>). That is safe because an ordinary query's cached set ignores deletions and every search applies its own reader's live docs afterwards.</li><li><strong>Vector similarity query</strong>: <code>new FloatVectorSimilarityQuery.Adaptive(field, target, resultSimilarity, decay, filter)</code> matches every document whose vector similarity to <code class='nw'>target</code> is at least <code class='nw'>resultSimilarity</code>; decay 1 is the exact path, the default 0.5 an approximate graph search. <code>@lucene.experimental</code>.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>createWeight</code> (<code>AbstractVectorSimilarityQuery.java:146</code>) builds the filter Weight (<code class='nw'>:149-152</code>) and captures <code>searcher.getTimeout()</code> with a <code>TimeLimitingKnnCollectorManager</code> (<code class='nw'>:154-156</code>).</li><li><code class='nw'>scorerSupplier</code> reads <code>leafReader.getLiveDocs()</code> (<code class='nw'>:188</code>) and builds the set from it on every path: exact "to guarantee completeness" (<code class='nw'>:192-198</code>, <code>AcceptDocs.fromLiveDocs</code> at <code class='nw'>:196</code>), approximate (<code class='nw'>:200-207</code>, <code class='nw'>:204</code>), and filtered (<code>AcceptDocs.fromIteratorSupplier(filter iterator, liveDocs, maxDoc)</code>, <code class='nw'>:209-220</code>). With a filter, decay 1 goes straight to an exact search (<code class='nw'>:228-233</code>); otherwise a graph search runs first and its result is returned when it is complete or the timeout has fired ("Return partial results only when timeout is met", <code class='nw'>:239-243</code>), else the Weight falls back to an exact scan (<code class='nw'>:244-248</code>). Without a filter, the approximate path returns its partial result after a timeout as is (<code class='nw'>:200-207</code>). So the timeout is read only on the approximate paths (decay below 1).</li><li><code class='nw'>isCacheable(ctx)</code> returns <code class='nw'>true</code> (<code class='nw'>:252-255</code>) and never asks <code>filterWeight.isCacheable(ctx)</code>, whereas <code class='nw'>BooleanWeight</code> and <code>ConstantScoreQuery</code> pass on their children's answer (<code>BooleanWeight.java:273-285</code>, <code>ConstantScoreQuery.java:193-194</code>).</li><li><code class='nw'>LRUQueryCache</code> trusts it (<code>LRUQueryCache.java:816</code>) and stores or finds the set under the query plus <code>getCoreCacheHelper()</code> (<code class='nw'>:827</code>, <code class='nw'>:834</code>); <code class='nw'>count</code> returns the cached count for a reader without deletions (<code class='nw'>:892-924</code>).</li><li>The next reader or search on that core gets the cached set intersected with its own live docs: it loses documents (live docs, timeout) or, through the filter, keeps one that no longer matches.</li></ol><p>The top-k <code class='nw'>Knn*VectorQuery</code> avoids this: it rewrites to <code class='nw'>DocAndScoreQuery</code>, whose <code class='nw'>equals</code>/<code class='nw'>hashCode</code> include the reader context identity (<code>DocAndScoreQuery.java:294-306</code>) and whose <code class='nw'>createWeight</code> rejects another reader (<code class='nw'>:170</code>).</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Diagram probe (one segment, docs 0-5, vector (i, 1), target (0, 1), threshold 0.15, an always-cache policy; main <code class='nw'>ea57360912ed</code>, assertions on and off):</p><div class="tbl"><table><thead><tr><th>case</th><th>expected</th><th>got</th></tr></thead><tbody><tr><td>reader B (doc 1 deleted) counts first, then the older reader A</td><td>A: 3, <code>[0, 1, 2]</code></td><td><strong>2</strong>, <code>[0, 2]</code></td></tr><tr><td>a searcher whose timeout already fired runs it first, then a searcher without a timeout</td><td>3</td><td><strong>0</strong></td></tr><tr><td>filter <code>n == 0</code>; doc 2 updated in place to <code>n = 1</code>; the reopened reader</td><td>2, <code>[0, 1]</code></td><td><strong>3</strong>, <code>[0, 1, 2]</code></td></tr><tr><td><code class='nw'>TermQuery</code> in the same order; separate caches; the reverse order; a scoring <code>search(q, 10)</code></td><td>right</td><td>right</td></tr></tbody></table></div><p>The doc's JUnit test (100 docs; 12,000 for the default settings): 99 instead of 100, 11,999 instead of 12,000, 0 instead of 100, 100 instead of 99; the <code class='nw'>FieldExistsQuery</code> control is right. As a clause of a scoring <code class='nw'>BooleanQuery</code>: FILTER 99 instead of 100; MUST_NOT 1 instead of 0 (older reader) and 100 instead of 0 (after a timed-out search) on main and 10.5.2, assertions on and off.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>543 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Non-scoring use (count, <code>ConstantScoreQuery</code>, a FILTER or MUST_NOT clause, also inside a scoring query) of <code>FloatVectorSimilarityQuery</code>, <code>ByteVectorSimilarityQuery</code> (both since 9.10.0) or <code>Float16VectorSimilarityQuery</code> (main only) with a query cache shared by several readers or searchers, plus one of: an older point-in-time reader searched after a newer one with fresh deletions on the same segment (a documented pattern: <code>SearcherLifetimeManager</code> "Keeps track of current plus old IndexSearchers", for example when "the user clicks next page", <code>SearcherLifetimeManager.java:30</code>, <code class='nw'>:48</code>; also in-flight requests on the previous searcher after a refresh), or a soft-deletes view next to the raw view of one commit; a search with <code>IndexSearcher#setTimeout</code> whose timeout fires on the approximate path (10.0.0 and later); or a filter on a doc-values field updated in place.</li><li><strong>Not exposed.</strong> A direct scoring use, with the similarity query at the top of <code>search(q, n)</code>: <code class='nw'>IndexSearcher</code> wraps a Weight in the cache only when scores are not needed (<code>IndexSearcher.java:979-981</code>; the probe's scoring <code>search(q, 10)</code> is right). But FILTER and MUST_NOT clauses of a scoring <code class='nw'>BooleanQuery</code> are created without scores (<code>BooleanClause.java:84-86</code>, <code>BooleanWeight.java:58-59</code>) and are cached, so they are exposed (executed). Also not exposed: separate caches, and main without an installed cache.</li><li><strong>Default or opt-in.</strong> On 9.10.0-10.5.2 no configuration is needed: <code class='nw'>IndexSearcher</code> installs a static <code>LRUQueryCache(1000, min(32 MB, heap/20))</code> with <code>UsageTrackingQueryCachingPolicy</code>, shared by every searcher. A zero-configuration probe (<code>new IndexSearcher(reader)</code>, default <code>IndexWriterConfig</code>) fails on every release 9.10.0-10.5.2 and passes on main, where #14187 (in no release yet) removed the default cache. The query itself is <code>@lucene.experimental</code>, and a threshold vector query used as a filter is a niche use.</li><li><strong>Scale.</strong> None with an always-cache policy (6 documents). With the default policy the query becomes eligible on its 5th use (<code>UsageTrackingQueryCachingPolicy.java:122-138</code>) and is then cached on segments of at least 10,000 documents that are not much smaller than the average (<code>LRUQueryCache.java:251-253</code>, <code class='nw'>:278-296</code>), if the worst-case entry fits and the lead-cost check passes (<code class='nw'>:792-807</code>, <code class='nw'>:816-853</code>). The doc's test installs these settings explicitly; its 12,000-document case goes wrong after 6 searches.</li><li><strong>How long.</strong> A wrong entry stays until LRU eviction, an explicit <code class='nw'>clearQuery</code>, <code>clearCoreCacheKey</code> or <code class='nw'>clear</code> (<code>LRUQueryCache.java:443-457</code>), or until its segment core closes, after a merge has replaced the segment and the last reader holding it is closed (<code class='nw'>:1133-1135</code>). A poisoned timeout entry survived an NRT reopen with an unrelated deletion (0 instead of 11,999) in the security probe.</li><li><strong>What you see.</strong> No error, assertions on or off. Fewer hits or a lower count (live docs, timeout), or a document the filter rejects (filter); as a MUST_NOT clause, documents the clause should exclude (1 hit instead of 0; 100 instead of 0 after a timeout). It is not approximate recall: the exact path (decay 1) is affected and separate caches are right.</li><li><strong>Downstream</strong> (source reading only, nothing run there): OpenSearch's k-NN plugin builds these queries for radial search (already in 2.x releases); since 3.7.0 the server also sets <code>IndexSearcher#setTimeout</code>, and it uses a node-level <code class='nw'>LRUQueryCache</code>, so the timeout case may reach its users on 3.7.0 and later. Solr's searcher disables Lucene's query cache; a code search found no use of these queries in Elasticsearch.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit file on the public API: 4 bug tests and a <code class='nw'>FieldExistsQuery</code> control on one 100-doc segment (12,000 for the default-settings test), with an explicitly installed <code class='nw'>LRUQueryCache</code>. On main 4 of 5 fail with assertions on and off; all 5 pass with either fix. Copy it into core's <code>org.apache.lucene.search</code> tests and run the command.</p><figure class='code'><figcaption><span class='fname'>TestVectorSimilarityQueryCaching.java (4 bug tests + 1 control)</span><span class='meta'>196 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * A vector similarity query computes its per-segment result with the reader&#x27;s live docs, the
+ * searcher&#x27;s timeout and its filter, yet its Weight reports isCacheable == true. The query cache
+ * keys entries on the query and the segment core, which readers that differ only in deletions or
+ * doc-values updates share (LeafReader#getCoreCacheHelper). So whichever reader or search fills the
+ * cache entry decides what the others get.
+ */
+public class TestVectorSimilarityQueryCaching extends LuceneTestCase {
+
+  private static final int NUM_DOCS = 100;
+
+  /** Caches every query on every segment, so a single search fills the cache. */
+  private static final QueryCachingPolicy ALWAYS_CACHE =
+      new QueryCachingPolicy() {
+        @Override
+        public void onUse(Query query) {}
+
+        @Override
+        public boolean shouldCache(Query query) {
+          return true;
+        }
+      };
+
+  private static QueryCache newCache() {
+    return new LRUQueryCache(1000, 1 &lt;&lt; 24, _ -&gt; true, Float.POSITIVE_INFINITY);
+  }
+
+  private static IndexSearcher searcher(
+      DirectoryReader reader, QueryCache cache, QueryCachingPolicy policy) {
+    IndexSearcher searcher = new IndexSearcher(reader);
+    searcher.setQueryCache(cache);
+    searcher.setQueryCachingPolicy(policy);
+    return searcher;
+  }
+
+  private static IndexSearcher searcher(DirectoryReader reader, QueryCache cache) {
+    return searcher(reader, cache, ALWAYS_CACHE);
+  }
+
+  private static int hits(IndexSearcher searcher, Query query) throws IOException {
+    return searcher.search(query, 100_000).scoreDocs.length;
+  }
+
+  private static Object coreKey(DirectoryReader reader) {
+    return reader.leaves().get(0).reader().getCoreCacheHelper().getKey();
+  }
+
+  /** One segment; doc i has id i, vector (i, 1) and doc-values field n = 0. */
+  private static IndexWriter newWriter(Directory dir, int numDocs) throws IOException {
+    IndexWriter w =
+        new IndexWriter(dir, new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()));
+    for (int i = 0; i &lt; numDocs; i++) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.NO));
+      doc.add(new KnnFloatVectorField(&quot;v&quot;, new float[] {i, 1}, VectorSimilarityFunction.EUCLIDEAN));
+      doc.add(new NumericDocValuesField(&quot;n&quot;, 0));
+      w.addDocument(doc);
+    }
+    w.forceMerge(1);
+    w.commit();
+    return w;
+  }
+
+  /**
+   * Every vector has a similarity above 0 to the target, so this matches every doc that passes the
+   * filter. decay = 1 is the exact path (&quot;to guarantee completeness&quot;); decay = 0.5 is the default,
+   * an approximate graph search.
+   */
+  private static Query allVectors(float decay, Query filter) {
+    return new ConstantScoreQuery(
+        new FloatVectorSimilarityQuery.Adaptive(&quot;v&quot;, new float[] {0, 1}, 0f, decay, filter));
+  }
+
+  /**
+   * An older point-in-time reader and a newer reader in which doc 0 is deleted share the segment
+   * core. The newer reader searches first and fills the cache; returns the older reader&#x27;s hits.
+   */
+  private int olderReaderHitsAfterNewerReader(Query query) throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir, NUM_DOCS);
+        DirectoryReader older = DirectoryReader.open(w)) {
+      w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;));
+      try (DirectoryReader newer = DirectoryReader.openIfChanged(older, w)) {
+        assertSame(coreKey(older), coreKey(newer));
+        assertEquals(NUM_DOCS, hits(searcher(older, null), query)); // no cache: 100
+        QueryCache cache = newCache();
+        assertEquals(NUM_DOCS - 1, hits(searcher(newer, cache), query));
+        return hits(searcher(older, cache), query);
+      }
+    }
+  }
+
+  /** Doc 0 is live in the older reader, so it must still match there. */
+  public void testOlderReaderAfterNewerReader() throws IOException {
+    assertEquals(NUM_DOCS, olderReaderHitsAfterNewerReader(allVectors(1f, null)));
+  }
+
+  /** Control: the same sequence with an ordinary cacheable query. */
+  public void testOlderReaderAfterNewerReaderControl() throws IOException {
+    Query query = new ConstantScoreQuery(new FieldExistsQuery(&quot;v&quot;));
+    assertEquals(NUM_DOCS, olderReaderHitsAfterNewerReader(query));
+  }
+
+  /**
+   * The same with the cache settings of the default IndexSearcher cache of the 9.x and 10.x
+   * releases: UsageTrackingQueryCachingPolicy caches after a few uses, on segments of 10,000+ docs.
+   */
+  public void testOlderReaderAfterNewerReaderReleaseDefaultCacheSettings() throws IOException {
+    int numDocs = 12_000;
+    Query query = allVectors(1f, null);
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir, numDocs);
+        DirectoryReader older = DirectoryReader.open(w)) {
+      w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;));
+      try (DirectoryReader newer = DirectoryReader.openIfChanged(older, w)) {
+        QueryCache cache = new LRUQueryCache(1000, 32L &lt;&lt; 20);
+        QueryCachingPolicy policy = new UsageTrackingQueryCachingPolicy();
+        for (int i = 0; i &lt; 6; i++) {
+          assertEquals(numDocs - 1, hits(searcher(newer, cache, policy), query));
+        }
+        assertEquals(numDocs, hits(searcher(older, cache, policy), query));
+      }
+    }
+  }
+
+  /** A search whose timeout fires fills the cache with its partial (here: empty) result. */
+  public void testTimedOutSearchFillsCache() throws IOException {
+    Query query = allVectors(0.5f, null); // the graph search honours the searcher&#x27;s timeout
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir, NUM_DOCS);
+        DirectoryReader reader = DirectoryReader.open(w)) {
+      assertEquals(NUM_DOCS, hits(searcher(reader, null), query)); // no cache, no timeout: 100
+      QueryCache cache = newCache();
+      IndexSearcher timedOut = searcher(reader, cache);
+      timedOut.setTimeout(() -&gt; true);
+      timedOut.search(query, NUM_DOCS); // a partial result is expected for this search only
+      assertEquals(NUM_DOCS, hits(searcher(reader, cache), query)); // no timeout here
+    }
+  }
+
+  /**
+   * A filter on an updated doc-values field reports isCacheable == false, but it is cached inside
+   * the similarity query anyway. Doc-values updates keep the segment core, so after doc 0 stops
+   * matching the filter the newer reader still gets it.
+   */
+  public void testFilterOnUpdatedDocValues() throws IOException {
+    Query query = allVectors(1f, NumericDocValuesField.newSlowExactQuery(&quot;n&quot;, 0));
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir, NUM_DOCS)) {
+      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;1&quot;), &quot;n&quot;, 0); // &quot;n&quot; is now an updated field
+      try (DirectoryReader older = DirectoryReader.open(w)) {
+        QueryCache cache = newCache();
+        assertEquals(NUM_DOCS, hits(searcher(older, cache), query));
+        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;0&quot;), &quot;n&quot;, 1); // doc 0 no longer has n == 0
+        try (DirectoryReader newer = DirectoryReader.openIfChanged(older, w)) {
+          assertSame(coreKey(older), coreKey(newer));
+          assertEquals(NUM_DOCS - 1, hits(searcher(newer, null), query)); // no cache: 99
+          assertEquals(NUM_DOCS - 1, hits(searcher(newer, cache), query));
+        }
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at ea57360912ed (or a later commit where AbstractVectorSimilarityQuery is unchanged)
+cp $REPRO/TestVectorSimilarityQueryCaching.java lucene/core/src/test/org/apache/lucene/search/
+./gradlew :lucene:core:test --tests org.apache.lucene.search.TestVectorSimilarityQueryCaching -Ptests.seed=DEADBEEF
+# assertions off: add -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Each reader or search gets its uncached result: the older reader 100 (12,000 with the default settings), a search without a timeout 100, the newer reader with the filter 99.</dd></div><div class='got'><dt>Observed</dt><dd>The older reader gets 99 (11,999), the search without a timeout 0, the newer reader with the filter 100, including a doc the filter rejects; the control is right.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-106/'>repro/LFV-106/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>4 more files (288 lines) · 1,891 words</span></summary><div class='body'><p>The test indexes one segment with the default codec: doc i has <code class='nw'>id</code> i, vector (i, 1) and doc-values field <code class='nw'>n</code> = 0; the target (0, 1) with threshold 0 matches every document. Each test runs the same query, wrapped in <code>ConstantScoreQuery</code>, through two readers or searchers that share one cache, and asserts what each gets without the cache. The always-cache policy only makes one search enough; the third test uses the 9.x/10.x default cache settings (<code>LRUQueryCache(1000, 32 MB)</code> and <code>UsageTrackingQueryCachingPolicy</code>) instead. It is google-java-format and ecjLint clean on main (<code>_ -&gt; true</code> is an unnamed lambda parameter; for a Java 21 branch write <code>context -&gt; true</code>). It needs <code>FloatVectorSimilarityQuery.Adaptive</code>, so 10.5.2 or later.</p><p>The same 4 of 5 failures were seen on main through gradle and through a standalone JUnit harness, with assertions on and off, and through the harness on the 10.5.2 release jars, with assertions on and off. Older releases were covered by the finder's test and a version-independent probe (see History).</p><p>Below the test: the two fixes, a probe that checks whether a fix still caches the query where that is safe, and a probe with the query as a FILTER or MUST_NOT clause of a scoring query.</p><div class="hd hd-3"><h3 id='code-2-h'>Fix B (recommended): option-b-narrow.diff</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>Fix B (recommended): option-b-narrow.diff</span><span class='meta'>18 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java b/lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java
+index 18519181add..ad4f2ea59ba 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java
+@@ -251,7 +251,12 @@ abstract class AbstractVectorSimilarityQuery extends Query {
+ 
+       @Override
+       public boolean isCacheable(LeafReaderContext ctx) {
+-        return true;
++        // The per-segment result is computed with the reader&#x27;s live docs, the searcher&#x27;s timeout
++        // and the filter. The query cache keys entries on the segment core, which ignores
++        // deletions and doc-values updates, so only cache a result that depends on none of them.
++        return ctx.reader().getLiveDocs() == null
++            &amp;&amp; queryTimeout == null
++            &amp;&amp; (filterWeight == null || filterWeight.isCacheable(ctx));
+       }
+     };
+   }
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>Fix A (simplest): option-a-not-cacheable.diff</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>Fix A (simplest): option-a-not-cacheable.diff</span><span class='meta'>15 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java b/lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java
+index 18519181add..0777e4a3fdb 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java
+@@ -251,7 +251,9 @@ abstract class AbstractVectorSimilarityQuery extends Query {
+ 
+       @Override
+       public boolean isCacheable(LeafReaderContext ctx) {
+-        return true;
++        // The result depends on the reader&#x27;s live docs, the searcher&#x27;s timeout and the filter&#x27;s
++        // per-reader matches, none of which the cache key (query + segment core) captures.
++        return false;
+       }
+     };
+   }
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>Probe: is the query still cached where that is safe?</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Not a bug test. A segment without deletions, a searcher without a timeout, no filter or a cacheable one: the exact, approximate and filtered queries must be cached and hit. Passes on stock main and with fix B; fails with fix A ("cache entries: 1", only the filter's own entry), as expected.</p><figure class='code'><figcaption><span class='fname'>Probe: is the query still cached where that is safe?</span><span class='meta'>100 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Probe for the fix options, not a bug test: does the query still use the cache where caching is
+ * safe (a segment without deletions, a searcher without a timeout, no filter or a cacheable one)?
+ * Expected: passes on stock and with the narrow fix; fails with isCacheable == false.
+ */
+public class TestVectorSimilarityQueryStillCached extends LuceneTestCase {
+
+  private static final QueryCachingPolicy ALWAYS_CACHE =
+      new QueryCachingPolicy() {
+        @Override
+        public void onUse(Query query) {}
+
+        @Override
+        public boolean shouldCache(Query query) {
+          return true;
+        }
+      };
+
+  private static IndexSearcher searcher(DirectoryReader reader, QueryCache cache) {
+    IndexSearcher searcher = new IndexSearcher(reader);
+    searcher.setQueryCache(cache);
+    searcher.setQueryCachingPolicy(ALWAYS_CACHE);
+    return searcher;
+  }
+
+  /** No deletions, no timeout, a cacheable filter: the entry is cached and reused. */
+  public void testCachedWhenSafe() throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w =
+            new IndexWriter(dir, new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()))) {
+      for (int i = 0; i &lt; 100; i++) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.NO));
+        doc.add(new StringField(&quot;all&quot;, &quot;x&quot;, Field.Store.NO));
+        doc.add(
+            new KnnFloatVectorField(&quot;v&quot;, new float[] {i, 1}, VectorSimilarityFunction.EUCLIDEAN));
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+      w.commit();
+      try (DirectoryReader older = DirectoryReader.open(w)) {
+        Query[] queries = {
+          new FloatVectorSimilarityQuery.Adaptive(&quot;v&quot;, new float[] {0, 1}, 0f, 1f, null),
+          new FloatVectorSimilarityQuery.Adaptive(&quot;v&quot;, new float[] {0, 1}, 0f, 0.5f, null),
+          new FloatVectorSimilarityQuery.Adaptive(
+              &quot;v&quot;, new float[] {0, 1}, 0f, 1f, new TermQuery(new Term(&quot;all&quot;, &quot;x&quot;)))
+        };
+        LRUQueryCache cache = new LRUQueryCache(1000, 1 &lt;&lt; 24, _ -&gt; true, Float.POSITIVE_INFINITY);
+        for (Query q : queries) {
+          Query query = new ConstantScoreQuery(q);
+          assertEquals(100, searcher(older, cache).count(query));
+          assertEquals(100, searcher(older, cache).count(query));
+        }
+        assertTrue(&quot;cache entries: &quot; + cache.getCacheCount(), cache.getCacheCount() &gt;= 3);
+        assertTrue(&quot;cache hits: &quot; + cache.getHitCount(), cache.getHitCount() &gt;= 3);
+
+        // the safe direction: the older reader (no deletions) filled the cache, the newer reader
+        // (doc 0 deleted) applies its own live docs on top of the cached entry
+        w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;));
+        try (DirectoryReader newer = DirectoryReader.openIfChanged(older, w)) {
+          for (Query q : queries) {
+            assertEquals(99, searcher(newer, cache).count(new ConstantScoreQuery(q)));
+          }
+        }
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>Probe: the query as a FILTER or MUST_NOT clause of a scoring query</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>Added while resolving the fact checks. A scoring <code class='nw'>BooleanQuery</code> (<code class='nw'>MUST</code> a <code class='nw'>TermQuery</code> that matches every document) with the similarity query as FILTER or MUST_NOT, searched with <code>search(query, n)</code>. Fails 3 of 4 on main and 10.5.2, assertions on and off: FILTER 99 instead of 100; MUST_NOT 1 instead of 0 for the older reader and 100 instead of 0 after a timed-out search. The uncached control passes; 4 of 4 pass with either fix.</p><figure class='code'><figcaption><span class='fname'>Probe: the query as a FILTER or MUST_NOT clause of a scoring query</span><span class='meta'>155 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Resolution probe for the fact checks of LFV-106: the similarity query as a non-scoring clause
+ * (FILTER or MUST_NOT) of a top-level scoring BooleanQuery. The clause Weight is created with
+ * COMPLETE_NO_SCORES, so the query cache wraps it although the parent search scores. As a MUST_NOT
+ * clause, a cached set that misses documents makes the parent match too many.
+ */
+public class TestVectorSimilarityQueryScoringParent extends LuceneTestCase {
+
+  private static final int NUM_DOCS = 100;
+
+  private static final QueryCachingPolicy ALWAYS_CACHE =
+      new QueryCachingPolicy() {
+        @Override
+        public void onUse(Query query) {}
+
+        @Override
+        public boolean shouldCache(Query query) {
+          return true;
+        }
+      };
+
+  private static QueryCache newCache() {
+    return new LRUQueryCache(1000, 1 &lt;&lt; 24, _ -&gt; true, Float.POSITIVE_INFINITY);
+  }
+
+  private static IndexSearcher searcher(DirectoryReader reader, QueryCache cache) {
+    IndexSearcher searcher = new IndexSearcher(reader);
+    searcher.setQueryCache(cache);
+    searcher.setQueryCachingPolicy(ALWAYS_CACHE);
+    return searcher;
+  }
+
+  /** A scoring search: TopDocs from search(Query, int), not a count. */
+  private static int hits(IndexSearcher searcher, Query query) throws IOException {
+    return searcher.search(query, 100_000).scoreDocs.length;
+  }
+
+  private static IndexWriter newWriter(Directory dir) throws IOException {
+    IndexWriter w =
+        new IndexWriter(dir, new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()));
+    for (int i = 0; i &lt; NUM_DOCS; i++) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.NO));
+      doc.add(new StringField(&quot;all&quot;, &quot;yes&quot;, Field.Store.NO));
+      doc.add(new KnnFloatVectorField(&quot;v&quot;, new float[] {i, 1}, VectorSimilarityFunction.EUCLIDEAN));
+      w.addDocument(doc);
+    }
+    w.forceMerge(1);
+    w.commit();
+    return w;
+  }
+
+  /** Matches every document (every similarity is above 0). */
+  private static Query allVectors(float decay) {
+    return new FloatVectorSimilarityQuery.Adaptive(&quot;v&quot;, new float[] {0, 1}, 0f, decay, null);
+  }
+
+  /** A scoring TermQuery that matches every document, with the similarity query as a clause. */
+  private static Query scoringParent(Query vectors, BooleanClause.Occur occur) {
+    return new BooleanQuery.Builder()
+        .add(new TermQuery(new Term(&quot;all&quot;, &quot;yes&quot;)), BooleanClause.Occur.MUST)
+        .add(vectors, occur)
+        .build();
+  }
+
+  /** The newer reader (doc 0 deleted) searches first and fills the cache; then the older reader. */
+  private int olderReaderHits(Query query, int expectedNewer) throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir);
+        DirectoryReader older = DirectoryReader.open(w)) {
+      w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;));
+      try (DirectoryReader newer = DirectoryReader.openIfChanged(older, w)) {
+        QueryCache cache = newCache();
+        assertEquals(expectedNewer, hits(searcher(newer, cache), query));
+        return hits(searcher(older, cache), query);
+      }
+    }
+  }
+
+  /** FILTER clause of a scoring query: the older reader must keep doc 0 (100 hits). */
+  public void testFilterClauseOfScoringQuery() throws IOException {
+    Query query = scoringParent(allVectors(1f), BooleanClause.Occur.FILTER);
+    assertEquals(&quot;older reader&quot;, NUM_DOCS, olderReaderHits(query, NUM_DOCS - 1));
+  }
+
+  /** MUST_NOT clause: every document matches the vectors, so nothing may be returned. */
+  public void testMustNotClauseOlderReader() throws IOException {
+    Query query = scoringParent(allVectors(1f), BooleanClause.Occur.MUST_NOT);
+    assertEquals(&quot;older reader&quot;, 0, olderReaderHits(query, 0));
+  }
+
+  /** MUST_NOT clause after a timed-out search filled the cache with its (empty) result. */
+  public void testMustNotClauseAfterTimedOutSearch() throws IOException {
+    Query query = scoringParent(allVectors(0.5f), BooleanClause.Occur.MUST_NOT);
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir);
+        DirectoryReader reader = DirectoryReader.open(w)) {
+      assertEquals(&quot;no cache, no timeout&quot;, 0, hits(searcher(reader, null), query));
+      QueryCache cache = newCache();
+      IndexSearcher timedOut = searcher(reader, cache);
+      timedOut.setTimeout(() -&gt; true);
+      timedOut.search(query, NUM_DOCS); // a partial result is expected for this search only
+      assertEquals(&quot;later search, no timeout&quot;, 0, hits(searcher(reader, cache), query));
+    }
+  }
+
+  /** Control: the uncached scoring search gives the right answers in the same sequences. */
+  public void testUncachedControl() throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir);
+        DirectoryReader older = DirectoryReader.open(w)) {
+      w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;));
+      try (DirectoryReader newer = DirectoryReader.openIfChanged(older, w)) {
+        Query filter = scoringParent(allVectors(1f), BooleanClause.Occur.FILTER);
+        Query mustNot = scoringParent(allVectors(1f), BooleanClause.Occur.MUST_NOT);
+        assertEquals(NUM_DOCS - 1, hits(searcher(newer, null), filter));
+        assertEquals(NUM_DOCS, hits(searcher(older, null), filter));
+        assertEquals(0, hits(searcher(newer, null), mustNot));
+        assertEquals(0, hits(searcher(older, null), mustNot));
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed and the 10.5.2 release jars: affected. All 19 releases 9.10.0-10.5.2 are affected (timeout case: 10.0.0 and later); 9.9.2 and earlier have no such query.</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock ea57360912ed, gradle, seed DEADBEEF (the same with -Ptests.asserts=false)
+TestVectorSimilarityQueryCaching &gt; testTimedOutSearchFillsCache FAILED
+    java.lang.AssertionError: expected:&lt;100&gt; but was:&lt;0&gt;
+TestVectorSimilarityQueryCaching &gt; testFilterOnUpdatedDocValues FAILED
+    java.lang.AssertionError: expected:&lt;99&gt; but was:&lt;100&gt;
+TestVectorSimilarityQueryCaching &gt; testOlderReaderAfterNewerReaderReleaseDefaultCacheSettings FAILED
+    java.lang.AssertionError: expected:&lt;12000&gt; but was:&lt;11999&gt;
+TestVectorSimilarityQueryCaching &gt; testOlderReaderAfterNewerReader FAILED
+    java.lang.AssertionError: expected:&lt;100&gt; but was:&lt;99&gt;
+5 tests completed, 4 failed
+
+# standalone harness, seed DEADBEEF: tests run / failed
+main -ea 5/4, main -da 5/4, 10.5.2 -ea 5/4, 10.5.2 -da 5/4 (same messages; the control passes)
+main + fix B, -ea and -da: 5/0;  main + fix A, -ea and -da: 5/0
+probe (still cached?): stock 1/0, fix B 1/0, fix A 1/1 (&quot;cache entries: 1&quot;)
+scoring-parent probe: main -ea/-da, 10.5.2 -ea/-da 4/3; + fix A or fix B, -ea and -da: 4/0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>SegmentCacheable</code>: only objects that "depend only on segment-immutable structures" may return true. Live docs, a timeout and an updated filter are not.</li><li>The cache key ignores deletions and doc-values updates by contract (<code>LeafReader#getCoreCacheHelper</code>).</li><li>The exact path, documented "to guarantee completeness", is affected too; <code class='nw'>TermQuery</code> and separate caches are right in the same sequences.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>341 words</span></summary><div class='body'><ul><li><strong>The contracts.</strong> <code>SegmentCacheable.java:24-35</code>: "Objects that depend only on segment-immutable structures such as Points or postings lists can just return true"; "Objects that depend on doc values should return DocValues#isCacheable ... Updated doc values fields are not suitable for caching"; "Objects that are not segment-immutable ... should return false". <code>LeafReader.java:65-69</code>: the core cache helper caches "regardless of deletions"; readers with "different sets of deleted documents or doc values updates may be considered equal". <code>QueryCache.java:26-30</code>: the returned weight "will only be equivalent if scores are not needed". <code>LRUQueryCache.java:893</code>: "Our cache won't have an accurate count if there are deletions", so cached sets are meant to be computed without applying deletions.</li><li><strong>Upstream tests.</strong> <code class='nw'>testTimeout</code> turns the cache off: "This query is cacheable, explicitly prevent it" (<code>BaseVectorSimilarityQueryTestCase.java:623-624</code>, added by #13285; copied into <code>BaseExplicitVectorSimilarityQueryTestCase.java:503-504</code> by #16654). That avoids only the harmless direction, a cached full result hiding a timeout. The test framework installs query caches at random (<code>LuceneTestCaseParent.java:2635</code>, <code class='nw'>:2686</code>), which is why the test must turn the cache off; the upstream similarity-query tests never reopen a reader, update doc values, or share one cache across readers or searchers. <code>TestLRUQueryCache</code> asserts that cached counts equal uncached ones across <code class='nw'>SearcherManager</code> refreshes with deletions: the repro's oracle.</li><li><strong>History.</strong> #12679 (2023) added the query with <code class='nw'>isCacheable</code> returning <code class='nw'>true</code>; #13285 (2024) added the timeout input; neither thread discusses query caching. The query's author later commented, in another contributor's open PR #13594, that "the similarity query is cacheable" as a design difference from the top-k query, and that top-k kNN queries are not cacheable because deletes invalidate per-segment results (#15379): the same principle, applied to the other family.</li><li><strong>Precedent.</strong> LUCENE-8017 (#9065): <code>FunctionRangeQuery</code> and <code>FunctionMatchQuery</code> could "pollute the QueryCache" and were made non-cacheable, which led to the <code class='nw'>SegmentCacheable</code> contract (LUCENE-8042, #9090). In LUCENE-10060 (#11098) jpountz wrote that the cache keys on the segment core, "everything but live docs and doc-value updates", which "requires cache entries to be computed on the entire segment and follow-up searches to apply deletes on top of cache entries".</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>308 words</span></summary><div class='body'><p>The strongest case for "intended" (built by a devil's-advocate verifier, an OpenAI GPT-5.6 reviewer arguing "works as designed" and the adjudication): the author says the query is cacheable by design (#13594); the upstream timeout test knowingly disables the cache; the classes are <code>@lucene.experimental</code> and search "all (approximate) vectors"; <code class='nw'>Weight#scorer</code> only says live docs "need to be checked on top", which does not forbid a Weight from applying them; and timeouts deliberately allow partial results, so an application could be expected to turn off or partition caching for searches with a timeout.</p><p>Why it fails: "cacheable" claims that caching is legal, not that serving one reader's or search's result to another is right, and no javadoc, CHANGES, MIGRATE entry or PR comment accepts that; the test comment covers only the harmless direction and says nothing about live docs or filters; the exact path promises completeness and separate caches give the right answer, so this is cross-reader reuse, not approximation; applying live docs is fine for an uncached Weight, the bug is applying them and also saying <code class='nw'>true</code>; <code>@lucene.experimental</code> does not permit wrong results. The timeout part is the strongest: no javadoc says <code class='nw'>setTimeout</code> and the cache must not be combined, and turning the cache off in a test does not accept that later searches reuse a partial result, but a maintainer could prefer documenting it or skipping the cache when a timeout is set (fix B does the latter). The case also misses scoring parents: as a FILTER or MUST_NOT clause the stale set is used too. The GPT-5.6 reviews rated the intended argument weak, and moderate for the timeout part only; the independent reproduction and the intended-behaviour check gave no rating but found none that holds; none could apply it to the live-docs part. File it leading with <code class='nw'>SegmentCacheable</code> and the core-key contract, not with <code>Weight.java:121-122</code>.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>B: cacheable only without deletions, without a timeout and with a cacheable filter</strong></p><p class='short'>Let <code class='nw'>isCacheable</code> say true only when the cached set cannot differ between readers: no deletions in the segment, no searcher timeout, and a cacheable filter (+6/-1). All 5 tests, every earlier check and 139 tests in 11 suites pass, and the safe case is still cached. The one-line <code>return false</code> also passes every bug test but never caches.</p><pre class='snippet' tabindex='0'><code>@Override
+public boolean isCacheable(LeafReaderContext ctx) {
+  // The per-segment result is computed with the reader&#x27;s live docs, the searcher&#x27;s timeout
+  // and the filter. The query cache keys entries on the segment core, which ignores
+  // deletions and doc-values updates, so only cache a result that depends on none of them.
+  return ctx.reader().getLiveDocs() == null
+      &amp;&amp; queryTimeout == null
+      &amp;&amp; (filterWeight == null || filterWeight.isCacheable(ctx));
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 937 words</span></summary><div class='body'><p>The Weight must stop claiming that a set built from per-reader and per-search inputs is shareable. Two options were built and validated in a scratch worktree at <code class='nw'>ea57360912ed</code> (removed afterwards); the others are untested or partial.</p><div class="hd hd-3"><h3 id='fix-narrow-cacheable'>B: cacheable only without deletions, without a timeout and with a cacheable filter <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-narrow-cacheable" target="_self" aria-label="Link to this section" aria-describedby="fix-narrow-cacheable"><span aria-hidden="true">#</span></a></div><p>In <code>AbstractVectorSimilarityQuery</code>'s Weight, <code class='nw'>isCacheable(ctx)</code> returns <code>ctx.reader().getLiveDocs() == null &amp;&amp; queryTimeout == null &amp;&amp; (filterWeight == null || filterWeight.isCacheable(ctx))</code>. A cached set is then always computed with every document live, no timeout and a segment-immutable filter, so it is the same for every reader sharing the core, and each reader applies its own live docs on top as for any other query. A reader with deletions, a searcher with a timeout or a non-cacheable filter neither reads nor writes the entry. +6/-1, one file.</p><pre class='snippet' tabindex='0'><code>@Override
+public boolean isCacheable(LeafReaderContext ctx) {
+  // The per-segment result is computed with the reader&#x27;s live docs, the searcher&#x27;s timeout
+  // and the filter. The query cache keys entries on the segment core, which ignores
+  // deletions and doc-values updates, so only cache a result that depends on none of them.
+  return ctx.reader().getLiveDocs() == null
+      &amp;&amp; queryTimeout == null
+      &amp;&amp; (filterWeight == null || filterWeight.isCacheable(ctx));
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Segments with deletions never cache this query, and nor does a searcher with a timeout, so NRT indexes with deletes lose part of the caching benefit. No benchmark was run.</li><li><code>queryTimeout == null</code> is conservative: a timeout that never fires still skips the cache.</li><li>Letting readers with deletions also read an entry filled by a reader without them would be exact for decay 1, but <code class='nw'>isCacheable</code> governs reading and writing alike, so that needs a change beyond this method.</li><li>Open draft #15802 by the query's author rewrites this Weight (keeping <code class='nw'>isCacheable</code>); a PR may need to coordinate with it.</li><li>Assumes readers, filters and query parts that keep Lucene's cacheability and core-key contracts, and immutable query state. Main also accepts a caller-supplied <code>KnnSearchStrategy</code> (<code>FloatVectorSimilarityQuery.java:58-64</code>); its <code class='nw'>Seeded</code> variant holds a <code class='nw'>DocIdSetIterator</code> that the graph search consumes (<code>KnnSearchStrategy.java:107-171</code>, <code>SeededHnswGraphSearcher.java:37-52</code>). No test covers such strategies or custom reader wrappers.</li></ul><p class='k'>What the checks validated</p><ul><li>This doc's test: 5 of 5 pass, assertions on and off, through gradle and the harness.</li><li>The 11 nearest upstream suites (<code>Test*VectorSimilarity*</code>, <code>TestLRUQueryCache</code>, <code>TestUsageTrackingFilterCachingPolicy</code>): 139 tests, 0 failures, 8 skipped, assertions on and off.</li><li>The caching probe passes: exact, approximate and filtered queries are still cached and hit on a segment without deletions.</li><li>Every earlier hunt test of this bug, assertions on and off: the finder's 3, the independent reproducer's 9 (Float, Byte, Float16, filtered, timeout, release defaults), the devil's advocate's 9 (controls, soft-deletes view, updated doc-values filter), the security probe's 6 and the GPT-5.6 reviewers' 4 each.</li><li><code>:lucene:core:check -x test</code> passes (google-java-format, ecjLint, forbiddenApis). <code class='nw'>tidy</code> completed (its log does not record which files it changed); the final patch and the test pass <code>checkGoogleJavaFormat</code> again in the fact check's re-run.</li><li>The scoring-parent probe (FILTER and MUST_NOT clauses of a scoring query): 4 of 4, assertions on and off.</li></ul><div class="hd hd-3"><h3 id='fix-not-cacheable'>A: isCacheable returns false <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-not-cacheable" target="_self" aria-label="Link to this section" aria-describedby="fix-not-cacheable"><span aria-hidden="true">#</span></a></div><p>Replace <code>return true;</code> with <code>return false;</code> and a comment naming the three inputs. +3/-1. The filter query itself is part of the cache key (<code class='nw'>equals</code>/<code class='nw'>hashCode</code>, <code>AbstractVectorSimilarityQuery.java:273</code>, <code class='nw'>:279</code>); its per-reader matches are not. It was validated first by the finder, the independent reproducer, the devil's advocate, the security probe and the GPT-5.6 reviewers, and endorsed by the adjudication, who did not re-run it.</p><pre class='snippet' tabindex='0'><code>@Override
+public boolean isCacheable(LeafReaderContext ctx) {
+  // The result depends on the reader&#x27;s live docs, the searcher&#x27;s timeout and the filter&#x27;s
+  // per-reader matches, none of which the cache key (query + segment core) captures.
+  return false;
+}</code></pre><p class='k'>Trade-offs</p><p>The query is never cached, even where that is safe, so every reuse as a filter or count repeats the vector search per segment (an exact scan for decay 1). It contradicts the author's stated intent that the query be cacheable (#13594).</p><p class='k'>What the checks validated</p><ul><li>This doc's test 5 of 5 and the same 139 upstream tests pass, assertions on and off; <code>:lucene:core:check -x test</code> passes; with the reworded comment, google-java-format, ecjLint and forbiddenApis pass again. The caching probe fails, as expected.</li><li>Re-run on main with the reworded comment, assertions on and off: the finder's 3, the independent reproducer's 9, the security probe's 6, both reviewers' 4 each and the scoring-parent probe's 4 pass. The devil's advocate's 9 give 8: its reverse-direction control first asserts that the query was cached, which this fix rules out (the same expected failure as the caching probe).</li><li>Earlier: 137 upstream tests with the finder's version, and the history probe on main and 9.12.3.</li></ul><div class="hd hd-3"><h3 id='fix-no-live-docs'>C: never apply live docs inside the Weight (untested)</h3><a class="hlink" href="#fix-no-live-docs" target="_self" aria-label="Link to this section" aria-describedby="fix-no-live-docs"><span aria-hidden="true">#</span></a></div><p>Build the per-segment set without live docs and let collection apply them, as other queries do; still refuse caching with a timeout or a non-cacheable filter.</p><p class='k'>Trade-offs</p><p>Keeps caching on segments with deletions, but changes the approximate path: the graph search already visits and scores rejected nodes and checks the accepted docs only before collecting one (<code>AbstractHnswGraphSearcher.java:98-104</code>, <code>HnswGraphSearcher.java:328-349</code>), so without live docs deleted documents would also be collected and dropped only later, and the filtered path's accepted count and its exact fallback would count them. Needs recall and latency checks.</p><div class="hd hd-3"><h3 id='fix-partial'>Not sufficient: fix only the filter, or only skip caching after a timeout</h3><a class="hlink" href="#fix-partial" target="_self" aria-label="Link to this section" aria-describedby="fix-partial"><span aria-hidden="true">#</span></a></div><p>Asking <code>filterWeight.isCacheable(ctx)</code>, or refusing to cache after a timeout, fixes one input and leaves the other two.</p><p class='k'>Trade-offs</p><p>The finder's first alternative left out the filter; a verifier and the adjudication caught it.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Why: the cache key ignores deletions and doc-values updates, so whichever search fills the entry, even a timed-out one or one on a restricted view, decides what others get. Hidden or deleted documents never leak. A filter on in-place-updated doc values fails open, and one timed-out search can empty a MUST_NOT exclusion for later searches. No exploit known.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code reading. An AI tool compared what each vector query's per-segment result depends on with the query-cache key (query plus segment core), saw that this query reads live docs and the timeout while <code class='nw'>isCacheable</code> returns true, and confirmed it with a JUnit test on the stock jar. A small TLA+ model written afterwards illustrates the mechanism.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>160 words</span></summary><div class='body'><p><strong>Method: code reading</strong> (the hunt's non-formal tier).</p><ul><li>A hunt unit (the kNN query layer, 2026-10-25). The finder, an AI tool, compared for each vector query Weight the inputs of its per-segment result with what the <code class='nw'>LRUQueryCache</code> key contains. <code>AbstractVectorSimilarityQuery</code>'s <code class='nw'>scorerSupplier</code> reads the reader's live docs and the searcher's timeout, while <code class='nw'>isCacheable</code> returns <code class='nw'>true</code>.</li><li>Public-API probes and a deterministic JUnit test on the stock jar then showed both the live-docs and the timeout cases.</li><li>A small TLA+ model written afterwards (two readers sharing a core, a timeout flag; invariant <code class='nw'>Correct</code>) is violated with <code>Cacheable = TRUE</code> and holds with <code>Cacheable = FALSE</code>. It illustrates the mechanism; its files are timestamped after the finding, so it was not the first signal.</li><li>An independent reviewer from another model family (OpenAI GPT-5.6) then tried to refute it; verifiers and an adjudication confirmed it, one of them adding the soft-deletes and doc-values filter triggers; the history, prior-report and security checks followed.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-25/26): 186 prior-art-tool queries over GitHub, commits, downstream code, mailing lists and JIRA, 17 manual GitHub searches, 13 web queries, and the file lists of all 412 open PRs. Closest: the upstream test comment "This query is cacheable, explicitly prevent it" and the author's remark that it is cacheable by design.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>The searches found no upstream issue, PR, commit, mailing-list thread or JIRA entry that reports this bug, and no PR that fixes it. GitHub search reads only the first page per query, so "none found" is not proof that none exists. One downstream review remark (below) is the only item that could make the novelty "partially known" if read differently; the follow-up counts it as not a report.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene and downstream repositories)</th><td class='when'>2026-10-25/26</td><td>70 queries from the scripted prior-report search in 4 runs (class and method names such as AbstractVectorSimilarityQuery, VectorSimilarityScorerSupplier, isCacheable, getLiveDocs; caching framing such as "pollute the query cache", "core cache key", SegmentCacheable; timeout and filter framing), plus 17 manual read-only searches and REST reads of 54 items</td><td>no report; the feature PRs #12679, #13285 and later, and the related remarks below</td></tr><tr><th scope='row'>Closest traces (read in full)</th><td class='when'>2026-10-26</td><td>#13285 and its testTimeout comment; #13594 and #15379 (the author's remarks); dev@ "Cacheable DocAndScoreQuery in AbstractKnnVectorQuery" (2024-07-19); opensearch-project/k-NN#3300</td><td>none is a report: a test workaround, design remarks, a question about another class, and a passing downstream review remark that a radial-search wrapper weight "technically" should not be cacheable, naming no Lucene class or mechanism</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the file lists of all 412 open apache/lucene PRs</td><td>5 touch the file (#13594, #13595, drafts #15802, #16204, #16847); none changes isCacheable</td></tr><tr><th scope='row'>Commits and downstream code</th><td class='when'>2026-10-26</td><td>12 commit queries, the file's history on main, branch_10x and branch_10_6; 8 downstream-repo queries and code search</td><td>no fix; OpenSearch k-NN (radial search) and Solr use the queries, Solr with Lucene's query cache disabled</td></tr><tr><th scope='row'>Mailing lists and JIRA archive</th><td class='when'>2026-10-26</td><td>80 queries over dev@, java-user@, issues@ and commits@; 16 JIRA-archive queries (LUCENE and SOLR)</td><td>no report; precedents LUCENE-8017, LUCENE-8042, LUCENE-8062, LUCENE-10060</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>13 queries (1 more throttled)</td><td>no relevant page</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>There since the query was added by #12679 (merged 2023-12-11, first released in 9.10.0); the timeout input came with #13285 (merged 2024-08-06, first released in 10.0.0). All 19 releases 9.10.0-10.5.2 and main fail, and each case flips exactly at its introducing commit. Not a regression; not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #12679, "Add support for similarity-based vector searches" (kaivalnp, merged by benwtrent on 2023-12-11 as <code class='nw'>cd195980ecb</code> on main; backport <code class='nw'>8089b8c9d33</code>), with <code class='nw'>isCacheable</code> returning <code class='nw'>true</code> and a per-segment result built from live docs and the filter. #13285, "Add timeout support to AbstractVectorSimilarityQuery" (kaivalnp, merged by vigyasharma on 2024-08-06 as <code class='nw'>e0e5d81df80</code>, main only), added the timeout input without changing <code class='nw'>isCacheable</code>. <code class='nw'>CHANGES.txt</code> lists #13285 under 9.12.0, but no 9.x release has its code (the entry came with the #13633 backport), so the timeout case starts at 10.0.0. #14187 (2025-04-02, main only) removed <code class='nw'>IndexSearcher</code>'s default query cache, so on main an application must install one. branch_10x, branch_10_6 and branch_9_12 still return <code class='nw'>true</code> (read).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>9.9.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> class absent</span></td><td>no FloatVectorSimilarityQuery</td></tr><tr><th scope='row'>9.10.0, 9.11.0, 9.11.1, 9.12.0-9.12.3</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> no timeout case</span></td><td>live docs, filter and zero-configuration cases fail; the timeout case passes (the 9.x query never reads the timeout)</td></tr><tr><th scope='row'>10.0.0-10.4.0 (9 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>all cases fail, also with the default IndexSearcher cache and no configuration</td></tr><tr><th scope='row'>10.5.0, 10.5.1, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>all cases fail; this doc's test 4 of 5 on 10.5.2, assertions on and off</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>all cases fail with an installed cache (no default cache since #14187); this doc's test 4 of 5</td></tr><tr><th scope='row'><code class='nw'>cd195980ecb</code> (#12679) vs its parent</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> commit level</span></td><td>the parent has no API; the commit fails the live-docs and filter cases</td></tr><tr><th scope='row'><code class='nw'>e0e5d81df80</code> (#13285) vs parent <code class='nw'>43c80117dd5</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> commit level</span></td><td>the parent passes the timeout cases, the commit fails them</td></tr><tr><th scope='row'>main and 9.12.3 + isCacheable false</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> root-cause control</span></td><td>every case passes</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>A refute review from another model family (OpenAI GPT-5.6), an independent reproducer, a "works as designed" reviewer, a devil's advocate with two more triggers, and an adjudication all say real, each with its own test on main. This doc's test was re-run on main, on 10.5.2 and with both fixes; fact checks and a diagram check corrected the wording.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>605 words</span></summary><div class='body'><p>Every check ran on main <code class='nw'>ea57360912ed</code> unless noted, with assertions on and off.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Refute review (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high confidence</span></td><td>Its own public-API count test fails 2 of 4 (an older reader's 6 matches become 5; 32 become 0 after a timed search) with three seeds; the separate-cache controls pass; <code class='nw'>isCacheable</code> false passes its test and 79 focused upstream tests. Rated the intended case moderate, for the timeout part only.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test from the claim only, outside <code>org.apache.lucene</code>: 8 of 9 fail (Float exact and approximate, filtered, Byte, Float16, timeout with and without filter, release defaults); the <code class='nw'>TermQuery</code> control passes; 7 of 8 fail on 10.5.2 and 10.0.0, 5 of 8 on 9.12.3 and 9.10.0 (timeout passes there).</td></tr><tr><th scope='row'>"works as designed" reviewer (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high; intended argument weak</span></td><td>Its own 64-doc test fails 2 of 4 (63 instead of 64, 0 instead of 64); the distinct-cache and uncached controls pass; 4 of 4 with the fix.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; no intended argument holds</span></td><td>Controls (<code class='nw'>TermQuery</code>, <code class='nw'>FieldExistsQuery</code>, <code>KnnFloatVectorQuery</code>) pass on main and 10.5.2. Found two more triggers that fail on main and 10.5.2 and pass with the fix: a soft-deletes view next to the raw view (99 instead of 100), and the fail-open doc-values filter (100 instead of 99).</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction with a fresh seed (8 of 9 fail), the finder's test (3 of 3) and the intended-behaviour check's filter probe (1 of 2 fail); corrected "fails closed" (the filter case fails open) and the narrower fix, which must cover all three inputs.</td></tr><tr><th scope='row'>History and fix re-runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; both fixes validated</span></td><td>The follow-up's probe ran on 9.9.2, all 19 affected releases, main and 4 commit-level builds. This doc's test fails 4 of 5 on main and 10.5.2 and passes 5 of 5 with either fix; fix B also passes every earlier hunt test and keeps the safe case cached.</td></tr><tr><th scope='row'>Independent fact check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; 2 wording errors and 9 precision items, applied</span></td><td>A separate AI tool re-ran the brief's gradle command (assertions on and off), the harness on main and 10.5.2 with three seeds, the test from a package outside <code>org.apache.lucene</code>, the diagram probe and fix B against 13 suites (145 tests, 0 failures). It found two wording errors (a hiding view does not empty the other view's result, it removes one document: 99 instead of 100; the adjudication endorsed fix A but did not run it) and nine precision items (Float16 is main only, the test framework installs caches, the attribution of #13594 and of the copied test comment, the OpenSearch version, and others).</td></tr><tr><th scope='row'>Cross-model fact check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; 16 items, all applied</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) checked the brief against the code: 5 errors (the security route; scoring parents are affected through FILTER and MUST_NOT clauses; the filtered path falls back to exact search; the filter query is part of the cache key; the graph search already visits deleted nodes), 6 overclaims and 5 missing caveats. All were applied except the vendor note, which the hunt policy allows. Its MUST_NOT point was then executed: 1 instead of 0, and 100 instead of 0 after a timeout.</td></tr><tr><th scope='row'>Diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> one label error, fixed</span></td><td>Every value, API name and line number in the PNG matched the code and the probe. One error: the summary card listed Float16 next to the release range, although it exists only on main. Fixed, with four wording suggestions and longer holds, and re-rendered.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-106/bug.png' download='vector-similarity-query-cacheable-but-reader-dependent-bug.png' target='_self'>PNG</a> <span class='n'>552 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,400 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-106, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>Vector similarity queries report isCacheable() == true although their per-segment result depends on live docs, the search timeout and the filter, so a shared query cache serves one reader's or one search's result to another</dd></div><div><dt>Area</dt><dd>search / vector similarity queries and the query cache</dd></div><div><dt>Priority</dt><dd>High, rank 5: Released 9.10-10.5.2 with the default shared query cache, a vector similarity query used as a filter or count can cache another reader&#x27;s live-docs view, a timed-out result or a non-cacheable filter and keep serving wrong hits from ordinary point-in-time and timeout patterns, just below LFV-044 because the threshold vector query in a non-scoring context is a niche experimental API.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that run a Float/Byte/Float16VectorSimilarityQuery in a non-scoring context (IndexSearcher#count, ConstantScoreQuery, a FILTER clause) through a query cache shared by several readers or searchers, which on 9.10.0-10.5.2 the default IndexSearcher setup already is (a static LRUQueryCache; zero-configuration repro executed) and on main only an application-installed cache is (#14187), and that then search an older point-in-time reader (or another live-docs view of the same segment) after a newer one, or let a timed-out search fill the entry (10.0.0 and later), or pass a filter on in-place-updated doc values; ordinary scale (100 docs with an always-cache policy, 12,000 docs with the default cache settings); released 9.10.0-10.5.2.</dd></div><div><dt>Summary</dt><dd>You search with a vector similarity (threshold) query, for example FloatVectorSimilarityQuery, in a non-scoring context such as IndexSearcher#count or ConstantScoreQuery, with a query cache that several readers or searchers share (the IndexSearcher default in 9.10.0-10.5.2). You expect every reader and every search to get the hits it gets without the cache. Instead the cache hands one reader's or one search's per-segment result to another: an older point-in-time reader misses a document that only a newer reader has deleted (99 hits instead of 100), a search without a timeout gets the empty result of an earlier timed-out search (0 instead of 100), and with a filter on an updated doc-values field a newer reader gets a document that no longer matches the filter (100 instead of 99).</dd></div><div><dt>Introduced</dt><dd>cd195980ecb (#12679 'Add support for similarity-based vector searches', main; branch_9x backport 8089b8c9d33) for the live-docs and filter dependence: the query was added with isCacheable() returning true and a per-segment result built from leafReader.getLiveDocs() and the filter Weight [read: git blame at main, 10.5.2 and 9.12.3; exec: lucene-core built at the parent 1630ed4bd84 has no FloatVectorSimilarityQuery, at cd195980ecb the live-docs and filter scenarios fail and the timeout scenarios pass]; e0e5d81df80 (#13285 'Add timeout support to AbstractVectorSimilarityQuery', main only, never backported to 9.x) added the timeout dependence without changing isCacheable() [exec: its parent 43c80117dd5 passes the timeout scenarios, e0e5d81df80 fails them]; not a regression: isCacheable() has returned true since the query's first version (2023-12-11 (#12679 merged on main 19:18 UTC; branch_9x backport 19:43 UTC the same day); 2024-08-06 (#13285 merged on main))</dd></div><div><dt>First affected version</dt><dd>9.10.0 [exec] (live docs and filter; first release with the query, 9.9.2 has no FloatVectorSimilarityQuery [exec]); 10.0.0 [exec] for the timeout manifestation</dd></div><div><dt>Affected versions</dt><dd>live docs and non-cacheable filter: all 19 releases 9.10.0, 9.11.0, 9.11.1, 9.12.0-9.12.3, 10.0.0, 10.1.0, 10.2.0-10.2.2, 10.3.0-10.3.2, 10.4.0, 10.5.0-10.5.2 and main ea57360912ed [exec, -ea; -da also on 9.10.0, 9.12.3, 10.0.0, 10.5.2 and main, same result]; timeout: the 12 releases 10.0.0-10.5.2 and main [exec], not 9.x [exec; CHANGES.txt lists #13285 under 9.12.0, but no 9.x release has its code, read]; with zero cache configuration every release 9.10.0-10.5.2 is affected, because IndexSearcher installs a shared static LRUQueryCache with UsageTrackingQueryCachingPolicy [exec], main only when the application installs a query cache (#14187 removed the default; in no release yet) [exec]; not applicable before 9.10.0 (API absent) [exec]; upstream main, branch_10x, branch_10_6 and branch_9_12 still return true [read, 2026-10-26]; not fixed upstream [read]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading; also reached by TLA+/TLC</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-25 and 2026-10-26: a scripted prior-report search, 4 runs with 70 GitHub issue/PR, 12 commit, 8 downstream-repo, 80 mailing-list (dev@, java-user@, issues@, commits@) and 16 JIRA-archive queries; 17 manual read-only gh issue/PR searches across apache/lucene and downstream repositories, gh code search, REST reads of 42 apache/lucene and 12 downstream items, changed-file lists of all 412 open PRs (5 touch the file, none changes isCacheable), lists.apache.org and LUCENE/SOLR JIRA searches, 13 web queries with 1 more throttled); related prior items: #13285 (introduced the timeout dependence; its test disables the cache with 'This query is cacheable, explicitly prevent it', with no discussion), #13594 (the query's author states that the similarity query is cacheable by design), #15379 (the author explains that top-k kNN queries are not cacheable because deletes invalidate per-segment results: the same principle, other query family), dev@ 2024-07-19 'Cacheable DocAndScoreQuery in AbstractKnnVectorQuery' (different class, unanswered), opensearch-project/k-NN#3300 (downstream review remark that a radial-search weight 'technically' should not be cacheable, no mechanism, nothing filed), #12679 (introduced the query, no cache discussion), open draft #15802 (rewrites the Weight, isCacheable unchanged), precedents #9065 (LUCENE-8017), #9090 (LUCENE-8042), #9110 (LUCENE-8062) and #11098 (LUCENE-10060)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (2026-10-25/26), assertions on and off, seed DEADBEEF and the verifiers' own seeds, through gradle and a standalone JUnit harness; this doc's test also on the 10.5.2 release jars (assertions on and off); a version-independent probe on 9.9.2, all 19 releases 9.10.0-10.5.2 and main; lucene-core built at the two introducing commits and their parents; both fixes in a scratch worktree at <code class='nw'>ea57360912ed</code> (removed afterwards); a scoring-parent probe (FILTER and MUST_NOT clauses) on main and the 10.5.2 jars and with both fixes (2026-10-26).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java:40 (@lucene.experimental), :149-152 (filterWeight), :154-156 (searcher.getTimeout(), TimeLimitingKnnCollectorManager), :186-188 (scorerSupplier reads leafReader.getLiveDocs()), :190-206 (no filter: exact path with DECAY_MAX_QUALITY &#x27;to guarantee completeness&#x27;, AcceptDocs.fromLiveDocs at :196 and :204), :207-220 (filter: AcceptDocs.fromIteratorSupplier(..., liveDocs, ...)), :239-243 (&#x27;Return partial results only when timeout is met&#x27;), :252-255 (isCacheable returns true)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/SegmentCacheable.java:24-35 (&#x27;Objects that depend only on segment-immutable structures ... can just return true&#x27;; doc-values dependents &#x27;should return DocValues#isCacheable&#x27;; &#x27;Objects that are not segment-immutable ... should return false&#x27;)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/LeafReader.java:63-66 (core cache helper caches &#x27;regardless of deletions&#x27;; readers with &#x27;different sets of deleted documents or doc values updates may be considered equal&#x27;)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:816-834 (CachingWrapperWeight.scorerSupplier trusts in.isCacheable(context) and keys entries on the query and getCoreCacheHelper())</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/QueryCache.java:26-30 (doCache: the returned weight &#x27;will only be equivalent if scores are not needed&#x27;)</code></li><li><code>a Lucene main checkout lucene/core/src/test/org/apache/lucene/search/BaseVectorSimilarityQueryTestCase.java:623-624 (&#x27;// This query is cacheable, explicitly prevent it&#x27;, searcher.setQueryCache(null), added by #13285)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/Weight.java:121-122 (&#x27;The returned Scorer does not have LeafReader#getLiveDocs() applied, they need to be checked on top&#x27;; describes scorer output, cited as supporting evidence only)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/AbstractVectorSimilarityQuery.java:40, 146, 149-156, 186-255, 273, 279</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:80, 816, 827, 834, 892-924</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/LeafReader.java:65-69</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/BooleanWeight.java:273-285; ConstantScoreQuery.java:193-194; DocAndScoreQuery.java:170, 294-306; IndexSearcher.java:84</code></li><li><code>a Lucene clone tag releases/lucene/10.5.2 lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:83-99</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/SearcherLifetimeManager.java:30, 48; UsageTrackingQueryCachingPolicy.java:122-138; LRUQueryCache.java:251-253, 278-296, 443-457, 792-807, 816-853, 1133-1135; IndexSearcher.java:979-981; BooleanClause.java:84-86; BooleanWeight.java:58-59</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/SegmentCacheable.java:24-35; QueryCache.java:26-30; LRUQueryCache.java:893; index/LeafReader.java:65-69</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/hnsw/AbstractHnswGraphSearcher.java:98-104; HnswGraphSearcher.java:328-349; search/knn/KnnSearchStrategy.java:107-171; util/hnsw/SeededHnswGraphSearcher.java:37-52</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestVectorSimilarityQueryCaching.java (4 bug tests + 1 control): <a href='../repro/LFV-106/TestVectorSimilarityQueryCaching.java'><code>repro/LFV-106/TestVectorSimilarityQueryCaching.java</code></a> (196 lines)</li><li>Fix B (recommended): option-b-narrow.diff: <a href='../repro/LFV-106/option-b-narrow.diff'><code>repro/LFV-106/option-b-narrow.diff</code></a> (18 lines)</li><li>Fix A (simplest): option-a-not-cacheable.diff: <a href='../repro/LFV-106/option-a-not-cacheable.diff'><code>repro/LFV-106/option-a-not-cacheable.diff</code></a> (15 lines)</li><li>Probe: is the query still cached where that is safe?: <a href='../repro/LFV-106/TestVectorSimilarityQueryStillCached.java'><code>repro/LFV-106/TestVectorSimilarityQueryStillCached.java</code></a> (100 lines)</li><li>Probe: the query as a FILTER or MUST_NOT clause of a scoring query: <a href='../repro/LFV-106/TestVectorSimilarityQueryScoringParent.java'><code>repro/LFV-106/TestVectorSimilarityQueryScoringParent.java</code></a> (155 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A worked example on the same six documents as the steps above: the segment with both readers' live docs, the cache entry being filled by the newer reader and handed to the older one, the code lines that build the set and say <code class='nw'>true</code>, the two other cases (timeout, doc-values filter), and a summary card (<code class='nw'>bug.png</code>). Every number on screen comes from a probe run on <code class='nw'>ea57360912ed</code> with assertions on and off.</p><ul class='paths'><li><a href='../assets/LFV-106/bug.png'><code>assets/LFV-106/bug.png</code></a> (552 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

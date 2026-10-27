@@ -1,0 +1,884 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>PerFieldPostingsFormat merge keeps stale format attributes on a deleted-away field after a non-per-field postings segment, so the merged segment cannot be opened</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-280 &middot; perfield-postings-merge-stale-inherited-attributes</p><h1 id='top'>PerFieldPostingsFormat merge keeps stale format attributes on a deleted-away field after a non-per-field postings segment, so the merged segment cannot be opened</h1><p class='tldr'>A merge keeps a stale format note on an indexed field that no source postings reader lists, for example after a <code class='nw'>SimpleTextCodec</code> session deleted all its documents. If the merge writes no files for that format, every call succeeds but the index cannot be opened (7.7.0 to 10.5.2, main).</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 153</span><span class='sub'>Like LFV-199, a commit cannot be opened, here after a merge that mixes in a non-per-field postings codec plus a fully deleted field, which is rare but severe.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>index unusable</span></dd></div><div><dt>Since</dt><dd>7.7.0 (LUCENE-8601, 2019)<span class='sub'>introduced 2019-01-03 &middot; about 7 years</span></dd></div><div><dt>Affected</dt><dd>7.7.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading, confirmed by a bounded-exhaustive test harness</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Each segment notes, per indexed field, which postings format and file group hold its postings. A merge copies the old notes and then rewrites them only for fields the source segments list. A segment written by a non-per-field postings codec does not list a field whose documents were all deleted, so that field's note goes stale.</p><figure class='visual' id='perfield-postings-merge-stale-inherited-attributes-short-visual'><div class='frame'><a class='still' href='../assets/LFV-280/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-280/bug.png' alt='Session 1 writes segment _0 with field id in file group Lucene104_0 and field tag in FST50_0. Session 2, SimpleTextCodec, deletes the only tag document and merges into _2: no tag postings, but the note still says tag = FST50/0. Session 3 merges into _4 and writes only _4_Lucene104_0; tag still says FST50/0, so opening the index fails on the missing _4_FST50_0.psm and CheckIndex reports 1 broken segment with 3 documents.' width='1920' height='1080'></a></div><figcaption>The three writer sessions, with each segment's per-field note next to the file groups it really has: the note for <code class='nw'>tag</code> survives the SimpleText merge and points at <code class='nw'>_4_FST50_0</code>, which the final merge never writes. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Session 1: index 2 documents with a <code class='nw'>Lucene104Codec</code> subclass that gives field <code class='nw'>tag</code> its own postings format, FST50. Only doc 0 has <code class='nw'>tag</code>. The segment notes <code class='nw'>tag</code> = FST50, file group 0.</span></li><li><span>Session 2 uses <code class='nw'>SimpleTextCodec</code>, whose postings format is not per-field: delete doc 0, add doc 2, <code class='nw'>forceMerge(1)</code>. No <code class='nw'>tag</code> postings are left, but the merged segment still carries the note <code class='nw'>tag</code> = FST50/0.</span></li><li><span>Session 3 is per-field again: add doc 3, <code class='nw'>forceMerge(1)</code>. The sources list only <code class='nw'>id</code>, so the merge writes only the <code class='nw'>_4_Lucene104_0.*</code> postings files and rewrites only <code class='nw'>id</code>'s note. <code class='nw'>tag</code> still says FST50/0.</span></li><li><span>You expect the committed index to open with 3 documents: every call returned normally. Instead <code>DirectoryReader.open</code> throws <code>CorruptIndexException</code> caused by the missing <code class='nw'>_4_FST50_0.psm</code>, and <code class='nw'>CheckIndex</code> reports 1 broken segment holding all 3 documents.</span></li><li><span>Every executed release from 7.7.0 to 10.5.2 fails. The same happens with the test framework's plain-postings <code class='nw'>CheapBastard</code> codec in session 2, with the stock codec alone when the final merge has no indexed field left, and, with the per-field codec in every session, when a merge-reader wrapper hides <code class='nw'>tag</code>'s postings.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Indexes where some writer sessions use a non-per-field postings codec (in-tree <code class='nw'>SimpleTextCodec</code>, "for recreational use only", the test framework's <code>CheapBastardCodec</code>, or a custom codec), or whose merges use a custom reader wrapper that hides a field's postings. Default configurations are not affected. The whole merged segment becomes unreadable.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>747 words</span></summary><div class='body'><p><code>PerFieldPostingsFormat</code> records, per indexed field of a segment, which postings format and file group (suffix) hold the field's postings, as two <code class='nw'>FieldInfo</code> attributes, and the reader opens exactly those groups. Since LUCENE-8601 (7.7.0) merged <code class='nw'>FieldInfos</code> inherit the source attributes, and the per-field postings merge rewrites them only for the fields that the source postings readers list. A segment written by a codec whose postings format is not per-field (in-tree <code class='nw'>SimpleTextCodec</code>, the test framework's <code>CheapBastardCodec</code>, or any custom codec with a plain postings format) does not list a field whose documents were all deleted, so that field keeps its inherited format and suffix; a custom merge-reader wrapper (<code>FilterCodecReader</code> through <code class='nw'>addIndexes</code> or <code>OneMerge.wrapForMerge</code>) that hides an indexed field's postings does the same with the per-field codec in every session. When the next per-field merge writes no group with that pair (the field's format has a name no merged field uses, or no indexed field is left), the committed segment names postings files that do not exist: <code>DirectoryReader.open</code> and NRT open throw <code>CorruptIndexException</code> and <code class='nw'>CheckIndex</code> reports the segment broken, while every writer call returned normally and an open writer keeps committing on top. Every executed release from 7.7.0 to 10.5.2 and main is affected; default configurations are not. The fix takes the merge's field list from <code class='nw'>mergeFieldInfos</code>, as the doc-values and vectors merges already do.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Per-field postings</strong>: the default codec's postings format is a <code>PerFieldPostingsFormat</code>. It lets each field use its own postings format (<code>getPostingsFormatForField</code>, the documented way to customise postings) and writes each format's fields into a file group named <code>&lt;segment&gt;_&lt;format&gt;_&lt;suffix&gt;.*</code>, for example <code>_4_Lucene104_0.psm</code> or <code class='nw'>_4_FST50_0.psm</code>.</li><li><strong>The note</strong>: two <code class='nw'>FieldInfo</code> attributes per indexed field, <code>PerFieldPostingsFormat.format</code> and <code>PerFieldPostingsFormat.suffix</code>. On reading, they are the only routing record: the reader opens the group of every indexed field that has them (<code>PerFieldPostingsFormat.java:295-321</code>).</li><li><strong>Non-per-field postings codec</strong>: a codec whose <code class='nw'>postingsFormat()</code> is a plain format. In-tree: <code class='nw'>SimpleTextCodec</code> (lucene/codecs, "FOR RECREATIONAL USE ONLY") and the test framework's <code>CheapBastardCodec</code>; otherwise a custom codec. The codec can differ per writer session (<code>IndexWriterConfig.setCodec</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>On merge, the merged <code class='nw'>FieldInfos</code> copy every source field's attributes (<code>SegmentMerger.java:232-239</code>; <code>FieldInfos.java:775-777</code> and <code class='nw'>:801</code>; documented at <code class='nw'>:731-732</code> and <code class='nw'>:756-757</code>).</li><li>The per-field postings merge builds its field list from the source postings readers' iterators only (<code>PerFieldPostingsFormat.java:171-181</code>) and writes fresh attributes only for those fields (<code class='nw'>:248-253</code>; TODO at <code class='nw'>:210</code>: "This should check current format from the field attribute?").</li><li>A per-field source lists every field that has the note (<code class='nw'>:318</code>, <code class='nw'>:331-332</code>). A plain source lists only the fields it wrote postings for. In the probe on <code class='nw'>a9779ef3c193</code>, the SimpleText segment lists <code class='nw'>[id]</code> while its <code class='nw'>FieldInfos</code> hold <code>[id, tag]</code>, with <code class='nw'>tag</code> = FST50/0. <code class='nw'>MergeState</code> takes a source's <code class='nw'>FieldInfos</code> and its postings reader separately (<code>MergeState.java:133</code>, <code class='nw'>:155</code>), so a reader wrapper whose <code>getPostingsReader()</code> leaves out an indexed field has the same effect (executed, see Who is affected).</li><li>So <code class='nw'>tag</code> keeps FST50/0 through the final merge, which writes only <code class='nw'>_4_Lucene104_0.*</code>. The reader then tries <code class='nw'>_4_FST50_0.psm</code> and fails (the comment at <code class='nw'>:305</code>: "null formatName means the field is in fieldInfos, but has no postings!").</li><li><strong>Necessary condition</strong>: the stale pair is not a group the final merge writes. That holds when the field's format has a name no field of the final merge uses (<code class='nw'>FST50</code> here), or, with the default codec alone, when no indexed field is left to merge. For a second instance of a format name that another field also uses, it depends on the suffix order: groups are keyed by format instance, suffixes are counted per format name in field order (<code class='nw'>:202-230</code>). When the pair coincides with a written group, the segment opens and the field reads as absent.</li><li>Doc values and vectors are not affected: their merges iterate <code>mergeState.mergeFieldInfos</code> and rewrite every field (<code>PerFieldDocValuesFormat.java:135-140</code>, <code>KnnVectorsWriter.java:135</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Segment <code class='nw'>_0</code> (session 1): <code class='nw'>id</code> = Lucene104/0, <code class='nw'>tag</code> = FST50/0, files <code class='nw'>_0_Lucene104_0.*</code> and <code class='nw'>_0_FST50_0.*</code>. Segment <code class='nw'>_2</code> (SimpleText, session 2): 2 documents, <code class='nw'>terms(tag)</code> null, attributes unchanged. Segment <code class='nw'>_4</code> (session 3): 3 documents, postings files <code class='nw'>_4_Lucene104_0.*</code> only, <code class='nw'>tag</code> = FST50/0. <code>DirectoryReader.open</code>: <code>CorruptIndexException</code> caused by <code>FileNotFoundException: No sub-file with id _FST50_0.psm found in compound file "_4.cfs"</code>. <code class='nw'>CheckIndex</code> (which reports, it does not throw): 1 broken segment containing 3 documents. The session-2 segment must keep a live document: a fully deleted segment is dropped with its notes.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>415 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Applications that mix writer sessions of a per-field codec with sessions of a codec whose postings format is not per-field. A uniquely named, SPI-registered custom codec with a plain <code>Lucene104PostingsFormat</code> triggers it too, in a public-API <code class='nw'>main()</code> on <code class='nw'>FSDirectory</code> without SimpleText. <code class='nw'>lucene/benchmark</code>'s <code class='nw'>CreateIndexTask</code> can install a <code class='nw'>FilterCodec</code> with any named plain postings format (<code>codec.postingsFormat</code>, <code>CreateIndexTask.java:150-161</code>), a benchmark setting. Solr ships a <code>SimpleTextCodecFactory</code> an operator can select, documented as never for production (read, not executed); the shipped codecs of two other common search servers build per-field postings (read).</li><li><strong>A second route: merge-source reader wrappers.</strong> <code>OneMerge.wrapForMerge</code> exists to "Wrap a reader prior to merging in order to add/remove fields or documents" (<code>MergePolicy.java:302</code>), and <code>addIndexes(CodecReader...)</code> takes any <code class='nw'>CodecReader</code> (<code>IndexWriter.java:3275</code>). A <code>FilterCodecReader</code> whose <code>getPostingsReader()</code> leaves out an indexed field but keeps its <code class='nw'>FieldInfo</code> reaches the same stale note with the per-field codec in every session, no deletion and no SimpleText needed: 2 of 2 fail (one test per route) on main with <code class='nw'>-ea</code> and <code class='nw'>-da</code> and on 10.5.2, the same wrapper hiding nothing passes, and the fix passes. In-tree wrappers do not hide postings this way (<code>SlowCodecReaderWrapper</code> lists every indexed <code class='nw'>FieldInfo</code>, <code>SortingCodecReader</code> passes the field list through).</li><li><strong>Opt-in, not default.</strong> With a per-field codec in every session and no wrapper that hides postings it cannot happen (by reading: a per-field source lists every field that has a note). With the default codec plus a SimpleText session it needs the "no indexed field left" case.</li><li><strong>The other ingredients of the codec route are ordinary.</strong> Deleting every document that has some field, then merges. Deterministic with 4 documents (the independent reproduction: 20 of 20 random seeds; this doc: 30 of 30).</li><li><strong>What is lost.</strong> The whole merged segment, not just the field: <code>DirectoryReader.open</code>, NRT open and <code class='nw'>openIfChanged</code> throw; an open writer is not stopped and keeps committing, so under the default <code>KeepOnlyLastCommitDeletionPolicy</code> no older readable commit is left; a new writer that must merge the segment closes with a tragic <code>CorruptIndexException</code>; <code class='nw'>CheckIndex</code> reports it and <code class='nw'>-exorcise</code> drops all of its documents (3 of 4 in the security probe on main <code class='nw'>ea57360912ed</code>). Recovery: reindex or exorcise, unless an older commit (for example kept by a snapshot deletion policy) or a backup exists (not tested).</li><li><strong>Fails closed.</strong> No hang, no wrong hits, no other field's data, no deleted documents coming back (security probe, <code class='nw'>-ea</code> and <code class='nw'>-da</code>).</li><li><strong>Unreported since 7.7.0 (2019)</strong>, consistent with the narrow trigger.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit file for lucene/core. A <code class='nw'>Lucene104Codec</code> subclass maps <code class='nw'>tag</code> to FST50; the middle writer session uses <code class='nw'>SimpleTextCodec</code>, or in the second test the test framework's <code class='nw'>CheapBastard</code> codec; a third test uses only the stock codec. Every writer call returns normally; opening the committed index fails.</p><figure class='code'><figcaption><span class='fname'>TestPerFieldPostingsMergeStaleAttributes.java (core, 3 tests)</span><span class='meta'>131 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.codecs.perfield;
+
+import java.io.IOException;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.codecs.lucene104.Lucene104Codec;
+import org.apache.lucene.codecs.simpletext.SimpleTextCodec;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * A field whose documents were all deleted inside a segment written by a codec whose postings
+ * format is not per-field keeps the per-field postings attributes it inherited. A later per-field
+ * merge does not rewrite them, so the merged segment names postings files that were never written
+ * and cannot be opened.
+ */
+public class TestPerFieldPostingsMergeStaleAttributes extends LuceneTestCase {
+
+  /** The default codec, except that field &quot;tag&quot; uses its own postings format (FST50). */
+  private static Codec tagUsesFst50() {
+    return new Lucene104Codec() {
+      final PostingsFormat fst50 = PostingsFormat.forName(&quot;FST50&quot;);
+
+      @Override
+      public PostingsFormat getPostingsFormatForField(String field) {
+        return field.equals(&quot;tag&quot;) ? fst50 : super.getPostingsFormatForField(field);
+      }
+    };
+  }
+
+  private static Document doc(String id, String tag) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    if (tag != null) {
+      doc.add(new StringField(&quot;tag&quot;, tag, Field.Store.NO));
+    }
+    return doc;
+  }
+
+  private static IndexWriter writer(Directory dir, Codec codec) throws IOException {
+    return new IndexWriter(dir, new IndexWriterConfig().setCodec(codec));
+  }
+
+  /** Three writer sessions; the middle one uses a codec whose postings format is not per-field. */
+  private void deleteTagInMiddleSessionThenMerge(Codec middle) throws IOException {
+    try (Directory dir = newDirectory()) {
+      // Session 1: per-field codec; doc 0 has &quot;tag&quot; (written as FST50, suffix 0), doc 1 has not.
+      try (IndexWriter w = writer(dir, tagUsesFst50())) {
+        w.addDocument(doc(&quot;0&quot;, &quot;t&quot;));
+        w.addDocument(doc(&quot;1&quot;, null));
+      }
+      // Session 2: delete the only doc with &quot;tag&quot;, add a doc and merge: no &quot;tag&quot; postings are left,
+      // but the merged FieldInfos still say tag = FST50, suffix 0.
+      try (IndexWriter w = writer(dir, middle)) {
+        w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;));
+        w.addDocument(doc(&quot;2&quot;, null));
+        w.forceMerge(1);
+      }
+      // Session 3: the per-field codec again. Add a doc and merge everything.
+      try (IndexWriter w = writer(dir, tagUsesFst50())) {
+        w.addDocument(doc(&quot;3&quot;, null));
+        w.forceMerge(1);
+      }
+      // Every call returned normally, so the committed index must open.
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(3, r.numDocs());
+        assertEquals(0, r.docFreq(new Term(&quot;tag&quot;, &quot;t&quot;)));
+      }
+    }
+  }
+
+  public void testFieldWithOwnFormatDeletedInSimpleTextSegment() throws Exception {
+    deleteTagInMiddleSessionThenMerge(new SimpleTextCodec());
+  }
+
+  /** Not specific to SimpleText: the test framework&#x27;s CheapBastard codec has a plain format too. */
+  public void testFieldWithOwnFormatDeletedInPlainPostingsSegment() throws Exception {
+    deleteTagInMiddleSessionThenMerge(Codec.forName(&quot;CheapBastard&quot;));
+  }
+
+  /** The stock default codec only: the final merge has no indexed field left to write. */
+  public void testDefaultCodecNoIndexedFieldLeft() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = writer(dir, new Lucene104Codec())) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;tag&quot;, &quot;t&quot;, Field.Store.NO));
+        w.addDocument(doc);
+        doc = new Document();
+        doc.add(new StoredField(&quot;s&quot;, &quot;kept&quot;));
+        w.addDocument(doc);
+      }
+      try (IndexWriter w = writer(dir, new SimpleTextCodec())) {
+        w.deleteDocuments(new Term(&quot;tag&quot;, &quot;t&quot;));
+        w.forceMerge(1);
+      }
+      try (IndexWriter w = writer(dir, new Lucene104Codec())) {
+        Document doc = new Document();
+        doc.add(new StoredField(&quot;s&quot;, &quot;added&quot;));
+        w.addDocument(doc);
+        w.forceMerge(1);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(2, r.numDocs());
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.codecs.perfield.TestPerFieldPostingsMergeStaleAttributes -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>The committed index opens: 3 documents and no <code class='nw'>tag:t</code> hit (2 documents in the default-codec test).</dd></div><div class='got'><dt>Observed</dt><dd>3 of 3 fail with <code>CorruptIndexException</code>: missing <code class='nw'>_4_FST50_0.psm</code> (SimpleText and CheapBastard) and <code>_3_Lucene104_0.psm</code> (default codec only).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-280/'>repro/LFV-280/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (404 lines) · 2,049 words</span></summary><div class='body'><p>Copy the file into <code>lucene/core/src/test/org/apache/lucene/codecs/perfield/</code> and run the command (<code>./gradlew :lucene:core:tidy</code> leaves it unchanged; core tests already depend on lucene/codecs, which provides <code class='nw'>SimpleTextCodec</code> and FST50). Each test sets the codec explicitly in every writer session and uses the default <code>IndexWriterConfig</code> and <code class='nw'>newDirectory()</code>.</p><ol><li><code>testFieldWithOwnFormatDeletedInSimpleTextSegment</code>: per-field codec, then SimpleText (delete the only <code class='nw'>tag</code> document, add one, <code class='nw'>forceMerge(1)</code>), then the per-field codec (add one, <code class='nw'>forceMerge(1)</code>); expects 3 documents.</li><li><code>testFieldWithOwnFormatDeletedInPlainPostingsSegment</code>: the same with <code>Codec.forName("CheapBastard")</code> in session 2.</li><li><code>testDefaultCodecNoIndexedFieldLeft</code>: stock <code class='nw'>Lucene104Codec</code> and SimpleText only; the final merge has only a stored field; expects 2 documents.</li></ol><p>The second file is the recommended fix together with the test. The third is the reader-wrapper probe (one test through <code>addIndexes(CodecReader)</code>, one through <code>OneMerge.wrapForMerge</code>, per-field codec in every session); it was run through the hunt's standalone JUnit runner only (main <code class='nw'>-ea</code> and <code class='nw'>-da</code>, 10.5.2 <code class='nw'>-ea</code> with a 10.x-API copy). For releases before 10.4 the test needs that release's default codec class; the follow-up's era-adapted repros cover 7.7.0 to 9.12.3.</p><div class="hd hd-3"><h3 id='code-2-h'>The recommended fix with the test: fix-with-test.diff</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The recommended fix with the test: fix-with-test.diff</span><span class='meta'>192 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldPostingsFormat.java b/lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldPostingsFormat.java
+index 7bff4d019c9..d0cd64db4ba 100644
+--- a/lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldPostingsFormat.java
++++ b/lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldPostingsFormat.java
+@@ -19,7 +19,6 @@ package org.apache.lucene.codecs.perfield;
+ import java.io.Closeable;
+ import java.io.IOException;
+ import java.util.ArrayList;
+-import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.HashMap;
+ import java.util.HashSet;
+@@ -27,7 +26,6 @@ import java.util.IdentityHashMap;
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
+-import java.util.Objects;
+ import java.util.ServiceLoader;
+ import java.util.Set;
+ import java.util.TreeMap;
+@@ -45,7 +43,6 @@ import org.apache.lucene.index.SegmentReadState;
+ import org.apache.lucene.index.SegmentWriteState;
+ import org.apache.lucene.index.Terms;
+ import org.apache.lucene.util.IOUtils;
+-import org.apache.lucene.util.MergedIterator;
+ 
+ /**
+  * Enables per field postings support.
+@@ -169,15 +166,17 @@ public abstract class PerFieldPostingsFormat extends PostingsFormat {
+ 
+     @Override
+     public void merge(MergeState mergeState, NormsProducer norms) throws IOException {
+-      @SuppressWarnings(&quot;unchecked&quot;)
+-      Iterable&lt;String&gt; indexedFieldNames =
+-          () -&gt;
+-              new MergedIterator&lt;&gt;(
+-                  true,
+-                  Arrays.stream(mergeState.fieldsProducers)
+-                      .filter(Objects::nonNull)
+-                      .map(FieldsProducer::iterator)
+-                      .toArray(Iterator[]::new));
++      // Assign a format to every indexed field of the merged segment, not only to the fields the
++      // source postings readers list: the merged FieldInfos inherit the source attributes, so a
++      // field left out here (for example one whose postings a non-per-field format dropped) would
++      // keep attributes that name files this merge never writes. Sorted for a stable suffix order.
++      List&lt;String&gt; indexedFieldNames = new ArrayList&lt;&gt;();
++      for (FieldInfo fi : mergeState.mergeFieldInfos) {
++        if (fi.getIndexOptions() != IndexOptions.NONE) {
++          indexedFieldNames.add(fi.name);
++        }
++      }
++      indexedFieldNames.sort(null);
+       Map&lt;PostingsFormat, FieldsGroup&gt; formatToGroups = buildFieldsGroupMapping(indexedFieldNames);
+ 
+       // Merge postings
+diff --git a/lucene/core/src/test/org/apache/lucene/codecs/perfield/TestPerFieldPostingsMergeStaleAttributes.java b/lucene/core/src/test/org/apache/lucene/codecs/perfield/TestPerFieldPostingsMergeStaleAttributes.java
+new file mode 100644
+index 00000000000..5c8a7da152b
+--- /dev/null
++++ b/lucene/core/src/test/org/apache/lucene/codecs/perfield/TestPerFieldPostingsMergeStaleAttributes.java
+@@ -0,0 +1,131 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the &quot;License&quot;); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.codecs.perfield;
++
++import java.io.IOException;
++import org.apache.lucene.codecs.Codec;
++import org.apache.lucene.codecs.PostingsFormat;
++import org.apache.lucene.codecs.lucene104.Lucene104Codec;
++import org.apache.lucene.codecs.simpletext.SimpleTextCodec;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.Field;
++import org.apache.lucene.document.StoredField;
++import org.apache.lucene.document.StringField;
++import org.apache.lucene.index.DirectoryReader;
++import org.apache.lucene.index.IndexWriter;
++import org.apache.lucene.index.IndexWriterConfig;
++import org.apache.lucene.index.Term;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.util.LuceneTestCase;
++
++/**
++ * A field whose documents were all deleted inside a segment written by a codec whose postings
++ * format is not per-field keeps the per-field postings attributes it inherited. A later per-field
++ * merge does not rewrite them, so the merged segment names postings files that were never written
++ * and cannot be opened.
++ */
++public class TestPerFieldPostingsMergeStaleAttributes extends LuceneTestCase {
++
++  /** The default codec, except that field &quot;tag&quot; uses its own postings format (FST50). */
++  private static Codec tagUsesFst50() {
++    return new Lucene104Codec() {
++      final PostingsFormat fst50 = PostingsFormat.forName(&quot;FST50&quot;);
++
++      @Override
++      public PostingsFormat getPostingsFormatForField(String field) {
++        return field.equals(&quot;tag&quot;) ? fst50 : super.getPostingsFormatForField(field);
++      }
++    };
++  }
++
++  private static Document doc(String id, String tag) {
++    Document doc = new Document();
++    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
++    if (tag != null) {
++      doc.add(new StringField(&quot;tag&quot;, tag, Field.Store.NO));
++    }
++    return doc;
++  }
++
++  private static IndexWriter writer(Directory dir, Codec codec) throws IOException {
++    return new IndexWriter(dir, new IndexWriterConfig().setCodec(codec));
++  }
++
++  /** Three writer sessions; the middle one uses a codec whose postings format is not per-field. */
++  private void deleteTagInMiddleSessionThenMerge(Codec middle) throws IOException {
++    try (Directory dir = newDirectory()) {
++      // Session 1: per-field codec; doc 0 has &quot;tag&quot; (written as FST50, suffix 0), doc 1 has not.
++      try (IndexWriter w = writer(dir, tagUsesFst50())) {
++        w.addDocument(doc(&quot;0&quot;, &quot;t&quot;));
++        w.addDocument(doc(&quot;1&quot;, null));
++      }
++      // Session 2: delete the only doc with &quot;tag&quot;, add a doc and merge: no &quot;tag&quot; postings are left,
++      // but the merged FieldInfos still say tag = FST50, suffix 0.
++      try (IndexWriter w = writer(dir, middle)) {
++        w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;));
++        w.addDocument(doc(&quot;2&quot;, null));
++        w.forceMerge(1);
++      }
++      // Session 3: the per-field codec again. Add a doc and merge everything.
++      try (IndexWriter w = writer(dir, tagUsesFst50())) {
++        w.addDocument(doc(&quot;3&quot;, null));
++        w.forceMerge(1);
++      }
++      // Every call returned normally, so the committed index must open.
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        assertEquals(3, r.numDocs());
++        assertEquals(0, r.docFreq(new Term(&quot;tag&quot;, &quot;t&quot;)));
++      }
++    }
++  }
++
++  public void testFieldWithOwnFormatDeletedInSimpleTextSegment() throws Exception {
++    deleteTagInMiddleSessionThenMerge(new SimpleTextCodec());
++  }
++
++  /** Not specific to SimpleText: the test framework&#x27;s CheapBastard codec has a plain format too. */
++  public void testFieldWithOwnFormatDeletedInPlainPostingsSegment() throws Exception {
++    deleteTagInMiddleSessionThenMerge(Codec.forName(&quot;CheapBastard&quot;));
++  }
++
++  /** The stock default codec only: the final merge has no indexed field left to write. */
++  public void testDefaultCodecNoIndexedFieldLeft() throws Exception {
++    try (Directory dir = newDirectory()) {
++      try (IndexWriter w = writer(dir, new Lucene104Codec())) {
++        Document doc = new Document();
++        doc.add(new StringField(&quot;tag&quot;, &quot;t&quot;, Field.Store.NO));
++        w.addDocument(doc);
++        doc = new Document();
++        doc.add(new StoredField(&quot;s&quot;, &quot;kept&quot;));
++        w.addDocument(doc);
++      }
++      try (IndexWriter w = writer(dir, new SimpleTextCodec())) {
++        w.deleteDocuments(new Term(&quot;tag&quot;, &quot;t&quot;));
++        w.forceMerge(1);
++      }
++      try (IndexWriter w = writer(dir, new Lucene104Codec())) {
++        Document doc = new Document();
++        doc.add(new StoredField(&quot;s&quot;, &quot;added&quot;));
++        w.addDocument(doc);
++        w.forceMerge(1);
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        assertEquals(2, r.numDocs());
++      }
++    }
++  }
++}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestPerFieldPostingsWrapperRoute.java (core, 2 tests: the reader-wrapper route)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestPerFieldPostingsWrapperRoute.java (core, 2 tests: the reader-wrapper route)</span><span class='meta'>212 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.codecs.perfield;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.FieldsProducer;
+import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.codecs.lucene104.Lucene104Codec;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.CodecReader;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FilterCodecReader;
+import org.apache.lucene.index.FilterMergePolicy;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.SegmentCommitInfo;
+import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TieredMergePolicy;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Probe of the reader-wrapper route: a per-field postings codec in every writer session, and a
+ * merge source (addIndexes(CodecReader) or OneMerge.wrapForMerge) whose postings view omits an
+ * indexed field while its FieldInfos keep that field with its per-field attributes.
+ */
+public class TestPerFieldPostingsWrapperRoute extends LuceneTestCase {
+
+  /** The field whose postings the wrapper hides; &quot;-Dprobe.hidden=none&quot; gives the control. */
+  static final String HIDDEN = System.getProperty(&quot;probe.hidden&quot;, &quot;tag&quot;);
+
+  private static Codec tagUsesFst50() {
+    return new Lucene104Codec() {
+      final PostingsFormat fst50 = PostingsFormat.forName(&quot;FST50&quot;);
+
+      @Override
+      public PostingsFormat getPostingsFormatForField(String field) {
+        return field.equals(&quot;tag&quot;) ? fst50 : super.getPostingsFormatForField(field);
+      }
+    };
+  }
+
+  private static Document doc(String id, String tag) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    if (tag != null) {
+      doc.add(new StringField(&quot;tag&quot;, tag, Field.Store.NO));
+    }
+    return doc;
+  }
+
+  /** Postings view without {@code hidden}; FieldInfos unchanged. */
+  static FieldsProducer hide(FieldsProducer in, String hidden) {
+    List&lt;String&gt; names = new ArrayList&lt;&gt;();
+    for (String f : in) {
+      if (f.equals(hidden) == false) {
+        names.add(f);
+      }
+    }
+    return new FieldsProducer() {
+      @Override
+      public Iterator&lt;String&gt; iterator() {
+        return names.iterator();
+      }
+
+      @Override
+      public Terms terms(String field) {
+        return field.equals(hidden) ? null : in.terms(field);
+      }
+
+      @Override
+      public int size() {
+        return names.size();
+      }
+
+      @Override
+      public void close() {}
+
+      @Override
+      public void checkIntegrity(MergePolicy.OneMerge merge) throws IOException {
+        in.checkIntegrity(merge);
+      }
+
+      @Override
+      public FieldsProducer getMergeInstance() {
+        return hide(in.getMergeInstance(), hidden);
+      }
+    };
+  }
+
+  static CodecReader hidePostings(CodecReader reader, String hidden) {
+    return new FilterCodecReader(reader) {
+      @Override
+      public FieldsProducer getPostingsReader() {
+        return hide(in.getPostingsReader(), hidden);
+      }
+
+      @Override
+      public CacheHelper getCoreCacheHelper() {
+        return null;
+      }
+
+      @Override
+      public CacheHelper getReaderCacheHelper() {
+        return null;
+      }
+    };
+  }
+
+  /** Wraps every forced merge so that its sources hide the postings of &quot;tag&quot;. */
+  static final class HidingMergePolicy extends FilterMergePolicy {
+    HidingMergePolicy(MergePolicy in) {
+      super(in);
+    }
+
+    @Override
+    public MergeSpecification findForcedMerges(
+        SegmentInfos infos,
+        int maxSegmentCount,
+        Map&lt;SegmentCommitInfo, Boolean&gt; segmentsToMerge,
+        MergeContext ctx)
+        throws IOException {
+      MergeSpecification spec = super.findForcedMerges(infos, maxSegmentCount, segmentsToMerge, ctx);
+      if (spec == null) {
+        return null;
+      }
+      MergeSpecification out = new MergeSpecification();
+      for (OneMerge m : spec.merges) {
+        out.add(
+            new OneMerge(m.segments) {
+              @Override
+              public CodecReader wrapForMerge(CodecReader reader) {
+                return hidePostings(reader, HIDDEN);
+              }
+            });
+      }
+      return out;
+    }
+  }
+
+  /** addIndexes(CodecReader) with a source whose postings view hides &quot;tag&quot;. */
+  public void testAddIndexesWrapperHidesPostings() throws Exception {
+    try (Directory src = newDirectory();
+        Directory dst = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(src, new IndexWriterConfig().setCodec(tagUsesFst50()))) {
+        w.addDocument(doc(&quot;0&quot;, &quot;t&quot;));
+        w.addDocument(doc(&quot;1&quot;, null));
+        w.forceMerge(1);
+      }
+      try (DirectoryReader r = DirectoryReader.open(src);
+          IndexWriter w = new IndexWriter(dst, new IndexWriterConfig().setCodec(tagUsesFst50()))) {
+        List&lt;CodecReader&gt; wrapped = new ArrayList&lt;&gt;();
+        for (LeafReaderContext ctx : r.leaves()) {
+          wrapped.add(hidePostings((CodecReader) ctx.reader(), HIDDEN));
+        }
+        w.addIndexes(wrapped.toArray(new CodecReader[0]));
+        w.commit();
+      }
+      try (DirectoryReader r = DirectoryReader.open(dst)) {
+        assertEquals(2, r.numDocs());
+        assertEquals(HIDDEN.equals(&quot;tag&quot;) ? 0 : 1, r.docFreq(new Term(&quot;tag&quot;, &quot;t&quot;)));
+      }
+    }
+  }
+
+  /** A merge policy whose OneMerge.wrapForMerge hides &quot;tag&quot; postings; per-field codec throughout. */
+  public void testWrapForMergeHidesPostings() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig()
+              .setCodec(tagUsesFst50())
+              .setMergePolicy(new HidingMergePolicy(new TieredMergePolicy()));
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.addDocument(doc(&quot;0&quot;, &quot;t&quot;));
+        w.addDocument(doc(&quot;1&quot;, null));
+        w.commit();
+        w.addDocument(doc(&quot;2&quot;, null));
+        w.commit();
+        w.forceMerge(1);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(3, r.numDocs());
+        assertEquals(HIDDEN.equals(&quot;tag&quot;) ? 0 : 1, r.docFreq(new Term(&quot;tag&quot;, &quot;t&quot;)));
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle): 3 of 3 fail; 10.5.2 release jars: 3 of 3 fail; every executed release from 7.7.0 is affected</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at a9779ef3c193 (or a later main where PerFieldPostingsFormat.java is unchanged)
+cp $REPRO/TestPerFieldPostingsMergeStaleAttributes.java lucene/core/src/test/org/apache/lucene/codecs/perfield/
+./gradlew :lucene:core:test --tests org.apache.lucene.codecs.perfield.TestPerFieldPostingsMergeStaleAttributes -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (the same 3 failures)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF -Ptests.asserts=true (identical with false); traces trimmed
+TestPerFieldPostingsMergeStaleAttributes &gt; testFieldWithOwnFormatDeletedInSimpleTextSegment FAILED
+    org.apache.lucene.index.CorruptIndexException: Problem reading index from MockDirectoryWrapper(...)
+        Caused by:
+        java.io.FileNotFoundException: No sub-file with id _FST50_0.psm found in compound file &quot;_4.cfs&quot; (fileName=_4_FST50_0.psm files: [_Lucene104_0.doc, _Lucene104_0.tim, .fnm, .fdm, .fdx, _Lucene104_0.tip, _Lucene104_0.tmd, _Lucene104_0.psm, .fdt])
+            at org.apache.lucene.codecs.memory.FSTPostingsFormat.fieldsProducer(FSTPostingsFormat.java:56)
+            at org.apache.lucene.codecs.perfield.PerFieldPostingsFormat$FieldsReader.&lt;init&gt;(PerFieldPostingsFormat.java:316)
+TestPerFieldPostingsMergeStaleAttributes &gt; testDefaultCodecNoIndexedFieldLeft FAILED
+    org.apache.lucene.index.CorruptIndexException: Problem reading index from MockDirectoryWrapper(...)
+        Caused by:
+        java.io.FileNotFoundException: No sub-file with id _Lucene104_0.psm found in compound file &quot;_3.cfs&quot; (fileName=_3_Lucene104_0.psm files: [.fnm, .fdx, .fdt, .fdm])
+TestPerFieldPostingsMergeStaleAttributes &gt; testFieldWithOwnFormatDeletedInPlainPostingsSegment FAILED
+    (the same cause: No sub-file with id _FST50_0.psm found in compound file &quot;_4.cfs&quot;)
+3 tests completed, 3 failed
+
+# repro harness: main a9779ef3c193 -ea and -da 3/3 fail; 10 random-seed iterations 30/30 fail; 10.5.2 release jars -ea and -da 3/3 fail
+# with the fix: 3/3 pass (gradle, assertions on and off; harness -ea and -da)
+# wrapper probe (harness): main -ea and -da 2/2 fail (missing _0_FST50_0.psm via addIndexes, _2_FST50_0.psm via wrapForMerge); 10.5.2 -ea 2/2 fail; wrapper hiding nothing 2/0; with the fix 2/0 (-ea, -da)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc says the field-to-format mapping "is written to the index" and read back; here it names files that were never written.</li><li>Codecs may change per writer session; Lucene's own <code class='nw'>TestMixedCodecs</code> mixes SimpleText into default-codec indexes on purpose.</li><li>The doc-values and vectors merges rewrite every field; the vectors analogue was fixed as a bug (LUCENE-9992).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>264 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>getPostingsFormatForField</code>: "The field to format mapping is written to the index, so this method is only invoked when writing, not when reading." (<code>PerFieldPostingsFormat.java:379-385</code>). The attributes are the reader's only routing record.</li><li><strong>Codecs may differ per session.</strong> <code>IndexWriterConfig.setCodec</code>: "Only takes effect when IndexWriter is first created." (<code>IndexWriterConfig.java:292-297</code>). <code class='nw'>TestMixedCodecs</code> sets SimpleText on random writer sessions ("Make sure we aggressively mix in SimpleText since it has different impls for all codec formats", <code>TestMixedCodecs.java:49-52</code>), but its only field never loses all of its documents. The test framework picks <code class='nw'>SimpleTextCodec</code> or <code>CheapBastardCodec</code> as a test's random default codec (<code>SetupAndRestoreStaticEnv.java:185-197</code>).</li><li><strong>Nothing requires per-field postings.</strong> The codecs package documentation describes writing a full custom codec as well as extending the default codec via <code>getPostingsFormatForField</code> (<code>codecs/package-info.java:40-64</code>).</li><li><strong>The sibling merges handle this case.</strong> Doc values and vectors iterate <code class='nw'>mergeFieldInfos</code>; LUCENE-9992 (#11031, a deleted-away vector field kept its FieldInfo with no vector files) and LUCENE-10228 (PR #432, an inherited per-field suffix in the vectors merge) were fixed as bugs, for vectors only.</li><li><strong>History.</strong> Before 7.7.0, merged FieldInfos started with empty attributes, so such a field had no note and the reader skipped it. LUCENE-8601 made them inherit attributes and turned the per-field formats' "found existing value" checks into overwrites; its thread (#9647) says the formats "expect it to be null and generate new values during merge" and does not discuss fields the postings merge never visits (our reading).</li><li>No test, CHANGES or MIGRATE entry, javadoc or discussion accepts the behaviour (the intended-behaviour check's 40 intent queries; the follow-up's 115 queries).</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>276 words</span></summary><div class='body'><p>The strongest case for "intended or unsupported": <code class='nw'>SimpleTextCodec</code> is "FOR RECREATIONAL USE ONLY" and <code>@lucene.experimental</code>, so mixing it into a production index is unsupported; <code>PerFieldPostingsFormat</code> is itself <code>@lucene.experimental</code> (<code>PerFieldPostingsFormat.java:63</code>), its two attributes are private codec bookkeeping, and nothing promises that any codecs can be alternated or that a wrapper's postings may disagree with its <code class='nw'>FieldInfos</code>; <code>FieldInfo.putAttribute</code> says that "If the value of the attributes for a same field is changed between the documents, the behaviour after merge is undefined" (<code>FieldInfo.java:669-671</code>); and the finder's first repro uses an anonymous <code class='nw'>FilterCodec</code> that borrows the default codec's name, although <code class='nw'>FilterCodec</code> asks for "a unique name" (<code>FilterCodec.java:53</code>).</p><p>Why it fails: the recreational and experimental labels bound the support promise, not the outcome: every writer call succeeds and commits a segment that the same codec cannot read, and the reader already has a representation for an indexed field without postings, no note (<code class='nw'>:305</code>), which the merge could write. SimpleText is not needed: the test framework's <code class='nw'>CheapBastard</code> codec and a uniquely named custom codec with a plain postings format fail the same way. The <code class='nw'>putAttribute</code> sentence covers conflicting values for one field; here the value never changes and only one source segment carries the field. This doc's test uses a <code class='nw'>Lucene104Codec</code> subclass, the documented extension point, with no name trick. Every verifier rejected the intended reading; the intended-behaviour check and the cross-model reviews rated it weak (the independent reproduction gave no rating), and a later cross-model fact check of this doc rated it moderate and still judged it a bug. What partly survives is reach: a maintainer may call it low priority.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Merge every indexed field of mergeFieldInfos (validated)</strong></p><p class='short'>Build the merge's field list from <code>mergeState.mergeFieldInfos</code> (every indexed field, sorted by name), as the doc-values merge does, instead of from the source readers (+11/-12 lines, one file). With it the repro and the whole lucene/core (8,892 tests), lucene/codecs and lucene/backward-codecs suites pass.</p><pre class='snippet' tabindex='0'><code>// Assign a format to every indexed field of the merged segment, not only to the fields the
+// source postings readers list: the merged FieldInfos inherit the source attributes, so a
+// field left out here (for example one whose postings a non-per-field format dropped) would
+// keep attributes that name files this merge never writes. Sorted for a stable suffix order.
+List&lt;String&gt; indexedFieldNames = new ArrayList&lt;&gt;();
+for (FieldInfo fi : mergeState.mergeFieldInfos) {
+  if (fi.getIndexOptions() != IndexOptions.NONE) {
+    indexedFieldNames.add(fi.name);
+  }
+}
+indexedFieldNames.sort(null);
+Map&lt;PostingsFormat, FieldsGroup&gt; formatToGroups = buildFieldsGroupMapping(indexedFieldNames);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 678 words</span></summary><div class='body'><p>One fix was built and validated on a scratch worktree of main <code class='nw'>a9779ef3c193</code>; three alternatives are listed with their trade-offs.</p><p><strong>Workaround until fixed:</strong> keep every writer session of a per-field index on a per-field postings codec, and do not wrap merge sources so that their postings leave out an indexed field. No workaround was tested for an index that already holds a plain-postings segment: any later per-field merge of it can hit the bug, also with the default codec alone. Reindexing with a per-field codec avoids it; <code class='nw'>CheckIndex</code> only detects it after the merge was committed.</p><div class="hd hd-3"><h3 id='fix-merge-field-infos'>Merge every indexed field of mergeFieldInfos (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-merge-field-infos" target="_self" aria-label="Link to this section" aria-describedby="fix-merge-field-infos"><span aria-hidden="true">#</span></a></div><p>In <code>PerFieldPostingsFormat.FieldsWriter.merge</code>, replace the <code class='nw'>MergedIterator</code> over the source readers' iterators (<code>PerFieldPostingsFormat.java:171-181</code>) with the merged segment's indexed fields, so <code>buildFieldsGroupMapping</code> writes a current format and suffix for every one of them. This is the rule <code>PerFieldDocValuesFormat.merge</code> already follows (<code class='nw'>:135-140</code>). The now-unused imports <code class='nw'>Arrays</code>, <code class='nw'>Objects</code> and <code class='nw'>MergedIterator</code> go.</p><pre class='snippet' tabindex='0'><code>// Assign a format to every indexed field of the merged segment, not only to the fields the
+// source postings readers list: the merged FieldInfos inherit the source attributes, so a
+// field left out here (for example one whose postings a non-per-field format dropped) would
+// keep attributes that name files this merge never writes. Sorted for a stable suffix order.
+List&lt;String&gt; indexedFieldNames = new ArrayList&lt;&gt;();
+for (FieldInfo fi : mergeState.mergeFieldInfos) {
+  if (fi.getIndexOptions() != IndexOptions.NONE) {
+    indexedFieldNames.add(fi.name);
+  }
+}
+indexedFieldNames.sort(null);
+Map&lt;PostingsFormat, FieldsGroup&gt; formatToGroups = buildFieldsGroupMapping(indexedFieldNames);</code></pre><p class='k'>Trade-offs</p><ul><li>A field with no postings left joins its format's group, which is written (the independent reproduction's fix check: <code class='nw'>_4_FST50_0.*</code> exists, <code class='nw'>CheckIndex</code> clean); the field reads as absent. A format whose only fields were deleted away therefore gets a file group with no terms: a few small files. That a group with no terms is written and readable was shown for <code class='nw'>FST50</code> and <code class='nw'>Lucene104</code>; a custom postings format would need the same check.</li><li>Suffix numbers can differ from today's when such a field sorts between others; deterministic either way, and every field's attributes are rewritten.</li><li>Cost: one pass over the merged <code class='nw'>FieldInfos</code>. Not benchmarked.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, <code>-Ptests.seed=DEADBEEF</code>: the new test 3/3 with assertions on and off, 30/30 over 10 random-seed iterations; the closest suites (<code>codecs.perfield.*</code>, <code class='nw'>TestMixedCodecs</code>, <code class='nw'>TestAddIndexes</code>, <code>TestSegmentMerger</code>, <code>TestIndexWriterMerging</code>, <code>TestIndexWriterForceMerge</code>, <code class='nw'>TestFieldInfos</code>) 317 tests, 0 failures (17 skipped), assertions on and off.</li><li>With assertions on only: the whole <code>:lucene:core:test</code> suite with the new test, 8,892 tests, 0 failures (322 skipped); <code>:lucene:codecs:test</code> 693 tests (78 skipped) and <code>:lucene:backward-codecs:test</code> 2,339 tests (184 skipped), 0 failures; <code>:lucene:core:check -x test</code> (google-java-format, ecjLint, forbiddenApis) passes.</li><li>Repro harness with the fix shadowed on <code class='nw'>a9779ef3c193</code>: this test 3/0 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), the finder's repro 2/0, the independent reproduction's <code class='nw'>Lucene104Codec</code>-subclass test 1/0, the reader-wrapper probe 2/0 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>). Earlier, on <code class='nw'>ea57360912ed</code>: the finder's exhaustive harness T6 and T6b went from 1716 failures each to 0.</li></ul><div class="hd hd-3"><h3 id='fix-clear-unassigned'>Clear the attributes of indexed fields the merge does not assign</h3><a class="hlink" href="#fix-clear-unassigned" target="_self" aria-label="Link to this section" aria-describedby="fix-clear-unassigned"><span aria-hidden="true">#</span></a></div><p>Keep the reader-derived field list and remove the two attributes from every other indexed field of the merged segment. This writes the reader's own representation of an indexed field without postings, no note ("null formatName means the field is in fieldInfos, but has no postings!", <code class='nw'>:305</code>), and creates no empty file groups.</p><p class='k'>Trade-offs</p><p>Does not depend on how each format writes a group with no terms, and a maintainer may well prefer it; but <code class='nw'>FieldInfo</code> has no way to remove an attribute, so it needs a new internal API. Not run.</p><div class="hd hd-3"><h3 id='fix-tolerant-reader'>Let FieldsReader skip groups whose files are missing</h3><a class="hlink" href="#fix-tolerant-reader" target="_self" aria-label="Link to this section" aria-describedby="fix-tolerant-reader"><span aria-hidden="true">#</span></a></div><p>Open a group only if its files exist.</p><p class='k'>Trade-offs</p><p>Hides real corruption, and leaves wrong notes in the index. Not recommended. Not run.</p><div class="hd hd-3"><h3 id='fix-revert-carry-over'>Drop per-field attributes from merged FieldInfos (revert the LUCENE-8601 carry-over)</h3><a class="hlink" href="#fix-revert-carry-over" target="_self" aria-label="Link to this section" aria-describedby="fix-revert-carry-over"><span aria-hidden="true">#</span></a></div><p>Merged <code class='nw'>FieldInfos</code> start with no codec attributes again, as before 7.7.0.</p><p class='k'>Trade-offs</p><p>7.7.0 with that hunk reverted passes the repro, but the carry-over is intended and documented since 9.0 and user attributes rely on it. Not recommended.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream relevance: a service is exposed only if an operator can switch an index to a plain-postings codec (for example Solr's <code>SimpleTextCodecFactory</code>, documented as never for production) or its own code wraps merge readers so that a field's postings are hidden. It fails closed: the index stops opening, with no wrong results.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Semi-formal. An AI tool modelled how per-field postings attributes travel through merges and saw the gap; a bounded-exhaustive harness on the real <code class='nw'>IndexWriter</code> then failed in exactly the cases the model predicted: 1,716 of 10,935 in the "per-field, SimpleText with deletes, per-field" template and 1,716 of 5,832 in its <code>addIndexes(CodecReader)</code> variant. No model checker or proof.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>184 words</span></summary><div class='body'><p>The hunt's hunt unit on per-field formats built a bounded-exhaustive translation-validation harness (<code>TestH58PerFieldExhaustive</code>) on the stock main jars: real <code class='nw'>IndexWriter</code> and codecs, 3 postings, 3 doc-values and 3 vector fields, 3 format slots per field (two instances of the default format and one with another name) and 8 writer-session templates T1-T7 and T6b (remaps, deletes, <code class='nw'>addIndexes</code>, doc-values updates, NRT, mixed codecs).</p><p>While writing the harness's attribute-bookkeeping model (merge field set = the source postings readers' fields; merged FieldInfos = union of the source attributes), the AI tool saw that a field outside the merge field set keeps an inherited format and suffix. The run then confirmed it: template T6 (per-field, then SimpleText with deletes and a merge, then a per-field merge) failed 1,716 of 10,935 cases, and T6b (the same through <code>addIndexes(CodecReader)</code>) 1,716 of 5,832; every failure was predicted and every predicted case failed; the other 6 templates had 0 failures. The reader-wrapper route was found later, by the cross-model fact check of this doc reading the code, and then executed. No model checker, SMT solver or prover was involved.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (115 logged queries of GitHub, JIRA, five mailing lists, downstream projects and the web, 2026-10-26). Closest: LUCENE-9992 and LUCENE-10228 fixed the same kind of mistake for vectors in 2021; LUCENE-8601 introduced this one.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p><strong>Verdict: new</strong> (no report of the same bug, by anyone). Not fixed upstream: no commit has touched <code>PerFieldPostingsFormat.java</code> since <code class='nw'>b6ca26f1212</code> (2026-06-30), and none of the 412 open PRs touches it.</p><p>Closest items, worth citing as precedent: <strong>#11031 / LUCENE-9992</strong> (vectors: a deleted-away field kept its FieldInfo after a merge with no vector files written), <strong>PR #432 / LUCENE-10228</strong> (the vectors merge read an inherited per-field suffix), <strong>#9098 / LUCENE-8050</strong> (the doc-values merge iterates <code class='nw'>mergeFieldInfos</code>). Context: <strong>#9647 / LUCENE-8601</strong> (introduced the carry-over), <strong>#8508 / LUCENE-7456</strong> (the producer-driven postings merge, 2016), <strong>#11393 / LUCENE-10357</strong> (ghost fields), <strong>LUCENE-7562</strong> (same delete-merge-add-merge shape, another root cause), <strong>#11327 / LUCENE-10291</strong>, <strong>#13353</strong> (same missing-file symptom from <code class='nw'>IndexingChain</code>).</p><p>Gaps: two manual GitHub queries hit GitHub's search rate limit and one was not retried (its terms are covered by other queries); one web query was throttled; the list search matches whole words only; private reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene and downstream projects)</th><td class='when'>2026-10-26</td><td>two automated runs plus manual searches: PerFieldPostingsFormat attributes, stale per-field suffix, SimpleText forceMerge FileNotFoundException, the attribute keys, the LUCENE-8601 TODO</td><td>no report; precedent LUCENE-9992 and LUCENE-10228 (vectors)</td></tr><tr><th scope='row'>Open PRs (apache/lucene)</th><td class='when'>2026-10-26</td><td>the changed files of all 412 open PRs</td><td>none touches PerFieldPostingsFormat.java</td></tr><tr><th scope='row'>JIRA archive (LUCENE, SOLR)</th><td class='when'>2026-10-26</td><td>JQL and the old keys LUCENE-7456, 8050, 8601, 9992, 10228, 10291, 10357, 7562, each read</td><td>no report</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@, builds@)</th><td class='when'>2026-10-26</td><td>symptom strings and attribute keys</td><td>no report</td></tr><tr><th scope='row'>Web and git history</th><td class='when'>2026-10-26</td><td>8 web searches; git log of PerFieldPostingsFormat.java and PerFieldDocValuesFormat.java; -S for the TODO</td><td>no report; only LUCENE-8601 matched the TODO</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 7.7.0 by LUCENE-8601 (2019), which made merged FieldInfos keep the source attributes: 7.6.0 passes, 7.7.0 fails, and 7.7.0 with only that hunk reverted passes. Every executed release from 7.7.0 to 10.5.2 and main fails. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-8601 "Adding attributes to IndexFieldType" (now #9647; a JIRA patch series, no pull request; patch by @muralikpbhat, committed by @mikemccand): master <code class='nw'>63dfba4c7d81</code> (2019-01-03, first released in 8.0.0) and branch_7x <code class='nw'>e8bfa6771636</code> (2019-01-04), first released in 7.7.0 (2019-02-11). <code>FieldInfos.Builder.add</code> started passing <code class='nw'>fi.attributes()</code> where 7.6.0 used an empty map, and the per-field formats' "found existing value" checks became plain overwrites. The producer-driven field list is older (LUCENE-7456, <code class='nw'>796ed508f39</code>, 2016) and was harmless while merged attributes were dropped.</p><p><strong>Later:</strong> LUCENE-9334 (<code class='nw'>d03662c48bf</code>, 9.0) rewrote <code class='nw'>Builder.add</code> and documented the carry-over; #13331 (thread-safe attribute updates in <code class='nw'>FieldInfo</code>) and #15457 (attribute-map handling) changed the surrounding code and kept the carry-over. So the fix belongs in the postings merge, not in <code class='nw'>FieldInfos</code>.</p><p>All runs on Linux aarch64 with JDK 25.0.3; release jars from Maven Central, SHA-1 checked.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 3 of 3 fail (gradle and harness, assertions on and off; 30/30 over random seeds); the reader-wrapper probe 2 of 2 (-ea, -da)</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 3 of 3 fail (-ea and -da); the finder's test 2 of 2; the reader-wrapper probe 2 of 2 (-ea)</td></tr><tr><th scope='row'>7.7.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's era-adapted JUnit fails 2 of 2 (missing per-field postings files: <code class='nw'>.doc</code> in the 7.7.0, 8.11.4 and 9.0.0 runs)</td></tr><tr><th scope='row'>7.7.0 with only the LUCENE-8601 carry-over hunk reverted</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> bisect</span></td><td>passes 2 of 2</td></tr><tr><th scope='row'>6.6.6, 7.5.0, 7.6.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the index opens; the SimpleText segment has no per-field attributes</td></tr><tr><th scope='row'>fix on main <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the test 3/3, lucene/core 8,892 tests, lucene/codecs and lucene/backward-codecs pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's-advocate checker, an adjudication and an audit confirmed it with their own runs; OpenAI GPT-5.6 reviews (reading only) agreed on the root cause. This doc re-ran it on <code class='nw'>a9779ef3c193</code> and validated the fix; its fact checks added the reader-wrapper route, executed.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>438 words</span></summary><div class='body'><p>The verifier checks ran on main <code class='nw'>ea57360912ed</code>; this doc and the main-refresh re-runs used <code class='nw'>a9779ef3c193</code> (none of the 7 commits in between touches the files involved). The GPT-5.6 reviews ran reading only, because their runner could not execute code.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Exhaustive harness: T6 1,716/10,935 and T6b 1,716/5,832 failures, all predicted; JUnit fails 2/2 on main (-ea, -da), 10.5.2, 9.12.3, 8.11.4, 7.7.3, 7.7.0; passes on 7.6.0; the fix turns T6/T6b to 0.</td></tr><tr><th scope='row'>review (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Trigger legal, root cause agrees, fix plausible, intended reading weak; its corrections (the 'not a written group' condition, wording, unused imports) were taken.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own tests fail on main (-ea, -da), 10.5.2 and 9.12.3, 20/20 over random seeds; the Lucene104Codec-subclass variant shows tag={format=FST50, suffix=0} with only _4_Lucene104_0.* files; 3 controls pass 30/30; the fix turns every test green.</td></tr><tr><th scope='row'>Root-cause review (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Root cause agrees, fix plausible. The refute and works-as-designed lenses returned no verdict. The cross-model review stage re-ran the repro itself: 2/2 fail, 2/2 pass with the fix.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, intended reading weak</span></td><td>Public-API main() on FSDirectory fails for three mappings; reproduced without SimpleText through an SPI-registered custom codec with a plain postings format; 40 intent queries found no by-design discussion.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction (fresh seed, -ea and -da), the intended-behaviour check's custom codec (-da), the controls (pass) and the fix (pass).</td></tr><tr><th scope='row'>History follow-up</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> introduced in 7.7.0</span></td><td>Fails on 8 releases from 7.7.0 to 10.5.2 and on main; passes on 6.6.6, 7.5.0, 7.6.0; 7.7.0 with only the carry-over hunk reverted passes.</td></tr><tr><th scope='row'>Security screen</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not security-sensitive</span></td><td>Executed probe: fails closed (no hang, no wrong hits, no data exposure); operator-only trigger, out of scope of SECURITY.md.</td></tr><tr><th scope='row'>Main refresh</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>The finder's test (-ea, -da) and the independent reproduction's Lucene104Codec-subclass test fail on a9779ef3c193 as on ea57360912ed.</td></tr><tr><th scope='row'>This doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced on a9779ef3c193; fix validated</span></td><td>New 3-test JUnit: 3/3 fail through gradle (assertions on and off), 30/30 over random seeds, 3/3 on 10.5.2; with the fix 3/3 pass and the lucene/core, lucene/codecs and lucene/backward-codecs suites pass.</td></tr><tr><th scope='row'>Fact checks of this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> no error in the mechanism; corrections taken</span></td><td>An independent re-run (main -ea/-da, 10.5.2, the fix) found no error. A cross-model fact check (OpenAI GPT-5.6, reading only) found that a merge-reader wrapper reaches the bug with per-field codecs throughout; executed: 2/2 fail on main and 10.5.2, 2/0 hiding nothing, 2/0 with the fix. Its other corrections (suffix order, workaround, template count, wording) were taken.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-280/bug.png' download='perfield-postings-merge-stale-inherited-attributes-bug.png' target='_self'>PNG</a> <span class='n'>526 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,338 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-280, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>PerFieldPostingsFormat merge leaves stale inherited format attributes on a field that has no postings left after a segment written by a non-per-field postings codec (for example SimpleTextCodec), so the merged segment cannot be opened</dd></div><div><dt>Area</dt><dd>codecs / per-field postings format merge (PerFieldPostingsFormat attribute bookkeeping)</dd></div><div><dt>Priority</dt><dd>Medium, rank 153: Like LFV-199, a commit cannot be opened, here after a merge that mixes in a non-per-field postings codec plus a fully deleted field, which is rare but severe.</dd></div><div><dt>Impact class</dt><dd>index unusable</dd></div><div><dt>Impact note</dt><dd>Only applications that mix a writer session with a non-per-field postings codec (in-tree only SimpleTextCodec, 'FOR RECREATIONAL USE ONLY', or a custom codec whose postingsFormat() is a plain format) into an index that otherwise uses per-field postings are exposed, on every release from 7.7.0 through 10.5.2 and on main, with no scale needed and default configurations unaffected; it further needs a field whose every document is deleted before that segment is merged and a later per-field merge that writes no group with the field's inherited (format name, suffix) (a field with its own per-field format or format instance, or no indexed field left), and then every writer call succeeds but the committed merged segment cannot be opened, an open writer keeps committing on top of it, and CheckIndex -exorcise drops every document of that segment.</dd></div><div><dt>Summary</dt><dd>You index a field with a per-field postings codec (for example a Lucene104Codec subclass that maps the field to its own postings format), then, in a writer session whose codec's postings format is not per-field (SimpleTextCodec or a custom codec), delete every document that has the field and force-merge, and then go back to the per-field codec and merge again. You expect the committed index to open, because every call returned normally. Instead the merged segment still records the field's old format name and suffix although the merge wrote no files for that group, so DirectoryReader.open and CheckIndex fail with CorruptIndexException caused by a missing &lt;segment&gt;_&lt;format&gt;_&lt;suffix&gt;.psm (for example _4_FST50_0.psm).</dd></div><div><dt>Introduced</dt><dd>63dfba4c7d81a019a4008777beace0d391987ceb on master and its branch_7x commit e8bfa67716368ff3ad670a63d4a8935c6a989cac (the one 7.7.0 shipped), LUCENE-8601 'Adding attributes to IndexFieldType' (now apache/lucene#9647; a JIRA patch series, no pull request; patch by muralikpbhat, committed by mikemccand): merged FieldInfos started to keep the source attributes (FieldInfos.Builder.add passes fi.attributes() where 7.6.0 used an empty map) and the per-field formats' 'found existing value' checks became plain overwrites, while the postings merge kept choosing its fields from the source producers (logic from the default FieldsConsumer.merge and LUCENE-7456, 796ed508f39, 2016), so a field that no source postings reader lists keeps its inherited attributes [read: git show in the history clone and the #9647 thread; exec: 7.6.0 passes, 7.7.0 fails, and 7.7.0 with only the merge carry-over hunk reverted passes] (2019-01-03 (master 63dfba4c7d8) and 2019-01-04 (branch_7x e8bfa677163, released in 7.7.0))</dd></div><div><dt>First affected version</dt><dd>7.7.0 (released 2019-02-11), with -ea and -da [exec]; the master commit first shipped in 8.0.0 (2019-03-14); 7.6.0 and earlier are not affected [exec 6.6.6, 7.5.0, 7.6.0]</dd></div><div><dt>Affected versions</dt><dd>7.7.0 through 10.5.2 (the latest release) and main ea57360912ed, with -ea and -da [exec, the canonical 2-test JUnit, 2 of 2 fail each: 7.7.0 (-ea, -da), 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3 (-ea, -da), 10.0.0, 10.5.2 (-ea, -da), main (-ea, -da); the independent reproduction's own tests also fail on 10.5.2 and 9.12.3]; [read] every release tag in the history clone from 7.7.0 on contains 63dfba4c7d8 or e8bfa677163 (the clone lacks the 8.8.2 to 8.11.4 tags; 8.11.4 was executed); not affected: every release up to and including 7.6.0 [exec 6.6.6 and 7.5.0 (attribute probe), 7.6.0 (-ea, -da); read 4.10.4 and 5.5.5]; not fixed upstream: no commit has touched PerFieldPostingsFormat.java since b6ca26f1212 (upstream main e1c4184cb983 at search time) and none of the 412 open PRs touches it; executed on aarch64 with JDK 25, release jars checksum-verified against Maven Central</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: code reading; also reached by exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (follow-up prior-report record verdict new, searched 2026-10-26, read-only: 115 query lines, among them two scripted prior-report searches (55 queries over GitHub issues, PRs and commits, the downstream repositories, the dev@, java-user@, issues@ and commits@ lists and JIRA; 24 more list and JIRA queries), manual GitHub searches over apache/lucene, Elasticsearch, OpenSearch and Solr, manual list-archive and JQL searches, 8 web searches, the changed-file lists of all 412 open apache/lucene PRs, and the git history of PerFieldPostingsFormat.java and PerFieldDocValuesFormat.java; the finder's run (51 queries) and the intended-behaviour check's intent run (40 queries) found nothing either); related, not this bug: #9647 / LUCENE-8601 (the change that introduced it; its thread says the per-field formats relied on attributes being dropped on merge, and never discusses fields the postings merge does not visit), #11031 / LUCENE-9992 (the vectors analogue: a field whose documents were all deleted kept its FieldInfo after a merge with no vector files written; fixed for vectors only in 2021), PR #432 / LUCENE-10228 (the vectors merge read an inherited per-field suffix; fixed in PerFieldKnnVectorsFormat only), #9098 / LUCENE-8050 (the doc-values merge iterates mergeFieldInfos), #8508 / LUCENE-7456 (added the producer-driven postings merge), #11393 / LUCENE-10357 (ghost fields), LUCENE-7562 and testLevel2Ghosts (the same delete-merge-add-merge shape with one codec, another root cause), #11327 / LUCENE-10291, #13353 (the same missing-file symptom from IndexingChain); not fixed upstream; not filed by the owner</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26): this doc's JUnit through gradle in a scratch worktree (assertions on and off) and through the hunt's standalone JUnit runner (assertions on and off, 10 random-seed iterations); the 10.5.2 release jars; the reader-wrapper probe (main <code class='nw'>-ea</code> and <code class='nw'>-da</code>, 10.5.2 <code class='nw'>-ea</code>); the fix with the whole lucene/core suite, lucene/codecs and lucene/backward-codecs (assertions on). The verifiers and the security probe ran on main <code class='nw'>ea57360912ed</code>, and the history sweep on the release jars of 6.6.6 to 10.5.2 plus main <code class='nw'>ea57360912ed</code>; none of the 7 commits between the two mains touches the files involved.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldPostingsFormat.java:171-181 (merge field list from the producers&#x27; iterators), 199-253 (buildFieldsGroupMapping; 210 TODO; 248 putAttributes), 295-321 (FieldsReader; 305 &#x27;null formatName means the field is in fieldInfos, but has no postings!&#x27;; 318 and 331-332 iterator over the fields that carry the attribute), 379-385 (getPostingsFormatForField javadoc)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SegmentMerger.java:232-239 (every source FieldInfo added to the merged builder)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfos.java:731-732, 756-757 (javadoc: attributes added on merge), 771-801 (attribute copy)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldDocValuesFormat.java:135 and lucene/core/src/java/org/apache/lucene/codecs/KnnVectorsWriter.java:135 (doc-values and vectors merges iterate mergeFieldInfos)</code></li><li><code>lucene/codecs/src/java/org/apache/lucene/codecs/simpletext/SimpleTextCodec.java:35 (&#x27;FOR RECREATIONAL USE ONLY&#x27;)</code></li><li><code>lucene/core/src/test/org/apache/lucene/index/TestMixedCodecs.java:49 (&#x27;Make sure we aggressively mix in SimpleText&#x27;)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldPostingsFormat.java:171-181 (merge field list from the producers), :199-253 (buildFieldsGroupMapping; :210 TODO; :248-253 putAttributes), :295-321 (FieldsReader; :305 comment; :316 fieldsProducer; :318 fields.put), :331-332 (iterator), :379-385 (getPostingsFormatForField javadoc)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SegmentMerger.java:232-239 (mergeFieldInfos)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfos.java:731-732, :756-757 (javadoc), :771-801 (add; :775-777 putAttributes, :801 new HashMap&lt;&gt;(fi.attributes()))</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldDocValuesFormat.java:135-140; lucene/core/src/java/org/apache/lucene/codecs/KnnVectorsWriter.java:135</code></li><li><code>lucene/codecs/src/java/org/apache/lucene/codecs/simpletext/SimpleTextCodec.java:35; lucene/test-framework/src/java/org/apache/lucene/tests/codecs/cheapbastard/CheapBastardCodec.java:26-37</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/MergeState.java:133, :155; lucene/core/src/java/org/apache/lucene/index/FilterCodecReader.java:84</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/MergePolicy.java:302; lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3275; lucene/core/src/java/org/apache/lucene/index/SlowCodecReaderWrapper.java:385-397; lucene/core/src/java/org/apache/lucene/index/SortingCodecReader.java:521-523</code></li><li><code>lucene/benchmark/src/java/org/apache/lucene/benchmark/byTask/tasks/CreateIndexTask.java:150-161</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldPostingsFormat.java:305, :379-385</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriterConfig.java:292-297</code></li><li><code>lucene/core/src/test/org/apache/lucene/index/TestMixedCodecs.java:49-52</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/util/SetupAndRestoreStaticEnv.java:185-197</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/package-info.java:40-64</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfo.java:669-671; lucene/core/src/java/org/apache/lucene/codecs/FilterCodec.java:53</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/perfield/PerFieldPostingsFormat.java:63 (@lucene.experimental)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfo.java:655-698 (getAttribute, putAttribute, putAttributes, attributes(); no remove)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestPerFieldPostingsMergeStaleAttributes.java (core, 3 tests): <a href='../repro/LFV-280/TestPerFieldPostingsMergeStaleAttributes.java'><code>repro/LFV-280/TestPerFieldPostingsMergeStaleAttributes.java</code></a> (131 lines)</li><li>The recommended fix with the test: fix-with-test.diff: <a href='../repro/LFV-280/fix-with-test.diff'><code>repro/LFV-280/fix-with-test.diff</code></a> (192 lines)</li><li>TestPerFieldPostingsWrapperRoute.java (core, 2 tests: the reader-wrapper route): <a href='../repro/LFV-280/TestPerFieldPostingsWrapperRoute.java'><code>repro/LFV-280/TestPerFieldPostingsWrapperRoute.java</code></a> (212 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from an executed tracing probe of the same scenario on main <code class='nw'>a9779ef3c193</code> (segment names, attributes, files and the <code class='nw'>CheckIndex</code> result); every value on screen is asserted against the probe traces and every code line against the source. Re-rendered after the checks: the summary card names the shown trigger as one of two routes and mentions the reader-wrapper route, and the missing file is labelled "not in the index" / "missing" (the probe used an in-memory directory).</p><ul class='paths'><li><a href='../assets/LFV-280/bug.png'><code>assets/LFV-280/bug.png</code></a> (526 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

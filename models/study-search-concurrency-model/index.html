@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Formal models and scripts: study-search-concurrency-model</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Formal models and scripts: study-search-concurrency-model</h1>
+<p class="facts small">Tools: TLA+/TLC, Python</p>
+<p>These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as <code>$LUCENE</code> (a Lucene checkout) and <code>$WORK</code>.</p>
+<h2>Bugs found</h2><ul>
+<li>IndexSearcher#count hangs forever when Weight#count throws, for example on a query timeout, on a segment split into intra-segment partitions (bug LFV-045; <a href="../../repro/LFV-045/index.html">repro</a> · <a href="../../bugs/LFV-045.html">bug page</a>)</li>
+<li>Reusing a TotalHitCountCollectorManager after a failed search silently returns count 0 or hangs (bug LFV-053; <a href="../../repro/LFV-053/index.html">repro</a>)</li>
+<li>LRUQueryCache&#x27;s 16 hard partitions give a 0% hit rate with the class-javadoc configuration (main only) (bug LFV-054; <a href="../../repro/LFV-054/index.html">repro</a>)</li>
+<li>A timed-out search reports its partial hit count as TotalHits.Relation.EQUAL_TO (bug LFV-077; <a href="../../repro/LFV-077/index.html">repro</a>)</li>
+<li>TaskExecutor#invokeAll returns while a task is still running if the caller is interrupted (bug LFV-056; <a href="../../repro/LFV-056/index.html">repro</a>)</li>
+</ul><h2>Files</h2><ul>
+<li><a href="models/CountBarrier.tla"><code>models/CountBarrier.tla</code></a></li>
+<li><a href="models/LRUCache.tla"><code>models/LRUCache.tla</code></a></li>
+<li><a href="models/LRUCacheM1.tla"><code>models/LRUCacheM1.tla</code></a></li>
+<li><a href="models/MC_CountBarrier.tla"><code>models/MC_CountBarrier.tla</code></a></li>
+<li><a href="models/MC_LRUCache.tla"><code>models/MC_LRUCache.tla</code></a></li>
+<li><a href="models/MC_LRUCacheM1.tla"><code>models/MC_LRUCacheM1.tla</code></a></li>
+<li><a href="models/MC_TaskExec.tla"><code>models/MC_TaskExec.tla</code></a></li>
+<li><a href="models/MC_TopKAcc.tla"><code>models/MC_TopKAcc.tla</code></a></li>
+<li><a href="models/MC_TopKAccM1.tla"><code>models/MC_TopKAccM1.tla</code></a></li>
+<li><a href="models/MC_TopKAccM2.tla"><code>models/MC_TopKAccM2.tla</code></a></li>
+<li><a href="models/MC_TopKAccM3.tla"><code>models/MC_TopKAccM3.tla</code></a></li>
+<li><a href="models/TaskExec.tla"><code>models/TaskExec.tla</code></a></li>
+<li><a href="models/TopKAcc.tla"><code>models/TopKAcc.tla</code></a></li>
+<li><a href="models/TopKAccM1.tla"><code>models/TopKAccM1.tla</code></a></li>
+<li><a href="models/TopKAccM2.tla"><code>models/TopKAccM2.tla</code></a></li>
+<li><a href="upstream/grep.py"><code>upstream/grep.py</code></a></li>
+</ul>
+<h2>How to run</h2><ul>
+<li>TLA+ with TLC: <code>java -cp tla2tools.jar tlc2.TLC -config &lt;Model&gt;.cfg &lt;Model&gt;.tla</code> (a counterexample trace is the bug when the model encodes the current code).</li>
+<li>Python: <code>python3 &lt;file&gt;.py</code>; scripts that import <code>z3</code> need the <code>z3-solver</code> package.</li>
+</ul><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

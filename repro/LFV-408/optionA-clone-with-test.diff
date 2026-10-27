@@ -1,0 +1,219 @@
+diff --git a/lucene/misc/src/java/org/apache/lucene/misc/index/IndexSplitter.java b/lucene/misc/src/java/org/apache/lucene/misc/index/IndexSplitter.java
+index 523e26a70d7..9c1821cfc7f 100644
+--- a/lucene/misc/src/java/org/apache/lucene/misc/index/IndexSplitter.java
++++ b/lucene/misc/src/java/org/apache/lucene/misc/index/IndexSplitter.java
+@@ -23,10 +23,8 @@ import java.nio.file.Paths;
+ import java.text.DecimalFormat;
+ import java.text.DecimalFormatSymbols;
+ import java.util.Collection;
+-import java.util.Collections;
+ import java.util.Locale;
+ import org.apache.lucene.index.SegmentCommitInfo;
+-import org.apache.lucene.index.SegmentInfo;
+ import org.apache.lucene.index.SegmentInfos;
+ import org.apache.lucene.store.FSDirectory;
+ import org.apache.lucene.util.ArrayUtil;
+@@ -113,31 +111,10 @@ public class IndexSplitter {
+     destInfos.counter = infos.counter;
+     for (String n : segs) {
+       SegmentCommitInfo infoPerCommit = getInfo(n);
+-      SegmentInfo info = infoPerCommit.info;
+-      // Same info just changing the dir:
+-      SegmentInfo newInfo =
+-          new SegmentInfo(
+-              destFSDir,
+-              info.getVersion(),
+-              info.getMinVersion(),
+-              info.name,
+-              info.maxDoc(),
+-              info.getUseCompoundFile(),
+-              info.getHasBlocks(),
+-              info.getCodec(),
+-              info.getDiagnostics(),
+-              info.getId(),
+-              Collections.emptyMap(),
+-              null);
+-      destInfos.add(
+-          new SegmentCommitInfo(
+-              newInfo,
+-              infoPerCommit.getDelCount(),
+-              infoPerCommit.getSoftDelCount(),
+-              infoPerCommit.getDelGen(),
+-              infoPerCommit.getFieldInfosGen(),
+-              infoPerCommit.getDocValuesGen(),
+-              infoPerCommit.getId()));
++      // Copy the whole per-commit state (deletes, field-infos and doc-values update files and
++      // doc-values overlays), not only the generations: the destination commit must reference
++      // the update files it copies and describe how they combine with the segment's own files.
++      destInfos.add(infoPerCommit.clone());
+       // now copy files over
+       Collection<String> files = infoPerCommit.files();
+       for (final String srcName : files) {
+diff --git a/lucene/misc/src/test/org/apache/lucene/misc/index/TestIndexSplitterDocValuesUpdates.java b/lucene/misc/src/test/org/apache/lucene/misc/index/TestIndexSplitterDocValuesUpdates.java
+new file mode 100644
+index 00000000000..5150f28cefe
+--- /dev/null
++++ b/lucene/misc/src/test/org/apache/lucene/misc/index/TestIndexSplitterDocValuesUpdates.java
+@@ -0,0 +1,162 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.misc.index;
++
++import java.io.IOException;
++import java.nio.file.Path;
++import java.util.Set;
++import java.util.TreeSet;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.Field;
++import org.apache.lucene.document.NumericDocValuesField;
++import org.apache.lucene.document.StringField;
++import org.apache.lucene.index.DirectoryReader;
++import org.apache.lucene.index.IndexWriter;
++import org.apache.lucene.index.IndexWriterConfig;
++import org.apache.lucene.index.LeafReader;
++import org.apache.lucene.index.NoMergePolicy;
++import org.apache.lucene.index.NumericDocValues;
++import org.apache.lucene.index.SegmentInfos;
++import org.apache.lucene.index.Term;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.store.FSDirectory;
++import org.apache.lucene.tests.util.LuceneTestCase;
++import org.apache.lucene.tests.util.TestUtil;
++
++/**
++ * IndexSplitter.split copies a segment that has a doc-values update. The copy must read the same
++ * doc values as the source, its commit must reference the files it copied, and it must stay
++ * readable after an IndexWriter has been opened on it.
++ */
++public class TestIndexSplitterDocValuesUpdates extends LuceneTestCase {
++
++  private static IndexWriterConfig config() {
++    return new IndexWriterConfig()
++        .setCodec(TestUtil.getDefaultCodec())
++        .setMergePolicy(NoMergePolicy.INSTANCE);
++  }
++
++  /**
++   * Source index: one segment of 4 docs with price = 10..13, committed; then doc 1's price is
++   * updated to 999 (or, for the control, doc 1 is deleted) and committed again.
++   */
++  private static String buildSource(Path src, boolean update) throws IOException {
++    try (Directory dir = FSDirectory.open(src);
++        IndexWriter w = new IndexWriter(dir, config())) {
++      for (int i = 0; i < 4; i++) {
++        Document doc = new Document();
++        doc.add(new StringField("id", Integer.toString(i), Field.Store.YES));
++        doc.add(new NumericDocValuesField("price", 10 + i));
++        w.addDocument(doc);
++      }
++      w.commit();
++      if (update) {
++        w.updateNumericDocValue(new Term("id", "1"), "price", 999);
++      } else {
++        w.deleteDocuments(new Term("id", "1"));
++      }
++      w.commit();
++    }
++    return new IndexSplitter(src).infos.info(0).info.name;
++  }
++
++  /** The price of every document in doc-id order, "none" for a document without a value. */
++  private static String prices(Path path) throws IOException {
++    try (Directory dir = FSDirectory.open(path);
++        DirectoryReader reader = DirectoryReader.open(dir)) {
++      assertEquals(1, reader.leaves().size());
++      LeafReader leaf = reader.leaves().get(0).reader();
++      NumericDocValues dv = leaf.getNumericDocValues("price");
++      StringBuilder sb = new StringBuilder();
++      for (int doc = 0; doc < leaf.maxDoc(); doc++) {
++        sb.append(dv != null && dv.advanceExact(doc) ? Long.toString(dv.longValue()) : "none");
++        sb.append(doc + 1 < leaf.maxDoc() ? "," : "");
++      }
++      return sb.toString();
++    }
++  }
++
++  private static int numDocs(Path path) throws IOException {
++    try (Directory dir = FSDirectory.open(path);
++        DirectoryReader reader = DirectoryReader.open(dir)) {
++      return reader.numDocs();
++    }
++  }
++
++  /** The files that the latest commit of an index references (without segments_N). */
++  private static Set<String> commitFiles(Path path) throws IOException {
++    try (Directory dir = FSDirectory.open(path)) {
++      return new TreeSet<>(SegmentInfos.readLatestCommit(dir).files(false));
++    }
++  }
++
++  /** The copied segment must expose the same doc values as the source segment. */
++  public void testCopyReadsSameDocValues() throws Exception {
++    Path src = createTempDir("src");
++    Path dest = createTempDir("dest");
++    String segment = buildSource(src, true);
++    assertEquals("10,999,12,13", prices(src));
++
++    new IndexSplitter(src).split(dest, new String[] {segment});
++
++    assertEquals("doc values of the copied segment", prices(src), prices(dest));
++  }
++
++  /** The destination commit must reference every file of the copied segment. */
++  public void testCopyCommitReferencesCopiedFiles() throws Exception {
++    Path src = createTempDir("src");
++    Path dest = createTempDir("dest");
++    String segment = buildSource(src, true);
++
++    new IndexSplitter(src).split(dest, new String[] {segment});
++
++    assertEquals("files referenced by the destination commit", commitFiles(src), commitFiles(dest));
++  }
++
++  /** The destination must still open after an IndexWriter has been opened and closed on it. */
++  public void testCopySurvivesIndexWriterOpen() throws Exception {
++    Path src = createTempDir("src");
++    Path dest = createTempDir("dest");
++    String segment = buildSource(src, true);
++
++    new IndexSplitter(src).split(dest, new String[] {segment});
++
++    try (Directory dir = FSDirectory.open(dest)) {
++      new IndexWriter(dir, config()).close();
++    }
++    // throws NoSuchFileException if the writer deleted the update files as unreferenced
++    assertEquals(prices(src), prices(dest));
++  }
++
++  /** Control: a deletion instead of a doc-values update is carried over correctly. */
++  public void testControlDeletionInsteadOfUpdate() throws Exception {
++    Path src = createTempDir("src");
++    Path dest = createTempDir("dest");
++    String segment = buildSource(src, false);
++    assertEquals(3, numDocs(src));
++
++    new IndexSplitter(src).split(dest, new String[] {segment});
++
++    assertEquals(commitFiles(src), commitFiles(dest));
++    assertEquals(prices(src), prices(dest));
++    try (Directory dir = FSDirectory.open(dest)) {
++      new IndexWriter(dir, config()).close();
++    }
++    assertEquals(prices(src), prices(dest));
++    assertEquals(3, numDocs(dest));
++  }
++}

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ICUTokenizer silently drops Korean words when a Hangul syllable is followed by a combining mark, soft hyphen, ZWNJ, ZWJ or U+FEFF: the Hangul rules of Default.rbbi do not attach the trailing Extend/Format character, so the segment gets rule status 0 and is skipped as a non-word (U+D55C U+AD6D U+00AD U+C5B4 keeps only U+C5B4; since 4.7.0, LUCENE-4381) (LFV-657)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ICUTokenizer silently drops Korean words when a Hangul syllable is followed by a combining mark, soft hyphen, ZWNJ, ZWJ or U+FEFF: the Hangul rules of Default.rbbi do not attach the trailing Extend/Format character, so the segment gets rule status 0 and is skipped as a non-word (U+D55C U+AD6D U+00AD U+C5B4 keeps only U+C5B4; since 4.7.0, LUCENE-4381)</h1>
+<p class="facts small"><span>Bug LFV-657</span><span>Area: analysis-icu / segmentation (ICUTokenizer with DefaultICUTokenizerConfig; break rules Default.rbbi -&gt; Default.brk)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: known upstream</span></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You tokenize the Korean word U+D55C U+AD6D U+C5B4 (&#x27;Korean language&#x27;) with the default ICUTokenizer, once as is, once with an invisible soft hyphen (U+00AD) after its second syllable and once with a combining mark after each syllable, and expect the word to be indexed every time, because ICUTokenizer &#x27;Breaks text into words according to UAX #29&#x27; (ICUTokenizer.java:31), whose rule WB4 attaches Extend and Format characters to the preceding letter, and StandardTokenizer indeed keeps U+D55C U+AD6D U+00AD U+C5B4 as one &lt;HANGUL&gt; token. Instead, the two Hangul rules of Default.rbbi (:127 &#x27;$HangulSyllable {200};&#x27;,:191 &#x27;$HangulSyllable $HangulSyllable {200};&#x27;) have no trailing $ExFm*, unlike every other rule of their group, so the generic status-0 rule (:122) gives the longer match, the segment ending in that character gets rule status 0, and ICUTokenizer skips every status-0 segment as a non-word (:209-214): U+D55C U+AD6D U+00AD U+C5B4 yields only U+C5B4, and U+D55C U+0336 U+AD6D U+0336 U+C5B4 U+0336 (strikethrough), U+D55C U+AD6D U+C5B4 U+FEFF and the Middle Korean tone-marked U+B098 U+302E U+B78F U+302E yield no token at all, silently. Lucene 4.6.1 kept all of these words; the gap came with the ICU 52.1 rule import in 4.7.0 (LUCENE-4381) and is in every release since.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> The two Hangul rules of Default.rbbi (:127 &#x27;$HangulSyllable {200};&#x27;,:191 &#x27;$HangulSyllable $HangulSyllable {200};&#x27;) have no trailing $ExFm*, unlike every other rule of their group, so the generic status-0 rule (:122) gives the longer match, the segment ending in that character gets rule status 0, and ICUTokenizer skips every status-0 segment as a non-word (:209-214): U+D55C U+AD6D U+00AD U+C5B4 yields only U+C5B4, and U+D55C U+0336 U+AD6D U+0336 U+C5B4 U+0336 (strikethrough), U+D55C U+AD6D U+C5B4 U+FEFF and the Middle Korean tone-marked U+B098 U+302E U+B78F U+302E yield no token at all, silently.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerHangulExtendFormat.java"><code>src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerHangulExtendFormat.java</code></a> <span class="dim">(JUnit test)</span></li>
+<li><a href="src/demo/HangulExtendFormatMain.java"><code>src/demo/HangulExtendFormatMain.java</code></a> <span class="dim">(main() class)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual); a main() class that exits non-zero, with an exception or AssertionError, is the bug reproducing.</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/icu/build/libs/lucene-analysis-icu-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerHangulExtendFormat
+
+# run 2: assertions on, seed DEADBEEF, default flags
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; demo.HangulExtendFormatMain</code></pre>
+<p class="small">The module(s) analysis-icu also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

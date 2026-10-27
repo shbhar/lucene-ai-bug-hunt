@@ -1,0 +1,535 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>RescoreTopNQuery runs its inner query without scores, so a score-reading source gets no real score</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-315 &middot; rescoretopn-inner-weight-complete-no-scores</p><h1 id='top'>RescoreTopNQuery runs its inner query without scores, so a score-reading source gets no real score</h1><p class='tldr'><code class='nw'>RescoreTopNQuery</code> runs its inner query without scores, so a score-reading source such as <code>DoubleValuesSource.SCORES</code> gets no real score: for term queries it reads 0 and the first n by doc id win (<code>body:common OR body:rare</code>, n=1: doc 0 at 0.0, not doc 9 at 0.906). Affects 10.3.0-10.5.2 and main.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 50</span><span class='sub'>The experimental RescoreTopNQuery silently.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>10.3.0 (#14009, 2025)<span class='sub'>introduced 2025-06-28 &middot; about 1 year</span></dd></div><div><dt>Affected</dt><dd>10.3.0 to 10.5.2 (7 releases) and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>semi-formal (translation validation)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>RescoreTopNQuery(query, source, n)</code> re-scores every match of <code class='nw'>query</code> with <code class='nw'>source</code> and keeps the best n. A source may read each match's own score, but the query computes its inner matches in a mode that produces no scores.</p><figure class='visual' id='rescoretopn-inner-weight-complete-no-scores-short-visual'><div class='frame'><a class='still' href='../assets/LFV-315/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-315/bug.png' alt='Summary card titled &quot;RescoreTopNQuery: a source that reads the score (DoubleValuesSource.SCORES) gets 0 for every match&quot; (Apache Lucene; one segment, docs 0-8 contain &quot;common&quot;, doc 9 contains &quot;rare&quot;; inner = body:common body:rare; n = 1; no query cache). Steps: q = new RescoreTopNQuery(inner, DoubleValuesSource.SCORES, 1), rescore every match by its own score and keep the best 1, expected doc 9, score 0.906; searcher.search(q, 10) first calls RescoreTopNQuery.rewrite, which builds the inner Weight with ScoreMode.COMPLETE_NO_SCORES, so the term scorers return 0 and SCORES reads 0.0 for every doc; in the size-1 HitQueue all ten tie at 0.0 and a tie keeps the lower doc id: the hit is doc 0, score 0.0, and no error is raised. A kNN inner query with LRUQueryCache + UsageTrackingQueryCachingPolicy is right for searches 1-4 (11999, 11998, 11997) and from the 5th returns the 3 lowest doc ids of its top 10, all 0.0. Not affected: the built-in full-precision vector and late-interaction sources. Affected: 10.3.0 to 10.5.2, and main. Fix: COMPLETE if the source needs scores. Bottom: the RescoreTopNQuery javadoc, the comment at RescoreTopNQuery.java:74 and the ScoreMode.COMPLETE_NO_SCORES javadoc.' width='1920' height='1080'></a></div><figcaption>Docs 0-8 contain "common", doc 9 "rare": rescoring <code>body:common OR body:rare</code> by <code class='nw'>SCORES</code> with n=1 should keep doc 9 (0.906), but every score reads 0.0 and doc 0 wins. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index 10 docs: docs 0-8 contain "common", doc 9 contains "rare". A plain search for <code>body:common OR body:rare</code> ranks doc 9 first (score 0.906; docs 0-8 score 0.067).</span></li><li><span>Search <code>new RescoreTopNQuery(inner, DoubleValuesSource.SCORES, 1)</code>: re-score every match by its own score and keep the best one. You expect doc 9 at 0.906.</span></li><li><span>You get doc 0 at 0.0. The rewrite creates the inner Weight with <code>ScoreMode.COMPLETE_NO_SCORES</code>, so the term scorers hand the source 0 for every match; all ten matches tie and the lowest doc id wins.</span></li><li><span>A kNN inner query keeps its scores until the query-caching policy decides to cache the inner query: with <code>UsageTrackingQueryCachingPolicy</code>, searches 1-4 return 11999, 11998, 11997, and from the 5th on 11990, 11991, 11992, all at 0.0.</span></li><li><span>A normal <code class='nw'>IndexSearcher</code> raises no error (Lucene's asserting test searcher does). Other inner queries get other placeholders: a phrase query reads 1.0 for every match. The built-in vector and late-interaction rescoring sources do not read scores and are not affected.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone who passes a score-reading source (<code>DoubleValuesSource.SCORES</code>, an expression with <code class='nw'>_score</code>, or a custom source) to the experimental <code class='nw'>RescoreTopNQuery</code>. Term inner queries and booleans of them are wrong on every search; kNN ones once a query cache caches them (default on 10.x for large segments). The built-in vector and late-interaction rescoring is not affected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>1,033 words</span></summary><div class='body'><p><code>RescoreTopNQuery(query, valuesSource, n)</code> re-scores every match of <code class='nw'>query</code> with <code class='nw'>valuesSource</code> at rewrite time and keeps the best n. For a source whose <code class='nw'>needsScores()</code> is true (<code>DoubleValuesSource.SCORES</code>, an expression such as <code>_score * popularity</code>, or a custom source) the class deliberately feeds the inner scorer's score into the source, but it creates the inner <code class='nw'>Weight</code> with <code>ScoreMode.COMPLETE_NO_SCORES</code>, a mode in which "scores won't be available". What the source then reads depends on the inner query. A term query, or a boolean of term queries, gives 0: every rescored value is computed from 0, all matches tie, and the top n are simply the first n matches by doc id, so <code>body:common OR body:rare</code> rescored by <code class='nw'>SCORES</code> with n=1 gives doc 0 at 0.0 instead of doc 9 at 0.90565. A phrase query gives 1.0 for every match, in the same doc-id order. A kNN inner query keeps its scores until the query cache's policy decides to cache the non-scoring inner query; from then on (the 5th identical search with <code>UsageTrackingQueryCachingPolicy</code>) the caching wrapper returns a constant score of 0 and the top 3 of 10 neighbours become the 3 lowest doc ids. In a hybrid <code>kNN OR term</code> inner query the term part of the score is lost. A normal <code class='nw'>IndexSearcher</code> raises no error. The built-in full-precision vector and late-interaction sources do not read scores and are not affected. Every release since the class was added (10.3.0 to 10.5.2) and main have it; the fix is one conditional statement.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong><code>RescoreTopNQuery(query, valuesSource, n)</code></strong> (<code>@lucene.experimental</code>, since 10.3.0): at rewrite time it runs <code class='nw'>query</code>, computes <code class='nw'>valuesSource</code> for every match, keeps the top n and rewrites itself into a <code class='nw'>DocAndScoreQuery</code> holding those n documents and their new scores.</li><li><strong>Score-reading source</strong>: a <code>DoubleValuesSource</code> whose <code class='nw'>needsScores()</code> is true, such as <code>DoubleValuesSource.SCORES</code> ("exposes a document's score"), an expression that binds <code class='nw'>_score</code>, or a custom source. It receives the current match's score through <code>DoubleValuesSource.fromScorer</code>.</li><li><strong>Score mode</strong>: what a <code class='nw'>Weight</code> must produce. <code class='nw'>COMPLETE</code> visits every match with its score; <code>COMPLETE_NO_SCORES</code> visits every match "but scores won't be available" (<code>ScoreMode.java:25-26</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>rewrite</code> (<code>RescoreTopNQuery.java:68-88</code>) always creates the inner Weight with <code>indexSearcher.createWeight(rewritten, ScoreMode.COMPLETE_NO_SCORES, 1.0f)</code> (<code class='nw'>:72</code>).</li><li>A source with <code class='nw'>needsScores()</code> true takes <code class='nw'>rescoreInline</code> (<code class='nw'>:74-79</code>; the comment says such a source "reads the inner scorer's score"), which hands it <code>DoubleValuesSource.fromScorer(innerScorer)</code> (<code class='nw'>:99</code>, <code class='nw'>:230-236</code>).</li><li>What <code class='nw'>score()</code> returns on a non-scoring Weight is up to the query; <code>COMPLETE_NO_SCORES</code> promises no particular value. A non-scoring <code class='nw'>TermWeight</code> uses a dummy <code class='nw'>SimScorer</code> that returns <code class='nw'>0f</code> and is "not expected to be called since scores are not needed" (<code>TermQuery.java:77-92</code>); a boolean of terms reads 0 as well. A non-scoring <code class='nw'>PhraseWeight</code> uses one that returns 1 (<code>PhraseWeight.java:46-51</code>). A kNN query rewrites to <code class='nw'>DocAndScoreQuery</code>, which returns its stored scores in any mode (<code>DocAndScoreQuery.java:244-245</code>).</li><li>Every value goes into a size-n <code class='nw'>HitQueue</code> (<code class='nw'>:221-228</code>). When all values are equal (0 for term queries, 1.0 for a phrase query), the tie-break keeps the lower doc id (<code>HitQueue.java:76-82</code>): the top n are the first n matches in doc-id order.</li><li>kNN: <code>IndexSearcher.createWeight</code> puts only non-scoring Weights in the query cache (<code>IndexSearcher.java:979-981</code>); <code class='nw'>DocAndScoreQuery</code> is cacheable (<code>DocAndScoreQuery.java:273-275</code>) and equal across repeats of the same kNN query on the same reader (<code class='nw'>:294-307</code>). <code>UsageTrackingQueryCachingPolicy</code> caches a query at its 5th use (<code>UsageTrackingQueryCachingPolicy.java:122-137</code>), and on that very call <code class='nw'>LRUQueryCache</code> returns <code>ConstantScoreScorerSupplier(0f, ...)</code> (<code>LRUQueryCache.java:837-846</code>). From the 5th search on every score is 0, while the entry stays in the cache for that reader (until eviction, <code class='nw'>clearQuery</code> or <code class='nw'>clear</code>, a new reader, or a replaced or disabled cache). Before the policy is asked, the cache also checks that the inner query is cacheable on the segment and that the index passes a worst-case size check (<code>LRUQueryCache.java:792-807</code>, <code class='nw'>:816</code>); the lead-cost check at <code class='nw'>:850</code> only decides whether the entry is filled, and the scorer returns 0 either way.</li><li>On main <code class='nw'>IndexSearcher</code> has no default cache (#14187, <code>IndexSearcher.java:82-84</code>), so the kNN form needs a cache the application sets; on 10.x the default <code class='nw'>LRUQueryCache</code> caches segments of 10,000 or more documents (10.5.2 <code>IndexSearcher.java:95-100</code>, <code>LRUQueryCache.java:167-177</code>). A fully default 10.5.2 searcher, with no cache or policy set, flips at the 5th search too (executed by the fact check); the repro sets an explicit cache with the same caps and policy.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Main <code class='nw'>ea57360912ed</code>, one segment. Lexical: docs 0-8 <code class='nw'>body</code> = "common", doc 9 <code class='nw'>body</code> = "rare"; plain search: doc 9 at 0.90565, docs 0-8 at 0.06663794. kNN: 12,000 docs with vector <code>[1, i]</code> (<code class='nw'>EUCLIDEAN</code>), the 10 nearest to <code>[1, 11999]</code>.</p><div class="tbl"><table><thead><tr><th>inner query</th><th>source, n</th><th>expected</th><th>got</th></tr></thead><tbody><tr><td><code>body:common OR body:rare</code>, no cache</td><td><code class='nw'>SCORES</code>, 1</td><td>doc 9 at 0.90565</td><td>doc 0 at 0.0</td></tr><tr><td>same</td><td><code class='nw'>SCORES</code>, 10</td><td>doc 9, then docs 0-8 at 0.0666</td><td>docs 0-9, all 0.0</td></tr><tr><td>same, <code class='nw'>popularity</code> 2 on doc 3, else 1</td><td><code>_score * popularity</code>, 3</td><td>docs 9, 3, 0 (0.906, 0.133, 0.067; computed from the plain scores)</td><td>docs 0, 1, 2, all 0.0</td></tr><tr><td><code>body:"x y"</code> (phrase), no cache; docs 0-8 "x y z z z z", doc 9 "x y x y x y"</td><td><code class='nw'>SCORES</code>, 10</td><td>doc 9 at 0.0665, then docs 0-8 at 0.0423</td><td>docs 0-9, all 1.0</td></tr><tr><td>kNN, <code class='nw'>LRUQueryCache</code> + <code>UsageTrackingQueryCachingPolicy</code></td><td><code class='nw'>SCORES</code>, 3</td><td>11999, 11998, 11997 (1.0, 0.5, 0.2) every search</td><td>searches 1-4 right; 5 and 6: 11990, 11991, 11992, all 0.0</td></tr><tr><td>kNN, a cache that accepts every segment + an always-cache policy (independent reproducer, 30 docs)</td><td><code class='nw'>SCORES</code>, 1</td><td>the nearest doc</td><td>wrong on the 1st search (score 0.0)</td></tr><tr><td><code>kNN OR body:rare</code>, no cache</td><td><code class='nw'>SCORES</code>, 3</td><td>doc 9 at 1.90565</td><td>doc 9 at 1.0 (the term part reads 0)</td></tr><tr><td>kNN, fully default 10.5.2 searcher (no cache or policy set)</td><td><code class='nw'>SCORES</code>, 3</td><td>11999, 11998, 11997 every search</td><td>searches 1-4 right; 5 and 6: 11990, 11991, 11992, all 0.0</td></tr><tr><td>kNN, no cache (control)</td><td><code class='nw'>SCORES</code>, 3</td><td>11999, 11998, 11997</td><td>right, all six searches</td></tr><tr><td>control: a source that does not read scores</td><td><code class='nw'>fromFloatField</code>, 1</td><td>the best field value</td><td>right</td></tr></tbody></table></div><p>With the fix every row gives the expected result.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>401 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Callers of <code class='nw'>RescoreTopNQuery</code> with a source whose <code class='nw'>needsScores()</code> is true: <code>DoubleValuesSource.SCORES</code>, an expression that reads <code class='nw'>_score</code> (for example "boost the text score by popularity and keep the top n for a later stage"), or a custom source.</li><li><strong>Term inner queries and booleans of them</strong>: wrong on every search, with any configuration (the source reads 0). A phrase inner query reads 1.0 for every match; other query types get whatever their non-scoring scorer returns.</li><li><strong>kNN inner queries</strong>: wrong once the query cache's policy caches the inner query: the 5th identical search with <code>UsageTrackingQueryCachingPolicy</code>; the 1st with an always-cache policy and a cache that accepts small segments. On 10.x <code class='nw'>IndexSearcher</code>'s default cache applies to segments of 10,000 or more documents (a fully default 10.5.2 searcher flips at the 5th search, executed); on main the cache is opt-in.</li><li><strong>Hybrid</strong> (<code>kNN OR text</code>): the text part of the score is lost on every search (run without a cache).</li><li><strong>Not exposed.</strong> The built-in factories <code>createFullPrecisionRescorerQuery</code> (float vectors, and on main also FLOAT16) and <code>createLateInteractionQuery</code>: their sources do not need scores. They are what the class was designed for and its only callers in Lucene's own code; how common each use is elsewhere is not known.</li><li><strong>Default settings.</strong> <code class='nw'>RescoreTopNQuery</code> is opt-in and <code>@lucene.experimental</code>; nothing else needs a non-default setting: the lexical probe uses a default <code>IndexWriterConfig</code> (default codec, BM25) and a plain <code class='nw'>IndexSearcher</code>, and a fully default 10.5.2 searcher shows the kNN form. No scale is needed for the lexical case (10 documents, n=1).</li><li><strong>What you see.</strong> No error with a normal <code class='nw'>IndexSearcher</code> (the test framework's asserting searcher fails). Rescored scores of 0.0 (1.0 for a phrase inner query; <code>0 + something</code> for a custom source: a <code>score + 1</code> source returned 1.0) and, for a source that reads only the score, a top n that is the first n matches by doc id. The hits are always drawn from the inner query's matches. An application that applies a minimum score afterwards loses hits. For kNN, results depend on earlier identical searches that share the cache.</li><li><strong>Downstream.</strong> Known code users (neo4j, nrtsearch, zuliasearch, luceneutil, a Go port, an open Solr PR) use sources that do not read scores; a code search found no <code class='nw'>RescoreTopNQuery</code> in the Elasticsearch, OpenSearch or Solr default branches. That fits the absence of reports, and says nothing about private code.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A 2-test JUnit on the public API: a lexical query rescored by <code class='nw'>SCORES</code> without a cache, and a kNN query searched 6 times with an explicit 10.x-style default cache. Both fail on main with assertions on and off, and on 10.5.2 and 10.3.0; both pass with the fix. Put it in core's <code>org.apache.lucene.search</code> test package and run the command.</p><figure class='code'><figcaption><span class='fname'>TestRescoreTopNQueryInnerScores.java (2 tests)</span><span class='meta'>111 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * A values source that needs scores (here DoubleValuesSource.SCORES) must see the inner query&#x27;s
+ * scores. RescoreTopNQuery creates the inner Weight with ScoreMode.COMPLETE_NO_SCORES, whose
+ * scorers do not provide scores, so the source reads 0 for every document. A kNN inner query
+ * (rewritten to DocAndScoreQuery, which ignores the score mode) is affected once the query cache&#x27;s
+ * policy decides to cache its non-scoring Weight.
+ */
+public class TestRescoreTopNQueryInnerScores extends LuceneTestCase {
+
+  public void testScoresSourceSeesInnerQueryScores() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        // docs 0..8 contain &quot;common&quot;, doc 9 contains &quot;rare&quot;
+        for (int i = 0; i &lt; 10; i++) {
+          Document doc = new Document();
+          doc.add(new TextField(&quot;body&quot;, i &lt; 9 ? &quot;common&quot; : &quot;rare&quot;, Field.Store.NO));
+          w.addDocument(doc);
+        }
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setQueryCache(null); // this case does not depend on query caching
+        Query inner =
+            new BooleanQuery.Builder()
+                .add(new TermQuery(new Term(&quot;body&quot;, &quot;common&quot;)), BooleanClause.Occur.SHOULD)
+                .add(new TermQuery(new Term(&quot;body&quot;, &quot;rare&quot;)), BooleanClause.Occur.SHOULD)
+                .build();
+
+        TopDocs plain = searcher.search(inner, 1);
+        assertEquals(9, plain.scoreDocs[0].doc); // the rare term scores highest
+        assertTrue(plain.scoreDocs[0].score &gt; 0);
+
+        // Rescoring by the inner query&#x27;s own score must keep the same best hit and score.
+        TopDocs rescored =
+            searcher.search(new RescoreTopNQuery(inner, DoubleValuesSource.SCORES, 1), 1);
+        assertEquals(&quot;best hit&quot;, 9, rescored.scoreDocs[0].doc);
+        assertEquals(&quot;rescored score&quot;, plain.scoreDocs[0].score, rescored.scoreDocs[0].score, 0f);
+      }
+    }
+  }
+
+  /**
+   * kNN inner query, searched repeatedly with the query cache settings that are IndexSearcher&#x27;s
+   * defaults in Lucene 10.x (main disabled the default cache in #14187).
+   */
+  public void testKnnInnerQueryWithQueryCache() throws Exception {
+    try (Directory dir = newDirectory()) {
+      // Full-precision vectors, so the three nearest neighbours score 1.0, 0.5 and 0.2
+      // (a randomized, quantized test codec could tie them).
+      IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        for (int i = 0; i &lt; 12000; i++) {
+          Document doc = new Document();
+          doc.add(
+              new KnnFloatVectorField(
+                  &quot;vector&quot;, new float[] {1, i}, VectorSimilarityFunction.EUCLIDEAN));
+          w.addDocument(doc);
+        }
+        w.forceMerge(1);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Query knn = new KnnFloatVectorQuery(&quot;vector&quot;, new float[] {1, 11999}, 10);
+        assertEquals(&quot;plain kNN best hit&quot;, 11999, searcher.search(knn, 1).scoreDocs[0].doc);
+
+        searcher.setQueryCache(new LRUQueryCache(1000, 1L &lt;&lt; 25));
+        searcher.setQueryCachingPolicy(new UsageTrackingQueryCachingPolicy());
+        Query rescore = new RescoreTopNQuery(knn, DoubleValuesSource.SCORES, 3);
+        for (int run = 1; run &lt;= 6; run++) {
+          ScoreDoc[] hits = searcher.search(rescore, 3).scoreDocs;
+          assertEquals(&quot;run &quot; + run, 11999, hits[0].doc);
+          assertEquals(&quot;run &quot; + run, 11998, hits[1].doc);
+          assertEquals(&quot;run &quot; + run, 11997, hits[2].doc);
+          assertTrue(&quot;run &quot; + run + &quot; score &quot; + hits[0].score, hits[0].score &gt; 0);
+        }
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at ea57360912ed (or a later commit where RescoreTopNQuery.java:72 is unchanged)
+cp $REPRO/TestRescoreTopNQueryInnerScores.java lucene/core/src/test/org/apache/lucene/search/
+./gradlew :lucene:core:test --tests org.apache.lucene.search.TestRescoreTopNQueryInnerScores -Ptests.seed=DEADBEEF
+# assertions off: add -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>lexical: doc 9 at 0.90565; kNN: 11999, 11998, 11997 on all six searches.</dd></div><div class='got'><dt>Observed</dt><dd>lexical: doc 0 at 0.0; kNN: right for searches 1-4, then 11990, 11991, 11992, all at 0.0.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-315/'>repro/LFV-315/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (88 lines) · 951 words</span></summary><div class='body'><p>The first test indexes 10 short documents, checks that the plain search ranks doc 9 first, and expects the rescore by <code class='nw'>SCORES</code> with n=1 to keep doc 9 with the same score; the searcher has no query cache. The second test indexes 12,000 two-dimensional vectors in one segment, checks the plain kNN best hit, then sets <code>LRUQueryCache(1000, 32 MB)</code> + <code>UsageTrackingQueryCachingPolicy</code> (the 10.x default's caps and policy; equal to the default when heap/20 is at least 32 MB) and runs the same <code>RescoreTopNQuery(knn, SCORES, 3)</code> six times.</p><p>The kNN index pins <code>TestUtil.getDefaultCodec()</code>: under <code>-Ptests.nightly=true</code> the randomized test codec picked a 7-bit scalar-quantized HNSW format that ties the three nearest scores, which made the finder's unpinned version fail at search 1 even with the fix. The seed fixes the framework's randomization (directory, default codec, locale, time zone, the suite's similarity and default query cache); the test sets its own caches, pins the kNN codec and uses BM25, and its lexical assertions compare against the plain search on the same index, so nothing it asserts depends on the seed. The test is google-java-format clean.</p><p>Same failures through gradle with <code>-Ptests.asserts=false</code>, with <code>-Ptests.nightly=true</code>, and in 10 of 10 runs with <code>-Ptests.seed=5EED1234 -Ptests.iters=5</code>; through a standalone JUnit harness on main (assertions on and off), 10.5.2 (on and off) and 10.3.0 (on; off in the fact check's re-run). Below the test: the fix, and a printing probe for a hybrid inner query.</p><div class="hd hd-3"><h3 id='code-2-h'>The fix: rescoretopn-inner-score-mode.diff</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The fix: rescoretopn-inner-score-mode.diff</span><span class='meta'>16 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java b/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
+index 6015a1c430a..267a78cc53c 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
+@@ -69,7 +69,10 @@ public class RescoreTopNQuery extends Query {
+     DoubleValuesSource rewrittenValueSource = valuesSource.rewrite(indexSearcher);
+     IndexReader reader = indexSearcher.getIndexReader();
+     Query rewritten = indexSearcher.rewrite(query);
+-    Weight weight = indexSearcher.createWeight(rewritten, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
++    // A value source that reads the inner query&#x27;s score needs a Weight that produces scores.
++    ScoreMode innerScoreMode =
++        valuesSource.needsScores() ? ScoreMode.COMPLETE : ScoreMode.COMPLETE_NO_SCORES;
++    Weight weight = indexSearcher.createWeight(rewritten, innerScoreMode, 1.0f);
+     HitQueue queue = new HitQueue(n, false);
+     // A value source that reads the inner scorer&#x27;s score must be consumed at the scorer&#x27;s current
+     // position, so those cannot be prefetched ahead and are scored as we go.
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>Probe: a hybrid (kNN OR term) inner query, no cache</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Prints instead of asserting. On main the plain search gives doc 9 at 1.90565 (kNN 1.0 + BM25 0.906); the rescore by <code class='nw'>SCORES</code> gives doc 9 at 1.0, so the term part of the score reads 0. With the fix: 1.90565.</p><figure class='code'><figcaption><span class='fname'>Probe: a hybrid (kNN OR term) inner query, no cache</span><span class='meta'>72 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.util.Arrays;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/** Probe: a hybrid (kNN OR term) inner query with SCORES and no query cache at all. */
+public class TestRescoreHybridInnerProbe extends LuceneTestCase {
+  public void testHybridNoCache() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        for (int i = 0; i &lt; 10; i++) {
+          Document doc = new Document();
+          doc.add(new TextField(&quot;body&quot;, i &lt; 9 ? &quot;common&quot; : &quot;rare&quot;, Field.Store.NO));
+          doc.add(
+              new KnnFloatVectorField(&quot;v&quot;, new float[] {1, i}, VectorSimilarityFunction.EUCLIDEAN));
+          w.addDocument(doc);
+        }
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setQueryCache(null);
+        Query knn = new KnnFloatVectorQuery(&quot;v&quot;, new float[] {1, 9}, 4);
+        Query hybrid =
+            new BooleanQuery.Builder()
+                .add(knn, BooleanClause.Occur.SHOULD)
+                .add(new TermQuery(new Term(&quot;body&quot;, &quot;rare&quot;)), BooleanClause.Occur.SHOULD)
+                .build();
+        for (Query inner : new Query[] {knn, hybrid}) {
+          String name = inner == knn ? &quot;knn&quot; : &quot;hybrid&quot;;
+          System.out.println(
+              &quot;OBS &quot; + name + &quot; plain=&quot; + Arrays.toString(searcher.search(inner, 3).scoreDocs));
+          System.out.println(
+              &quot;OBS &quot;
+                  + name
+                  + &quot; rescored=&quot;
+                  + Arrays.toString(
+                      searcher.search(new RescoreTopNQuery(inner, DoubleValuesSource.SCORES, 3), 3)
+                          .scoreDocs));
+        }
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed: affected. Also affected: 10.3.0 to 10.5.2 (Maven Central jars). 10.2.2 and earlier have no RescoreTopNQuery.</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock ea57360912ed, gradle, seed DEADBEEF (the same with -Ptests.asserts=false and with -Ptests.nightly=true)
+TestRescoreTopNQueryInnerScores &gt; testScoresSourceSeesInnerQueryScores FAILED
+    java.lang.AssertionError: best hit expected:&lt;9&gt; but was:&lt;0&gt;
+TestRescoreTopNQueryInnerScores &gt; testKnnInnerQueryWithQueryCache FAILED
+    java.lang.AssertionError: run 5 expected:&lt;11999&gt; but was:&lt;11990&gt;
+2 tests completed, 2 failed
+
+# seed 5EED1234, 5 iterations: 10 tests completed, 10 failed (the same two messages)
+
+# standalone harness, seed DEADBEEF: tests run / failed
+main -ea 2/2, main -da 2/2, 10.5.2 -ea 2/2, 10.5.2 -da 2/2, 10.3.0 -ea 2/2, 10.3.0 -da 2/2 (fact check) (same messages)
+main + fix -ea and -da: 2/0; 10.5.2 + fix, 10.3.0 + fix: 2/0
+
+# what the searches return (printing probe, main -ea; its log records main -da and 10.5.2 -ea as identical by diff)
+plain search(inner, 10):             [9@0.90565, 0@0.06663794, 1@0.06663794, ..., 8@0.06663794]
+RescoreTopNQuery(inner, SCORES, 1):  [0@0.0]
+RescoreTopNQuery(inner, SCORES, 10): [0@0.0, 1@0.0, ..., 9@0.0]
+kNN runs 1-4:  [11999@1.0, 11998@0.5, 11997@0.2]  cacheSize=0
+kNN run 5:     [11990@0.0, 11991@0.0, 11992@0.0]  cacheSize=1 hitCount=0
+kNN run 6:     [11990@0.0, 11991@0.0, 11992@0.0]  cacheSize=1 hitCount=1
+kNN without a cache, runs 1-6: [11999@1.0, 11998@0.5, 11997@0.2]
+with the fix: [9@0.90565]; kNN [11999@1.0, 11998@0.5, 11997@0.2] in all six runs, cacheSize=0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc promises re-scoring "with a DoubleValuesSource function" for "any type of Query"; the class itself feeds the inner score to sources that need it.</li><li><code>COMPLETE_NO_SCORES</code> means "scores won't be available"; <code>FunctionScoreQuery</code> asks for scores when it uses a score-reading source; <code class='nw'>AssertingScorer</code> fails here.</li><li>"Works even with the no-scoring ScoreMode" refers to the outer search, the author said in review.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>305 words</span></summary><div class='body'><ul><li><strong>The contracts.</strong> Class javadoc (<code>RescoreTopNQuery.java:26-31</code>): "A Query that re-scores another Query with a DoubleValuesSource function and cut-off the results at top N ... it can work with any type of Query"; the constructor takes a generic <code>DoubleValuesSource</code> (<code class='nw'>:58</code>). 10.3.0 CHANGES (<code>CHANGES.txt:1562-1563</code>): "rescore other Query based on a generic DoubleValueSource". <code>DoubleValuesSource</code> (<code>DoubleValuesSource.java:43-46</code>): "Scores may be used as a source for value calculations by wrapping a Scorer using fromScorer ... accessed using the SCORES DoubleValuesSource". <code>ScoreMode.COMPLETE_NO_SCORES</code> (<code>ScoreMode.java:25</code>): "scores won't be available".</li><li><strong>The class wires the score in on purpose.</strong> <code class='nw'>getDoubleValues</code> passes <code>fromScorer(innerScorer)</code> exactly when the source needs scores (<code class='nw'>:230-236</code>, since #14009), and #16705 added the inline path whose comment says such a source "reads the inner scorer's score" (<code class='nw'>:74-75</code>).</li><li><strong>The rest of Lucene asks for scores.</strong> <code>FunctionScoreQuery.createWeight</code> uses <code class='nw'>COMPLETE</code> when the outer search scores and its source needs scores, and skips the source when the outer search does not score (<code>FunctionScoreQuery.java:109-122</code>), so whenever it computes a score-reading source its inner Weight scores; <code>TestFunctionScoreQuery.testScoreMode</code> asserts <code class='nw'>COMPLETE</code> for <code class='nw'>SCORES</code> under a scoring outer search (<code class='nw'>:318-322</code>). <code>TestDoubleValuesSource</code> picks <code>vs.needsScores() ? COMPLETE : COMPLETE_NO_SCORES</code> (<code class='nw'>:310-312</code>). <code class='nw'>RescoreTopNQuery</code> always computes its source, so the matching rule there is <code class='nw'>COMPLETE</code> whenever the source needs scores.</li><li><strong>The test framework enforces it.</strong> <code class='nw'>AssertingWeight</code> sets <code>canScore = scoreMode.needsScores()</code> and <code>AssertingScorer.score()</code> asserts it (<code>AssertingWeight.java:74</code>, <code>AssertingScorer.java:125-126</code>, LUCENE-6526). The finder's <code>AssertingIndexSearcher</code> probe fails there, called from <code>RescoreTopNQuery.rescoreInline</code>; the independent reproducer's own asserting probe fails the same way on main and passes with the fix.</li><li><strong>Untested case.</strong> Every upstream <code class='nw'>RescoreTopNQuery</code> test uses sources that do not need scores. No PR thread (#14009, #14729, #16628, #16656, #16705) discusses the inner score mode; #16705 and #16656 describe the inline path as needed because <code class='nw'>fromScorer</code> reads the scorer's current score.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>280 words</span></summary><div class='body'><p>The strongest case for "intended" (built by a devil's-advocate verifier and by an OpenAI GPT-5.6 reviewer arguing "works as designed"): the javadoc says "Unlike or FunctionScoreQuery, this Query will work even with the no-scoring ScoreMode" (<code class='nw'>:31-32</code>, sic); the class is <code>@lucene.experimental</code> and was built for kNN reranking, where <code class='nw'>DocAndScoreQuery</code> returns real scores in any mode; a non-scoring inner Weight skips similarity work and can be cached, a real optimization; and since LUCENE-6329 calling <code class='nw'>score()</code> without scores is safe, so 0 could be read as an unspecified placeholder.</p><p>Why it fails: in the #14009 review the author, dungba88, explained that sentence (2025-06-13): "it does not depend on the score mode (<code>FunctionScoreQuery</code> will be a no-op if <code>needsScores = false</code>) and it also trim down the results to N. ... The nuance is important in cases where we don't need the overall score (using ConstantScoreQuery) but still want to rescore and trim down results in some sub-Query (like KnnFloatVectorQuery). It's heavily influenced by KnnFloatVectorQuery but API-wise there would be no such limitation." So the sentence is about the outer search, and the class was meant for any inner query. The comment does not discuss sources that read scores; their support comes from the code and the <code>DoubleValuesSource</code> contract: two sets of authors routed the inner score into these sources. LUCENE-6329 made such calls safe, not meaningful, and LUCENE-6526 added assertions that they do not happen; <code>@lucene.experimental</code> marks an unstable API, not permission to return wrong results; the optimization survives the fix for sources that do not read scores; and no javadoc, CHANGES or MIGRATE text restricts the source. Every reviewer rated the intended argument weak. <strong>Verdict: a defect.</strong></p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: COMPLETE when the values source needs scores</strong></p><p class='short'>Create the inner Weight with <code>ScoreMode.COMPLETE</code> when the source needs scores, and <code>COMPLETE_NO_SCORES</code> otherwise (one conditional statement, +4/-1 lines, one file). The built-in sources keep the fast, cacheable path. The test passes with assertions on, off and nightly; 33 tests in 9 nearby suites and the core static checks pass.</p><pre class='snippet' tabindex='0'><code>// A value source that reads the inner query&#x27;s score needs a Weight that produces scores.
+ScoreMode innerScoreMode =
+    valuesSource.needsScores() ? ScoreMode.COMPLETE : ScoreMode.COMPLETE_NO_SCORES;
+Weight weight = indexSearcher.createWeight(rewritten, innerScoreMode, 1.0f);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 609 words</span></summary><div class='body'><p>The inner Weight must produce scores whenever the source reads them, whatever the outer search's score mode, because <code class='nw'>RescoreTopNQuery</code> always computes the source at rewrite time. One option was built and validated in a scratch worktree at <code class='nw'>ea57360912ed</code> (removed afterwards); the others are untested.</p><div class="hd hd-3"><h3 id='fix-complete-when-source-needs-scores'>A: COMPLETE when the values source needs scores <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-complete-when-source-needs-scores" target="_self" aria-label="Link to this section" aria-describedby="fix-complete-when-source-needs-scores"><span aria-hidden="true">#</span></a></div><p>In <code class='nw'>rewrite</code>, replace the fixed <code>ScoreMode.COMPLETE_NO_SCORES</code> at <code>RescoreTopNQuery.java:72</code> by <code class='nw'>COMPLETE</code> when <code>valuesSource.needsScores()</code>, whatever the outer search's score mode: unlike <code>FunctionScoreQuery</code>, which skips its source when the outer search does not score, <code class='nw'>RescoreTopNQuery</code> always computes the source. <code class='nw'>COMPLETE</code>, not <code class='nw'>TOP_SCORES</code>, because the rewrite visits every match. +4/-1 lines, <code>RescoreTopNQuery.java</code> only.</p><pre class='snippet' tabindex='0'><code>// A value source that reads the inner query&#x27;s score needs a Weight that produces scores.
+ScoreMode innerScoreMode =
+    valuesSource.needsScores() ? ScoreMode.COMPLETE : ScoreMode.COMPLETE_NO_SCORES;
+Weight weight = indexSearcher.createWeight(rewritten, innerScoreMode, 1.0f);</code></pre><p class='k'>Trade-offs</p><ul><li><strong>The fast path stays.</strong> Sources that do not need scores (the built-in vector and late-interaction ones) keep <code>COMPLETE_NO_SCORES</code>, the prefetch path and query caching.</li><li><strong>Cost.</strong> Score-reading sources now pay for real scoring (for example BM25 per match), which is what they ask for. No benchmark was run.</li><li><strong>No caching for score-reading sources.</strong> <code class='nw'>IndexSearcher</code> caches only non-scoring Weights, so their inner Weight is no longer cached; with the fix the probe showed the cache was never consulted and every search was right. The cached path could only ever return 0 scores, so nothing correct is lost.</li><li><strong>Nit (the adjudication's).</strong> <code>rewrittenValueSource.needsScores()</code> would be slightly more precise than <code>valuesSource.needsScores()</code>; the existing branch and <code class='nw'>getDoubleValues</code> use <code class='nw'>valuesSource</code>, so they differ only for a source whose <code class='nw'>rewrite</code> changes <code class='nw'>needsScores()</code>. See option B.</li><li><strong>Rebase.</strong> Open draft #16847 (long doc ids) edits this file but not this line.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock: the test fails 2 of 2 through gradle with assertions on, off and <code>-Ptests.nightly=true</code>, and 10 of 10 over 5 iterations of a second seed.</li><li>Patched, assertions on and off: <code class='nw'>TestRescoreTopN*</code> (with the new test), <code>TestFilterReadersForwardVectorPrefetch</code>, <code>*LateInteraction*</code> and <code>TestDoubleValuesSource</code>: 9 classes, 33 tests, 0 failures, 2 skipped (<code class='nw'>@Nightly</code>) each.</li><li>Patched, <code>-Ptests.nightly=true</code>: <code>TestRescoreTopNQuery</code> (with its 2 <code class='nw'>@Nightly</code> tests) and the new test: 8 of 8. Patched, <code>-Ptests.seed=5EED1234 -Ptests.iters=5</code>: 10 of 10.</li><li>Formatting: <code>:lucene:core:tidy</code> ran and succeeded (its log does not show whether it edited anything); <code>:lucene:core:check -x test</code> passes (google-java-format, ecjLint, forbiddenApis); google-java-format 1.37.0 <code class='nw'>--dry-run</code> reports no change for the patched file or the test.</li><li>Standalone harness with the patched class: 2 of 2 pass on main (assertions on and off); the same change on the 10.x file passes on 10.5.2 and 10.3.0. Earlier hunt runs of the same change: the independent reproducer's 7-test JUnit 7 of 7 (also on the adjudication's re-run with a new seed), its asserting-searcher probe, the security probe 4 of 4, and the finder's <code>TestRescoreTopNQuery</code> + <code>TestRescoreTopNQueryPrefetch</code> run 7 of 7. A phrase-query probe: with the fix the rescored phrase scores equal the plain ones.</li></ul><div class="hd hd-3"><h3 id='fix-rewritten-source-consistently'>B: decide on the rewritten source, in one place (untested)</h3><a class="hlink" href="#fix-rewritten-source-consistently" target="_self" aria-label="Link to this section" aria-describedby="fix-rewritten-source-consistently"><span aria-hidden="true">#</span></a></div><p>Compute <code>boolean needsScores = rewrittenValueSource.needsScores()</code> once in <code class='nw'>rewrite</code> and use it for the score mode, the inline/prefetch branch and <code class='nw'>getDoubleValues</code>.</p><p class='k'>Trade-offs</p><p>Same behaviour for every in-tree source; more robust for a custom source whose <code class='nw'>rewrite</code> changes <code class='nw'>needsScores()</code>. A slightly larger diff (<code class='nw'>getDoubleValues</code> reads the field <code class='nw'>valuesSource</code> today).</p><div class="hd hd-3"><h3 id='fix-reject-or-document'>C: reject or document score-reading sources (not recommended)</h3><a class="hlink" href="#fix-reject-or-document" target="_self" aria-label="Link to this section" aria-describedby="fix-reject-or-document"><span aria-hidden="true">#</span></a></div><p>Throw <code>IllegalArgumentException</code> in the constructor for a source whose <code class='nw'>needsScores()</code> is true, or document that such sources are unsupported.</p><p class='k'>Trade-offs</p><p>Contradicts the generic <code>DoubleValuesSource</code> contract and the class's own inline path for these sources (#16705), and removes a natural use: combining the first-stage score with a field value, then keeping the top n.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>With a shared cache: only non-scoring Weights enter it, the rewritten kNN query is identical for every user of a reader, and the cache's wrapper returns score 0 from the call that caches it, so anyone's earlier searches change the result. The hunt screen reads SECURITY.md as leaving user isolation to the application; no exploit or affected deployment is known.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Semi-formal. While writing a bounded translation-validation model of Lucene's rescoring code, an AI tool noticed that the score-reading path runs on a Weight without scores; the harness then found all 586 non-empty random trials (of 600) wrong on the stock jar. A follow-up probe found the kNN-with-cache form.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>176 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (bounded translation validation, then a public-API JUnit).</p><ul><li>A hunt unit (2026-10-26) checks that Lucene's rescoring paths (<code class='nw'>RescoreTopNQuery</code>, <code class='nw'>QueryRescorer</code>, <code>DoubleValuesSourceRescorer</code>) compute what an independent reference computes, by bounded-exhaustive and random comparison on the stock jar.</li><li>While writing the model, the finder, an AI tool, noticed that <code class='nw'>rewrite</code> sends score-reading sources down a path that reads the inner score, yet creates the inner Weight with <code>COMPLETE_NO_SCORES</code>.</li><li>The harness's RTN-scores scope then compared <code class='nw'>RescoreTopNQuery</code> with a reference built from the inner query's <code class='nw'>COMPLETE</code>-mode scores: all 586 non-empty trials of 600 differ, for an array-backed score-reading source and for <code>DoubleValuesSource.SCORES</code>, with assertions on and off (example: expected <code class='nw'>[0:0.89166296]</code>, actual <code class='nw'>[0:0.0]</code>).</li><li>A follow-up probe found the kNN form (right for 4 searches, then 0 once the query cache caches the inner Weight), and a public-API JUnit on the stock jars confirmed both.</li><li>An independent reviewer from another model family (OpenAI GPT-5.6) then tried to refute it, verifiers and an adjudication confirmed it, and the history, prior-report and security checks followed.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found: 207 queries and reads on 2026-10-26 over GitHub issues, PRs and review comments, commits, open-PR file lists, downstream trackers, the mailing lists, JIRA and the web. Not fixed upstream; the closest items are the PRs that added the class and its inline path.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>The searches found no upstream issue, PR, review comment, commit, mailing-list thread or JIRA entry that reports this bug, and no open PR that fixes it. GitHub search reads only the first page per query and GitHub's search rate limit cut some tool queries, so every <code class='nw'>RescoreTopNQuery</code> and <code class='nw'>DocAndScoreQuery</code> item was also enumerated by hand; "none found" is still not proof that none exists, and private reports to the security list are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene)</th><td class='when'>2026-10-26</td><td>every issue or PR mentioning RescoreTopNQuery (10) or DocAndScoreQuery (19), read with comments; scripted prior-report search runs over class, score-mode, kNN-cache and <code class='nw'>_score</code> phrasings; 13 manual phrasing variants</td><td>no report; only the feature PRs #14009, #14860, #14729, #16628, #16705, #16656 and unrelated items</td></tr><tr><th scope='row'>Review threads read in full</th><td class='when'>2026-10-26</td><td>inline review comments of #14009, #14729, #16628, #16656 and #16705 (issue search does not index them)</td><td>none discusses the inner score mode; #16705 and #16656 assume <code class='nw'>fromScorer</code> reads a real score</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the file lists of all 411 open apache/lucene PRs</td><td>only draft #16847 (long doc ids) edits the file; it keeps the line</td></tr><tr><th scope='row'>Commits and downstream</th><td class='when'>2026-10-26</td><td>upstream main and branch_10x history and contents; GitHub code search; Solr, Elasticsearch and OpenSearch trackers</td><td>not fixed; apache/solr#4919 reports a different RescoreTopNQuery defect (an empty inner result throws); code users wrap kNN queries with sources that do not read scores</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-26</td><td>dev@, java-user@, issues@, commits@, builds@; the LUCENE and SOLR JIRA archives</td><td>no report; only background on calling score() without scores (LUCENE-6329, LUCENE-6526, LUCENE-7623)</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>21 queries</td><td>nothing about this behaviour</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with the class by #14009 (merged 2025-06-28; backport #14860), so not a regression; first released in 10.3.0. All seven releases 10.3.0 to 10.5.2 and main fail; 10.2.2 and earlier have no such class. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #14009, "Add Query for reranking KnnFloatVectorQuery with full-precision vectors" (dungba88), merged 2025-06-28 as <code class='nw'>3404496b3d77</code> on main and backported by #14860 as <code class='nw'>4fcb6d6d50de</code> (2025-06-29 UTC). Both defective lines, <code>createWeight(rewritten, ScoreMode.COMPLETE_NO_SCORES, 1.0f)</code> and <code>DoubleValuesSource.fromScorer(innerScorer)</code>, are in that first version; <code>git log -S</code> on each returns only that commit, and the parents have no <code>RescoreTopNQuery.java</code>. Later changes kept the line: #14729 (late interaction), #16628 (fp16, main only) and #16705 (main only, split into inline and prefetch paths). On 10.x the line is <code>RescoreTopNQuery.java:63</code>. Unreleased branches, read but not built: branch_10_6 (the coming 10.6.0) and branch_10x still have the line at <code class='nw'>:63</code>; upstream main still has it at <code class='nw'>:72</code> (read, 2026-10-26).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>9.12.3, 10.2.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> class absent</span></td><td>the repro does not compile: RescoreTopNQuery does not exist</td></tr><tr><th scope='row'>10.3.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first affected</span></td><td>finder's test 2 of 2 fail (also with assertions off); this doc's test 2 of 2 fail (assertions on; off in the fact check's re-run)</td></tr><tr><th scope='row'>10.3.1, 10.3.2, 10.4.0, 10.5.0, 10.5.1</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>finder's test 2 of 2 fail</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>finder's test and this doc's test 2 of 2 fail, assertions on and off</td></tr><tr><th scope='row'>branch_10_6, branch_10x (unreleased)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> read, not built</span></td><td>the source still creates the inner Weight with COMPLETE_NO_SCORES (RescoreTopNQuery.java:63)</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 2 of 2 fail through gradle (assertions on, off, nightly) and the harness</td></tr><tr><th scope='row'>10.3.0 and 10.5.2 + the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> root-cause control</span></td><td>2 of 2 pass (shadowed RescoreTopNQuery)</td></tr><tr><th scope='row'>main + the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>2 of 2 pass; 33 tests in 9 nearby suites pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a "works as designed" reviewer from another model family (OpenAI GPT-5.6), a devil's advocate and an adjudication all say real. An earlier read-only GPT-5.6 refute review could not run Java and agreed on the root cause. This doc's test was re-run through gradle, on 10.5.2 and 10.3.0, and with the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>655 words</span></summary><div class='body'><p>Every check ran on main <code class='nw'>ea57360912ed</code> with assertions on and off unless noted. The GPT-5.6 reviews ran read-only (they could not execute Java); their execution evidence is the repro driver's and the cross-model review's own re-runs of the finder's test.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Refute review (OpenAI GPT-5.6)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not_real, low (procedural)</span></td><td>It could not run Java and called its own verdict "procedural, not a substantive refutation". It agrees on the root cause, found the inputs in contract, rated the intended argument weak, and listed 7 evidence items for real (one new: <code>TestDoubleValuesSource</code> picks <code class='nw'>COMPLETE</code> exactly when <code class='nw'>needsScores()</code>). A separate run re-run of the finder's test failed 2 of 2.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 7-test JUnit written from the claim only, every searcher with an explicit cache and policy: 5 of 7 fail on main, 10.5.2 and 10.3.0 (lexical <code class='nw'>SCORES</code>: doc 0 at 0.0 instead of doc 17; all 30 of 30 hits 0.0; a <code>score + 1</code> source returns 1.0; kNN with an always-cache policy wrong on the 1st search; with the usage policy from the 5th); both controls pass. Its own fix passes 7 of 7, and its <code>AssertingIndexSearcher</code> probe fails on main and passes with the fix.</td></tr><tr><th scope='row'>"works as designed" reviewer (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium; intended argument weak</span></td><td>Read-only. It built the strongest intended case (experimental, kNN-oriented, a non-scoring Weight is a cacheable optimization) and rejected it: the generic constructor, the class's own score path, <code class='nw'>ScoreMode</code>, the asserting framework and <code>FunctionScoreQuery</code> all point the other way. The cross-model review's re-runs of the finder's test fail on main (on and off), 10.5.2 and 10.3.0 and pass with the fix.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>No intended, documentation, misuse or reachability argument survives; it read the #14009 and #16705 threads (the author's review reply ties the no-scoring sentence to the outer search). The finder's test fails on main with assertions on and off.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's test with a fresh seed: 5 of 7 fail with assertions on and off, 0 of 7 with the independent reproduction's fix. Filing advice: lead with the lexical case; say "once the caching policy decides to cache the inner query".</td></tr><tr><th scope='row'>Security screen</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> out of scope of SECURITY.md (registry none; the earlier rating is retired)</span></td><td>Its own probe: the cross-user cache test fails on main (on and off) and 10.5.2 and passes with the fix; 800 reach checks per target find no hit outside the inner query's live matches or an outer filter; one source call per match.</td></tr><tr><th scope='row'>This doc's re-runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces; fix validated</span></td><td>The test (codec pinned for the kNN index) fails 2 of 2 through gradle (assertions on, off, nightly; 10 of 10 over 5 iterations of a second seed) and through the harness on main, 10.5.2 and 10.3.0, and passes with the fix; 33 tests in 9 nearby suites, the nightly tests and the core static checks pass. A hybrid probe showed the term part of the score lost without any cache.</td></tr><tr><th scope='row'>Fact check of this doc (re-ran the test)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> holds; citations and patch block fixed</span></td><td>Re-ran the test on main (assertions on and off, a second seed), 10.5.2, 10.3.0 with assertions off and with the fix, and ran a fully default 10.5.2 searcher, which flips at search 5. Found eight citations to probe logs that do not exist and a truncated patch block in the brief; both fixed, see the resolution.</td></tr><tr><th scope='row'>Cross-model fact check (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> core bug real; 17 accuracy findings</span></td><td>Code path, numbers and history confirmed; 7 errors, 6 overclaims and 4 missing caveats, among them that only term queries read 0 (a phrase query reads 1.0, since executed). All handled in the resolution: 15 fixed as suggested.</td></tr><tr><th scope='row'>Diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> correct; no errors</span></td><td>Every value on screen re-run and matched; six optional polish items, not re-rendered (see the resolution).</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-315/bug.png' download='rescoretopn-inner-weight-complete-no-scores-bug.png' target='_self'>PNG</a> <span class='n'>520 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,324 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-315, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>RescoreTopNQuery builds its inner Weight with ScoreMode.COMPLETE_NO_SCORES, so a values source that needs scores (DoubleValuesSource.SCORES, an expression using _score) reads 0 instead of the inner query's score</dd></div><div><dt>Area</dt><dd>search / rescoring</dd></div><div><dt>Priority</dt><dd>Medium, rank 50: The experimental RescoreTopNQuery silently.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that use the experimental RescoreTopNQuery with a values source whose needsScores() is true (DoubleValuesSource.SCORES, an expression reading _score, or a custom source): with a lexical or hybrid inner query every rescored value is computed from a score of 0 on every search, so the top n are just the first n matches in doc-id order, and with a kNN inner query the same happens once the query-caching policy caches the inner Weight (the 5th identical search with UsageTrackingQueryCachingPolicy, the 1st with an always-cache policy; IndexSearcher's default cache in 10.x for segments of 10000 or more docs, opt-in on main since #14187); default codec and IndexWriterConfig, ordinary scale, released 10.3.0-10.5.2, no error; the built-in full-precision vector and late-interaction sources do not read scores and are not affected.</dd></div><div><dt>Summary</dt><dd>You wrap a query in RescoreTopNQuery and re-score its matches with a values source that uses the query's own score, for example DoubleValuesSource.SCORES or an expression such as _score * popularity, keeping the best n. You expect the source to see each match's real score, so rescoring body:common OR body:rare by SCORES with n=1 should return the rare-term document 9 with its normal score. Instead RescoreTopNQuery runs the inner query in a mode that produces no scores, so the source reads 0 for every match and the result is doc 0 with score 0.0 (the first match by doc id); for a kNN inner query the scores are right until the query cache caches the inner query, and from then on (the 5th identical search with the usage-tracking policy) they read 0 too.</dd></div><div><dt>Introduced</dt><dd>3404496b3d77 (#14009 'Add Query for reranking KnnFloatVectorQuery with full-precision vectors', by GitHub dungba88, main), released through its branch_10x backport 4fcb6d6d50de (#14860 'Backport RescoreTopNQuery to 10.3') [read: git blame on main HEAD and git log -S on both defective lines (createWeight(rewritten, ScoreMode.COMPLETE_NO_SCORES, 1.0f) and DoubleValuesSource.fromScorer(innerScorer)) each return only 3404496b3d77; the parents of both commits have no RescoreTopNQuery.java; exec: fails on 10.3.0, the first release with the class]; not a regression: both lines are in the class's first version, and #16705 (main only) added the inline path for score-reading sources but kept COMPLETE_NO_SCORES (2025-06-28 (#14009 committed to main 2025-06-28T07:34Z; backport #14860 committed 2025-06-29T21:08Z))</dd></div><div><dt>First affected version</dt><dd>10.3.0 [exec]</dd></div><div><dt>Affected versions</dt><dd>10.3.0, 10.3.1, 10.3.2, 10.4.0, 10.5.0, 10.5.1, 10.5.2 and main ea57360912ed [exec: finder repro, seed DEADBEEF, 2 of 2 fail on each; 10.3.0, 10.5.2 and main also with -da; the independent reproduction's own test 5 of 7 fail on main, 10.5.2 and 10.3.0]; not applicable to 10.2.2, 9.12.3 and earlier (RescoreTopNQuery absent, the repro does not compile) [exec]; upstream main (re-checked 2026-10-26) and branch_10x still create the inner Weight with COMPLETE_NO_SCORES [read]; branch_10_6 (unreleased 10.6.0) not checked; not fixed anywhere</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check, code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, follow-up prior-report record verdict new, 207 logged queries and reads: scripted prior-report searches A (51 queries over GitHub, commits, downstream repos, four lists, JIRA and the web), B (kNN plus query-cache angle, 30 + 4 cached GitHub) and C (expressions and _score angle, 30 + 4 cached GitHub), the finder's 45-query run, 43 manual searches and reads; every apache/lucene issue or PR mentioning RescoreTopNQuery (10) or DocAndScoreQuery (19) read with its comments; the inline review comments of #14009, #14729, #16628, #16656 and #16705 read directly; the file lists of all 411 open PRs; dev@, java-user@, issues@, commits@ and builds@; the LUCENE and SOLR JIRA archives; 21 web queries; re-checked read-only while writing this row: upstream main RescoreTopNQuery.java:72 still uses COMPLETE_NO_SCORES, its last change is #16705 (2026-10-01), and no RescoreTopNQuery issue or PR is newer than #16902): not fixed upstream; related, not reports of this bug: #14009 (introduced it; in review the author tied 'will work even with the no-scoring ScoreMode' to the outer search), #14860 (backport to 10.3), #16705 and #16656 (their descriptions assume fromScorer reads a real score; #16705 kept COMPLETE_NO_SCORES), #13564 (design issue), open draft #16847 by jimczi (edits RescoreTopNQuery.java, keeps the line), LUCENE-6329 (#7390), LUCENE-6526 (#7584), LUCENE-7623 (#8674) and #12297/#12383 (background on calling score() without scores); apache/solr#4919 / SOLR-18424 report a different RescoreTopNQuery defect (empty inner result throws, the hunt's rescoretopn-no-candidates-throws)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (2026-10-26) through gradle (assertions on, off, <code>-Ptests.nightly=true</code>, and 5 iterations of a second seed) and through a standalone JUnit harness (assertions on and off); this doc's test also on the Maven Central jars of 10.5.2 (assertions on and off) and 10.3.0; the finder's test on all seven releases 10.3.0-10.5.2 (10.3.0 and 10.5.2 also with assertions off); 10.2.2 and 9.12.3 do not have the class; the fix in a scratch worktree at <code class='nw'>ea57360912ed</code> (the test, 9 nearby suites with assertions on and off, the <code class='nw'>@Nightly</code> tests, <code>:lucene:core:check -x test</code>), removed afterwards, and as a shadowed class over the main, 10.5.2 and 10.3.0 jars; an independent fact check re-ran this doc's test (main with assertions on and off, 10.5.2, 10.3.0 with assertions off, and with the fix) and a fully default 10.5.2 searcher; a phrase-query probe ran on main (assertions on and off, and with the fix).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java:26-33 (class javadoc: re-scores another Query with a DoubleValuesSource, &#x27;it can work with any type of Query&#x27;, &#x27;will work even with the no-scoring ScoreMode&#x27;, @lucene.experimental), :72 (createWeight(rewritten, ScoreMode.COMPLETE_NO_SCORES, 1.0f)), :74-79 (needsScores() sources take rescoreInline), :90-107 (rescoreInline passes getDoubleValues(innerScorer)), :230-236 (getDoubleValues returns DoubleValuesSource.fromScorer(innerScorer) when needsScores())</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/ScoreMode.java:25-26 (COMPLETE_NO_SCORES: &#x27;scores won&#x27;t be available&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/TermQuery.java:77-92 (no-scores TermWeight uses a SimScorer returning 0f, &#x27;not expected to be called&#x27;); LRUQueryCache.java:835-846 (a cached non-scoring Weight is served as ConstantScoreScorerSupplier(0f), also on the populating call)</code></li><li><code>lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:109-121 (asks for COMPLETE when the source needs scores); lucene/core/src/test/org/apache/lucene/search/TestDoubleValuesSource.java:311 (vs.needsScores() ? ScoreMode.COMPLETE : ScoreMode.COMPLETE_NO_SCORES)</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/search/AssertingWeight.java:74, AssertingScorer.java:125-127 (score() asserts canScore = scoreMode.needsScores(), LUCENE-6526)</code></li><li><code>read-only GitHub checks while writing this row (2026-10-26): gh pr view 16847 (author jimczi, open draft); repos/apache/lucene/contents RescoreTopNQuery.java?ref=main (line 72 COMPLETE_NO_SCORES); repos/apache/lucene/commits?path=RescoreTopNQuery.java (latest 82d73908cb1, #16705, 2026-10-01); search/issues RescoreTopNQuery sorted by created (newest #16902, 2026-10-24)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java:26-34, 68-107, 221-236</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/ScoreMode.java:22-26; TermQuery.java:77-92; DocAndScoreQuery.java:244-245, 273-275, 294-307; HitQueue.java:76-82</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:82-84, 976-983; UsageTrackingQueryCachingPolicy.java:118-137; LRUQueryCache.java:811-814, 837-846</code></li><li><code>a Lucene clone releases/lucene/10.5.2: lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:95-100, LRUQueryCache.java:167-177</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/PhraseWeight.java:46-51; PhraseScorer.java:84-95; PhraseQuery.java:476-488; LRUQueryCache.java:451, 458, 792-807, 816, 846-856; IndexSearcher.java:274</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java:34, 272-331 (factories)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/AbstractFullPrecisionVectorSimilarityValuesSource.java:140-141; LateInteractionFloatValuesSource.java:106-107 (needsScores false)</code></li></ul></dd></div><div><dt>Minimal repro</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/test-framework/src/java/org/apache/lucene/tests/util/SetupAndRestoreStaticEnv.java:214, 224, 229-230; SetupAndRestoreQueryCache.java:41-43 (what the seed randomizes); lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:123 (BM25 default)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java:26-34, 58, 74-79, 230-236; ScoreMode.java:25; DoubleValuesSource.java:43-46, 350</code></li><li><code>Lucene main ea57360912ed: lucene/CHANGES.txt:1562-1563</code></li><li><code>Lucene main ea57360912ed: lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:109-122; lucene/queries/src/test/org/apache/lucene/queries/function/TestFunctionScoreQuery.java:303-323</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/test/org/apache/lucene/search/TestDoubleValuesSource.java:310-312</code></li><li><code>Lucene main ea57360912ed: lucene/test-framework/src/java/org/apache/lucene/tests/search/AssertingWeight.java:74; AssertingScorer.java:125-126</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:109-122; lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:979-981</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestRescoreTopNQueryInnerScores.java (2 tests): <a href='../repro/LFV-315/TestRescoreTopNQueryInnerScores.java'><code>repro/LFV-315/TestRescoreTopNQueryInnerScores.java</code></a> (111 lines)</li><li>The fix: rescoretopn-inner-score-mode.diff: <a href='../repro/LFV-315/rescoretopn-inner-score-mode.diff'><code>repro/LFV-315/rescoretopn-inner-score-mode.diff</code></a> (16 lines)</li><li>Probe: a hybrid (kNN OR term) inner query, no cache: <a href='../repro/LFV-315/TestRescoreHybridInnerProbe.java'><code>repro/LFV-315/TestRescoreHybridInnerProbe.java</code></a> (72 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>The summary card (<code class='nw'>bug.png</code>) shows the lexical case step by step, the kNN timeline, expected against actual, and the three contract sentences. Every value on screen comes from the printing probe run on <code class='nw'>ea57360912ed</code>. The alt text follows the scene script's summary card as drafted when this doc was written.</p><ul class='paths'><li><a href='../assets/LFV-315/bug.png'><code>assets/LFV-315/bug.png</code></a> (520 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

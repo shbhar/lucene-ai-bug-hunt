@@ -1,0 +1,20 @@
+;   ... safe iff doc < 2^31-2^16 (i.e. always safe when maxDoc <= 2^31-2^16)
+; core/.../util/RoaringDocIdSet.java:161-171 (Builder.add(int,int), #16081, 2026-05-18)
+; benchmark generated from python API
+(set-info :status unknown)
+(declare-fun doc () (_ BitVec 32))
+(declare-fun maxDoc () (_ BitVec 32))
+(declare-fun max () (_ BitVec 32))
+(assert
+ (let (($x26 (bvsle max maxDoc)))
+ (let (($x23 (bvsle maxDoc (_ bv2147483519 32))))
+ (let (($x27 (and (bvsge maxDoc (_ bv0 32)) $x23 (bvsge doc (_ bv0 32)) (bvslt doc max) $x26)))
+ (and $x27 (bvslt doc (_ bv2147418112 32)))))))
+(assert
+ (let ((?x19 (bvmul (bvadd ((_ zero_extend 32) (bvlshr doc (_ bv16 32))) (_ bv1 64)) (_ bv65536 64))))
+ (let ((?x30 ((_ sign_extend 32) max)))
+ (let ((?x12 (bvshl (bvadd (bvlshr doc (_ bv16 32)) (_ bv1 32)) (_ bv16 32))))
+ (let ((?x14 (ite (bvslt max ?x12) max ?x12)))
+ (let (($x34 (and (bvsgt ?x14 doc) (= ((_ sign_extend 32) ?x14) (ite (bvslt ?x30 ?x19) ?x30 ?x19)))))
+ (not $x34)))))))
+(check-sat)

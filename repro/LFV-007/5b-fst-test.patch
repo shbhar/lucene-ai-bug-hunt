@@ -1,0 +1,45 @@
+commit 13e3e5e3f5168872a157a531d0a32ee95e4e78bb
+Author: the owner's git identity
+Date:   Thu Oct 22 18:03:07 2026 +0000
+
+    Fix FSTCompiler writing a corrupt FST for nodes too large to expand
+    
+    The expanded size numArcs * maxBytesPerArc was computed as an int, so for a node of 2 GB or more
+    binary search skipped the expansion but still wrote the fixed length arcs header. Nodes that would
+    expand to more than 1 GB now keep their variable length arcs.
+
+diff --git a/lucene/core/src/test/org/apache/lucene/util/fst/TestFSTs.java b/lucene/core/src/test/org/apache/lucene/util/fst/TestFSTs.java
+index 05c9b429905..a80a22bf0a7 100644
+--- a/lucene/core/src/test/org/apache/lucene/util/fst/TestFSTs.java
++++ b/lucene/core/src/test/org/apache/lucene/util/fst/TestFSTs.java
+@@ -1705,6 +1705,30 @@ public class TestFSTs extends LuceneTestCase {
+     }
+   }
+ 
++  public void testOutputTooLargeForArrayArcs() throws Exception {
++    final ByteSequenceOutputs outputs = ByteSequenceOutputs.getSingleton();
++    final FSTCompiler<BytesRef> fstCompiler =
++        new FSTCompiler.Builder<>(FST.INPUT_TYPE.BYTE2, outputs).build();
++
++    // 2048 sparse root arcs, one of which takes 1 MB (flags, 2 label bytes, 3 vInt length bytes and
++    // the output), so expanding the root node to fixed length arcs would take 2 GB
++    final int numArcs = 2048;
++    final BytesRef bigOutput = newBytesRef((1 << 20) - 6);
++    final IntsRefBuilder input = new IntsRefBuilder();
++    input.append(0);
++    for (int arc = 0; arc < numArcs; arc++) {
++      input.setIntAt(0, arc * 32);
++      fstCompiler.add(input.get(), arc == 0 ? bigOutput : newBytesRef(new byte[] {(byte) arc}));
++    }
++
++    final FST<BytesRef> fst = FST.fromFSTReader(fstCompiler.compile(), fstCompiler.getFSTReader());
++    for (int arc = 0; arc < numArcs; arc++) {
++      input.setIntAt(0, arc * 32);
++      final BytesRef expected = arc == 0 ? bigOutput : newBytesRef(new byte[] {(byte) arc});
++      assertEquals(expected, Util.get(fst, input.get()));
++    }
++  }
++
+   public void testIllegallyModifyRootArc() throws Exception {
+     assumeTrue("test relies on assertions", TEST_ASSERTS_ENABLED);
+ 

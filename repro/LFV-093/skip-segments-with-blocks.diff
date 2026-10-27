@@ -1,0 +1,26 @@
+diff --git a/lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java b/lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java
+index f2b987b3a51..3ae85b7d258 100644
+--- a/lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java
++++ b/lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java
+@@ -51,6 +51,9 @@ import org.apache.lucene.util.VectorUtil;
+  * Implementation of "recursive graph bisection", also called "bipartite graph partitioning" and
+  * often abbreviated BP, an approach to doc ID assignment that aims at reducing the sum of the log
+  * gap between consecutive neighbor node ids. See {@link BPIndexReorderer}.
++ *
++ * <p>Segments that contain document blocks (see {@link IndexWriter#addDocuments(Iterable)}) are not
++ * reordered: {@link #computeDocMap} returns {@code null} for them.
+  */
+ public class BpVectorReorderer extends AbstractBPReorderer {
+ 
+@@ -587,6 +590,11 @@ public class BpVectorReorderer extends AbstractBPReorderer {
+     if (vectorScore == null) {
+       return null;
+     }
++    if (reader.getMetaData().hasBlocks()) {
++      // This reorderer moves documents one by one, which would break document blocks (children
++      // followed by their parent), so leave segments that have blocks in their current order.
++      return null;
++    }
+     FloatVectorValues floats = reader.getFloatVectorValues(partitionField);
+     Sorter.DocMap valueMap = computeValueMap(floats, vectorScore, taskExecutor);
+     return valueMapToDocMap(valueMap, floats, reader.maxDoc());

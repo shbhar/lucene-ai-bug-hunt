@@ -1,0 +1,766 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>DrillDownQuery.clone() shares each dimension&#x27;s builder, so adding a value to one copy changes the other</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-367 &middot; drilldownquery-clone-shares-dim-builders</p><h1 id='top'>DrillDownQuery.clone() shares each dimension&#x27;s builder, so adding a value to one copy changes the other</h1><p class='tldr'>Clone a <code class='nw'>DrillDownQuery</code> and add a value to a dimension both copies already constrain, and the other copy matches that value too: <code class='nw'>q</code> restricts color = red, <code>q.clone().add("color", "blue")</code>, and <code class='nw'>q</code> now matches 2 documents instead of 1. Every release from 4.7.0 to 10.5.2 and main does this.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 184</span><span class='sub'>Extending a cloned DrillDownQuery deterministically gives silent wrong drill-down results, but few applications call clone(), so it follows the getTopDims facet rows.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>4.7.0 (LUCENE-5339, 2014)<span class='sub'>introduced 2013-11-17 &middot; over 12 years</span></dd></div><div><dt>Affected</dt><dd>4.7.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div><dt>Found by</dt><dd>code reading, confirmed by JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>DrillDownQuery</code> ANDs one filter per facet dimension onto a base query; calling <code class='nw'>add()</code> again for the same dimension ORs another value into it. <code class='nw'>clone()</code> should give an independent copy: upstream <code class='nw'>testClone</code> fails with "query wasn't cloned" when a change to the clone shows up in the source.</p><figure class='visual' id='drilldownquery-clone-shares-dim-builders-short-visual'><div class='frame'><a class='still' href='../assets/LFV-367/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-367/bug.png' alt='Summary card. Title: DrillDownQuery.clone() shares its per-dimension builders, so adding a value to one copy changes the other. Left: the original and the clone, each with a dimQueries list whose entry points at one shared BooleanQuery.Builder holding color:red SHOULD and color:blue SHOULD; clone.add(&quot;color&quot;, blue) lands in the original&#x27;s dimension too. Right: DrillDownQuery.java:68, this.dimQueries.addAll(dimQueries), and :135, dimQueries.get(index).add(subQuery, Occur.SHOULD); fix: clone() gives each dimension its own builder. Example, executed: doc 0 color=red, doc 1 color=blue; expected count(original) = 1, actual 2. Notes: since 9.0 a copy searched first hides the leak, then matches 3 documents where 2 are right; the copies stay equals() with the same hashCode(); Lucene never calls clone(); adding a new dimension to a clone is correct.' width='1920' height='1080'></a></div><figcaption>The original and its clone each have their own list of dimensions, but both lists point at one <code>BooleanQuery.Builder</code> for <code class='nw'>color</code>. <code>clone.add("color", blue)</code> appends to that builder, so the original matches 2 documents instead of 1. Executed on main with two documents, red and blue. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index three documents with a <code class='nw'>color</code> facet: red, blue and green. <code>DrillDownQuery q = new DrillDownQuery(config)</code> with <code>q.add("color", "red")</code> matches 1 document.</span></li><li><span>Copy it, <code>c = q.clone()</code>, and OR blue into the copy: <code>c.add("color", "blue")</code>. You expect <code class='nw'>c</code> to match red or blue (2) and <code class='nw'>q</code> to keep matching red only (1).</span></li><li><span>You get 2 for both. The clone has its own list of dimensions, but the <code>BooleanQuery.Builder</code> that holds the <code class='nw'>color</code> values is the same object in both, and <code class='nw'>add()</code> on an existing dimension appends blue to it.</span></li><li><span>If <code class='nw'>q</code> was searched before, it keeps a cached red-only query and still says 1, yet <code class='nw'>q.equals(c)</code> is true while they match 1 and 2 documents. Once <code class='nw'>q</code> adds green itself, it matches 3 instead of 2.</span></li><li><span>No error is raised, and nothing depends on the index or codec: the shared state lives in the query objects. Adding a new dimension to a copy is isolated, and Lucene never calls <code class='nw'>clone()</code> itself. The recommended fix gives the clone its own builders; the whole facet test suite passes with it.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that call <code>DrillDownQuery.clone()</code> themselves and then add a value to a dimension the source already constrains, for example a template query cloned per request for multi-select facets. The other copy, and every later clone of the template, silently matches the extra value, on every release since 4.7.0.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>637 words</span></summary><div class='body'><p><code class='nw'>DrillDownQuery</code> keeps one <code>BooleanQuery.Builder</code> per facet dimension, and <code class='nw'>add()</code> on a dimension that is already present ORs another value into that builder, as its javadoc documents. <code class='nw'>clone()</code> hands the source's builders to the copy by reference (<code>DrillDownQuery.java:68</code>, <code>this.dimQueries.addAll(dimQueries)</code>), so <code class='nw'>add()</code> on an existing dimension of either copy changes what the other copy matches: <code class='nw'>q</code> restricts color = red, <code>q.clone().add("color", "blue")</code>, and <code class='nw'>q</code> matches 2 documents instead of 1. Since 9.0 a copy that was already searched hides the leak until its own dimension changes (then 3 documents where 2 are right), and copies that match different documents compare <code class='nw'>equals()</code> with the same <code class='nw'>hashCode()</code>. Adding a new dimension to a copy is isolated, which is the only case upstream <code class='nw'>testClone</code> covers. Lucene never calls <code class='nw'>clone()</code> itself, so only applications that clone a <code class='nw'>DrillDownQuery</code> and extend a dimension are hit, silently, on every release from 4.7.0 to 10.5.2 and main. Copying the builders in <code class='nw'>clone()</code>, and comparing built dimension queries in <code class='nw'>equals()</code>, fixes it; the whole <code class='nw'>lucene/facet</code> test suite passes with that change.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Drill-down</strong>: <code class='nw'>DrillDownQuery</code> narrows a base query (or all documents) to facet values. Each dimension becomes one FILTER clause; the values of one dimension are OR'd: "if you pass the same dimension more than once it is OR'd with the previous constraints on that dimension, and all dimensions are AND'd against each other and the base query" (<code>DrillDownQuery.java:111-115</code>).</li><li><strong>Per-dimension builder</strong>: the query keeps one <code>BooleanQuery.Builder</code> per dimension (<code>DrillDownQuery.java:56</code>), adds each value to it as a SHOULD clause, and builds the dimension's query lazily, caching the result per copy until that dimension changes (<code class='nw'>:57-59</code>, <code class='nw'>:204-211</code>; the cache dates from 9.0).</li><li><strong><code class='nw'>clone()</code></strong> (<code class='nw'>:139-142</code>) has no javadoc. <code class='nw'>Object#clone</code> says a copy "should be independent of this object", and upstream <code>TestDrillDownQuery#testClone</code> (<code class='nw'>:245-255</code>) asserts that a change to the clone does not show up in the source.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>clone()</code> calls a package-private constructor that does <code>this.dimQueries.addAll(dimQueries)</code> (<code>DrillDownQuery.java:68</code>): a new list holding the <strong>same builder objects</strong>. The dimension map is copied (<code class='nw'>:69</code>), and every dimension of the new copy is marked dirty (<code class='nw'>:71-74</code>).</li><li><code>add(dim, ...)</code> on a dimension the copy already has runs <code>dimQueries.get(index).add(subQuery, Occur.SHOULD)</code> (<code class='nw'>:135</code>): the clause goes into the shared builder. Only the receiving copy is marked dirty (<code class='nw'>:136</code>). A new dimension gets a new builder in that copy's own list (<code class='nw'>:128-133</code>), so new dimensions stay isolated.</li><li>Any copy that builds a dirty dimension, including every fresh clone, reads the shared builder with the other copy's clause in it (<code class='nw'>:204-211</code>). A copy that was already built keeps its cached query until its own dimension changes again, and then picks up everything in the builder.</li><li><code class='nw'>equals()</code> and <code class='nw'>hashCode()</code> compare the builder list (<code class='nw'>:144-156</code>); <code>BooleanQuery.Builder</code> does not override <code class='nw'>equals</code>, so this is identity: a clone stays equal to its source while they match different documents.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Index: three documents, <code class='nw'>color</code> = red, blue, green (<code>SortedSetDocValuesFacetField</code>).</p><div class="tbl"><table><thead><tr><th>what the code does</th><th>copy counted</th><th>expected</th><th>actual</th></tr></thead><tbody><tr><td><code>q.add(color, red)</code>; <code>c = q.clone()</code>; <code>c.add(color, blue)</code></td><td><code class='nw'>q</code></td><td>1</td><td><strong>2</strong></td></tr><tr><td><code>q.add(color, red)</code>; <code>s = q.clone()</code>; <code>q.add(color, blue)</code></td><td><code class='nw'>s</code></td><td>1</td><td><strong>2</strong></td></tr><tr><td>search <code class='nw'>q</code> first (1); <code>c = q.clone()</code>; <code>c.add(color, blue)</code></td><td><code class='nw'>q</code></td><td>1</td><td>1 (cached)</td></tr><tr><td>... then <code class='nw'>q.equals(c)</code> (they match 1 and 2 documents)</td><td></td><td>false</td><td><strong>true</strong></td></tr><tr><td>... then <code>q.add(color, green)</code></td><td><code class='nw'>q</code></td><td>2 (red or green)</td><td><strong>3</strong></td></tr><tr><td><code>c = q.clone()</code>; <code>c.add(shape, square)</code>, a new dimension</td><td><code class='nw'>q</code></td><td>1</td><td>1 (right)</td></tr></tbody></table></div><p>The first five rows were run on main with assertions on and off and on 10.5.2 and 9.12.3; the last is an independent reproducer's control on main. On 8.11.2 and older there is no cache: the searched copy changes at once (2, then 3).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>361 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications that call <code>DrillDownQuery#clone()</code> and then <code class='nw'>add()</code> on either copy for a dimension the source already constrains, while the other copy is still used: a base or template query cloned per request or per facet value, where another value is OR'd into an already selected dimension. Adding a new dimension to a clone is not affected.</li><li><strong>Default vs opt-in.</strong> Default codec, <code>IndexWriterConfig</code> and searcher; no index-size prerequisite (the runs used small indexes of 2 to 24 documents, and the shared state lives in the query objects). It needs an explicit <code class='nw'>clone()</code> of an <code>@lucene.experimental</code> class. Lucene never calls <code class='nw'>clone()</code> (none of the 11 main-source files that reference <code class='nw'>DrillDownQuery</code> does), DrillSideways shares the builders internally but never adds to them, and a read-only code search found no <code class='nw'>DrillDownQuery</code> use in Solr or Elasticsearch. No public report was found in the prior-report searches.</li><li><strong>Silent and one-sided.</strong> No exception or log line. The extra matches stay on the affected dimension: the base query, the other dimensions and a DrillSideways filter are never widened, and no document is lost (a randomized check over more than 1,000 searches in 4 runs: stock main with assertions on and off, 10.5.2, and main with the fix).</li><li><strong>Template pattern (executed on main and 10.5.2).</strong> A template restricting <code>status = published</code>, cloned per request: one request adds <code>status = draft</code> to its clone, and every later clone of the template returns the draft document too, also through <code>DrillSideways.search</code>, whether or not the template was searched first. Each such <code class='nw'>add()</code> grows the template's builder by one clause, so with the default limit of 1,024 clauses the 1,024th request that adds a value and every later one fail with <code>IndexSearcher.TooManyClauses</code>, thrown by <code class='nw'>add()</code>, until the template is rebuilt; a plain clone of the template still works.</li><li><strong><code class='nw'>equals()</code> side effect.</strong> An application-level result cache keyed on the <code class='nw'>DrillDownQuery</code> could serve one copy's results for the other, since they compare equal. Lucene's own <code class='nw'>LRUQueryCache</code> is not affected: it keys on the rewritten <code class='nw'>BooleanQuery</code> (executed).</li><li><strong>Not assessed.</strong> Several threads cloning and adding to one shared template would also race on the builder's unsynchronized clause list (code reading only).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit class for <code class='nw'>lucene/facet</code>, public API only: three documents with a <code class='nw'>color</code> facet, a red drill-down, <code class='nw'>clone()</code>, and <code class='nw'>add()</code> on the existing dimension of one copy. Four tests check the original, an earlier snapshot, a searched copy and <code class='nw'>equals()</code>. All four fail on main, 10.5.2 and 9.12.3 and pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestDrillDownQueryCloneIsolation.java (lucene/facet, public API)</span><span class='meta'>111 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.IOUtils;
+
+/**
+ * A {@link DrillDownQuery} and its {@link DrillDownQuery#clone()} must stay independent when a
+ * value is OR&#x27;d into a dimension that both already constrain.
+ *
+ * &lt;p&gt;Index: three documents, color = red, blue and green.
+ */
+public class TestDrillDownQueryCloneIsolation extends LuceneTestCase {
+
+  private Directory dir;
+  private IndexReader reader;
+  private IndexSearcher searcher;
+  private final FacetsConfig config = new FacetsConfig();
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    dir = newDirectory();
+    RandomIndexWriter w = new RandomIndexWriter(random(), dir);
+    for (String color : new String[] {&quot;red&quot;, &quot;blue&quot;, &quot;green&quot;}) {
+      Document doc = new Document();
+      doc.add(new SortedSetDocValuesFacetField(&quot;color&quot;, color));
+      w.addDocument(config.build(doc));
+    }
+    reader = w.getReader();
+    w.close();
+    searcher = newSearcher(reader);
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    IOUtils.close(reader, dir);
+    super.tearDown();
+  }
+
+  private DrillDownQuery red() {
+    DrillDownQuery q = new DrillDownQuery(config);
+    q.add(&quot;color&quot;, &quot;red&quot;);
+    return q;
+  }
+
+  /** Adding blue to the clone must not change the original. */
+  public void testAddToCloneLeavesOriginalAlone() throws Exception {
+    DrillDownQuery original = red();
+    DrillDownQuery clone = original.clone();
+    clone.add(&quot;color&quot;, &quot;blue&quot;);
+    assertEquals(&quot;clone: red OR blue&quot;, 2, searcher.count(clone));
+    assertEquals(&quot;original: red only&quot;, 1, searcher.count(original));
+  }
+
+  /** Adding blue to the original must not change a clone taken before. */
+  public void testAddToOriginalLeavesEarlierCloneAlone() throws Exception {
+    DrillDownQuery original = red();
+    DrillDownQuery snapshot = original.clone();
+    original.add(&quot;color&quot;, &quot;blue&quot;);
+    assertEquals(&quot;original: red OR blue&quot;, 2, searcher.count(original));
+    assertEquals(&quot;snapshot: red only&quot;, 1, searcher.count(snapshot));
+  }
+
+  /**
+   * A copy that was already searched hides the leak at first, and picks it up once its own
+   * dimension changes again.
+   */
+  public void testSearchedOriginalPicksUpCloneValueLater() throws Exception {
+    DrillDownQuery original = red();
+    assertEquals(1, searcher.count(original));
+    DrillDownQuery clone = original.clone();
+    clone.add(&quot;color&quot;, &quot;blue&quot;);
+    assertEquals(&quot;clone: red OR blue&quot;, 2, searcher.count(clone));
+    assertEquals(&quot;original: red only&quot;, 1, searcher.count(original));
+    original.add(&quot;color&quot;, &quot;green&quot;);
+    assertEquals(&quot;original: red OR green&quot;, 2, searcher.count(original));
+  }
+
+  /** Two copies that match different documents must not be equal. */
+  public void testCopiesMatchingDifferentDocumentsAreNotEqual() throws Exception {
+    DrillDownQuery original = red();
+    assertEquals(1, searcher.count(original));
+    DrillDownQuery clone = original.clone();
+    clone.add(&quot;color&quot;, &quot;blue&quot;);
+    assertEquals(1, searcher.count(original));
+    assertEquals(2, searcher.count(clone));
+    assertNotEquals(&quot;copies that match 1 and 2 documents&quot;, original, clone);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestDrillDownQueryCloneIsolation.java $LUCENE/lucene/facet/src/test/org/apache/lucene/facet/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:facet:test --tests TestDrillDownQueryCloneIsolation -Ptests.seed=5EED0367 -Ptests.asserts=true
+# also with -Ptests.asserts=false; the result did not depend on the seed
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>The untouched copy keeps matching red only (1 document); a searched copy matches red or green (2) after its own add; copies that match 1 and 2 documents are not equal.</dd></div><div class='got'><dt>Observed</dt><dd>The untouched copy matches 2 in both directions (<code>expected:&lt;1&gt; but was:&lt;2&gt;</code>), the searched copy matches 3 (<code>expected:&lt;2&gt; but was:&lt;3&gt;</code>), and the two copies compare equal.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-367/'>repro/LFV-367/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (317 lines) · 1,883 words</span></summary><div class='body'><p><code>RandomIndexWriter</code> and <code class='nw'>newSearcher</code> from <code class='nw'>LuceneTestCase</code>; three documents with <code>SortedSetDocValuesFacetField("color", ...)</code> and <code>FacetsConfig.build</code>; <code>DrillDownQuery.add("color", "red")</code>, <code class='nw'>clone()</code>, <code>add("color", "blue")</code>; counts with <code>IndexSearcher.count</code>. Test 1 adds to the clone and counts the original; test 2 adds to the original and counts an earlier clone; test 3 searches the original first, adds blue to the clone and then green to the original; test 4 searches the original first and asserts that the two copies, which match 1 and 2 documents, are not equal. The class sits in <code>org.apache.lucene.facet</code> next to <code>TestDrillDownQuery</code> and uses nothing package-private; it passes <code>checkGoogleJavaFormat</code>, ecj lint and forbidden APIs. The result did not depend on the seed. It runs unchanged on 10.5.2 and 9.12.3.</p><p>The other files: the finder's first test (2 tests, a plain <code class='nw'>StringField</code> and the expert <code>add(dim, Query)</code>), an independent reproducer's 7-test class (from another package, with 3 controls that pass), and a small <code class='nw'>main()</code> that prints the cache-dependent counts and <code class='nw'>equals()</code>.</p><div class="hd hd-3"><h3 id='code-2-h'>TestDrillDownQueryCloneShares.java (the finder&#x27;s test)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>2 tests, two documents, <code class='nw'>StringField</code> + <code>add(dim, TermQuery)</code>: <code>expected:&lt;1&gt; but was:&lt;2&gt;</code> twice on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3, and as an API-adapted copy on 9.0.0, 8.11.2 and 7.7.3; passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestDrillDownQueryCloneShares.java (the finder&#x27;s test)</span><span class='meta'>88 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.IOUtils;
+
+/**
+ * DrillDownQuery#clone shares the per-dimension BooleanQuery.Builder instances with the original,
+ * so adding a value to an existing dimension of one copy also changes what the other copy matches.
+ */
+public class TestDrillDownQueryCloneShares extends LuceneTestCase {
+
+  public void testAddingToCloneChangesOriginal() throws Exception {
+    Directory dir = newDirectory();
+    IndexWriter w = new IndexWriter(dir, new IndexWriterConfig());
+    for (String color : new String[] {&quot;red&quot;, &quot;blue&quot;}) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;color&quot;, color, Field.Store.NO));
+      w.addDocument(doc);
+    }
+    DirectoryReader r = DirectoryReader.open(w);
+    w.close();
+    IndexSearcher searcher = newSearcher(r);
+
+    FacetsConfig config = new FacetsConfig();
+    DrillDownQuery original = new DrillDownQuery(config);
+    original.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;red&quot;)));
+
+    DrillDownQuery clone = original.clone();
+    clone.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;blue&quot;))); // red OR blue, on the clone only
+
+    assertEquals(&quot;clone matches red OR blue&quot;, 2, searcher.count(clone));
+    assertEquals(&quot;original must still match only red&quot;, 1, searcher.count(original));
+
+    IOUtils.close(r, dir);
+  }
+
+  public void testAddingToOriginalChangesClone() throws Exception {
+    Directory dir = newDirectory();
+    IndexWriter w = new IndexWriter(dir, new IndexWriterConfig());
+    for (String color : new String[] {&quot;red&quot;, &quot;blue&quot;}) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;color&quot;, color, Field.Store.NO));
+      w.addDocument(doc);
+    }
+    DirectoryReader r = DirectoryReader.open(w);
+    w.close();
+    IndexSearcher searcher = newSearcher(r);
+
+    FacetsConfig config = new FacetsConfig();
+    DrillDownQuery original = new DrillDownQuery(config);
+    original.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;red&quot;)));
+    DrillDownQuery snapshot = original.clone();
+
+    original.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;blue&quot;)));
+
+    assertEquals(&quot;original matches red OR blue&quot;, 2, searcher.count(original));
+    assertEquals(&quot;snapshot taken before the add must still match only red&quot;, 1,
+        searcher.count(snapshot));
+
+    IOUtils.close(r, dir);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestDrillDownQueryCloneIndependence.java (independent reproducer)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>7 tests from another package: 4 fail on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>, two seeds), 10.5.2 and 9.12.3; 3 controls pass (no clone, a new dimension on the clone, the term itself); 7 of 7 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestDrillDownQueryCloneIndependence.java (independent reproducer)</span><span class='meta'>159 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet.verify;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.facet.DrillDownQuery;
+import org.apache.lucene.facet.FacetsConfig;
+import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check (public API only, different package from org.apache.lucene.facet): a
+ * DrillDownQuery clone must not change what the source query matches, and vice versa, when a value
+ * is OR&#x27;d into a dimension that both already constrain.
+ *
+ * &lt;p&gt;Index: doc0 color=red shape=circle, doc1 color=blue shape=circle, doc2 color=green
+ * shape=square.
+ */
+public class TestDrillDownQueryCloneIndependence extends LuceneTestCase {
+
+  private Directory dir;
+  private IndexReader reader;
+  private IndexSearcher searcher;
+  private FacetsConfig config;
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    dir = newDirectory();
+    config = new FacetsConfig();
+    RandomIndexWriter w = new RandomIndexWriter(random(), dir);
+    String[][] docs = {{&quot;red&quot;, &quot;circle&quot;}, {&quot;blue&quot;, &quot;circle&quot;}, {&quot;green&quot;, &quot;square&quot;}};
+    for (String[] d : docs) {
+      Document doc = new Document();
+      doc.add(new SortedSetDocValuesFacetField(&quot;color&quot;, d[0]));
+      doc.add(new SortedSetDocValuesFacetField(&quot;shape&quot;, d[1]));
+      w.addDocument(config.build(doc));
+    }
+    reader = w.getReader();
+    w.close();
+    searcher = newSearcher(reader);
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    reader.close();
+    dir.close();
+    super.tearDown();
+  }
+
+  private int count(DrillDownQuery q) throws Exception {
+    return searcher.count(q);
+  }
+
+  /** Control: the oracle values, built without any clone. */
+  public void testControlNoClone() throws Exception {
+    DrillDownQuery red = new DrillDownQuery(config, MatchAllDocsQuery.INSTANCE);
+    red.add(&quot;color&quot;, &quot;red&quot;);
+    assertEquals(1, count(red));
+    DrillDownQuery redOrBlue = new DrillDownQuery(config, MatchAllDocsQuery.INSTANCE);
+    redOrBlue.add(&quot;color&quot;, &quot;red&quot;);
+    redOrBlue.add(&quot;color&quot;, &quot;blue&quot;);
+    assertEquals(2, count(redOrBlue));
+    DrillDownQuery redOrGreen = new DrillDownQuery(config, MatchAllDocsQuery.INSTANCE);
+    redOrGreen.add(&quot;color&quot;, &quot;red&quot;);
+    redOrGreen.add(&quot;color&quot;, &quot;green&quot;);
+    assertEquals(2, count(redOrGreen));
+  }
+
+  /** Control (the case upstream TestDrillDownQuery#testClone covers): a NEW dim on the clone. */
+  public void testControlCloneAddsNewDimension() throws Exception {
+    DrillDownQuery original = new DrillDownQuery(config, MatchAllDocsQuery.INSTANCE);
+    original.add(&quot;color&quot;, &quot;red&quot;);
+    DrillDownQuery clone = original.clone();
+    clone.add(&quot;shape&quot;, &quot;square&quot;);
+    assertEquals(&quot;clone: red AND square&quot;, 0, count(clone));
+    assertEquals(&quot;original: red&quot;, 1, count(original));
+  }
+
+  /** Claim A: OR-ing a value into an existing dim of the clone changes the original. */
+  public void testCloneAddToExistingDimLeaksIntoOriginal() throws Exception {
+    DrillDownQuery original = new DrillDownQuery(config, MatchAllDocsQuery.INSTANCE);
+    original.add(&quot;color&quot;, &quot;red&quot;);
+    DrillDownQuery clone = original.clone();
+    clone.add(&quot;color&quot;, &quot;blue&quot;);
+    assertEquals(&quot;clone: red OR blue&quot;, 2, count(clone));
+    assertEquals(&quot;original must still be color=red only; original=&quot; + original, 1, count(original));
+  }
+
+  /** Claim B: OR-ing a value into an existing dim of the original changes an earlier clone. */
+  public void testOriginalAddToExistingDimLeaksIntoEarlierClone() throws Exception {
+    DrillDownQuery original = new DrillDownQuery(config, MatchAllDocsQuery.INSTANCE);
+    original.add(&quot;color&quot;, &quot;red&quot;);
+    DrillDownQuery snapshot = original.clone();
+    original.add(&quot;color&quot;, &quot;blue&quot;);
+    assertEquals(&quot;original: red OR blue&quot;, 2, count(original));
+    assertEquals(&quot;snapshot must still be color=red only; snapshot=&quot; + snapshot, 1, count(snapshot));
+  }
+
+  /** Same as claim A through the expert add(String, Query) API. */
+  public void testCloneAddCustomQueryToExistingDimLeaksIntoOriginal() throws Exception {
+    String field = config.getDimConfig(&quot;color&quot;).indexFieldName;
+    DrillDownQuery original = new DrillDownQuery(config, MatchAllDocsQuery.INSTANCE);
+    original.add(&quot;color&quot;, new TermQuery(DrillDownQuery.term(field, &quot;color&quot;, &quot;red&quot;)));
+    DrillDownQuery clone = original.clone();
+    clone.add(&quot;color&quot;, new TermQuery(DrillDownQuery.term(field, &quot;color&quot;, &quot;blue&quot;)));
+    assertEquals(&quot;clone: red OR blue&quot;, 2, count(clone));
+    assertEquals(&quot;original must still be color=red only; original=&quot; + original, 1, count(original));
+  }
+
+  /**
+   * If the original was already executed before clone(), its cached built dim query hides the
+   * shared-builder change at first; the leaked value appears once the original&#x27;s dim is touched
+   * again (here: OR-ing green into it).
+   */
+  public void testLeakSurfacesLaterWhenOriginalWasAlreadyBuilt() throws Exception {
+    DrillDownQuery original = new DrillDownQuery(config, MatchAllDocsQuery.INSTANCE);
+    original.add(&quot;color&quot;, &quot;red&quot;);
+    assertEquals(1, count(original)); // builds and caches the dim query of the original
+    DrillDownQuery clone = original.clone();
+    clone.add(&quot;color&quot;, &quot;blue&quot;);
+    assertEquals(&quot;clone: red OR blue&quot;, 2, count(clone));
+    assertEquals(&quot;original: red (cached)&quot;, 1, count(original));
+    original.add(&quot;color&quot;, &quot;green&quot;);
+    assertEquals(
+        &quot;original must be red OR green (2 docs), blue was only added to the clone; original=&quot;
+            + original,
+        2,
+        count(original));
+  }
+
+  /** Sanity: Term import is used by the expert test; keep the oracle term construction honest. */
+  public void testControlTermField() throws Exception {
+    String field = config.getDimConfig(&quot;color&quot;).indexFieldName;
+    assertEquals(1, searcher.count(new TermQuery(DrillDownQuery.term(field, &quot;color&quot;, &quot;red&quot;))));
+    assertEquals(0, searcher.count(new TermQuery(new Term(field, &quot;no-such-term&quot;))));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>DrillDownCloneStateMain.java (cache-dependent counts and equals)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Prints <code>A clone=2 original=2 equals=true</code>, <code>B before=1 clone=2 original=1 equals=true</code>, <code>B2 original after adding green=3 (red+green would be 2)</code> on main, with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</p><figure class='code'><figcaption><span class='fname'>DrillDownCloneStateMain.java (cache-dependent counts and equals)</span><span class='meta'>70 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+
+/**
+ * Main (9.0+, with the per-instance built-dim cache): does the symptom depend on whether the
+ * original was evaluated before the clone was modified? Prints the counts of three scenarios.
+ */
+public class DrillDownCloneStateMain {
+  public static void main(String[] args) throws Exception {
+    Directory dir = new ByteBuffersDirectory();
+    IndexWriter w = new IndexWriter(dir, new IndexWriterConfig());
+    for (String color : new String[] {&quot;red&quot;, &quot;blue&quot;, &quot;green&quot;}) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;color&quot;, color, Field.Store.NO));
+      w.addDocument(doc);
+    }
+    w.close();
+    DirectoryReader r = DirectoryReader.open(dir);
+    IndexSearcher s = new IndexSearcher(r);
+    FacetsConfig config = new FacetsConfig();
+
+    // A: original NOT evaluated before the clone is modified
+    DrillDownQuery a = new DrillDownQuery(config);
+    a.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;red&quot;)));
+    DrillDownQuery ac = a.clone();
+    ac.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;blue&quot;)));
+    System.out.println(&quot;A clone=&quot; + s.count(ac) + &quot; original=&quot; + s.count(a) + &quot; equals=&quot; + a.equals(ac));
+
+    // B: original evaluated before the clone is modified
+    DrillDownQuery b = new DrillDownQuery(config);
+    b.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;red&quot;)));
+    int bBefore = s.count(b);
+    DrillDownQuery bc = b.clone();
+    bc.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;blue&quot;)));
+    System.out.println(
+        &quot;B before=&quot; + bBefore + &quot; clone=&quot; + s.count(bc) + &quot; original=&quot; + s.count(b) + &quot; equals=&quot; + b.equals(bc));
+    // B2: then the original ORs in its own value: the clone&#x27;s value leaks in as well
+    b.add(&quot;color&quot;, new TermQuery(new Term(&quot;color&quot;, &quot;green&quot;)));
+    System.out.println(&quot;B2 original after adding green=&quot; + s.count(b) + &quot; (red+green would be 2)&quot;);
+    r.close();
+    dir.close();
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also 10.5.2 and 9.12.3 (release jars, same test unchanged)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java; only this platform was run)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestDrillDownQueryCloneIsolation.java $LUCENE/lucene/facet/src/test/org/apache/lucene/facet/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:facet:test --tests TestDrillDownQueryCloneIsolation -Ptests.seed=5EED0367 -Ptests.asserts=true
+# also with -Ptests.asserts=false; the result did not depend on the seed
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, seed 5EED0367, assertions on (the same with them off, seed 5EED0368)
+# the log prints the facet delimiter U+001F (a control character), written \u001f here
+TestDrillDownQueryCloneIsolation &gt; testSearchedOriginalPicksUpCloneValueLater FAILED
+    java.lang.AssertionError: original: red OR green expected:&lt;2&gt; but was:&lt;3&gt;
+TestDrillDownQueryCloneIsolation &gt; testAddToOriginalLeavesEarlierCloneAlone FAILED
+    java.lang.AssertionError: snapshot: red only expected:&lt;1&gt; but was:&lt;2&gt;
+TestDrillDownQueryCloneIsolation &gt; testCopiesMatchingDifferentDocumentsAreNotEqual FAILED
+    java.lang.AssertionError: copies that match 1 and 2 documents. Actual: #($facets:color\u001fred $facets:color\u001fblue)
+TestDrillDownQueryCloneIsolation &gt; testAddToCloneLeavesOriginalAlone FAILED
+    java.lang.AssertionError: original: red only expected:&lt;1&gt; but was:&lt;2&gt;
+4 tests completed, 4 failed
+
+# the same four failures on 10.5.2 and 9.12.3 (standalone runner)
+# with the fix: 4 tests completed, 0 failed</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>clone()</code> came with <code class='nw'>testClone</code>, which fails with "query wasn't cloned" when a change to the clone shows up in the source.</li><li><code class='nw'>add()</code> documents a repeated dimension as normal use: it "is OR'd with the previous constraints on that dimension".</li><li>Results depend on whether a copy was searched first, and copies matching 1 and 2 documents are <code class='nw'>equals()</code>.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>283 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>add(String, String...)</code> (<code>DrillDownQuery.java:111-115</code>): "if you pass the same dimension more than once it is OR'd with the previous constraints on that dimension", on the copy you call it on. <code class='nw'>Object#clone</code>: "By convention, the object returned by this method should be independent of this object ... this means copying any mutable objects that comprise the internal 'deep structure'". The builders are such internal state: <code class='nw'>add()</code> creates them; the caller never supplies them. <code class='nw'>Query#equals</code> (<code>Query.java:99-101</code>): "Typically a query will be equal to another only if ... its document-filtering properties are identical".</li><li><strong>Tests.</strong> <code>TestDrillDownQuery#testClone</code> (<code class='nw'>:245-255</code>), added with <code class='nw'>clone()</code> in LUCENE-4750 (4.2.0): <code class='nw'>q.add("a")</code>, <code class='nw'>clone.add("b")</code>, then <code>assertFalse("query wasn't cloned: ...", ...)</code>. It adds a new dimension, the one isolated case, so it passes; it is the only upstream test that calls <code>DrillDownQuery#clone</code>.</li><li><strong>History.</strong> The author of LUCENE-4750 wrote: "Also implemented clone() (there's a test showing what would happen if we don't)". Until 4.6.1 adding the same dimension again threw or added a clause to that copy only, so the shallow copy was harmless. LUCENE-5339 (4.7.0) made it OR the value in place into the shared per-dimension query; nothing in that change discusses <code class='nw'>clone()</code>. LUCENE-6570 (5.3.0) kept the sharing when it moved to builders; in its review @jpountz wrote, about queries in general, that <code class='nw'>clone()</code> should eventually be documented to "return an independant instance. So there are two options: either deep cloning or shallow cloning and be immutable". <code class='nw'>DrillDownQuery</code> is neither.</li><li><strong>Coherence.</strong> Since 9.0 (LUCENE-9956) whether a copy sees the other's value depends on whether it was searched first, and copies that match 1 and 2 documents are <code class='nw'>equals()</code>. No design produces that on purpose.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>199 words</span></summary><div class='body'><p>The strongest "intended" case: <code class='nw'>clone()</code> has no javadoc; the class is <code>@lucene.experimental</code>; Java's <code class='nw'>List</code> and <code class='nw'>Map</code> clones are shallow, and in LUCENE-6369 ("Make queries more defensive and clone deeply", Won't Fix) a committer defended shallow query clones ("clone() did exactly what I wanted previously... a shallow clone. It's also more in line with Java cloning of things like List, Map"); <code class='nw'>DrillDownQuery</code> is a known mutable query (#8134), so clone-then-mutate could be called a pattern to avoid.</p><p>Why it fails: a shallow <code class='nw'>List</code> clone never lets <code class='nw'>clone.add(x)</code> change the original, and here <code>clone.add(dim, ...)</code> does, because the shared objects are builders that <code class='nw'>add()</code> created inside the query; LUCENE-6369 was about sub-queries the caller supplied. The author of <code class='nw'>clone()</code> added it so that a copy is independent, with a test that says so. <code class='nw'>add()</code> documents OR-ing into an existing dimension, not into other copies. <code>@lucene.experimental</code> is about API stability, not wrong results, and #8134 is about mutating a query after it was cached; it never mentions clones. <strong>Verdict: a defect</strong> (adjudication: confirmed, high; the independent reproduction and the intended-behaviour check real; the other-model-family intended-lens review rated the intended case moderate and rejected it). Low severity: the call pattern is rare.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Copy the builders in clone(), compare built dimension queries in equals()/hashCode()</strong></p><p class='short'>Give the clone its own builder per dimension (a new <code>BooleanQuery.Builder</code> with the clauses of each one), and compare the built dimension queries in <code class='nw'>equals()</code>/<code class='nw'>hashCode()</code> instead of builder identity (+20/-4 in <code>DrillDownQuery.java</code>). The repro, <code>TestDrillDownQuery</code>, <code>TestDrillSideways</code> and the whole <code class='nw'>lucene/facet</code> suite (312 tests) pass, assertions on and off.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 932 words</span></summary><div class='body'><p>Each copy then owns its builders, so <code class='nw'>add()</code> reaches only the copy it is called on (new dimensions were already isolated), and equality compares the built dimension queries by content, per dimension position, as <code>DrillSidewaysQuery</code> does for its built <code class='nw'>drillDownQueries</code> array (not full match-equivalence: the same dimensions added in a different order still compare unequal). The <code class='nw'>clone()</code> half alone fixes every wrong match, including equal copies that match different documents, and is a credible minimal fix; the <code class='nw'>equals()</code>/<code class='nw'>hashCode()</code> half is a visible behaviour change (identical queries become equal) and can be proposed separately. Making <code class='nw'>DrillDownQuery</code> immutable (#8134) would also remove the bug. Workaround until a fix ships: build a fresh <code class='nw'>DrillDownQuery</code> per variant instead of <code class='nw'>clone()</code> followed by <code class='nw'>add()</code> on an existing dimension, and keep access restrictions in the base query or the DrillSideways filter.</p><div class="hd hd-3"><h3 id='fix-copy-builders-content-equals'>Copy the builders in clone(), compare built dimension queries in equals()/hashCode() <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-copy-builders-content-equals" target="_self" aria-label="Link to this section" aria-describedby="fix-copy-builders-content-equals"><span aria-hidden="true">#</span></a></div><p><code class='nw'>clone()</code> builds each dimension once and copies its clauses into a new <code>BooleanQuery.Builder</code>; <code class='nw'>hashCode()</code> and <code class='nw'>equalsTo()</code> compare <code class='nw'>baseQuery</code>, <code class='nw'>drillDownDims</code> and <code>getDrillDownQueries()</code> instead of the builder list. Two imports, and the stale constructor javadoc "Used by clone() and DrillSideways" (only <code class='nw'>clone()</code> calls it) is corrected. +20/-4 in <code>DrillDownQuery.java</code>.</p><pre class='snippet' tabindex='0'><code>  public DrillDownQuery clone() {
+    // add() on an existing dimension appends to that dimension&#x27;s builder in place, so the copy
+    // needs its own builders; sharing them would leak the new clause into the other copy.
+    List&lt;BooleanQuery.Builder&gt; copies = new ArrayList&lt;&gt;(dimQueries.size());
+    for (BooleanQuery.Builder dimQuery : dimQueries) {
+      BooleanQuery.Builder copy = new BooleanQuery.Builder();
+      for (BooleanClause clause : dimQuery.build()) {
+        copy.add(clause);
+      }
+      copies.add(copy);
+    }
+    return new DrillDownQuery(config, baseQuery, copies, drillDownDims);
+  }
+  // equalsTo: Objects.equals(baseQuery, ...) &amp;&amp; drillDownDims.equals(...)
+  //   &amp;&amp; Arrays.equals(getDrillDownQueries(), other.getDrillDownQueries()); hashCode alike</code></pre><p class='k'>Trade-offs</p><ul><li><code class='nw'>clone()</code> costs O(total clauses) instead of O(dimensions).</li><li><code class='nw'>equals()</code>/<code class='nw'>hashCode()</code> now build dirty dimensions first through <code>getDrillDownQueries()</code>, which writes the query's own cache (<code class='nw'>builtDimQueries</code>, <code>dirtyDimQueryIndex</code>): they are no longer read-only and race on that cache when run concurrently with <code class='nw'>add()</code> or each other, as <code class='nw'>rewrite</code> and <code class='nw'>toString</code> already do (no thread-safety guarantee existed).</li><li>Content equality is a behaviour change: a fresh clone equals its source, the two stop being equal once one changes, and two separately built identical queries become equal (they are unequal today; #11098 noted that in passing as a benign cache miss). Including <code class='nw'>drillDownDims</code> keeps queries with different dimension names unequal. It is not full match-equivalence: the comparison is per dimension position, so the same dimensions added in a different order, or the same subqueries under different dimension names, compare unequal.</li><li><code class='nw'>hashCode()</code> now also changes after <code class='nw'>add()</code> on an existing dimension (today only a new dimension changes it), so a query used as a hash key and then extended is no longer found under that key.</li><li>Also in the clone-only option: the copy replays each clause through <code>BooleanQuery.Builder.add</code>, which checks the current clause limit, so if the application lowered the limit below a dimension's clause count after building the query, <code class='nw'>clone()</code> now throws <code class='nw'>TooManyClauses</code> (the stock reference copy never does). Only clauses are copied, not <code>minimumNumberShouldMatch</code>, which <code class='nw'>DrillDownQuery</code> never sets. (Code reading.)</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: the new test fails 4 of 4 on stock (assertions on and off) and passes with the fix; with the fix the new test, an optional 2-test equality class (fails on stock), <code>TestDrillDownQuery</code> (13) and <code>TestDrillSideways</code> (14): 33 tests, 0 failures, assertions on and off; the whole <code>:lucene:facet:test</code>, 41 suites and 312 tests, 0 failures, assertions on (7 skipped) and off (8 skipped); <code>:lucene:facet:check -x test</code> (google-java-format, ecj lint, forbidden APIs) passes.</li><li>Standalone runner with the fix shadowed: the new test (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), the finder's test (2 of 2), the independent reproducer's test (7 of 7) and the security probe (7 of 7, including its template, DrillSideways and <code class='nw'>TooManyClauses</code> cases) pass.</li></ul><div class="hd hd-3"><h3 id='fix-clone-only'>Copy the builders in clone() only <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-clone-only" target="_self" aria-label="Link to this section" aria-describedby="fix-clone-only"><span aria-hidden="true">#</span></a></div><p>The same <code class='nw'>clone()</code> and javadoc change, with <code class='nw'>equals()</code>/<code class='nw'>hashCode()</code> untouched (+13/-2).</p><p class='k'>Trade-offs</p><p>Fixes every wrong match, and copies that differ are no longer equal. Keeps identity equality: a fresh, unchanged clone is no longer equal to its source (it is today), and separately built identical queries stay unequal; only a cache keyed on the query notices. Identity equality on its own is defensible; equal copies that match different documents are not, and this option already removes those. It shares the clone-replay caveats of the first option.</p><p class='k'>What the checks validated</p><p>Gradle, assertions on: the new test, <code>TestDrillDownQuery</code> and <code>TestDrillSideways</code>, 31 tests, 0 failures; the new test passes through the standalone runner. The optional equality class fails with it, as expected.</p><div class="hd hd-3"><h3 id='fix-copy-in-constructors'>Copy where the sharing is created</h3><a class="hlink" href="#fix-copy-in-constructors" target="_self" aria-label="Link to this section" aria-describedby="fix-copy-in-constructors"><span aria-hidden="true">#</span></a></div><p>Copy the builders in the 4-argument constructor (only <code class='nw'>clone()</code> calls it), and optionally in the DrillSideways constructor (<code>DrillDownQuery.java:78-91</code>, <code class='nw'>addAll</code> at <code class='nw'>:84</code>).</p><p class='k'>Trade-offs</p><p>Same effect as the <code class='nw'>clone()</code> change; the DrillSideways copy only hardens an internal query that is never mutated, at the cost of copying clauses on every <code>DrillSideways.search(query, filter, ...)</code>. Not run.</p><div class="hd hd-3"><h3 id='fix-immutable'>Make DrillDownQuery immutable (#8134)</h3><a class="hlink" href="#fix-immutable" target="_self" aria-label="Link to this section" aria-describedby="fix-immutable"><span aria-hidden="true">#</span></a></div><p>An immutable query plus a separate builder, as #8134 asks for the remaining mutable queries.</p><p class='k'>Trade-offs</p><p>Removes this bug and the caching concern of #8134 together, but changes the API of an <code>@lucene.experimental</code> class; a larger discussion. Not run.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround: build a fresh DrillDownQuery per variant</h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p>Instead of <code class='nw'>clone()</code> followed by <code class='nw'>add()</code> on an existing dimension, build each variant from its list of values (adding a new dimension to a clone is safe). Keep access restrictions in the base query or the DrillSideways filter.</p><p class='k'>Trade-offs</p><p>Application-side only; not a fix.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that keep a template query restricting a dimension (say, status published) and clone it per request let one request's added value widen every later request on that dimension, never beyond it; from the 1,024th add on, each request that adds a value fails with <code class='nw'>TooManyClauses</code> (plain clones still work). Keep access restrictions in the base query or DrillSideways filter.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>While modelling drill-down semantics for a bounded-exhaustive test harness of the facet module, an AI finder read <code class='nw'>DrillDownQuery</code> and noticed that <code class='nw'>clone()</code> copies the builder references. The harness did not produce the signal; a direct public-API JUnit test confirmed it, and independent AI tools then reproduced, reviewed and judged it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>111 words</span></summary><div class='body'><p><strong>Method: code reading</strong> (the hunt's "non-formal" tier), a hunt unit (facets: taxonomy, SSDV and DrillSideways), 2026-10-26, stock main jars.</p><ul><li>The finder was modelling the drill-down semantics of <code class='nw'>DrillDownQuery</code> and <code class='nw'>DrillSideways</code> for a bounded-exhaustive harness and read both classes. It noticed that the constructor <code class='nw'>clone()</code> uses copies the builder references while <code class='nw'>add()</code> mutates an existing dimension's builder in place.</li><li>It wrote a 2-test public-API JUnit test (<code>TestDrillDownQueryCloneShares</code>), which failed on main with assertions on and off and on releases back to 7.7.3. The harness itself did not find it.</li><li>Then independent AI tools reproduced, reviewed and judged it (see the checks), and the history step found the introduction in 4.7.0.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (best-effort search, 2026-10-26): the scripted prior-report search's 91 queries over GitHub, commits, downstream projects, four mailing lists, JIRA and the web, every issue, PR, JIRA entry and list thread that mentions <code class='nw'>DrillDownQuery</code>, and all 410 open PRs. Related: #8134, open since 2016, lists <code class='nw'>DrillDownQuery</code> among the remaining mutable queries; cite it.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>No issue, PR, JIRA entry, list thread or web page describes <code>DrillDownQuery#clone()</code> sharing its per-dimension state, or the wrong matches that follow. <code>DrillDownQuery.java</code> is unchanged on upstream main since #16056 (2026-05-14), and none of the 410 open PRs examined on 2026-10-26 touches it.</p><p>Related, not this bug: #8134 (LUCENE-7078, open) lists <code class='nw'>DrillDownQuery</code> among the "remaining mutable Queries" because mutating a query after it was cached corrupts the cache; it never mentions <code class='nw'>clone()</code> or shared state, and its fix (an immutable query) differs from the minimal one, so the hunt judged it a related issue, not a partial overlap, and kept the novelty new (the owner may weigh it differently). #5815 (LUCENE-4750) added <code class='nw'>clone()</code> and <code class='nw'>testClone</code>; #7628 (LUCENE-6570) moved the sharing to builders; #7429 (LUCENE-6369, Won't Fix) is the generic shallow-clone hazard; #11098 (LUCENE-10060) mentions DrillDownQuery's identity-like <code class='nw'>equals</code> in passing; #5998 (LUCENE-4934) fixed equals/hashCode in 2013, before the builder list; #138 / #10995 (LUCENE-9956) added the cache. The Lucene.NET 4.8 port likely has the same aliasing (read, not run); no report there. Gaps: keyword search only, GitHub search was rate-limited, Stack Overflow pages could not be fetched, private reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene)</th><td class='when'>2026-10-26</td><td>two scripted prior-report search runs (51 and 40 queries, with the verifiers' 37 and 24 earlier) and manual searches: every issue and PR mentioning DrillDownQuery (32), phrasings such as independent, aliasing, copy, shared builder; commit search; all 36 open facet-module issues</td><td>no report; the related items above</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 410 open apache/lucene PRs</td><td>none touches DrillDownQuery.java; #16707 and #15221 touch DrillSideways.java for other reasons</td></tr><tr><th scope='row'>JIRA archive and mailing lists</th><td class='when'>2026-10-26</td><td>all 24 LUCENE issues mentioning DrillDownQuery (10 read in full); 16 direct list queries; every java-user@ (16) and dev@ (3) thread mentioning DrillDownQuery, 7 read in full</td><td>no report</td></tr><tr><th scope='row'>Downstream repositories and web</th><td class='when'>2026-10-26</td><td>apache/lucenenet, apache/solr, elastic/elasticsearch, opensearch-project/OpenSearch; 9 web queries</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 4.7.0 by LUCENE-5339 (2013-11, landed 2014-01), which made adding to an existing dimension OR the value in place while <code class='nw'>clone()</code> stayed shallow; 5.3.0 moved the sharing to builders, and 9.0.0 added the cache that hides it in a searched copy. Every release from 4.7.0 to 10.5.2 and main fails; 4.6.1 does not.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-5339 "Simplify the facet module APIs" (#6403), commit <code class='nw'>45a73c005e6</code> "LUCENE-5339: simplify DrillDownQuery" (branch commit 2013-11-17), landed on trunk <code class='nw'>9d0b60388da</code> and branch_4x <code class='nw'>7477fde1cb0</code> on 2014-01-04 (svn era, no PR; <code class='nw'>CHANGES.txt</code> 4.7.0). It added an OR-merge into an existing dimension that edits the per-dimension query in place, while <code class='nw'>clone()</code> (LUCENE-4750, 4.2.0; trunk <code class='nw'>456b429d106</code>, branch_4x <code class='nw'>ec68f411afb</code>) stayed shallow. <strong>Later changes:</strong> LUCENE-5418 (4.7.0) made <code>add(dim, Query)</code> throw on an existing dimension until 5.3.0; LUCENE-6570 (5.3.0, <code class='nw'>4aafacfbef4</code> / <code class='nw'>94716da23a5</code>) moved the shared state to <code>BooleanQuery.Builder</code> objects, which is what <code>git blame</code> shows today; LUCENE-9956 (9.0.0, <code class='nw'>27b009c5d04</code>, #138; its CHANGES entry mentions only the exposed getters) added the per-copy cache that makes the symptom depend on whether a copy was searched. <code>DrillDownQuery.java</code> last changed in #16056 (2026-05-14).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test: 4 of 4 fail (gradle and the standalone runner, assertions on and off): 2 instead of 1 twice, 3 instead of 2, equal copies</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test: 4 of 4 fail, the same messages</td></tr><tr><th scope='row'>9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> cache appears</span></td><td>the finder's test: 2 of 2 fail; a searched copy hides the leak (1), then 3 instead of 2</td></tr><tr><th scope='row'>5.3.0, 5.5.5, 6.0.0, 6.6.6, 7.7.3, 8.11.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> release sweep</span></td><td>API-adapted programs and the finder's test fail; the add(dim, Query) overload leaks too (executed on 5.3.0, 7.7.3 and 8.11.2); on 8.11.2 a searched copy changes at once (2, then 3)</td></tr><tr><th scope='row'>4.7.0, 4.10.4, 5.0.0, 5.2.1</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> path overload only</span></td><td>add(dim, path...) leaks (original 2, snapshot 2); add(dim, Query) on an existing dimension throws there (on 5.0.0 only the clone-to-original case was run; the rest is code reading)</td></tr><tr><th scope='row'>4.6.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>old API: adding the same dimension again throws or adds a clause to that copy only; clones stay independent</td></tr><tr><th scope='row'>main + the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>every repro passes; the whole lucene/facet suite passes</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and a devil's advocate found it real with their own executed tests; an adjudication confirmed it by re-running the reproducer's test with a fresh seed. A read-only review by another model family agreed; a refute-lens review that could not run code gave a procedural not_real. An audit and this doc's gradle runs reproduced it on main.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>415 words</span></summary><div class='body'><p>Every check on main ran on the stock jars with assertions on and off (the fix checks with a shadowed class); the 10.5.2 and 9.12.3 runs used both, the older-release runs assertions on only; the reviews by the other model family ran read-only (their client could not execute code), and a separate run re-ran the finder's test each time, which failed. Owed: a cross-model review that executes code.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-API JUnit fails 2 of 2 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3, and as an API-adapted copy on 9.0.0, 8.11.2 and 7.7.3.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not_real (low, procedural)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6), read-only: could not execute, so "not reproduced" by construction; its substantive evidence supports real; a separate re-run failed as claimed.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 7-test JUnit from another package: 4 fail on main (two seeds, <code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3, 3 controls pass; old-API programs fail on 4.7.0-5.3.0; found the cache case; a <code class='nw'>clone()</code> that copies the builders passes 7 of 7, and upstream <code>TestDrillDownQuery</code> passes 13 of 13 with it.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>OpenAI GPT-5.6, read-only: rated the intended argument (no javadoc, shallow-clone convention, experimental) moderate and rejected it; root cause agrees, inputs in contract.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>The shared builders are created by <code class='nw'>add()</code>, not supplied by the caller; <code class='nw'>clone()</code> was added to give an independent copy. Fails on 4.7.0-6.6.6; equal copies match 2 and 1 documents.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test with a fresh seed (4 of 7 fail, <code class='nw'>-ea</code> and <code class='nw'>-da</code>; 0 with the shadow fix); corrected the introduction point to LUCENE-5339 (4.7.0).</td></tr><tr><th scope='row'>security assessment</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> none (re-evaluated)</span></td><td>Only the application's own clone()+add() code reaches it; the over-match never leaves the dimension (randomized check, 0 violations); out of scope under SECURITY.md.</td></tr><tr><th scope='row'>registry re-runs and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, keep</span></td><td>Fresh seeds on main: the finder's test fails with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the independent reproduction's test fails 4 of 7 and passes with the shadow fix; a fourth-round audit re-ran it again and kept the row.</td></tr><tr><th scope='row'>this doc's validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, fix validated</span></td><td>New test: 4 of 4 fail on main (gradle and standalone, <code class='nw'>-ea</code> and <code class='nw'>-da</code>), 10.5.2 and 9.12.3; with the fix it passes, and so do <code>TestDrillDownQuery</code>, <code>TestDrillSideways</code> and the whole <code class='nw'>lucene/facet</code> suite (312 tests), assertions on and off.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-367/bug.png' download='drilldownquery-clone-shares-dim-builders-bug.png' target='_self'>PNG</a> <span class='n'>407 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,395 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-367, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>DrillDownQuery.clone() shares the per-dimension BooleanQuery.Builder objects with the original, so adding a value to a dimension both copies already constrain changes what the other copy matches (released since 4.7.0)</dd></div><div><dt>Area</dt><dd>facet / DrillDownQuery (clone() and the per-dimension BooleanQuery.Builder state)</dd></div><div><dt>Priority</dt><dd>Medium, rank 184: Extending a cloned DrillDownQuery deterministically gives silent wrong drill-down results, but few applications call clone(), so it follows the getTopDims facet rows.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that call DrillDownQuery#clone() themselves (Lucene has no internal caller, and a read-only code search found none in Solr, Elasticsearch or OpenSearch) and then add a value to a dimension the source already constrains, through add(dim, path...) or add(dim, Query), silently get extra matches on that dimension in the other copy, and in every later clone of a long-lived template, with the default codec, IndexWriterConfig and searcher, at any scale, in every release from 4.7.0 to 10.5.2 and on main; adding a NEW dimension to a clone (the upstream testClone case) is correct, and DrillSideways' own internal sharing never mutates the builders.</dd></div><div><dt>Summary</dt><dd>You build a DrillDownQuery that restricts color=red, call clone(), and add color=blue to the clone (or to the original), expecting the copy you did not touch to keep matching only red, as clone() and the upstream testClone imply. Instead both copies match red OR blue: the clone shares each dimension's internal BooleanQuery.Builder with its source, and add() on an existing dimension appends a SHOULD clause to that shared builder in place. Since 9.0 a copy that was already searched keeps a cached snapshot and shows the leaked value only after its own dimension changes again (then 3 hits where 2 are correct), and the two copies stay equals() with the same hashCode while they match different documents.</dd></div><div><dt>Introduced</dt><dd>45a73c005e6bc6b1c24e8636cfb5433c6a726a9d, LUCENE-5339 'simplify DrillDownQuery' (GitHub mikemccand, svn r1542804 on branch lucene5339; migrated issue #6403 'Simplify the facet module APIs'), landed as trunk 9d0b60388da8 and branch_4x 7477fde1cb06 (svn r1555338 / r1555342, 'LUCENE-5371, LUCENE-5339: ... simplify facet APIs'); SVN era, no PR [read: it added a merge() that ORs a new path into an existing dimension by calling add() in place on that dimension's inner BooleanQuery, while clone() stayed a shallow query.clone() that shares the inner query; before it, add() on an existing dimension threw IllegalArgumentException] [exec: release boundary 4.6.1 not affected, 4.7.0 affected]. Not LUCENE-6570, which git blame shows today: 4aafacfbef4 (trunk) / 94716da23a5 (branch_5x, released 5.3.0) only carried the existing sharing over to List&lt;BooleanQuery.Builder&gt; (this.dimQueries.addAll) (2013-11-17 (branch commit); 2014-01-04 (trunk and branch_4x); first released 2014-02 in 4.7.0)</dd></div><div><dt>First affected version</dt><dd>4.7.0 [exec] (last unaffected 4.6.1 [exec with the pre-4.7 API, since the 4.7 API did not exist yet: add() on an existing dimension threw IllegalArgumentException, so a clone stayed independent for every legal operation]; DrillDownQuery and clone() exist since 4.2.0, LUCENE-4750)</dd></div><div><dt>Affected versions</dt><dd>every release from 4.7.0 to 10.5.2 and main ea57360912ed [read: all 110 release tags 4.7.0..10.5.2 in the history clone contain the sharing pattern; 4.7.0-5.2.1 merge() into the shared inner BooleanQuery, 5.3.0+ dimQueries.addAll of shared builders]; executed with repro.sh (JDK 25, SHA-1-verified release jars, API-adapted sources for old lines): FAIL on 4.7.0, 4.10.4, 5.0.0, 5.2.1, 5.3.0, 5.5.5, 6.0.0, 6.6.6, 7.7.3, 8.11.2, 9.0.0, 9.12.3, 10.5.2 and main (-ea and -da); PASS on 4.6.1 (old-API equivalent). In 4.7.0-5.2.1 only add(String, String...) triggers it (add(String, Query) on an existing dimension throws there, LUCENE-5418); from 5.3.0 both overloads do. Since 9.0.0 (LUCENE-9956, per-copy cache of built dimension queries) the symptom depends on whether a copy was already searched [exec on 9.0.0, 10.5.2 and main; on 8.11.2 the leak shows at once]. Upstream main DrillDownQuery.java is unchanged since #16056 (2026-05-14), the tested version (prior-report record)</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, the prior-report record verdict new: scripted prior-report search a (51 queries) and run b (40 queries) over GitHub issues and PRs, commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, JIRA and the web, plus the independent reproduction's (37) and the intended-behaviour check's (24) earlier runs; manual GitHub searches including apache/lucenenet, apache/solr, elastic/elasticsearch and opensearch-project/OpenSearch; every LUCENE JIRA issue mentioning DrillDownQuery (24 titles, 10 read in full); every java-user@ and dev@ thread mentioning DrillDownQuery (19 listed, 7 read in full); the changed files of all 410 open apache/lucene PRs, none touching DrillDownQuery.java; 22 hits classified, all same_bug false). Related, not this bug: #8134 (LUCENE-7078, open since 2016) lists DrillDownQuery among the remaining mutable queries; its concern is a query mutated after it was cached, and it never mentions clone() or shared state; making DrillDownQuery immutable would also remove this bug, so cite it in any filing; #7628 (LUCENE-6570, 5.3.0) carried the sharing over to builders, and jpountz wrote there that clone() should return an independent instance; #5815 (LUCENE-4750) added clone() and testClone; #7429 (LUCENE-6369, Won't Fix) is the generic shallow-clone hazard of mutable queries; #11098 (LUCENE-10060) remarks in passing that DrillDownQuery 'doesn't implement equals, so the cache always misses' (the identity-equals side effect, as a benign aside). Not fixed upstream: DrillDownQuery.java unchanged on upstream main since #16056 (2026-05-14). Gaps: private reports to security@lucene.apache.org cannot be searched; GitHub search is phrase-like and was rate-limited; list search is keyword-based; Q&amp;A pages could not be fetched (titles only); searches cannot prove absence</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the 10.5.2 and 9.12.3 release jars (this doc's test). Earlier checks ran on main <code class='nw'>ea57360912ed</code>, whose facet module is identical, and with API-adapted programs on releases from 4.6.1 (not affected) to 10.5.2. The fix was validated in the scratch worktree: the new test, <code>TestDrillDownQuery</code>, <code>TestDrillSideways</code>, the whole <code class='nw'>lucene/facet</code> suite (41 suites, 312 tests) with assertions on and off, and <code>:lucene:facet:check -x test</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/DrillDownQuery.java:45 (@lucene.experimental), 56-59 (dimQueries, builtDimQueries, dirtyDimQueryIndex), 61-75 (constructor used by clone(): this.dimQueries.addAll(dimQueries) at :68, every dimension marked dirty), 77-91 (DrillSideways constructor, also addAll), 111-119 (add(dim, path...) javadoc: &#x27;if you pass the same dimension more than once it is OR&#x27;d with the previous constraints on that dimension&#x27;), 125-137 (add(dim, Query): dimQueries.get(index).add(subQuery, Occur.SHOULD) at :135, only this copy marked dirty at :136), 139-142 (clone(), no javadoc), 144-156 (hashCode/equals over the builder list, identity), 177-187 (each dimension a FILTER clause next to the MUST base query), 204-211 (getDrillDownQueries rebuilds dirty dimensions from the shared builder)</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/DrillSideways.java:192 (new DrillDownQuery(config, filter, query): the only internal sharing site, never mutated afterwards)</code></li><li><code>lucene/facet/src/test/org/apache/lucene/facet/TestDrillDownQuery.java:245-255 (testClone: &#x27;query wasn&#x27;t cloned&#x27;, adds a NEW dimension only)</code></li><li><code>https://github.com/apache/lucene/issues/8134 (read 2026-10-26 by this registry step: body lists org.apache.lucene.facet.DrillDownQuery as a remaining mutable query; concern is cache corruption after mutation; one comment, a bulk version move; no mention of clone)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/DrillDownQuery.java:45, :56-59, :61-75, :111-119, :125-137, :139-142, :144-156, :158-187, :204-211</code></li><li><code>lucene/facet/src/test/org/apache/lucene/facet/TestDrillDownQuery.java:245-255 (testClone)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/BooleanQuery.java:42-122 (Builder: no equals/hashCode override)</code></li><li><code>java.lang.Object#clone javadoc (JDK 25 source, java.base/java/lang/Object.java:196-201)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/DrillDownQuery.java:45 (@lucene.experimental), :61-91 (both sharing constructors); lucene/facet/src/java/org/apache/lucene/facet/DrillSideways.java:192 (the only internal sharing site, never mutated)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/BooleanQuery.java:82-84 (TooManyClauses); lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:80 (maxClauseCount = 1024)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/DrillDownQuery.java:111-115, :139-142, :144-156; lucene/core/src/java/org/apache/lucene/search/Query.java:95-107</code></li><li><code>lucene/facet/src/test/org/apache/lucene/facet/TestDrillDownQuery.java:245-255</code></li><li><code>java.lang.Object#clone javadoc (JDK 25 source, java.base/java/lang/Object.java:196-201)</code></li><li><code>lucene/CHANGES.txt:14274 (LUCENE-4750, 4.2.0), :12913 (LUCENE-5339, 4.7.0), :10424 (LUCENE-6570, 5.3.0), :4741 (LUCENE-9956, 9.0.0)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/DrillDownQuery.java:61-91, :139-156, :204-211; lucene/core/src/java/org/apache/lucene/search/BooleanQuery.java:82-84 (the clause-limit check in Builder.add); lucene/facet/src/java/org/apache/lucene/facet/DrillSidewaysQuery.java:221-239 (its built drillDownQueries array compared by content; its collector managers by identity)</code></li><li><code>https://github.com/apache/lucene/issues/8134 (make remaining mutable queries immutable); https://github.com/apache/lucene/issues/11098 (identity-like equals noted in passing)</code></li></ul></dd></div><div><dt>Prior reports</dt><dd><ul class='paths'><li><code>https://github.com/apache/lucene/issues/8134 (body re-read 2026-10-26)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:14274, :12913, :10424, :4741</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestDrillDownQueryCloneIsolation.java (lucene/facet, public API): <a href='../repro/LFV-367/TestDrillDownQueryCloneIsolation.java'><code>repro/LFV-367/TestDrillDownQueryCloneIsolation.java</code></a> (111 lines)</li><li>TestDrillDownQueryCloneShares.java (the finder&#x27;s test): <a href='../repro/LFV-367/TestDrillDownQueryCloneShares.java'><code>repro/LFV-367/TestDrillDownQueryCloneShares.java</code></a> (88 lines)</li><li>TestDrillDownQueryCloneIndependence.java (independent reproducer): <a href='../repro/LFV-367/TestDrillDownQueryCloneIndependence.java'><code>repro/LFV-367/TestDrillDownQueryCloneIndependence.java</code></a> (159 lines)</li><li>DrillDownCloneStateMain.java (cache-dependent counts and equals): <a href='../repro/LFV-367/DrillDownCloneStateMain.java'><code>repro/LFV-367/DrillDownCloneStateMain.java</code></a> (70 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A light summary card, made in parallel with this doc from an executed per-step trace on main <code class='nw'>a9779ef3c193</code> (with a fix as control); the PNG is the summary card.</p><ul class='paths'><li><a href='../assets/LFV-367/bug.png'><code>assets/LFV-367/bug.png</code></a> (407 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

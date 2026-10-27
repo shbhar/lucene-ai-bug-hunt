@@ -1,0 +1,569 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>SimplePatternTokenizer stops at an unclosed quote and drops every later token; SimplePatternSplitTokenizer merges them into one</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-525 &middot; simplepattern-eof-unaccepted-lookahead-ends-scan</p><h1 id='top'>SimplePatternTokenizer stops at an unclosed quote and drops every later token; SimplePatternSplitTokenizer merges them into one</h1><p class='tldr'>With the pattern <code class='nw'>'[^']*'|[a-z]+</code> (a quoted phrase or a word), <code>SimplePatternTokenizer</code> turns <code>don't stop me</code> into just <code class='nw'>don</code>, so a search for <code class='nw'>stop</code> misses the document. The scan from the unclosed quote reaches the end of the text without a match, and the tokenizer stops instead of retrying.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 135</span><span class='sub'>The opt-in simple-pattern tokenizers silently drop all later tokens after an unclosed opener, but only with an uncommon delimited-span pattern shape, so it closes the opt-in analysis text-loss group.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>6.5.0 (LUCENE-7465, committed 2017-02-13)<span class='sub'>introduced 2017-02-13 &middot; about 9 years</span></dd></div><div><dt>Affected</dt><dd>6.5.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div><dt>Found by</dt><dd>bounded-exhaustive translation validation</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>SimplePatternTokenizer</code> tries its pattern at each position and keeps the longest match. When nothing matches, it should move one character on and try again. It does, unless the failed attempt ran all the way to the end of the text: then it stops, and every later token is lost.</p><figure class='visual' id='simplepattern-eof-unaccepted-lookahead-ends-scan-short-visual'><div class='frame'><a class='still' href='../assets/LFV-525/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-525/bug.png' alt='Summary card in three panels. 1: you index don&#x27;t stop me with CustomAnalyzer simplePattern and the pattern &#x27;[^&#x27;]*&#x27;|[a-z]+, a quoted phrase or a word; the apostrophe opens a quote that never closes; the contract says the longest match at a start point is the next token and the tokenizer otherwise skips one character and tries again. 2: the text as 13 tiles; a bar marks don, a second bar runs from the apostrophe to the end of the text, where ch is -1; nothing is accepted from the apostrophe on, line 152 returns false, while a dead state would retry one char later at line 155. 3: expected tokens don, t, stop, me against actual don only; TermQuery body:stop finds 1 document expected, 0 actual; the split tokenizer with separators \&lt;[^\&gt;]*\&gt;|[ ]+ (the RegExp string, with &lt; and &gt; escaped) gives x, &lt; y instead of x, &lt;, y; silent, no exception. Right column: the hunt&#x27;s end-of-input fix candidate (drop lines 151-152) restores all four tokens and passes the 29 upstream tests, with its cost to state (64,000 chars of &#x27;&lt; &#x27; through the split tokenizer: 0.39 ms on main, 5.35 s with that candidate); patterns that cannot stay open are unaffected.' width='1920' height='1080'></a></div><figcaption>The scan from the apostrophe of <code>don't stop me</code> runs off the end of the text without a match; line 152 ends tokenization, so <code class='nw'>t</code>, <code class='nw'>stop</code> and <code class='nw'>me</code> are never tried, while a dead state would retry one character later. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index <code>don't stop me</code> with <code>SimplePatternTokenizer</code> (factory name <code class='nw'>simplePattern</code>) and the pattern <code class='nw'>'[^']*'|[a-z]+</code>: a single-quoted phrase or a word. The apostrophe at offset 3 opens a quote that never closes.</span></li><li><span>You expect <code class='nw'>don</code>, <code class='nw'>t</code>, <code class='nw'>stop</code>, <code class='nw'>me</code>: the javadoc says the longest match at each start point is the next token, and the class's own comment says that where nothing matches it skips one character and tries again. <code class='nw'>PatternTokenizer</code> with the same regex gives exactly these four.</span></li><li><span>You get only <code class='nw'>don</code>. From the apostrophe the scan stays alive to the end of the text without ever matching, and the end-of-input branch returns false instead of retrying at <code class='nw'>t</code>. A <code class='nw'>TermQuery</code> for <code class='nw'>stop</code> finds 0 documents instead of 1.</span></li><li><span>The smallest case: pattern <code class='nw'>abc|b</code> on <code class='nw'>ab</code> gives no token instead of <code class='nw'>b</code>. On <code class='nw'>abx</code>, where the scan dies at <code class='nw'>x</code> before the end, it correctly gives <code class='nw'>b</code>.</span></li><li><span><code>SimplePatternSplitTokenizer</code> has the same branch: separators <code>\&lt;[^\&gt;]*\&gt;|[ ]+</code> (<code class='nw'>&lt;</code> and <code class='nw'>&gt;</code> are escaped in Lucene's RegExp syntax) on <code>x &lt; y</code> give <code class='nw'>x</code>, <code>&lt; y</code> instead of <code class='nw'>x</code>, <code class='nw'>&lt;</code>, <code class='nw'>y</code>. Tokenization raises no exception, and the stored value still has all the text.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Users of the opt-in, experimental <code>SimplePatternTokenizer</code> or <code>SimplePatternSplitTokenizer</code> (factory names <code class='nw'>simplePattern</code>, <code>simplePatternSplit</code>) whose pattern pairs a quote, bracket or tag alternative with a word or separator alternative. Ordinary text then triggers it, such as <code class='nw'>don't</code>, <code>a &lt; b</code> or <code class='nw'>&lt;3</code>, and every later token of that value is silently lost or merged.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>780 words</span></summary><div class='body'><p><code>SimplePatternTokenizer</code> runs its DFA from each start point and keeps the longest accepted match; when nothing matches, it pushes back all but the first character and retries one character later (<code>SimplePatternTokenizer.java:153-156</code>). That retry runs only when the lookahead dies before the end of the input. When the lookahead stays alive to the end without ever accepting, as an unclosed quote does in <code class='nw'>'[^']*'|[a-z]+</code>, the branch <code>} else if (ch == -1) { return false; }</code> (<code class='nw'>:151-152</code>) ends tokenization, so <code>don't stop me</code> yields only <code class='nw'>don</code> and <code>say "hello world</code> (with <code>\"[^\"]*\"|[a-z]+</code>) only <code class='nw'>say</code>. <code>SimplePatternSplitTokenizer</code> has the same branch (<code>SimplePatternSplitTokenizer.java:156-162</code>) and emits everything from the current token start to the end as one token: separators <code>\&lt;[^\&gt;]*\&gt;|[ ]+</code> on <code>x &lt; y</code> give <code class='nw'>x</code>, <code>&lt; y</code>. (Patterns are written as the Lucene <code class='nw'>RegExp</code> strings that were run: in that syntax <code class='nw'>"</code>, <code class='nw'>&lt;</code> and <code class='nw'>&gt;</code> are reserved and escaped; unescaped, those two patterns throw before tokenizing anything.) Tokenization raises no exception or warning, and <code class='nw'>end()</code> still reports the full final offset. The branch dates from the first commit of both classes (LUCENE-7465, 6.5.0) and fails on every release run, up to 10.5.2 and main. A fix that retries at the end of the input too, with a small memo that kept many unclosed openers linear on the measured inputs, passes the module's tests.</p><div class="hd hd-3"><h3 id='what-the-bug-is-how-the-tokenizer-scans'>How the tokenizer scans</h3><a class="hlink" href="#what-the-bug-is-how-the-tokenizer-scans" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-how-the-tokenizer-scans"><span aria-hidden="true">#</span></a></div><p><code>SimplePatternTokenizer.incrementToken()</code> (<code>SimplePatternTokenizer.java:104-162</code> at <code class='nw'>a9779ef3c193</code>):</p><ol><li>It takes the next code point as a possible token start and steps the pattern's DFA (<code class='nw'>:116-121</code>). If the DFA can start there (<code>state != -1</code>, <code class='nw'>:123</code>), an inner loop reads ahead and records the longest accepted length (<code class='nw'>:126-132</code>), until the DFA dies (<code class='nw'>:139</code>) or the input ends (<code>ch == -1</code>, then <code class='nw'>break</code>, <code class='nw'>:134-137</code>).</li><li>If something was accepted, the longest match is the token (<code class='nw'>:141-150</code>), also when the lookahead then ran into the end of the input: the scanned rest is pushed back. This accepting end-of-input path is correct on stock (its <code class='nw'>pushBack</code> was fixed in 2017 by <code class='nw'>2d03aa21a2b</code>) and both fix options keep it.</li><li>If nothing was accepted and the DFA died, it is a "false alarm": <code>pushBack(tokenUpto - 1)</code> returns all but the first scanned character and the loop retries one character later (<code class='nw'>:153-156</code>).</li><li>If nothing was accepted and the input ended, <code>} else if (ch == -1) { return false; }</code> (<code class='nw'>:151-152</code>) ends tokenization. That assumes that no match before the end means no later token, which is false: a later start point inside the scanned run can still match a shorter string.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-example-start-by-start'>The example, start by start</h3><a class="hlink" href="#what-the-bug-is-the-example-start-by-start" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-example-start-by-start"><span aria-hidden="true">#</span></a></div><p>Pattern <code class='nw'>'[^']*'|[a-z]+</code>, text <code>don't stop me</code> (13 chars; executed trace on main): start 0 accepts <code class='nw'>d</code>, <code class='nw'>do</code>, <code class='nw'>don</code> and dies at the apostrophe, so <code class='nw'>don</code> is a token. Start 3, the apostrophe, can begin a quoted phrase; <code class='nw'>[^']*</code> keeps the DFA alive over <code>t stop me</code> to the end of the text, never accepting because no closing quote comes. Step 4 returns false, and starts 4-12 (<code class='nw'>t</code>, <code class='nw'>stop</code>, <code class='nw'>me</code>) are never tried.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-split-tokenizer'>The split tokenizer</h3><a class="hlink" href="#what-the-bug-is-the-split-tokenizer" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-split-tokenizer"><span aria-hidden="true">#</span></a></div><p><code>SimplePatternSplitTokenizer</code> (<code>SimplePatternSplitTokenizer.java:99-170</code>) scans for separators the same way. Its end-of-input branch (<code class='nw'>:156-162</code>) emits everything from the current token start to the end as one token, instead of the false-alarm retry (<code class='nw'>:163-166</code>), so the separators after an unclosed <code class='nw'>&lt;</code> are never found: <code>\&lt;[^\&gt;]*\&gt;|[ ]+</code> on <code>x &lt; y</code> gives <code class='nw'>x</code>, <code>&lt; y</code>. (The branch's <code>return false</code> arm cannot be reached from a lookahead: the scanned characters are already appended to the pending token, <code class='nw'>:213-219</code>.)</p><div class="hd hd-3"><h3 id='what-the-bug-is-exact-trigger'>Exact trigger</h3><a class="hlink" href="#what-the-bug-is-exact-trigger" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-exact-trigger"><span aria-hidden="true">#</span></a></div><p>A pattern alternative that can stay alive without accepting up to the true end of the value, plus a later start point inside that run that could match: a quoted-string, bracket or tag alternative next to a word or separator alternative (<code>\"[^\"]*\"|[a-z]+</code>, <code class='nw'>'[^']*'|[a-z]+</code>, <code>\&lt;[^\&gt;]*\&gt;|[ ]+</code>, in Lucene <code class='nw'>RegExp</code> syntax), or <code class='nw'>abc|b</code>, <code class='nw'>ab*c|b</code>. A pattern made only of a quote alternative loses nothing (no later match exists inside the run). Plain character-class patterns such as <code>[^ ]+</code> or <code>[ ]+</code> are unaffected, and so are whitespace classes like the factories' javadoc examples when the tab, CR and LF in them are real characters (executed in the fact check). As the javadoc prints them, with backslash escapes inside the class, <code>[^ \t\r\n]+</code> and <code>[ \t\r\n]+</code> are rejected by <code class='nw'>RegExp</code> ("invalid character class") on main, 10.5.2 and 9.12.3: a separate documentation matter. Tokenization raises no exception or warning; <code class='nw'>end()</code> still reports the full final offset (<code class='nw'>:164-169</code>).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>279 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Users of either tokenizer: directly, through the factories (SPI names <code class='nw'>simplePattern</code> and <code>simplePatternSplit</code>, for example in <code class='nw'>CustomAnalyzer</code> or a Solr schema), or through downstream tokenizers built on them (Elasticsearch's and OpenSearch's <code class='nw'>simple_pattern</code> and <code>simple_pattern_split</code>; read in their sources, not run there).</li><li><strong>Opt-in.</strong> Both classes and factories are <code>@lucene.experimental</code>, and no Lucene analyzer uses them by default. The bug needs no special setting beyond a pattern of the affected shape.</li><li><strong>What it takes.</strong> A pattern alternative that can stay open to the end of the value (a quoted string, bracket group or tag) next to one that can match later inside it. With such a pattern, one unclosed opener in ordinary text is enough: the apostrophe in <code class='nw'>don't</code>, <code>a &lt; b</code>, the emoticon <code class='nw'>&lt;3</code>. Plain character-class patterns are unaffected.</li><li><strong>Effect.</strong> Every token after the unclosed opener is missing from the index (tokenizer) or merged into one term (split tokenizer), at any index size, with assertions on or off. Tokenization raises no exception or warning; <code class='nw'>end()</code> reports the full offset; the stored value keeps all the text; other values, fields and documents are unaffected.</li><li><strong>A sharper case.</strong> The split tokenizer's merged rest is one term; past 32,766 UTF-8 bytes <code class='nw'>IndexWriter</code> rejects the whole document as containing an immense term (non-aborting): <code>"Bob &lt;3 wrote: "</code> plus 40,000 chars of words was rejected on main, 10.5.2 and 9.12.3, and is indexed with either fix option.</li><li><strong>How likely.</strong> Rare, by judgement: the affected pattern shape seems uncommon among simple-pattern patterns, and no report of it since 6.5.0 (2017) was found in the public sources searched. How often it appears in real deployments was not surveyed.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A 5-test JUnit for the analysis-common test tree that uses only the two public factories. The control passes; the four bug tests fail on main, 10.5.2 and 9.12.3, with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestSimplePatternLookaheadAtEnd.java (analysis-common, public API)</span><span class='meta'>94 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.pattern;
+
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * When the lookahead from a start point reaches the end of the input without ever matching, the
+ * simple pattern tokenizers stop instead of trying the next start point, as they do when the
+ * lookahead fails before the end.
+ */
+public class TestSimplePatternLookaheadAtEnd extends BaseTokenStreamTestCase {
+
+  private static Tokenizer tokenizer(String pattern) {
+    Map&lt;String, String&gt; args = new HashMap&lt;&gt;();
+    args.put(&quot;pattern&quot;, pattern);
+    return new SimplePatternTokenizerFactory(args).create();
+  }
+
+  private static Tokenizer splitTokenizer(String pattern) {
+    Map&lt;String, String&gt; args = new HashMap&lt;&gt;();
+    args.put(&quot;pattern&quot;, pattern);
+    return new SimplePatternSplitTokenizerFactory(args).create();
+  }
+
+  /** Control: the lookahead &quot;ab&quot; from &#x27;a&#x27; dies at &#x27;x&#x27;, so the scan retries at &#x27;b&#x27;. */
+  public void testControlLookaheadFailsBeforeEnd() throws Exception {
+    Tokenizer t = tokenizer(&quot;abc|b&quot;);
+    t.setReader(new StringReader(&quot;abx&quot;));
+    assertTokenStreamContents(t, new String[] {&quot;b&quot;}, new int[] {1}, new int[] {2}, 3);
+  }
+
+  /** The same lookahead reaches the end of the input instead: &quot;b&quot; is lost. */
+  public void testLookaheadReachesEnd() throws Exception {
+    Tokenizer t = tokenizer(&quot;abc|b&quot;);
+    t.setReader(new StringReader(&quot;ab&quot;));
+    assertTokenStreamContents(t, new String[] {&quot;b&quot;}, new int[] {1}, new int[] {2}, 2);
+  }
+
+  /** A quoted phrase or a word: an unclosed quote loses every later word. */
+  public void testUnclosedQuote() throws Exception {
+    Tokenizer t = tokenizer(&quot;\\\&quot;[^\\\&quot;]*\\\&quot;|[a-z]+&quot;);
+    t.setReader(new StringReader(&quot;say \&quot;hello\&quot; world&quot;));
+    assertTokenStreamContents(
+        t,
+        new String[] {&quot;say&quot;, &quot;\&quot;hello\&quot;&quot;, &quot;world&quot;},
+        new int[] {0, 4, 12},
+        new int[] {3, 11, 17},
+        17);
+    t.setReader(new StringReader(&quot;say \&quot;hello world&quot;));
+    assertTokenStreamContents(
+        t, new String[] {&quot;say&quot;, &quot;hello&quot;, &quot;world&quot;}, new int[] {0, 5, 11}, new int[] {3, 10, 16}, 16);
+  }
+
+  /** The same with single quotes: an apostrophe is an unclosed quote. */
+  public void testApostrophe() throws Exception {
+    Tokenizer t = tokenizer(&quot;&#x27;[^&#x27;]*&#x27;|[a-z]+&quot;);
+    t.setReader(new StringReader(&quot;don&#x27;t stop me&quot;));
+    assertTokenStreamContents(
+        t,
+        new String[] {&quot;don&quot;, &quot;t&quot;, &quot;stop&quot;, &quot;me&quot;},
+        new int[] {0, 4, 6, 11},
+        new int[] {3, 5, 10, 13},
+        13);
+  }
+
+  /** Split tokenizer, separators are tags or spaces: an unclosed {@code &lt;} hides later spaces. */
+  public void testSplitUnclosedTag() throws Exception {
+    Tokenizer t = splitTokenizer(&quot;\\&lt;[^\\&gt;]*\\&gt;|[ ]+&quot;);
+    t.setReader(new StringReader(&quot;x &lt;b&gt; y&quot;));
+    assertTokenStreamContents(t, new String[] {&quot;x&quot;, &quot;y&quot;}, new int[] {0, 6}, new int[] {1, 7}, 7);
+    t.setReader(new StringReader(&quot;x &lt; y&quot;));
+    assertTokenStreamContents(
+        t, new String[] {&quot;x&quot;, &quot;&lt;&quot;, &quot;y&quot;}, new int[] {0, 2, 4}, new int[] {1, 3, 5}, 5);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># $REPRO = the directory holding TestSimplePatternLookaheadAtEnd.java (this bug&#x27;s repro/org/apache/lucene/analysis/pattern/)
+cp $REPRO/TestSimplePatternLookaheadAtEnd.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.pattern.TestSimplePatternLookaheadAtEnd -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false: the same 4 failures
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>abc|b</code> on <code class='nw'>ab</code> gives <code class='nw'>b</code>; <code>say "hello world</code> gives <code class='nw'>say</code>, <code class='nw'>hello</code>, <code class='nw'>world</code>; <code>don't stop me</code> gives <code class='nw'>don</code>, <code class='nw'>t</code>, <code class='nw'>stop</code>, <code class='nw'>me</code>; split <code>x &lt; y</code> gives <code class='nw'>x</code>, <code class='nw'>&lt;</code>, <code class='nw'>y</code>.</dd></div><div class='got'><dt>Observed</dt><dd>No token for <code class='nw'>ab</code> (<code>token 0 does not exist</code>); only <code class='nw'>say</code> and only <code class='nw'>don</code> (<code>token 1 does not exist</code>); split gives <code class='nw'>x</code>, <code>&lt; y</code> (<code>term 1 expected:&lt;&lt;[]&gt; but was:&lt;&lt;[ y]&gt;</code>).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-525/'>repro/LFV-525/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>1 more file (110 lines) · 846 words</span></summary><div class='body'><p>Public API only (<code>SimplePatternTokenizerFactory</code>, <code>SimplePatternSplitTokenizerFactory</code>) plus the test framework's <code>BaseTokenStreamTestCase</code>; about 1.5 s. The control (<code class='nw'>abc|b</code> on <code class='nw'>abx</code>, where the lookahead dies before the end) and the closed-quote and closed-tag asserts pass; the four bug tests fail. <code class='nw'>"</code> and <code class='nw'>&lt;</code>, <code class='nw'>&gt;</code> are reserved in Lucene's <code class='nw'>RegExp</code> syntax, hence the escapes. The file is google-java-format clean (<code class='nw'>tidy</code> leaves it unchanged).</p><p>Below it, two methods for each of the existing upstream suites, for a PR: they fail on stock main and pass with either fix option. They use the <code class='nw'>Automaton</code> constructor with <code>Operations.determinize</code>, because the <code class='nw'>String</code> constructor of <code>SimplePatternTokenizer</code> does not determinize (a separate bug).</p><div class="hd hd-3"><h3 id='code-2-h'>test-upstream.diff (two methods each for TestSimplePatternTokenizer and TestSimplePatternSplitTokenizer)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>On stock main all 4 new methods fail; with either option they pass (<code>testManyUnclosedOpeners</code> took 0.33 s and 0.47 s with the minimal option and 0.01 s with the recommended one in the fact check's gradle runs).</p><figure class='code'><figcaption><span class='fname'>test-upstream.diff (two methods each for TestSimplePatternTokenizer and TestSimplePatternSplitTokenizer)</span><span class='meta'>110 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternSplitTokenizer.java b/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternSplitTokenizer.java
+index f5fc6a0881e..dde6c7f8ca6 100644
+--- a/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternSplitTokenizer.java
++++ b/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternSplitTokenizer.java
+@@ -29,6 +29,8 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+ import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+ import org.apache.lucene.tests.util.TestUtil;
+ import org.apache.lucene.util.automaton.Automaton;
++import org.apache.lucene.util.automaton.Operations;
++import org.apache.lucene.util.automaton.RegExp;
+ 
+ public class TestSimplePatternSplitTokenizer extends BaseTokenStreamTestCase {
+ 
+@@ -248,4 +250,41 @@ public class TestSimplePatternSplitTokenizer extends BaseTokenStreamTestCase {
+     t.setReader(new StringReader(&quot;aba&quot;));
+     assertTokenStreamContents(t, new String[] {&quot;a&quot;}, new int[] {2}, new int[] {3}, 3);
+   }
++
++  private static Automaton determinized(String regexp) {
++    return Operations.determinize(
++        new RegExp(regexp).toAutomaton(), Operations.DEFAULT_DETERMINIZE_WORK_LIMIT);
++  }
++
++  public void testEndLookaheadWithoutMatch() throws Exception {
++    // the separator lookahead from &#x27;a&#x27; reaches the end of the input without a match: retry at &#x27;b&#x27;
++    Tokenizer t = new SimplePatternSplitTokenizer(determinized(&quot;abc|b&quot;));
++    t.setReader(new StringReader(&quot;xab&quot;));
++    assertTokenStreamContents(t, new String[] {&quot;xa&quot;}, new int[] {0}, new int[] {2}, 3);
++
++    // an unclosed &#x27;&lt;&#x27; must not hide the separators after it
++    t = new SimplePatternSplitTokenizer(determinized(&quot;\\&lt;[^\\&gt;]*\\&gt;|[ ]+&quot;));
++    t.setReader(new StringReader(&quot;x &lt; y&quot;));
++    assertTokenStreamContents(
++        t, new String[] {&quot;x&quot;, &quot;&lt;&quot;, &quot;y&quot;}, new int[] {0, 2, 4}, new int[] {1, 3, 5}, 5);
++  }
++
++  public void testManyUnclosedOpeners() throws Exception {
++    Tokenizer t = new SimplePatternSplitTokenizer(determinized(&quot;\\&lt;[^\\&gt;]*\\&gt;|[ ]+&quot;));
++    StringBuilder b = new StringBuilder();
++    for (int i = 0; i &lt; 5000; i++) {
++      b.append(&quot;&lt; &quot;);
++    }
++    t.setReader(new StringReader(b.toString()));
++    CharTermAttribute termAtt = t.getAttribute(CharTermAttribute.class);
++    t.reset();
++    int count = 0;
++    while (t.incrementToken()) {
++      assertEquals(&quot;&lt;&quot;, termAtt.toString());
++      count++;
++    }
++    t.end();
++    t.close();
++    assertEquals(5000, count);
++  }
+ }
+diff --git a/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java b/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java
+index 6a6584be56d..1bdb0254734 100644
+--- a/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java
++++ b/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java
+@@ -29,6 +29,8 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+ import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+ import org.apache.lucene.tests.util.TestUtil;
+ import org.apache.lucene.util.automaton.Automaton;
++import org.apache.lucene.util.automaton.Operations;
++import org.apache.lucene.util.automaton.RegExp;
+ 
+ public class TestSimplePatternTokenizer extends BaseTokenStreamTestCase {
+ 
+@@ -209,4 +211,41 @@ public class TestSimplePatternTokenizer extends BaseTokenStreamTestCase {
+     t.setReader(new StringReader(&quot;aba&quot;));
+     assertTokenStreamContents(t, new String[] {&quot;ab&quot;}, new int[] {0}, new int[] {2}, 3);
+   }
++
++  private static Automaton determinized(String regexp) {
++    return Operations.determinize(
++        new RegExp(regexp).toAutomaton(), Operations.DEFAULT_DETERMINIZE_WORK_LIMIT);
++  }
++
++  public void testEndLookaheadWithoutMatch() throws Exception {
++    // the lookahead from &#x27;a&#x27; reaches the end of the input without a match: retry at &#x27;b&#x27;
++    Tokenizer t = new SimplePatternTokenizer(determinized(&quot;abc|b&quot;));
++    t.setReader(new StringReader(&quot;ab&quot;));
++    assertTokenStreamContents(t, new String[] {&quot;b&quot;}, new int[] {1}, new int[] {2}, 2);
++
++    // an unclosed quote must not hide the words after it
++    t = new SimplePatternTokenizer(determinized(&quot;\\\&quot;[^\\\&quot;]*\\\&quot;|[a-z]+&quot;));
++    t.setReader(new StringReader(&quot;say \&quot;hello world&quot;));
++    assertTokenStreamContents(
++        t, new String[] {&quot;say&quot;, &quot;hello&quot;, &quot;world&quot;}, new int[] {0, 5, 11}, new int[] {3, 10, 16}, 16);
++  }
++
++  public void testManyUnclosedOpeners() throws Exception {
++    Tokenizer t = new SimplePatternTokenizer(determinized(&quot;\\&lt;[^\\&gt;]*\\&gt;|[a-z]+&quot;));
++    StringBuilder b = new StringBuilder();
++    for (int i = 0; i &lt; 5000; i++) {
++      b.append(&quot;&lt;a &quot;);
++    }
++    t.setReader(new StringReader(b.toString()));
++    CharTermAttribute termAtt = t.getAttribute(CharTermAttribute.class);
++    t.reset();
++    int count = 0;
++    while (t.incrementToken()) {
++      assertEquals(&quot;a&quot;, termAtt.toString());
++      count++;
++    }
++    t.end();
++    t.close();
++    assertEquals(5000, count);
++  }
+ }
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT), gradle and standalone runs; 10.5.2 and 9.12.3 release jars: the same 4 failures; 6.5.0 to 10.5.2 (19 releases): a portable probe fails</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code># $LUCENE = a Lucene checkout of main; JAVA_HOME = a JDK 25
+# $REPRO = the directory holding TestSimplePatternLookaheadAtEnd.java (this bug&#x27;s repro/org/apache/lucene/analysis/pattern/)
+cp $REPRO/TestSimplePatternLookaheadAtEnd.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.pattern.TestSimplePatternLookaheadAtEnd -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false: the same 4 failures
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF -Ptests.asserts=true (identical with =false)
+TestSimplePatternLookaheadAtEnd &gt; testUnclosedQuote FAILED
+    java.lang.AssertionError: token 1 does not exist
+TestSimplePatternLookaheadAtEnd &gt; testApostrophe FAILED
+    java.lang.AssertionError: token 1 does not exist
+TestSimplePatternLookaheadAtEnd &gt; testSplitUnclosedTag FAILED
+    org.junit.ComparisonFailure: term 1 expected:&lt;&lt;[]&gt; but was:&lt;&lt;[ y]&gt;
+TestSimplePatternLookaheadAtEnd &gt; testLookaheadReachesEnd FAILED
+    java.lang.AssertionError: token 0 does not exist
+# with the upstream suites: TestSimplePattern* 34 tests completed, 4 failed (the 29 upstream tests pass)
+
+# standalone JUnit runner, the same test: main, 10.5.2 and 9.12.3, each -ea and -da: 5 run, 4 failed
+
+# indexed through CustomAnalyzer simplePattern &#x27;[^&#x27;]*&#x27;|[a-z]+, main -ea:
+index &#x27;don&#x27;t stop me&#x27;: TermQuery body:stop count = 0, stored value = &#x27;don&#x27;t stop me&#x27;   (1 with either fix option)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Javadoc: "the longest match at a given start point will be the next token"; class comment: "we skip one character forward and try again", which the dead-state branch does.</li><li><code class='nw'>PatternTokenizer</code> with the same regex, and <code class='nw'>String.split</code>, give the full token lists.</li><li>One extra non-token character brings tokens back: <code class='nw'>ab*c|b</code> gives nothing on <code class='nw'>abb</code> but <code class='nw'>b</code>, <code class='nw'>b</code> on <code class='nw'>abbx</code>.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>359 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> Class javadoc (<code>SimplePatternTokenizer.java:34-35</code>): "The matching is greedy: the longest match at a given start point will be the next token." Factory javadoc (<code>SimplePatternTokenizerFactory.java:41-43</code>): "the matching is greedy such that the longest token matching at a given point is created." The class comment states the algorithm (<code class='nw'>:44-45</code>): "on failing to match a token, we skip one character forward and try again." The split tokenizer is "just like SimplePatternTokenizer except that the pattern should make valid token separator characters, like String.split" (<code>SimplePatternSplitTokenizer.java:33-34</code>).</li><li><strong>Two no-match branches of one loop disagree.</strong> The dead-state branch retries one character later (<code class='nw'>:153-156</code>); the end-of-input branch gives up (<code class='nw'>:151-152</code>). No code comment, javadoc, CHANGES or MIGRATE entry explains the difference.</li><li><strong>The documented comparisons give the full lists.</strong> <code class='nw'>PatternTokenizer</code> (java.util.regex) with the same regex gives <code class='nw'>don</code>, <code class='nw'>t</code>, <code class='nw'>stop</code>, <code class='nw'>me</code> and <code class='nw'>say</code>, <code class='nw'>hello</code>, <code class='nw'>world</code>; in split mode (group -1) and with <code class='nw'>String.split</code>, <code>x &lt; y</code> gives <code class='nw'>x</code>, <code class='nw'>&lt;</code>, <code class='nw'>y</code>.</li><li><strong>Prefix-dependent output.</strong> <code class='nw'>ab*c|b</code> gives no token on <code class='nw'>abb</code> but <code class='nw'>b</code>, <code class='nw'>b</code> on <code class='nw'>abbx</code>: whether the tokens of a prefix exist depends on whether one more character, which belongs to no token, follows. That is strong evidence the behaviour is accidental rather than a chosen rule.</li><li><strong>Tests do not pin it.</strong> Two upstream tests reach the no-accept end-of-input branch (a verifier found them): <code class='nw'>testBigLookahead</code> (the literal pattern of 100 <code class='nw'>a</code>s and a <code class='nw'>b</code>, over 200 <code class='nw'>a</code>s; start points 0-99 die, start point 100 runs to the end) and <code class='nw'>testEndLookahead</code> (<code class='nw'>(ab)+</code> on <code class='nw'>aba</code>: the first lookahead accepts <code class='nw'>ab</code>, then the trailing <code class='nw'>a</code> takes the no-accept branch). Neither has a later start point that could match; both pass with the fixes, as does the whole analysis-common module.</li><li><strong>History.</strong> The branch is in the first commit (<code class='nw'>93fa72f77bd</code>, LUCENE-7465) without a comment. The only later fix here, <code class='nw'>2d03aa21a2b</code> (2017-02-21, "fix corner case in SimplePattern/SplitTokenizer when lookahead hits end of input"), handled the accepting case and added <code class='nw'>testEndLookahead</code>; it left this branch alone. The 31 comments of LUCENE-7465 (#8517) never discuss it.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>261 words</span></summary><div class='body'><p>The strongest case for "intended": the end-of-input branch is explicit, symmetric code from the first commit; the classes are <code>@lucene.experimental</code>; the javadoc only says the longest match <em>at a start point</em> is the token, not that every start point is tried; and the shortcut keeps an unclosed opener to one linear scan, while retrying makes each unclosed opener rescan to the end.</p><p>Why it fails: the class's own comment says it skips one character and tries again, and the dead-state path does exactly that; output that changes when one non-token character is appended is strong evidence against a chosen rule; <code class='nw'>PatternTokenizer</code> and <code class='nw'>String.split</code> give the full lists; <code>@lucene.experimental</code> marks API instability, not permission for wrong output. The cost point is real for the minimal fix (quadratic on many unclosed openers) but not on the measured inputs of the recommended one. The class TODO (<code class='nw'>:41-53</code>) says the naive matcher "does have N^2 adversarial cases" because it skips one character and retries, and such cases exist on stock through dead states; it does not say whether rescanning at the end of the input was considered, so it supports the retry design, not a deliberate end-of-input shortcut. None of this proves the shortcut was not a deliberate optimization, but together it makes an accident much more likely. Every check that ran code judged it a defect; the reading-only refute review said "not real" only because it could not run code, and the cross-model fact check rated the intended-behaviour case moderate for the tokenizer and weak to moderate for the split tokenizer.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Retry at the end of the input, and remember lookaheads that ran to the end (validated; linear on the measured inputs)</strong></p><p class='short'>Let a lookahead that reaches the end without a match take the existing retry, stepping one code point, and remember (every 16th) the DFA states such a run passed through, so later retries stop early. All tests pass, the whole module too; 64,000 chars of <code>"&lt; "</code> take 5 ms instead of 5.5-9.4 s with the minimal retry-only fix.</p><pre class='snippet' tabindex='0'><code>// in the lookahead loop of incrementToken(); the split tokenizer is analogous
+if (noAcceptAhead.isEmpty() == false &amp;&amp; noAcceptAhead.contains(pair(offset, state))) {
+  noMoreAccepts = true; // an earlier lookahead went from here to the end without an accept
+  break;
+}
+ch = nextCodePoint();
+if (ch == -1) {
+  noMoreAccepts = true;
+  break;
+}
+// after the loop: replay the lookahead, record every 16th (offset, state) after its last accept
+if (noMoreAccepts) {
+  rememberNoAccept(termAtt.buffer(), 0, tokenUpto, offsetStart, lastAcceptLength);
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 1,098 words</span></summary><div class='body'><p>Two options were built at <code class='nw'>a9779ef3c193</code> and validated with gradle (the repro, the pattern package, the whole analysis-common module, assertions on and off) and against the stock jars with the patched classes shadowed. Both also change the retry step from one UTF-16 unit to one code point; without that, sending the end of input into the retry would spread a separate defect of the retry path (a supplementary first character is split) to the new path. Timings: single thread, assertions off, on a shared host; up to 64,000 chars 30 warm-up runs and the best of 20 (<code class='nw'>WarmCost</code>), the 1,024,000-char scaling 10 warm-up runs and the best of 10 (<code class='nw'>WarmScale</code>); heap from the thread's allocation counter and used heap after GC (<code class='nw'>MemProbe</code>).</p><div class="hd hd-3"><h3 id='fix-retry-with-memo'>Retry at the end of the input, and remember lookaheads that ran to the end (validated; linear on the measured inputs) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-retry-with-memo" target="_self" aria-label="Link to this section" aria-describedby="fix-retry-with-memo"><span aria-hidden="true">#</span></a></div><p><code>optionB-retry-at-end-linear.diff</code>, +113/-14 over both classes. The minimal option's change, plus a <code class='nw'>LongHashSet</code> of <code>(offset, state)</code> pairs (from <code>org.apache.lucene.internal.hppc</code>, a package analysis-common already uses; <code class='nw'>LongHashSet</code> itself is new there):</p><ul><li>when a lookahead reaches the end of the input (or a recorded pair), the tokenizer replays its buffered code points through the DFA and records every 16th pair after its last accept. No accept is reachable from such a pair: the DFA is deterministic, the rest of the input is fixed, and the earlier lookahead walked it to the end. This needs a deterministic automaton; every instance that can be constructed has one, because the <code class='nw'>Automaton</code> constructors reject a non-deterministic one (<code>SimplePatternTokenizer.java:97-99</code>, <code>SimplePatternSplitTokenizer.java:87-89</code>) and the factories determinize;</li><li>every later lookahead checks the set at each step, only while it is non-empty, and stops at a recorded pair as if the input ended there; a lookahead that joins a recorded path after that path's last accept stops within 16 steps;</li><li><code class='nw'>reset()</code> releases the set when it is not empty.</li></ul><p>"Linear" is measured, not proven in general: from 64,000 to 1,024,000 chars of many unclosed openers the time grows 1.50-2.15x per doubling (split tag-or-space) and 1.85-2.12x with one 3.25x step (tag-or-word). The set is keyed by <code>(offset, state)</code>, so several states can be recorded at one offset, and no general bound on its size is established. The class's other N^2 cases remain.</p><pre class='snippet' tabindex='0'><code>// in the lookahead loop of incrementToken(); the split tokenizer is analogous
+if (noAcceptAhead.isEmpty() == false &amp;&amp; noAcceptAhead.contains(pair(offset, state))) {
+  noMoreAccepts = true; // an earlier lookahead went from here to the end without an accept
+  break;
+}
+ch = nextCodePoint();
+if (ch == -1) {
+  noMoreAccepts = true;
+  break;
+}
+// after the loop: replay the lookahead, record every 16th (offset, state) after its last accept
+if (noMoreAccepts) {
+  rememberNoAccept(termAtt.buffer(), 0, tokenUpto, offsetStart, lastAcceptLength);
+}</code></pre><p class='k'>Trade-offs</p><ul><li>About 100 more lines than the minimal option, and a small set that lives until the next value.</li><li>Inputs without an unclosed opener at the end: within noise of stock (plain words 8.7-8.9 ns/char vs 8.3-8.6; closed tags 10.1-10.4 vs 11.0-11.3, one run 15.6).</li><li>One unclosed opener, then 200,000 chars of words: 22.8-27.4 ns/char (minimal option 13.5-17.9; stock 5.5-5.6 but 0 tokens).</li><li>Many unclosed openers: <code>"&lt; "</code> repeated to 64,000 chars 5.0 ms (minimal option 9,444 ms in this run, 5.5-9.4 s across runs; stock 0.38 ms with 1 token); to 1,024,000 chars 87 ms, about 2x per doubling.</li><li>Heap for one 1,000,000-char value with one unclosed opener: 2.1 MB allocated and held until the next <code class='nw'>reset()</code> (stock and the minimal option: none beyond the term buffer). Recording every pair instead of every 16th held 17.8 MB.</li><li>The class's existing dead-state N^2 cases are unchanged (<code class='nw'>[a-z]+\@[a-z]+</code> on one 64,000-char word: about 10-15 s on stock and on both options).</li></ul><p class='k'>What the checks validated</p><ul><li>gradle: the repro 5 of 5; <code>org.apache.lucene.analysis.pattern.*</code> 87 tests; the whole analysis-common module 1,914 tests, 18 skipped, 0 failures; assertions on and off. <code>check -x test</code> (lint, forbidden APIs, formatting) passes; <code class='nw'>TestRandomChains</code> passes with 3 seeds.</li><li>The new upstream-suite methods pass; on stock all 4 fail.</li><li>Shadowed on the stock jars: the hunt's bounded-exhaustive check (1,523,418 runs of the two tokenizers, part of 4,140,572 checks with <code class='nw'>PatternTokenizer</code> controls) 0 mismatches; its long-input check (1,560 inputs through both tokenizers, 3,120 checks, chunked reads) 0; an opener-dense random differential 0 of 32,000 (stock 6,024); the finder's and a verifier's repros and the hunt's reach probe all pass.</li></ul><div class="hd hd-3"><h3 id='fix-retry-only'>Send the end of the input into the existing retry (validated, minimal) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-retry-only" target="_self" aria-label="Link to this section" aria-describedby="fix-retry-only"><span aria-hidden="true">#</span></a></div><p><code>optionA-retry-at-end.diff</code>, +12/-14: delete the end-of-input branch in both classes so that the lookahead takes the false-alarm path, and push back all but the first code point. The same change as the hunt's combined fix, re-made at <code class='nw'>a9779ef3c193</code>.</p><pre class='snippet' tabindex='0'><code>final int firstLen = Character.charCount(ch); // after runDFA.step(0, ch)
+...
+-        } else if (ch == -1) {
+-          return false;
+         } else {
+-          pushBack(tokenUpto - 1);
++          // false alarm (also when the lookahead reached the end of the input)
++          if (tokenUpto &gt; firstLen) {
++            pushBack(tokenUpto - firstLen);
++          }
+           tokenUpto = 0;
+         }</code></pre><p class='k'>Trade-offs</p><ul><li>Smallest diff.</li><li>Each unclosed opener whose run reaches the end rescans the rest of the value, so many unclosed openers become quadratic where stock is linear (and wrong): <code>"&lt; "</code> repeated to 64,000 chars takes 5.5-9.4 s on a shared host (9.4 s best of 20 here, 5.53 s in the hunt, 5.56 s in the fact check), about 4x per doubling from 8,000 chars. Quote-or-word patterns on paired quotes stay linear (only the last unpaired quote scans to the end).</li><li>Proposing it means stating that cost. The class TODO already says the naive matcher has N^2 adversarial cases (it does not discuss the end of the input).</li></ul><p class='k'>What the checks validated</p><ul><li>gradle: the repro 5 of 5; the pattern package 87 tests; the whole module 1,914 tests, 0 failures, assertions on and off; the new upstream-suite methods pass.</li><li>Shadowed: the bounded-exhaustive check and the opener-dense differential find 0 mismatches; the reach probe passes 10 of 10.</li></ul><div class="hd hd-3"><h3 id='fix-single-pass'>A single-pass matcher (the class TODO's idea; not tried)</h3><a class="hlink" href="#fix-single-pass" target="_self" aria-label="Link to this section" aria-describedby="fix-single-pass"><span aria-hidden="true">#</span></a></div><p>Compile something like <code>.* | &lt;pattern&gt;</code> so that one pass finds every match, as the TODO (<code class='nw'>:46-53</code>) suggests.</p><p class='k'>Trade-offs</p><p>Would also remove the dead-state N^2 cases, but the TODO notes it needs sub-group capture that Lucene's regexps lack; a much larger change.</p><div class="hd hd-3"><h3 id='fix-document'>Document the current behaviour (not recommended)</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>State in the javadoc that tokenization ends when a lookahead reaches the end of the input without a match.</p><p class='k'>Trade-offs</p><p>Keeps the prefix-dependent output and the split tokenizer's merged term; neither fix needs it.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Elasticsearch and OpenSearch build their <code class='nw'>simple_pattern</code> and <code>simple_pattern_split</code> tokenizers on these classes, so their users with a quote- or tag-style pattern lose the same tokens (read in their sources, not run there).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive check ran both real tokenizers on every string of up to 6 code points over a 5-symbol alphabet with 39 patterns (1,523,418 runs) against the javadoc's longest-match rule with the class comment's skip-and-retry. 3,916 tokenizer runs lost their trailing tokens; reading the code for the model then located the end-of-input branch.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>185 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation</strong> (the hunt's semi-formal tier). The checker ran the real <code>SimplePatternTokenizer</code> and <code>SimplePatternSplitTokenizer</code> on every string of up to 6 code points over the alphabet {a, b, space, -, U+1F600}, for 39 <code class='nw'>RegExp</code> patterns, and compared each output with a reference written from the class javadoc and its implementation comment: the longest non-empty match at each start point, otherwise skip one code point (membership checked with java.util.regex). Of 761,709 tokenizer runs, 3,916 lost trailing tokens, and 3,916 of 761,709 split runs merged tokens, all on the patterns with a live non-accepting run before a later match. A second mismatch class (lone surrogates) is a separate bug of the retry step. (The checker's total of 4,140,572 checks also covers <code class='nw'>PatternTokenizer</code> in three modes on the same patterns and a 17-pattern <code class='nw'>PatternTokenizer</code> pool.)</p><p>The finder then wrote a JUnit through the public factories (3 of 3 fail on main with assertions on and off, 10.5.2 and 9.12.3) and a fix, which removes the end-of-input class from the exhaustive check; with the code-point retry as well, the check finds 0 mismatches. Independent checks followed (below).</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: 150 tool queries over GitHub issues, PRs and commits, the mailing lists and JIRA, 33 direct GitHub searches (Lucene, Elasticsearch, OpenSearch, Solr), 15 web searches and the files of all 408 open PRs (2026-10-26). Closest: the 2017 follow-up that fixed only the accepting end-of-input case.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No report of this bug by anyone was found; the nearest items concern the classes' introduction, the accepting end-of-input case and determinization. Limits: some web and downstream queries were throttled, closed unmerged PRs that never name the classes are not searchable, and private security-list reports cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), downstream repositories, mailing lists, JIRA archive</th><td class='when'>2026-10-26</td><td>the hunt's prior-report tool in three runs, 150 queries: class, factory and SPI names, simple_pattern, simple_pattern_split, CharacterRunAutomaton, pushBack, symptom phrasings</td><td>no report; the top hit was always #8517</td></tr><tr><th scope='row'>GitHub (apache/lucene, Elasticsearch, OpenSearch, Solr)</th><td class='when'>2026-10-26</td><td>33 direct searches</td><td>no report</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>15 answered searches (forums, Q&amp;A, reference docs)</td><td>no report; the Elasticsearch and OpenSearch reference pages describe no end-of-input rule</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 408 open apache/lucene PRs</td><td>none touches the SimplePattern* files</td></tr><tr><th scope='row'>Related items (read)</th><td class='when'>2026-10-26</td><td>issue threads and commits read in full</td><td>#8517 (LUCENE-7465, added the classes; 31 comments, none on this branch); commit 2d03aa21a2b (2017, the accepting end-of-input case); OpenSearch #20349 / PR #20350 (determinization, a separate bug); Elasticsearch #23363 / PR #25159 (exposing the tokenizers)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with both classes by LUCENE-7465 (<code class='nw'>93fa72f77bd</code>, 2017-02-13), first released in 6.5.0. Fails on all 19 releases run from 6.5.0 to 10.5.2 and on main; the branch has never changed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>93fa72f77bd</code> (2017-02-13, LUCENE-7465 "add SimplePatternTokenizer and SimpleSplitPatternTokenizer", @mikemccand; a JIRA patch, no PR; issue migrated as #8517) and the branch_6x backport <code class='nw'>c24e03e6bf4</code> (same file blobs). <code>git blame</code> credits <code class='nw'>9a1702a8f5b</code>, a byte-identical restore after an accidental merge revert. The follow-up <code class='nw'>2d03aa21a2b</code> (2017-02-21) fixed <code class='nw'>pushBack</code> after the end of input in the accepting case only. The branch is in all 74 release tags from 6.5.0 to 10.5.2 of the history clone (the clone has no tags for 8.8.2 and 8.9.0-8.11.4; those releases are covered by the executed jars, not by the tag scan); no later commit touched it.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 4 of 5 fail (gradle with assertions on and off; standalone -ea and -da); TermQuery body:stop finds 0 documents</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test 3 of 3, a verifier's 6 of 10 (its controls pass), the portable probe 5 of 5 bug cases (-ea and -da)</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 4 of 5 (-ea and -da); the finder's 3 of 3; the portable probe 5 of 5</td></tr><tr><th scope='row'>6.5.0 to 10.0.0 (17 releases: 6.5.0, 6.5.1, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.8.2, 8.9.0, 8.10.0, 8.10.1, 8.11.0-8.11.4, 9.0.0, 10.0.0)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the portable probe: 5 of 5 bug cases fail, 0 of 4 controls</td></tr><tr><th scope='row'>6.5.0 with the <code class='nw'>93fa72f</code> sources</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> origin</span></td><td>the original commit's code fails the same way</td></tr><tr><th scope='row'>6.4.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>no SimplePattern* classes (the probe does not compile)</td></tr><tr><th scope='row'>main + fix (either option)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro passes; the analysis-common module, 1,914 tests, passes with assertions on and off</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and an adjudication said real and re-ran it with assertions on and off. Reviews by another model family (reading only) agreed on the root cause; one said "not real" only because it could not run code. An audit kept it; the doc's fact checks found text errors only, now fixed.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>538 words</span></summary><div class='body'><p>Each check ran or re-ran a repro on the stock jars, except the reading-only reviews, for which a separate run re-ran the finder's repro; the verdicts below are each check's own.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-factory JUnit fails 3 of 3 on main (-ea and -da), 10.5.2 and 9.12.3, controls pass; with the fix 3 of 3 pass and the upstream TestSimplePatternTokenizer and TestSimplePatternSplitTokenizer pass 29 of 29.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real (low), procedural</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6, reading only) could not run code, so its rubric defaulted to not real; it agreed with the root cause, judged the inputs in contract and remarked that the retry should step by code point. A separate run re-ran the repro: fail 3 of 3.</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>The same reviewer family, reading only: the works-as-designed case (symmetric branches, experimental API, the existing end-of-input tests) fails because no test puts a valid later start inside the consumed run.</td></tr><tr><th scope='row'>The cross-model review, executed the intended lens's cases</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td><code class='nw'>abc|b</code> on <code class='nw'>ab</code> gives nothing and split <code class='nw'>xab</code> gives <code class='nw'>xab</code> on main and 10.5.2, with the dead-state controls correct; PatternTokenizer gives the full lists; both pass with the fix.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Own 10-test JUnit: 6 of 10 fail on main (-ea, -da), 10.5.2 and 9.12.3, including a random differential (130 and 131 of 2,000 mismatches on affected shapes, 0 of 4,000 on controls); its own fix and the finder's pass 10 of 10.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Built the strongest intended-behaviour case and showed why it fails; its probe found the prefix-dependent output (<code class='nw'>abb</code> vs <code class='nw'>abbx</code>).</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's JUnit with -ea and -da (6 of 10 fail) and with the finder's fix (10 of 10 pass); flagged the fix cost and the code-point retry for the filing.</td></tr><tr><th scope='row'>audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Own probe through the Automaton constructors on main and 10.5.2 reproduced every case with correct controls; the finder's JUnit with a fresh seed fails 3 of 3 and passes with the fix.</td></tr><tr><th scope='row'>fact check A (independent AI tool, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; 1 notation error and 9 minor findings, fixed</span></td><td>Ran the brief's gradle command verbatim (5 tests, 4 failed, assertions on and off), the standalone test on main, 10.5.2 and 9.12.3 with -ea and -da, both options with the new upstream methods (38 tests, 0 failures) and its own probe. Found one text error: the unescaped quote and tag patterns in the doc throw in Lucene's RegExp.</td></tr><tr><th scope='row'>fact check B (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; 8 errors, 6 overclaims, 4 caveats, fixed or answered</span></td><td>An independent reviewer from another model family confirmed the root cause, the traces, both fixes and the counts it could check, and rated the intended-behaviour case moderate. Most findings were fixed in the text; two were partly rejected with evidence from the code and the kept runs (see the resolution).</td></tr><tr><th scope='row'>diagram check (independent AI tool)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> pass, no errors</span></td><td>Checked every code line, value and order of events on screen against <code class='nw'>a9779ef3c193</code> and the executed probe; 4 minor notes, addressed in the caption text.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-525/bug.png' download='simplepattern-eof-unaccepted-lookahead-ends-scan-bug.png' target='_self'>PNG</a> <span class='n'>459 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,361 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-525, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>SimplePatternTokenizer and SimplePatternSplitTokenizer stop scanning when a non-matching lookahead reaches the end of the input, so later tokens are dropped (or later separators ignored)</dd></div><div><dt>Area</dt><dd>analysis / pattern tokenizers (analysis-common: SimplePatternTokenizer, SimplePatternSplitTokenizer and their simplePattern / simplePatternSplit factories)</dd></div><div><dt>Priority</dt><dd>Medium, rank 135: The opt-in simple-pattern tokenizers silently drop all later tokens after an unclosed opener, but only with an uncommon delimited-span pattern shape, so it closes the opt-in analysis text-loss group.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits applications that choose SimplePatternTokenizer or SimplePatternSplitTokenizer (directly, through the simplePattern / simplePatternSplit factories, or a downstream simple_pattern / simple_pattern_split tokenizer) with a pattern in which one alternative can stay live without matching up to the end of the value (typically a quoted-string, bracket or tag alternative such as "[^"]<em>" or &lt;[^&gt;]</em>&gt;) next to an alternative that can match later inside that run: for every value with one unclosed opener (the apostrophe in "don't", 'a &lt; b', '&lt;3') all later tokens are silently not indexed (tokenizer) or merged into one term (split tokenizer), at any scale, with -ea and -da, with no exception and with end() still reporting the full final offset; patterns without such an alternative (plain character classes, a lone quote pattern) are not affected.</dd></div><div><dt>Summary</dt><dd>You tokenize 'say "hello world' with SimplePatternTokenizer and the pattern "[^"]<em>"|[a-z]+ (a quoted string or a word) and expect [say, hello, world], because the javadoc says the longest match at each start point is the next token and the class otherwise skips one character and tries again (PatternTokenizer with the same regex gives these three tokens). Instead you get only [say]: the lookahead from the unclosed quote runs to the end of the input without ever matching, and that end-of-input branch ends tokenization instead of retrying at the next character, so 'hello' and 'world' are never indexed (minimal case: abc|b on 'ab' gives [] instead of [b]). SimplePatternSplitTokenizer has the same branch and emits the whole rest as one token: separator &lt;[^&gt;]</em>&gt;|[ ]+ on 'x &lt; y' gives [x, '&lt; y'] instead of String.split's [x, &lt;, y]; nothing throws.</dd></div><div><dt>Introduced</dt><dd>93fa72f77bd024aa09eef043c65c64a6524613dc (LUCENE-7465 'add SimplePatternTokenizer and SimpleSplitPatternTokenizer', by GitHub mikemccand; JIRA patch, no pull request; issue migrated as apache/lucene#8517; branch_6x backport c24e03e6bf4d09e6f31eee8192bb6c0c4b2b6d27 with identical file blobs) [exec: 6.5.0 jars with the 93fa72f sources shadowed fail the portable probe 5 of 5; read: git log -S/-G/-L on both files shows no later change to the EOF branch; git blame credits 9a1702a8f5b, a byte-identical restore after the accidental merge revert 325cbf00185; the 2017 follow-up 2d03aa21a2b fixed only the accepting end-of-input case]. Not a regression: the branch is as old as the classes (2017-02-13 (master 93fa72f and branch_6x c24e03e6bf4))</dd></div><div><dt>First affected version</dt><dd>6.5.0 [exec] (6.4.2 has no SimplePattern* classes [exec: compile error])</dd></div><div><dt>Affected versions</dt><dd>6.5.0 through 10.5.2 (the latest release; latest 9.x 9.12.3, latest 8.x 8.11.4) and main ea57360912ed; never fixed. [exec] the follow-up's portable main() probe (5 bug cases, 4 controls) fails 5 of 5 with all controls passing on 19 releases: 6.5.0, 6.5.1, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.8.2, 8.9.0, 8.10.0, 8.10.1, 8.11.0-8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2, and on main with -ea and -da; the finder's JUnit fails 3 of 3 on 6.5.0, 8.11.4 and 9.0.0 (old test-framework import adapted), 9.12.3, 10.0.0, 10.5.2 and main (-ea, -da); the independent reproduction's JUnit fails 6 of 10 on main (-ea, -da), 10.5.2 and 9.12.3. [read] the exact EOF branch is in both files at all 74 release tags 6.5.0-10.5.2 of the history clone (8.8.2-8.11.4 are untagged there and were executed instead).</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; the prior-report record, verdict new; plus the finder's and the independent reproduction's and the intended-behaviour check's searches): a scripted prior-report search in three runs (51 + 50 + 49 queries) over apache/lucene GitHub issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists and the JIRA archive; 33 manual GitHub searches on apache/lucene, Elasticsearch, OpenSearch and Solr (class and factory names, simple_pattern, simple_pattern_split, CharacterRunAutomaton tokenizer); 15 answered web searches (1 unanswered); the changed files of all 408 open apache/lucene PRs (none touches the files). Related, not this bug: apache/lucene#8517 (LUCENE-7465, closed: added both classes; all 31 comments read, none about ending the scan at EOF after a non-accepting run), commit 2d03aa21a2b (2017, 'fix corner case ... when lookahead hits end of input': pushBack in the accepting case, testEndLookahead), opensearch-project/OpenSearch#20349 and PR #20350 (determinization at construction, related to the sibling candidate simplepatterntokenizer-string-ctor-skips-determinize), elastic/elasticsearch#23363 and PR #25159 (exposing the tokenizers), apache/lucene#8780 (open, unrelated)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-27): this doc's test through gradle in a scratch worktree with assertions on and off, and through the hunt's standalone JUnit runner with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the 10.5.2 and 9.12.3 release jars (<code class='nw'>-da</code> in the brief's runs, <code class='nw'>-ea</code> and <code class='nw'>-da</code> in the fact check's re-runs). Earlier pipeline runs (2026-10-26): main <code class='nw'>ea57360912ed</code>, whose four <code class='nw'>SimplePattern*</code> files are byte-identical, and a portable probe on 19 releases from 6.5.0 to 10.5.2 (6.4.2 has no such classes). Both fix options were validated with the whole analysis-common test module.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:30-39 (at ea57360912ed) (class javadoc: &#x27;The matching is greedy: the longest match at a given start point will be the next token&#x27;; @lucene.experimental), :41-53 (TODO: &#x27;on failing to match a token, we skip one character forward and try again&#x27;, N^2 adversarial cases accepted), :121-157 (incrementToken lookahead; :135-137 break at end of input; :151-152 &#x27;else if (ch == -1) { return false; }&#x27;; :153-156 false-alarm pushBack(tokenUpto - 1) and retry)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:30-38 (at ea57360912ed) (javadoc: &#x27;just like SimplePatternTokenizer except that the pattern should make valid token separator characters, like String.split&#x27;), :156-162 (EOF branch: fillToken of the whole remainder or return false), :163-166 (false-alarm pushBack(sepUpto - 1))</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizerFactory.java:54, (at ea57360912ed) :62, :71-75 and SimplePatternSplitTokenizerFactory.java:56, :64, :73-77 (@lucene.experimental, SPI names simplePattern and simplePatternSplit, the factories determinize the RegExp)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:104-162 (incrementToken; 116-121 start, 123-139 lookahead, 141-150 accept, 151-152 end-of-input branch, 153-157 false alarm), 164-169 (end)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:99-170 (incrementToken; 156-162 end-of-input branch, 163-166 false alarm)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:213-219 (appendToToken: the lookahead&#x27;s characters join the pending token)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizerFactory.java:41-43, 54-62 and SimplePatternSplitTokenizerFactory.java:43-45, 56-64 (javadoc, @lucene.experimental, SPI names)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:38 and lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:37 (@lucene.experimental)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/resources/META-INF/services/org.apache.lucene.analysis.TokenizerFactory:25-26 (only SPI registration; no analyzer uses the classes)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:30-53 (javadoc, TODO with the retry algorithm), 151-157</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizerFactory.java:41-43; lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:30-38</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java:41-56, 207-211 and TestSimplePatternSplitTokenizer.java:49-67, 246-250 (testBigLookahead, testEndLookahead)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:41-53 (TODO: &#x27;does have N^2 adversarial cases&#x27;, the .* | pattern idea); a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:97-99 and lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:87-89 (non-deterministic automata rejected)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestSimplePatternLookaheadAtEnd.java (analysis-common, public API): <a href='../repro/LFV-525/TestSimplePatternLookaheadAtEnd.java'><code>repro/LFV-525/TestSimplePatternLookaheadAtEnd.java</code></a> (94 lines)</li><li>test-upstream.diff (two methods each for TestSimplePatternTokenizer and TestSimplePatternSplitTokenizer): <a href='../repro/LFV-525/test-upstream.diff'><code>repro/LFV-525/test-upstream.diff</code></a> (110 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A light summary card, made in parallel with this doc from the code at <code class='nw'>a9779ef3c193</code> and probes executed on main. Patterns on screen are the escaped <code class='nw'>RegExp</code> strings that were run.</p><p>The fix panel shows the hunt's first candidate. That is not Option A of this doc: Option A also retries by code point. Its 5.35 s (64,000 chars of <code>"&lt; "</code>, split tokenizer, best of 3 on the hunt's run) and Option A's 5.5-9.4 s measure the same quadratic shape on different runs; the recommended option keeps the corrected output without that cost.</p><p>The summary card's code panel is shortened (no <code class='nw'>.build()</code>, no <code>writer.addDocument(doc)</code>).</p><ul class='paths'><li><a href='../assets/LFV-525/bug.png'><code>assets/LFV-525/bug.png</code></a> (459 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

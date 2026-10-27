@@ -1,0 +1,294 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.ExitableDirectoryReader;
+import org.apache.lucene.index.ExitableDirectoryReader.ExitingReaderException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.QueryTimeout;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * {@link IndexSearcher#count(Query)} on a searcher that has an executor and splits a segment into
+ * intra-segment partitions must propagate an exception thrown by {@link Weight#count}, as {@link
+ * TaskExecutor#invokeAll} documents ("If an exception is thrown by more than one callable, the
+ * subsequent ones will be added as suppressed exceptions to the first one that was caught").
+ *
+ * <p>Setup: one segment of 10 documents, split by the public {@link IndexSearcher#slices(List, int,
+ * int, boolean)} helper into the partitions [0, 5) and [5, 10), searched with a fixed thread pool.
+ * The first partition of the segment to reach {@code getLeafCollector} calls {@link Weight#count};
+ * the other partition waits for its result.
+ *
+ * <p>Determinism: the searcher's {@link IndexSearcher#searchLeaf} override only counts down a latch
+ * and delegates. {@link Weight#count} (or the {@link QueryTimeout}) throws only after both
+ * partition tasks have started, so the other partition cannot be cancelled before it runs. No
+ * sleeps; the {@value #BOUND_SECONDS} s bound only turns "never returns" into a test failure.
+ *
+ * <p>Uses public and protected API only.
+ */
+public class TestIndexSearcherCountPartitionHang extends LuceneTestCase {
+
+  /** A call that has not returned after this many seconds is reported as a hang. */
+  private static final long BOUND_SECONDS = 10;
+
+  private Directory dir;
+  private DirectoryReader reader;
+  private ExecutorService pool;
+  private final List<Thread> poolThreads = new CopyOnWriteArrayList<>();
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    dir = new ByteBuffersDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (int i = 0; i < 10; i++) {
+        Document doc = new Document();
+        doc.add(new StringField("f", "a", Field.Store.NO));
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+    reader = DirectoryReader.open(dir);
+    pool =
+        Executors.newFixedThreadPool(
+            2,
+            r -> {
+              Thread t = new Thread(r, "count-pool-" + poolThreads.size());
+              t.setDaemon(true);
+              poolThreads.add(t);
+              return t;
+            });
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    pool.shutdownNow();
+    assertTrue(pool.awaitTermination(BOUND_SECONDS, TimeUnit.SECONDS));
+    reader.close();
+    dir.close();
+    super.tearDown();
+  }
+
+  /** Control: the same failing query on the whole segment (no partitions) throws. */
+  public void testControlWholeSegmentPropagatesIOException() throws Exception {
+    IndexSearcher s = searcher(reader, false, new CountDownLatch(1));
+    s.setQueryCache(null);
+    assertEquals(1, s.getSlices().length);
+    Throwable t = countAndExpectException(s, new CountFailsQuery(() -> {}));
+    assertTrue("expected the IOException, got " + t, carries(t, IOException.class));
+  }
+
+  /** Weight#count of the first partition to arrive throws an IOException (a read error). */
+  public void testCountPropagatesIOExceptionFromPartitionedSegment() throws Exception {
+    CountDownLatch partitionStarted = new CountDownLatch(2);
+    IndexSearcher s = searcher(reader, true, partitionStarted);
+    s.setQueryCache(null);
+    assertEquals(2, s.getSlices().length);
+    Throwable t =
+        countAndExpectException(
+            s, new CountFailsQuery(() -> awaitBothPartitionsStarted(partitionStarted)));
+    assertTrue("expected the IOException, got " + t, carries(t, IOException.class));
+  }
+
+  /**
+   * Stock components only: a TermQuery on an ExitableDirectoryReader whose QueryTimeout expires
+   * during the search, so TermWeight#count of the first partition throws ExitingReaderException.
+   */
+  public void testCountPropagatesQueryTimeoutFromPartitionedSegment() throws Exception {
+    CountDownLatch partitionStarted = new CountDownLatch(2);
+    QueryTimeout timeout =
+        () -> {
+          if (partitionStarted.getCount() == 2) {
+            return false; // no partition has started yet: still within the time budget
+          }
+          awaitBothPartitionsStarted(partitionStarted);
+          return true; // the time budget is spent
+        };
+    DirectoryReader exitable = new ExitableDirectoryReader(reader, timeout);
+    IndexSearcher s = searcher(exitable, true, partitionStarted);
+    assertEquals(2, s.getSlices().length);
+    Throwable t = countAndExpectException(s, new TermQuery(new Term("f", "a")));
+    assertTrue(
+        "expected the ExitingReaderException, got " + t, carries(t, ExitingReaderException.class));
+  }
+
+  // ------------------------------------------------------------------ helpers
+
+  /**
+   * A searcher over {@code r} with the test's thread pool. Its only segment is split into two
+   * partitions when {@code partitions} is true, and kept whole otherwise. {@code searchLeaf} counts
+   * down {@code partitionStarted} when a partition task starts and then delegates.
+   */
+  private IndexSearcher searcher(
+      IndexReader r, boolean partitions, CountDownLatch partitionStarted) {
+    return new IndexSearcher(r, pool) {
+      @Override
+      protected LeafSlice[] slices(List<LeafReaderContext> leaves) {
+        return slices(leaves, 5, 1, partitions);
+      }
+
+      @Override
+      protected void searchLeaf(
+          LeafReaderContext ctx, int minDocId, int maxDocId, Weight weight, Collector collector)
+          throws IOException {
+        partitionStarted.countDown();
+        super.searchLeaf(ctx, minDocId, maxDocId, weight, collector);
+      }
+    };
+  }
+
+  private static void awaitBothPartitionsStarted(CountDownLatch partitionStarted) {
+    try {
+      if (partitionStarted.await(BOUND_SECONDS, TimeUnit.SECONDS) == false) {
+        throw new AssertionError("test setup: the second partition never started");
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new AssertionError(e);
+    }
+  }
+
+  /**
+   * Runs {@code s.count(q)} on its own caller thread and returns what it threw. Fails, with the
+   * stacks of the parked threads, if the call has not returned after {@value #BOUND_SECONDS} s.
+   */
+  private Throwable countAndExpectException(IndexSearcher s, Query q) throws Exception {
+    FutureTask<Integer> call = new FutureTask<>(() -> s.count(q));
+    Thread caller = new Thread(call, "count-caller");
+    caller.setDaemon(true);
+    caller.start();
+    try {
+      Integer count = call.get(BOUND_SECONDS, TimeUnit.SECONDS);
+      throw new AssertionError("expected an exception, but count returned " + count);
+    } catch (ExecutionException e) {
+      return e.getCause();
+    } catch (TimeoutException _) {
+      StringBuilder stacks = new StringBuilder(stack(caller));
+      for (Thread t : poolThreads) {
+        stacks.append(stack(t));
+      }
+      // Unpark the stuck threads so that the following tests start from a clean JVM.
+      pool.shutdownNow();
+      caller.interrupt();
+      caller.join(TimeUnit.SECONDS.toMillis(BOUND_SECONDS));
+      throw new AssertionError(
+          "IndexSearcher#count did not return within " + BOUND_SECONDS + " s:\n" + stacks);
+    }
+  }
+
+  private static String stack(Thread t) {
+    StringBuilder sb = new StringBuilder();
+    sb.append('"').append(t.getName()).append("\" ").append(t.getState()).append('\n');
+    StackTraceElement[] frames = t.getStackTrace();
+    for (int i = 0; i < Math.min(frames.length, 12); i++) {
+      sb.append("    at ").append(frames[i]).append('\n');
+    }
+    return sb.toString();
+  }
+
+  /** True if {@code t}, its causes or their suppressed exceptions include a {@code type}. */
+  private static boolean carries(Throwable t, Class<? extends Throwable> type) {
+    return carries(t, type, Collections.newSetFromMap(new IdentityHashMap<>()));
+  }
+
+  private static boolean carries(
+      Throwable t, Class<? extends Throwable> type, Set<Throwable> seen) {
+    if (t == null || seen.add(t) == false) {
+      return false;
+    }
+    if (type.isInstance(t) || carries(t.getCause(), type, seen)) {
+      return true;
+    }
+    for (Throwable s : t.getSuppressed()) {
+      if (carries(s, type, seen)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** A query whose Weight#count runs {@code beforeThrow} and then fails like a read error. */
+  private static final class CountFailsQuery extends Query {
+    private final Runnable beforeThrow;
+
+    CountFailsQuery(Runnable beforeThrow) {
+      this.beforeThrow = beforeThrow;
+    }
+
+    @Override
+    public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) {
+      return new ConstantScoreWeight(this, boost) {
+        @Override
+        public int count(LeafReaderContext context) throws IOException {
+          beforeThrow.run();
+          throw new IOException("simulated read error in Weight#count");
+        }
+
+        @Override
+        public ScorerSupplier scorerSupplier(LeafReaderContext context) {
+          throw new AssertionError("not reached: count() never returns -1");
+        }
+
+        @Override
+        public boolean isCacheable(LeafReaderContext ctx) {
+          return false;
+        }
+      };
+    }
+
+    @Override
+    public String toString(String field) {
+      return "CountFailsQuery";
+    }
+
+    @Override
+    public void visit(QueryVisitor visitor) {}
+
+    @Override
+    public boolean equals(Object other) {
+      return this == other;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+  }
+}

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>smartcn: the double-hashing step of BigramDictionary (AbstractDictionary.hash2, an operator-precedence slip) is 0 for some Chinese word + ASCII or Latin-1 punctuation pairs, so each such bigram lookup re-reads one slot 402,136 times (about 0.7 ms instead of about 0.1 us) and SmartChineseAnalyzer analyzes ordinary prose 2-7x slower and text dense in such pairs 67x-174x slower, with unchanged tokens (LFV-709)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>smartcn: the double-hashing step of BigramDictionary (AbstractDictionary.hash2, an operator-precedence slip) is 0 for some Chinese word + ASCII or Latin-1 punctuation pairs, so each such bigram lookup re-reads one slot 402,136 times (about 0.7 ms instead of about 0.1 us) and SmartChineseAnalyzer analyzes ordinary prose 2-7x slower and text dense in such pairs 67x-174x slower, with unchanged tokens</h1>
+<p class="facts small"><span>Bug LFV-709</span><span>Area: analysis-smartcn / HHMM segmenter bigram dictionary (BigramDictionary.getBigramItemIndex, AbstractDictionary.hash2; reached through SmartChineseAnalyzer and HMMChineseTokenizer)</span><span>Priority: medium</span><span>Impact: minor</span><span>Novelty: known upstream</span></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You analyze Chinese text written with ASCII punctuation, for example &#x27;我们要发展经济和文化,加强法律,增加资金,继续努力,共同进步.&#x27;, with the default SmartChineseAnalyzer; its bigram dictionary is an open-addressing hash table with double hashing, so you expect each bigram frequency lookup to take a handful of probes and the text to cost about as much as the same sentence with full-width punctuation, which gives the same tokens. Instead AbstractDictionary.hash2 computes ((33h + d) &amp; 0xFF) and then ((33h + d) &gt;&gt; 8), because &#x27;+&#x27; binds tighter than &#x27;&amp;&#x27; and &#x27;&gt;&gt;&#x27; (AbstractDictionary.java:195-196), so the probe step is always in [0, 288] and is 0 for some keys whose last char is below U+0100, such as &#x27;对@,&#x27; or &#x27;文化@,&#x27;; when such a key&#x27;s home slot holds another bigram, BigramDictionary.getBigramItemIndex (BigramDictionary.java:213-233) re-reads that same slot until i reaches PRIME_BIGRAM_LENGTH = 402,137 and then returns &#x27;not found&#x27;. The tokens stay correct, but that sentence repeated 100 times takes about 220 ms of CPU instead of about 2.6 ms (85x on main), and 1x with a one-line guard.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> You expect each bigram frequency lookup to take a handful of probes and the text to cost about as much as the same sentence with full-width punctuation, which gives the same tokens.</li><li><b>Actual:</b> AbstractDictionary.hash2 computes ((33h + d) &amp; 0xFF) and then ((33h + d) &gt;&gt; 8), because &#x27;+&#x27; binds tighter than &#x27;&amp;&#x27; and &#x27;&gt;&gt;&#x27; (AbstractDictionary.java:195-196), so the probe step is always in [0, 288] and is 0 for some keys whose last char is below U+0100, such as &#x27;对@,&#x27; or &#x27;文化@,&#x27;; when such a key&#x27;s home slot holds another bigram, BigramDictionary.getBigramItemIndex (BigramDictionary.java:213-233) re-reads that same slot until i reaches PRIME_BIGRAM_LENGTH = 402,137 and then returns &#x27;not found&#x27;.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/analysis/cn/smart/TestBigramLookupZeroProbeStep.java"><code>src/org/apache/lucene/analysis/cn/smart/TestBigramLookupZeroProbeStep.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/smartcn/build/libs/lucene-analysis-smartcn-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.cn.smart.TestBigramLookupZeroProbeStep</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/smartcn-hhmm-segmentation-reference/index.html">smartcn-hhmm-segmentation-reference</a></p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

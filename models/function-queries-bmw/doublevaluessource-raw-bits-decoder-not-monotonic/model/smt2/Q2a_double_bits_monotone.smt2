@@ -1,0 +1,9 @@
+(set-logic QF_FPBV)
+(declare-fun r2 () (_ BitVec 64))
+(declare-fun r1 () (_ BitVec 64))
+(assert (bvslt r1 r2))
+(assert (not (fp.isNaN ((_ to_fp 11 53) r1))))
+(assert (not (fp.isNaN ((_ to_fp 11 53) r2))))
+(assert (fp.gt ((_ to_fp 11 53) r1) ((_ to_fp 11 53) r2)))
+
+(check-sat)

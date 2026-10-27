@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Formal models and scripts: function-queries-bmw</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Formal models and scripts: function-queries-bmw</h1>
+<p class="facts small">Tools: SMT-LIB (Z3/cvc5), Python</p>
+<p>These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as <code>$LUCENE</code> (a Lucene checkout) and <code>$WORK</code>.</p>
+<h2>Bugs found</h2><ul>
+<li>FunctionScoreQuery&#x27;s block-max bound multiplies by the wrapped query&#x27;s no-score max score (0 for a TermQuery), so a BooleanQuery that contains it can drop the true top hits (bug LFV-211; <a href="../../repro/LFV-211/index.html">repro</a> · <a href="../../bugs/LFV-211.html">bug page</a>)</li>
+<li>FunctionScoreQuery scores negative values as 0, but its block-max bound stays negative, so top-k search skips competitive documents (bug LFV-203; <a href="../../repro/LFV-203/index.html">repro</a>)</li>
+<li>DoubleValuesSource.fromDoubleField/fromFloatField declare their raw IEEE-bit decoders INCREASING, so on a skip-indexed raw-bits field one NaN makes a block&#x27;s score bound NaN (FunctionScoreQuery under TOP_SCORES then silently drops the true top hit) and all-negative blocks get inverted bounds (bug LFV-189; <a href="../../repro/LFV-189/index.html">repro</a>)</li>
+<li>DoubleValues.withDefault&#x27;s getMaxScore returns the wrapped source&#x27;s bound, which does not cover missingValue, so a FunctionScoreQuery over such a source can silently drop the true top hit under TOP_SCORES (bug LFV-214; <a href="../../repro/LFV-214/index.html">repro</a>)</li>
+<li>DoubleValuesSource rounds the skip-index block bound to the nearest float, so with a boost FunctionScoreQuery&#x27;s max score can be one ulp below a real score and top-k search returns the wrong top hit (bug LFV-221; <a href="../../repro/LFV-221/index.html">repro</a>)</li>
+</ul><h2>Files</h2><ul>
+<li><a href="doublevalues-withdefault-maxscore-ignores-missing-value/model/fsq_bound_smt.py"><code>doublevalues-withdefault-maxscore-ignores-missing-value/model/fsq_bound_smt.py</code></a> <span class="dim small">(used for LFV-214)</span></li>
+<li><a href="doublevaluessource-field-bound-rounds-to-nearest-float/model/fsq_bound_smt.py"><code>doublevaluessource-field-bound-rounds-to-nearest-float/model/fsq_bound_smt.py</code></a> <span class="dim small">(used for LFV-221)</span></li>
+<li><a href="doublevaluessource-field-bound-rounds-to-nearest-float/model/smt2/Q1b2_long_rounding.smt2"><code>doublevaluessource-field-bound-rounds-to-nearest-float/model/smt2/Q1b2_long_rounding.smt2</code></a> <span class="dim small">(used for LFV-221)</span></li>
+<li><a href="doublevaluessource-field-bound-rounds-to-nearest-float/model/smt2/Q1b_inner1_rounding.smt2"><code>doublevaluessource-field-bound-rounds-to-nearest-float/model/smt2/Q1b_inner1_rounding.smt2</code></a> <span class="dim small">(used for LFV-221)</span></li>
+<li><a href="doublevaluessource-field-bound-rounds-to-nearest-float/model/smt2/Q1c_inner1_boost1.smt2"><code>doublevaluessource-field-bound-rounds-to-nearest-float/model/smt2/Q1c_inner1_boost1.smt2</code></a> <span class="dim small">(used for LFV-221)</span></li>
+<li><a href="doublevaluessource-field-bound-rounds-to-nearest-float/model/smt2/Q2d_float_cast_monotone.smt2"><code>doublevaluessource-field-bound-rounds-to-nearest-float/model/smt2/Q2d_float_cast_monotone.smt2</code></a> <span class="dim small">(used for LFV-221)</span></li>
+<li><a href="doublevaluessource-raw-bits-decoder-not-monotonic/model/fsq_bound_smt.py"><code>doublevaluessource-raw-bits-decoder-not-monotonic/model/fsq_bound_smt.py</code></a> <span class="dim small">(used for LFV-189)</span></li>
+<li><a href="doublevaluessource-raw-bits-decoder-not-monotonic/model/smt2/Q2a2_double_bits_nonneg_max.smt2"><code>doublevaluessource-raw-bits-decoder-not-monotonic/model/smt2/Q2a2_double_bits_nonneg_max.smt2</code></a> <span class="dim small">(used for LFV-189)</span></li>
+<li><a href="doublevaluessource-raw-bits-decoder-not-monotonic/model/smt2/Q2a_double_bits_monotone.smt2"><code>doublevaluessource-raw-bits-decoder-not-monotonic/model/smt2/Q2a_double_bits_monotone.smt2</code></a> <span class="dim small">(used for LFV-189)</span></li>
+<li><a href="doublevaluessource-raw-bits-decoder-not-monotonic/model/smt2/Q2b_float_bits_monotone.smt2"><code>doublevaluessource-raw-bits-decoder-not-monotonic/model/smt2/Q2b_float_bits_monotone.smt2</code></a> <span class="dim small">(used for LFV-189)</span></li>
+<li><a href="doublevaluessource-raw-bits-decoder-not-monotonic/model/smt2/Q2e_double_nan_max.smt2"><code>doublevaluessource-raw-bits-decoder-not-monotonic/model/smt2/Q2e_double_nan_max.smt2</code></a> <span class="dim small">(used for LFV-189)</span></li>
+<li><a href="functionscorequery-maxscore-ignores-negative-value-clamp/model/fsq_bound_smt.py"><code>functionscorequery-maxscore-ignores-negative-value-clamp/model/fsq_bound_smt.py</code></a> <span class="dim small">(used for LFV-203)</span></li>
+<li><a href="functionscorequery-maxscore-ignores-negative-value-clamp/model/smt2/Q1d_negative.smt2"><code>functionscorequery-maxscore-ignores-negative-value-clamp/model/smt2/Q1d_negative.smt2</code></a> <span class="dim small">(used for LFV-203)</span></li>
+<li><a href="functionscorequery-maxscore-uses-nonscoring-inner-bound/model/fsq_bound_smt.py"><code>functionscorequery-maxscore-uses-nonscoring-inner-bound/model/fsq_bound_smt.py</code></a> <span class="dim small">(used for LFV-211)</span></li>
+<li><a href="functionscorequery-maxscore-uses-nonscoring-inner-bound/model/smt2/Q1a_inner0.smt2"><code>functionscorequery-maxscore-uses-nonscoring-inner-bound/model/smt2/Q1a_inner0.smt2</code></a> <span class="dim small">(used for LFV-211)</span></li>
+</ul>
+<h2>How to run</h2><ul>
+<li>SMT-LIB: <code>z3 &lt;file&gt;.smt2</code> or <code>cvc5 &lt;file&gt;.smt2</code> (<code>sat</code> with a model is a counterexample where the query asks for one).</li>
+<li>Python: <code>python3 &lt;file&gt;.py</code>; scripts that import <code>z3</code> need the <code>z3-solver</code> package.</li>
+</ul><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

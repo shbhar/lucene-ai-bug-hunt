@@ -1,0 +1,559 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/search/CombinedFieldQuery.java b/lucene/core/src/java/org/apache/lucene/search/CombinedFieldQuery.java
+index 5adb17d..d6c453b 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/CombinedFieldQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/search/CombinedFieldQuery.java
+@@ -278,8 +278,9 @@ public final class CombinedFieldQuery extends Query implements Accountable {
+         FieldAndWeight field = fieldAndWeights.get(fieldTerms[i].field());
+         TermStates ts = TermStates.build(searcher, fieldTerms[i], true);
+         termStates[i] = ts;
+-        if (ts.docFreq() > 0) {
+-          TermStats termStats = searcher.termStats(fieldTerms[i], ts.docFreq(), ts.totalTermFreq());
++        // also for terms absent from this reader: an override may know them (distributed stats)
++        TermStats termStats = searcher.termStats(fieldTerms[i], ts.docFreq(), ts.totalTermFreq());
++        if (termStats != null) {
+           docFreq = Math.max(termStats.docFreq(), docFreq);
+           totalTermFreq += (double) field.weight * termStats.totalTermFreq();
+         }
+diff --git a/lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java b/lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java
+index 91e77b6..60bfc08 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java
++++ b/lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java
+@@ -1122,13 +1122,24 @@ public class IndexSearcher {
+    * <p>This can be overridden for example, to return a term's statistics across a distributed
+    * collection.
+    *
+-   * @param docFreq The document frequency of the term. It must be greater or equal to 1.
++   * <p>Queries that combine the statistics of several terms ({@link SynonymQuery}, {@link
++   * MultiPhraseQuery}, {@link CombinedFieldQuery}, span queries) also call this method for terms
++   * that do not occur in this searcher's reader, with {@code docFreq == 0}, so that an override can
++   * return statistics for terms that only occur elsewhere in the collection.
++   *
++   * @param docFreq The document frequency of the term in this searcher's reader; 0 if the term does
++   *     not occur in it.
+    * @param totalTermFreq The total term frequency.
+-   * @return A {@link TermStats} (never null).
++   * @return A {@link TermStats}, never null if {@code docFreq} is at least 1. If {@code docFreq} is
++   *     0, {@code null} means that the term does not occur in the collection; the default
++   *     implementation returns {@code null} if, and only if, {@code docFreq} is 0.
+    * @lucene.experimental
+    */
+   public TermStats termStats(Term term, int docFreq, long totalTermFreq) throws IOException {
+-    // This constructor will throw an exception if docFreq <= 0.
++    if (docFreq == 0) {
++      return null;
++    }
++    // This constructor will throw an exception if docFreq < 0.
+     return new TermStats(term.bytes(), docFreq, totalTermFreq);
+   }
+ 
+diff --git a/lucene/core/src/java/org/apache/lucene/search/MultiPhraseQuery.java b/lucene/core/src/java/org/apache/lucene/search/MultiPhraseQuery.java
+index 2812aad..77f5748 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/MultiPhraseQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/search/MultiPhraseQuery.java
+@@ -224,8 +224,12 @@ public class MultiPhraseQuery extends Query {
+               ts = TermStates.build(searcher, term, scoreMode.needsScores());
+               termStates.put(term, ts);
+             }
+-            if (scoreMode.needsScores() && ts.docFreq() > 0) {
+-              allTermStats.add(searcher.termStats(term, ts.docFreq(), ts.totalTermFreq()));
++            if (scoreMode.needsScores()) {
++              // also for terms absent from this reader: an override may know them
++              TermStats stats = searcher.termStats(term, ts.docFreq(), ts.totalTermFreq());
++              if (stats != null) {
++                allTermStats.add(stats);
++              }
+             }
+           }
+         }
+diff --git a/lucene/core/src/java/org/apache/lucene/search/SynonymQuery.java b/lucene/core/src/java/org/apache/lucene/search/SynonymQuery.java
+index a350116..b500c65 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/SynonymQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/search/SynonymQuery.java
+@@ -214,8 +214,9 @@ public final class SynonymQuery extends Query {
+         Term term = new Term(field, terms[i].term);
+         TermStates ts = TermStates.build(searcher, term, true);
+         termStates[i] = ts;
+-        if (ts.docFreq() > 0) {
+-          TermStats termStats = searcher.termStats(term, ts.docFreq(), ts.totalTermFreq());
++        // also for terms absent from this reader: an override may know them (distributed stats)
++        TermStats termStats = searcher.termStats(term, ts.docFreq(), ts.totalTermFreq());
++        if (termStats != null) {
+           docFreq = Math.max(termStats.docFreq(), docFreq);
+           totalTermFreq += termStats.totalTermFreq();
+         }
+diff --git a/lucene/core/src/test/org/apache/lucene/search/TestDistributedStatsLocallyAbsentTerm.java b/lucene/core/src/test/org/apache/lucene/search/TestDistributedStatsLocallyAbsentTerm.java
+new file mode 100644
+index 0000000..65e967f
+--- /dev/null
++++ b/lucene/core/src/test/org/apache/lucene/search/TestDistributedStatsLocallyAbsentTerm.java
+@@ -0,0 +1,240 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.search;
++
++import java.io.IOException;
++import org.apache.lucene.analysis.standard.StandardAnalyzer;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.Field;
++import org.apache.lucene.document.StringField;
++import org.apache.lucene.document.TextField;
++import org.apache.lucene.index.DirectoryReader;
++import org.apache.lucene.index.IndexReader;
++import org.apache.lucene.index.IndexWriter;
++import org.apache.lucene.index.IndexWriterConfig;
++import org.apache.lucene.index.MultiReader;
++import org.apache.lucene.index.Term;
++import org.apache.lucene.index.TermStates;
++import org.apache.lucene.search.similarities.BM25Similarity;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.util.LuceneTestCase;
++
++/**
++ * IndexSearcher#termStats and #fieldStats "can be overridden for example, to return a term's
++ * [field's] statistics across a distributed collection". With such an override a document on a
++ * shard should score as it scores in the whole collection; TestShardSearching checks this for
++ * TermQuery and PrefixQuery.
++ *
++ * <p>SynonymQuery, MultiPhraseQuery and CombinedFieldQuery call termStats only for terms whose
++ * docFreq on the local shard is greater than 0, so a query term that occurs only on other shards
++ * never reaches the override and its collection-wide statistics are left out.
++ *
++ * <p>Two shards. Shard 0 holds doc A (body "quick fox", title "red"). Shard 1 holds B, C, D (body
++ * "fast dog", "fast cat", "fast fast bird"; title "fox", "fox", "bird"). So body:fast and title:fox
++ * exist only on shard 1. The whole collection is a MultiReader over both shards.
++ */
++public class TestDistributedStatsLocallyAbsentTerm extends LuceneTestCase {
++
++  /**
++   * Searches one shard and scores with statistics summed over all shards (the arithmetic of
++   * ShardSearchingTestBase: the local values passed in, plus the other shards' values).
++   */
++  static final class DistributedStatsSearcher extends IndexSearcher {
++    private final IndexSearcher[] shards;
++    private final int myShard;
++
++    DistributedStatsSearcher(IndexSearcher[] shards, int myShard) {
++      super(shards[myShard].getIndexReader());
++      this.shards = shards;
++      this.myShard = myShard;
++    }
++
++    @Override
++    public TermStats termStats(Term term, int docFreq, long totalTermFreq) throws IOException {
++      long df = 0;
++      long ttf = 0;
++      for (int i = 0; i < shards.length; i++) {
++        if (i == myShard) {
++          df += docFreq;
++          ttf += totalTermFreq;
++        } else {
++          TermStates ts = TermStates.build(shards[i], term, true);
++          if (ts.docFreq() > 0) {
++            df += ts.docFreq();
++            ttf += ts.totalTermFreq();
++          }
++        }
++      }
++      // null = the term exists on no shard (only reachable if the hook is also asked about
++      // locally absent terms)
++      return df == 0 ? null : new TermStats(term.bytes(), df, ttf);
++    }
++
++    @Override
++    public FieldStats fieldStats(String field) throws IOException {
++      long maxDoc = 0, docCount = 0, sumTtf = 0, sumDf = 0;
++      for (int i = 0; i < shards.length; i++) {
++        FieldStats fs = i == myShard ? super.fieldStats(field) : shards[i].fieldStats(field);
++        if (fs != null) {
++          maxDoc += fs.maxDoc();
++          docCount += fs.docCount();
++          sumTtf += fs.sumTotalTermFreq();
++          sumDf += fs.sumDocFreq();
++        }
++      }
++      return docCount == 0 ? null : new FieldStats(field, maxDoc, docCount, sumTtf, sumDf);
++    }
++  }
++
++  private Directory dir0, dir1;
++  private IndexReader r0, r1, global;
++  private IndexSearcher shard0Searcher, shard1Searcher, globalSearcher;
++
++  @Override
++  public void setUp() throws Exception {
++    super.setUp();
++    dir0 = newDirectory();
++    dir1 = newDirectory();
++    index(dir0, new String[] {"A"}, new String[] {"quick fox"}, new String[] {"red"});
++    index(
++        dir1,
++        new String[] {"B", "C", "D"},
++        new String[] {"fast dog", "fast cat", "fast fast bird"},
++        new String[] {"fox", "fox", "bird"});
++    r0 = DirectoryReader.open(dir0);
++    r1 = DirectoryReader.open(dir1);
++    global = new MultiReader(new IndexReader[] {r0, r1}, false);
++    IndexSearcher[] shards = {new IndexSearcher(r0), new IndexSearcher(r1)};
++    shard0Searcher = new DistributedStatsSearcher(shards, 0);
++    shard1Searcher = new DistributedStatsSearcher(shards, 1);
++    globalSearcher = new IndexSearcher(global);
++    for (IndexSearcher s :
++        new IndexSearcher[] {
++          shards[0], shards[1], shard0Searcher, shard1Searcher, globalSearcher
++        }) {
++      s.setSimilarity(new BM25Similarity());
++      s.setQueryCache(null);
++    }
++  }
++
++  private static void index(Directory dir, String[] ids, String[] body, String[] title)
++      throws IOException {
++    IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer());
++    iwc.setSimilarity(new BM25Similarity());
++    try (IndexWriter w = new IndexWriter(dir, iwc)) {
++      for (int i = 0; i < ids.length; i++) {
++        Document d = new Document();
++        d.add(new StringField("id", ids[i], Field.Store.YES));
++        d.add(new TextField("body", body[i], Field.Store.NO));
++        d.add(new TextField("title", title[i], Field.Store.NO));
++        w.addDocument(d);
++      }
++    }
++  }
++
++  @Override
++  public void tearDown() throws Exception {
++    global.close();
++    r0.close();
++    r1.close();
++    dir0.close();
++    dir1.close();
++    super.tearDown();
++  }
++
++  /** Doc A is doc 0 of shard 0 and doc 0 of the MultiReader. */
++  private void assertShardScoreEqualsGlobal(Query q) throws IOException {
++    float shard = shard0Searcher.explain(q, 0).getValue().floatValue();
++    float whole = globalSearcher.explain(q, 0).getValue().floatValue();
++    float shardTop = shard0Searcher.search(q, 10).scoreDocs[0].score;
++    assertEquals(q + ": explain and search disagree on the shard", shard, shardTop, 0f);
++    assertEquals(
++        q + ": doc A scores " + shard + " on the shard but " + whole + " in the whole collection",
++        whole,
++        shard,
++        0f);
++  }
++
++  private static Query synonym(String... terms) {
++    SynonymQuery.Builder b = new SynonymQuery.Builder("body");
++    for (String t : terms) {
++      b.addTerm(new Term("body", t));
++    }
++    return b.build();
++  }
++
++  /** Control: every query term exists on the shard. */
++  public void testTermQueryControl() throws IOException {
++    assertShardScoreEqualsGlobal(new TermQuery(new Term("body", "quick")));
++  }
++
++  /** Control: BooleanQuery scores each term separately, "fast" does not match on shard 0. */
++  public void testBooleanQueryControl() throws IOException {
++    BooleanQuery.Builder b = new BooleanQuery.Builder();
++    b.add(new TermQuery(new Term("body", "quick")), BooleanClause.Occur.SHOULD);
++    b.add(new TermQuery(new Term("body", "fast")), BooleanClause.Occur.SHOULD);
++    assertShardScoreEqualsGlobal(b.build());
++  }
++
++  /** Control: a synonym that exists on no shard at all must not break the query. */
++  public void testSynonymAbsentEverywhereControl() throws IOException {
++    assertShardScoreEqualsGlobal(synonym("quick", "speedy"));
++  }
++
++  /** quick and its synonym fast: "fast" occurs only on shard 1 (docFreq 3 there). */
++  public void testSynonymQuery() throws IOException {
++    assertShardScoreEqualsGlobal(synonym("quick", "fast"));
++  }
++
++  /**
++   * A ("quick fox", shard 0) and B ("fast dog", shard 1) tie in the whole collection, so a merged
++   * top-k over both shards must tie them too.
++   */
++  public void testSynonymQueryMergedRanking() throws IOException {
++    Query q = synonym("quick", "fast");
++    float wholeA = globalSearcher.explain(q, 0).getValue().floatValue();
++    float wholeB = globalSearcher.explain(q, 1).getValue().floatValue(); // B = MultiReader doc 1
++    assertEquals("whole collection: A and B tie", wholeA, wholeB, 0f);
++    float shard1B = shard1Searcher.explain(q, 0).getValue().floatValue();
++    assertEquals("shard 1 scores B like the whole collection", wholeB, shard1B, 0f);
++    float shard0A = shard0Searcher.explain(q, 0).getValue().floatValue();
++    assertEquals(
++        "merged top-k: A scores "
++            + shard0A
++            + " on shard 0, B scores "
++            + shard1B
++            + " on shard 1; in the whole collection both score "
++            + wholeA,
++        shard1B,
++        shard0A,
++        0f);
++  }
++
++  /** "fox" over body and title: title:fox occurs only on shard 1 (docFreq 2 there). */
++  public void testCombinedFieldQuery() throws IOException {
++    assertShardScoreEqualsGlobal(
++        new CombinedFieldQuery.Builder("fox").addField("body").addField("title").build());
++  }
++
++  /** "(quick|fast) fox": the phrase's idf sums over all its terms, "fast" is left out. */
++  public void testMultiPhraseQuery() throws IOException {
++    MultiPhraseQuery.Builder b = new MultiPhraseQuery.Builder();
++    b.add(new Term[] {new Term("body", "quick"), new Term("body", "fast")});
++    b.add(new Term("body", "fox"));
++    assertShardScoreEqualsGlobal(b.build());
++  }
++}
+diff --git a/lucene/queries/src/java/org/apache/lucene/queries/spans/SpanWeight.java b/lucene/queries/src/java/org/apache/lucene/queries/spans/SpanWeight.java
+index 6bcb93e..a0290cf 100644
+--- a/lucene/queries/src/java/org/apache/lucene/queries/spans/SpanWeight.java
++++ b/lucene/queries/src/java/org/apache/lucene/queries/spans/SpanWeight.java
+@@ -106,9 +106,10 @@ public abstract class SpanWeight extends Weight {
+     int termUpTo = 0;
+     for (Map.Entry<Term, TermStates> entry : termStates.entrySet()) {
+       TermStates ts = entry.getValue();
+-      if (ts.docFreq() > 0) {
+-        termStats[termUpTo++] =
+-            searcher.termStats(entry.getKey(), ts.docFreq(), ts.totalTermFreq());
++      // also for terms absent from this reader: an override may know them (distributed stats)
++      TermStats stats = searcher.termStats(entry.getKey(), ts.docFreq(), ts.totalTermFreq());
++      if (stats != null) {
++        termStats[termUpTo++] = stats;
+       }
+     }
+     FieldStats fieldStats = searcher.fieldStats(query.getField());
+diff --git a/lucene/queries/src/test/org/apache/lucene/queries/spans/TestSpanDistributedStatsLocallyAbsentTerm.java b/lucene/queries/src/test/org/apache/lucene/queries/spans/TestSpanDistributedStatsLocallyAbsentTerm.java
+new file mode 100644
+index 0000000..dc0fe66
+--- /dev/null
++++ b/lucene/queries/src/test/org/apache/lucene/queries/spans/TestSpanDistributedStatsLocallyAbsentTerm.java
+@@ -0,0 +1,178 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.queries.spans;
++
++import java.io.IOException;
++import org.apache.lucene.analysis.standard.StandardAnalyzer;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.Field;
++import org.apache.lucene.document.TextField;
++import org.apache.lucene.index.DirectoryReader;
++import org.apache.lucene.index.IndexReader;
++import org.apache.lucene.index.IndexWriter;
++import org.apache.lucene.index.IndexWriterConfig;
++import org.apache.lucene.index.MultiReader;
++import org.apache.lucene.index.Term;
++import org.apache.lucene.index.TermStates;
++import org.apache.lucene.search.FieldStats;
++import org.apache.lucene.search.IndexSearcher;
++import org.apache.lucene.search.Query;
++import org.apache.lucene.search.TermStats;
++import org.apache.lucene.search.similarities.BM25Similarity;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.util.LuceneTestCase;
++
++/**
++ * Span queries build their similarity input in SpanWeight#buildSimWeight, which calls
++ * IndexSearcher#termStats only for terms whose docFreq on the local shard is greater than 0. With a
++ * termStats/fieldStats override that returns collection-wide statistics, a span-or clause whose
++ * term occurs only on another shard is therefore left out. Shard 0 holds "quick fox"; shard 1 holds
++ * "fast dog", "fast cat", "fast fast bird"; body:fast exists only on shard 1.
++ */
++public class TestSpanDistributedStatsLocallyAbsentTerm extends LuceneTestCase {
++
++  /** Statistics summed over all shards, as in ShardSearchingTestBase. */
++  static final class DistributedStatsSearcher extends IndexSearcher {
++    private final IndexSearcher[] shards;
++    private final int myShard;
++
++    DistributedStatsSearcher(IndexSearcher[] shards, int myShard) {
++      super(shards[myShard].getIndexReader());
++      this.shards = shards;
++      this.myShard = myShard;
++    }
++
++    @Override
++    public TermStats termStats(Term term, int docFreq, long totalTermFreq) throws IOException {
++      long df = 0;
++      long ttf = 0;
++      for (int i = 0; i < shards.length; i++) {
++        if (i == myShard) {
++          df += docFreq;
++          ttf += totalTermFreq;
++        } else {
++          TermStates ts = TermStates.build(shards[i], term, true);
++          if (ts.docFreq() > 0) {
++            df += ts.docFreq();
++            ttf += ts.totalTermFreq();
++          }
++        }
++      }
++      return df == 0 ? null : new TermStats(term.bytes(), df, ttf);
++    }
++
++    @Override
++    public FieldStats fieldStats(String field) throws IOException {
++      long maxDoc = 0, docCount = 0, sumTtf = 0, sumDf = 0;
++      for (int i = 0; i < shards.length; i++) {
++        FieldStats fs = i == myShard ? super.fieldStats(field) : shards[i].fieldStats(field);
++        if (fs != null) {
++          maxDoc += fs.maxDoc();
++          docCount += fs.docCount();
++          sumTtf += fs.sumTotalTermFreq();
++          sumDf += fs.sumDocFreq();
++        }
++      }
++      return docCount == 0 ? null : new FieldStats(field, maxDoc, docCount, sumTtf, sumDf);
++    }
++  }
++
++  private Directory dir0, dir1;
++  private IndexReader r0, r1, global;
++  private IndexSearcher shard0Searcher, globalSearcher;
++
++  @Override
++  public void setUp() throws Exception {
++    super.setUp();
++    dir0 = newDirectory();
++    dir1 = newDirectory();
++    index(dir0, "quick fox");
++    index(dir1, "fast dog", "fast cat", "fast fast bird");
++    r0 = DirectoryReader.open(dir0);
++    r1 = DirectoryReader.open(dir1);
++    global = new MultiReader(new IndexReader[] {r0, r1}, false);
++    IndexSearcher[] shards = {new IndexSearcher(r0), new IndexSearcher(r1)};
++    shard0Searcher = new DistributedStatsSearcher(shards, 0);
++    globalSearcher = new IndexSearcher(global);
++    for (IndexSearcher s :
++        new IndexSearcher[] {shards[0], shards[1], shard0Searcher, globalSearcher}) {
++      s.setSimilarity(new BM25Similarity());
++      s.setQueryCache(null);
++    }
++  }
++
++  private static void index(Directory dir, String... bodies) throws IOException {
++    IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer());
++    iwc.setSimilarity(new BM25Similarity());
++    try (IndexWriter w = new IndexWriter(dir, iwc)) {
++      for (String body : bodies) {
++        Document d = new Document();
++        d.add(new TextField("body", body, Field.Store.NO));
++        w.addDocument(d);
++      }
++    }
++  }
++
++  @Override
++  public void tearDown() throws Exception {
++    global.close();
++    r0.close();
++    r1.close();
++    dir0.close();
++    dir1.close();
++    super.tearDown();
++  }
++
++  /** Doc "quick fox" is doc 0 of shard 0 and doc 0 of the MultiReader. */
++  private void assertShardScoreEqualsGlobal(Query q) throws IOException {
++    float shard = shard0Searcher.explain(q, 0).getValue().floatValue();
++    float whole = globalSearcher.explain(q, 0).getValue().floatValue();
++    assertEquals(
++        q + ": doc A scores " + shard + " on the shard but " + whole + " in the whole collection",
++        whole,
++        shard,
++        0f);
++  }
++
++  private static SpanQuery quickOrFast() {
++    return new SpanOrQuery(
++        new SpanTermQuery(new Term("body", "quick")), new SpanTermQuery(new Term("body", "fast")));
++  }
++
++  /** Control: a span query whose terms all exist on the shard. */
++  public void testSpanNearControl() throws IOException {
++    assertShardScoreEqualsGlobal(
++        new SpanNearQuery(
++            new SpanQuery[] {
++              new SpanTermQuery(new Term("body", "quick")),
++              new SpanTermQuery(new Term("body", "fox"))
++            },
++            0,
++            true));
++  }
++
++  public void testSpanOrQuery() throws IOException {
++    assertShardScoreEqualsGlobal(quickOrFast());
++  }
++
++  /** The same loss inside another span query: spanNear([spanOr(quick, fast), fox]). */
++  public void testSpanNearOverSpanOr() throws IOException {
++    assertShardScoreEqualsGlobal(
++        new SpanNearQuery(
++            new SpanQuery[] {quickOrFast(), new SpanTermQuery(new Term("body", "fox"))}, 0, true));
++  }
++}
+diff --git a/lucene/test-framework/src/java/org/apache/lucene/tests/search/ShardSearchingTestBase.java b/lucene/test-framework/src/java/org/apache/lucene/tests/search/ShardSearchingTestBase.java
+index 491fa3c..953ee83 100644
+--- a/lucene/test-framework/src/java/org/apache/lucene/tests/search/ShardSearchingTestBase.java
++++ b/lucene/test-framework/src/java/org/apache/lucene/tests/search/ShardSearchingTestBase.java
+@@ -275,9 +275,9 @@ public abstract class ShardSearchingTestBase extends LuceneTestCase {
+             final TermAndShardVersion key =
+                 new TermAndShardVersion(nodeID, nodeVersions[nodeID], term);
+             subStats = termStatsCache.get(key);
+-            if (subStats == null) {
+-              continue; // term not found
+-            }
++          }
++          if (subStats == null) {
++            continue; // term not found on this node
+           }
+ 
+           long nodeDocFreq = subStats.docFreq();
+@@ -286,7 +286,9 @@ public abstract class ShardSearchingTestBase extends LuceneTestCase {
+           long nodeTotalTermFreq = subStats.totalTermFreq();
+           distributedTotalTermFreq += nodeTotalTermFreq;
+         }
+-        assert distributedDocFreq > 0;
++        if (distributedDocFreq == 0) {
++          return null; // term not found on any node
++        }
+         return new TermStats(term.bytes(), distributedDocFreq, distributedTotalTermFreq);
+       }
+ 

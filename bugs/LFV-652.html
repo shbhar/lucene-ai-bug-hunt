@@ -1,0 +1,885 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Copying a ParallelLeafReader into an index stores a later reader&#x27;s stored fields under another field&#x27;s name</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-652 &middot; parallelleafreader-stored-fields-foreign-fieldinfo-numbers</p><h1 id='top'>Copying a ParallelLeafReader into an index stores a later reader&#x27;s stored fields under another field&#x27;s name</h1><p class='tldr'>Copy a <code>ParallelLeafReader</code> that joins index A (<code class='nw'>title</code>) and index B (<code class='nw'>price</code>) into an empty index with <code class='nw'>addIndexes</code>, and B's <code class='nw'>price="42"</code> is stored as a second <code class='nw'>title</code>, with no error and a clean <code class='nw'>CheckIndex</code>. Every release since 5.0.0 does this.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 101</span><span class='sub'>Silent, permanent stored-field corruption that CheckIndex misses, present in every release since 5.0, but it only happens when a ParallelLeafReader is copied, which is rare.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>data corruption</span></dd></div><div><dt>Since</dt><dd>5.0.0 (LUCENE-6133, 2014)<span class='sub'>introduced 2014-12-29 &middot; over 11 years</span></dd></div><div><dt>Affected</dt><dd>5.0.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div><dt>Found by</dt><dd>bounded-exhaustive metamorphic testing against one reference index</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>ParallelLeafReader</code> joins indexes that hold different fields of the same documents, so they read as one index. Copying that joined view into a real index, with <code class='nw'>addIndexes</code> over <code>SlowCodecReaderWrapper</code> or from <code>OneMerge.wrapForMerge</code>, should keep every stored field under its own name.</p><figure class='visual' id='parallelleafreader-stored-fields-foreign-fieldinfo-numbers-short-visual'><div class='frame'><a class='still' href='../assets/LFV-652/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-652/bug.png' alt='The copy of a ParallelLeafReader: index A holds title (field 0) = &quot;Lucene in Action&quot;, index B holds price (field 0) = &quot;42&quot;; the joined view numbers title 0 and price 1 and reads both correctly. After addIndexes into an empty index, numbered title 0 and price 1, the merge receives price with B&#x27;s number 0 and writes it as field 0, so the copy holds title = &quot;Lucene in Action&quot; and title = &quot;42&quot; and no price, and CheckIndex reports no problems.' width='1920' height='1080'></a></div><figcaption>Index A and index B each number their first field 0. The joined view renumbers <code class='nw'>price</code> to 1, but B still reports it as 0 during the copy, and field 0 of the new index is <code class='nw'>title</code>. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index A stores <code>title="Lucene in Action"</code> and index B stores <code class='nw'>price="42"</code> for the same document. Each index numbers its own first field 0, so <code class='nw'>title</code> and <code class='nw'>price</code> are both field 0.</span></li><li><span>Join them with <code>new ParallelLeafReader(false, a, b)</code>. Reading works: the document has <code class='nw'>title</code> and <code class='nw'>price</code>, and the joined view renumbers <code class='nw'>price</code> to field 1.</span></li><li><span>Copy the view into an empty index with <code>addIndexes(SlowCodecReaderWrapper.wrap(parallel))</code>. You expect <code>title="Lucene in Action"</code> and <code class='nw'>price="42"</code>.</span></li><li><span>You get <code>title="Lucene in Action"</code> and <code class='nw'>title="42"</code>, and no <code class='nw'>price</code>. B reports its value as field 0; the merge sees that the view's numbers match the new index, skips its by-name check, and writes field 0: <code class='nw'>title</code>.</span></li><li><span>No error, and <code class='nw'>CheckIndex</code> passes; searches still match, because postings, doc values and points copied correctly in every tested case. A merge whose <code class='nw'>wrapForMerge</code> adds a side index goes wrong the same way.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that copy a <code>ParallelLeafReader</code> over two or more indexes, with <code>addIndexes(SlowCodecReaderWrapper.wrap(...))</code> or a custom <code class='nw'>wrapForMerge</code>, when a later index stores fields and the target gives the view's fields the view's numbers (an empty target, for one). Default config and codec. Stored values come back under wrong names; query matching is unaffected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>785 words</span></summary><div class='body'><p><code>ParallelLeafReader</code> joins indexes that hold different fields of the same documents; "Each document contains the union of the fields of all documents with the same document number". Reading through it is correct. Copying it into an index, with <code>IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(parallelReader))</code> or from a <code>MergePolicy.OneMerge.wrapForMerge</code> that returns one, writes each stored value of a later reader under the name of whichever target field holds that reader's own field number (an earlier reader's field, or another field of the same reader) whenever the target gives the parallel reader's fields the parallel reader's numbers, for example an empty target. With index A storing <code>title="Lucene in Action"</code> and index B storing <code class='nw'>price="42"</code>, the copy holds <code>title="Lucene in Action"</code> and <code class='nw'>title="42"</code> and no <code class='nw'>price</code>, with no exception and a clean <code class='nw'>CheckIndex</code>. <code class='nw'>storedFields()</code> lets each sub-reader call the visitor with its own <code class='nw'>FieldInfo</code> (price is number 0 in B), the parallel reader's <code class='nw'>getFieldInfos()</code> numbers price 1, and <code>StoredFieldsWriter.MergeVisitor</code> skips its by-name remapping because those numbers match the target's, so it writes number 0, which in the target is <code class='nw'>title</code>. In every tested case postings, doc values, points, vectors, norms and deletions were copied correctly. The merge shortcut came with LUCENE-6133 (5.0.0, 2014), a speed-up; 4.10.x copies correctly, and every release from 5.0.0 to 10.5.2 and main is affected.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>ParallelLeafReader</strong>: a <code class='nw'>LeafReader</code> over several indexes with the same documents in the same order but different fields: "Each document contains the union of the fields of all documents with the same document number" (<code>index/ParallelLeafReader.java:38-39</code>).</li><li><strong>Field numbers</strong>: every index gives each field name a number, in the order it first sees the names, so independently built indexes all start at 0. A <code class='nw'>FieldInfo</code> carries a field's name and number; stored fields are written on disk by number.</li><li><strong>Copying a reader</strong>: <code>IndexWriter.addIndexes(CodecReader...)</code> "Merges the provided indexes into this index"; <code>SlowCodecReaderWrapper.wrap</code> turns any <code class='nw'>LeafReader</code> into the <code class='nw'>CodecReader</code> it needs. A merge can also wrap each segment with <code>OneMerge.wrapForMerge</code>, "in order to add/remove fields or documents".</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><strong>The view renumbers.</strong> <code>ParallelLeafReader</code> builds its own <code class='nw'>FieldInfos</code>, first reader wins (<code>ParallelLeafReader.java:154-159</code>); a field keeps its number only if it is still free, else it gets the lowest free one (<code>FieldInfos.java:425-433</code>). B's <code class='nw'>price</code>, number 0, becomes 1. The javadoc says the numbers "will likely not correspond to the actual field numbers in the underlying readers" (<code class='nw'>:242-244</code>).</li><li><strong>Stored fields are visited with the sub-reader's own numbers.</strong> <code>storedFields().document(docID, visitor)</code> hands the caller's visitor unchanged to each sub-reader (<code class='nw'>:291-296</code>), and <code>SlowCodecReaderWrapper</code> passes it straight through (<code>SlowCodecReaderWrapper.java:332-335</code>). B's reader reports <code class='nw'>price</code> as number 0.</li><li><strong>The merge trusts numbers that look aligned.</strong> <code class='nw'>MergeVisitor</code> turns its by-name remapping on only if a number in the source's <code class='nw'>getFieldInfos()</code> names a different field in the target (<code>codecs/StoredFieldsWriter.java:182-192</code>, "if field numbers are aligned, we can save hash lookups"). For an empty target the merged numbering adopts the view's (title 0, price 1), so the check passes and <code class='nw'>remap()</code> returns the visited <code class='nw'>FieldInfo</code> as is (<code class='nw'>:237-243</code>).</li><li><strong>The codec writes the foreign number.</strong> The default stored-fields writer copies a non-codec source field by field through this visitor (<code>Lucene90CompressingStoredFieldsWriter.java:678-685</code>, <code class='nw'>:637-641</code>) and records number 0, which in the new index is <code class='nw'>title</code>.</li></ol><p>If the target gives even one of the view's fields a different number, the constructor check fails, remapping by name is on and the copy is correct. If only the first reader stores fields, no stored value carries a foreign number; if the earlier readers have no fields at all, a later reader keeps its own numbers and nothing is renamed (read from <code>FieldInfos.java:425-427</code>, not run).</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-a-probe-on-main-assertions-on-and-off'>The numbers (a probe on main, assertions on and off)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-a-probe-on-main-assertions-on-and-off" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-a-probe-on-main-assertions-on-and-off"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>step</th><th>field numbers and values</th></tr></thead><tbody><tr><td>index A</td><td><code class='nw'>title#0</code></td></tr><tr><td>index B</td><td><code class='nw'>price#0</code></td></tr><tr><td>the view's <code class='nw'>getFieldInfos()</code></td><td><code class='nw'>title#0</code>, <code class='nw'>price#1</code></td></tr><tr><td>what a visitor on the view receives</td><td><code>title#0="Lucene in Action"</code>, <code class='nw'>price#0="42"</code></td></tr><tr><td>empty target after <code class='nw'>addIndexes</code></td><td><code class='nw'>title#0</code>, <code class='nw'>price#1</code>: aligned, by-name remapping off</td></tr><tr><td>the copy</td><td><code>title="Lucene in Action"</code>, <code class='nw'>title="42"</code>, no <code class='nw'>price</code>; CheckIndex clean</td></tr><tr><td>control: target already numbered <code class='nw'>title#1</code>, <code class='nw'>price#2</code></td><td>not aligned, remapped by name: <code class='nw'>title</code>, <code class='nw'>price</code> correct</td></tr><tr><td>merge path: segment <code class='nw'>id#0</code>, <code class='nw'>body#1</code> + side index <code class='nw'>summary#0</code></td><td>view <code class='nw'>id#0</code>, <code class='nw'>body#1</code>, <code class='nw'>summary#2</code>; after <code class='nw'>forceMerge(1)</code> doc 0 is <code class='nw'>id=id0</code>, <code class='nw'>body=body0</code>, <code class='nw'>id=summary0</code></td></tr></tbody></table></div><p>With several stored fields in the later reader, each value lands on the name that holds its own number in the target: A <code class='nw'>color="red"</code>, B <code class='nw'>weight=7</code>, <code class='nw'>shape="circle"</code> copies as <code>{color=[red, 7], weight=[circle]}</code>. Values move down by as many names as the earlier readers have fields, so <code class='nw'>shape</code> lands on B's own <code class='nw'>weight</code>; with two fields in A they move down by two.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>440 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Applications that copy a <code>ParallelLeafReader</code>, or the leaves of a <code>ParallelCompositeReader</code> (same result in one probe), built over two or more indexes: <code>addIndexes(SlowCodecReaderWrapper.wrap(...))</code> to turn a parallel index into a single one, or a <code>OneMerge.wrapForMerge</code> that folds a side index into segments as they merge (the pattern of upstream's <code>TestDemoParallelLeafReader</code>). A rarely used API combination; everything else is default (<code>IndexWriterConfig</code>, codec, merge scheduler).</li><li><strong>Trigger.</strong> Two conditions. (1) A later sub-reader has a stored field whose own number differs from its number in the view; that is always so in the usual setup, where every index numbers its fields from 0 and an earlier reader has at least one field. (2) The target gives each of the view's fields the view's number: an empty target, or one that already holds the same fields under the same numbers. No special data and no scale; in the usual setup every copied document with a stored value from a later reader is hit.</li><li><strong>Effect.</strong> Silent and permanent. In the copy each stored value of a later reader carries the name of whichever field holds that reader's own number in the target, and the real field is missing: with one field in B that is an earlier reader's field (<code class='nw'>price</code> becomes <code class='nw'>title</code>); with several, values move down by as many names as the earlier readers have fields, so some land on other fields of the same reader. Postings, doc values, points, vectors, norms and deletions were copied correctly in every tested case, so queries match the same documents; what breaks is the stored data the application loads: displayed values, highlighting, and any later re-indexing from stored fields, which carries the wrong names on. The stored-only cases are <code class='nw'>CheckIndex</code>-clean, so nothing reports it; if the source indexes are discarded after the copy, the original values are lost.</li><li><strong>Not hit</strong> when the target's numbering differs (the merge then remaps by name) or when only the first reader stores fields. The <code class='nw'>wrapForMerge</code> path needs the stored-field side index after the segment reader; upstream's demo puts its side index first and takes the safe path.</li><li><strong>How often among small cases.</strong> A bounded-exhaustive run over 128,625 configurations found stored-field mismatches in 21,993 empty-target copies and none where the target's numbering differs; with fix A, none (8,040-configuration sample).</li><li><strong>Downstream, by reading only.</strong> Elasticsearch and OpenSearch use <code>ParallelLeafReader</code> on a read path only. Solr main (not in a release) has a <code class='nw'>wrapForMerge</code> that returns <code>SlowCodecReaderWrapper.wrap(new ParallelLeafReader(...))</code>, but its side segments hold only doc values and its padding wrapper exposes no stored fields, so it is not hit as written. Nothing downstream was run.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A public-API JUnit for <code class='nw'>lucene/core</code> with two tests: <code class='nw'>addIndexes</code> of the parallel reader into an empty index, and a merge whose <code class='nw'>wrapForMerge</code> adds a side index. It checks the view first, then the copy; <code class='nw'>CheckIndex</code> passes on the broken copy. Fails 2 of 2 with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestParallelReaderCopyKeepsStoredFieldNames.java (core, 2 tests)</span><span class='meta'>142 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Copying a ParallelLeafReader into an index (IndexWriter.addIndexes over SlowCodecReaderWrapper,
+ * or a merge whose OneMerge.wrapForMerge returns one) must keep every stored field under its own
+ * name. Both indexes below are built as the ParallelLeafReader javadoc requires (same documents in
+ * the same order, different fields). Uses only public API.
+ */
+public class TestParallelReaderCopyKeepsStoredFieldNames extends LuceneTestCase {
+
+  private static void addDocs(Directory dir, String field, String... values) throws IOException {
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (String v : values) {
+        Document doc = new Document();
+        doc.add(new StoredField(field, v));
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+  }
+
+  /** addIndexes(SlowCodecReaderWrapper.wrap(new ParallelLeafReader(a, b))) into an empty index. */
+  public void testAddIndexesOfParallelReader() throws Exception {
+    try (Directory dirA = newDirectory();
+        Directory dirB = newDirectory();
+        Directory target = newDirectory()) {
+      addDocs(dirA, &quot;title&quot;, &quot;Lucene in Action&quot;);
+      addDocs(dirB, &quot;price&quot;, &quot;42&quot;);
+      try (DirectoryReader a = DirectoryReader.open(dirA);
+          DirectoryReader b = DirectoryReader.open(dirB)) {
+        ParallelLeafReader parallel =
+            new ParallelLeafReader(false, getOnlyLeafReader(a), getOnlyLeafReader(b));
+        // the parallel reader itself is correct:
+        Document viaParallel = parallel.storedFields().document(0);
+        assertEquals(&quot;Lucene in Action&quot;, viaParallel.get(&quot;title&quot;));
+        assertEquals(&quot;42&quot;, viaParallel.get(&quot;price&quot;));
+        try (IndexWriter w = new IndexWriter(target, new IndexWriterConfig())) {
+          w.addIndexes(SlowCodecReaderWrapper.wrap(parallel));
+        }
+        parallel.close();
+      }
+      TestUtil.checkIndex(target); // the copy passes CheckIndex: nothing flags the renamed field
+      try (DirectoryReader copy = DirectoryReader.open(target)) {
+        Document doc = copy.storedFields().document(0);
+        assertEquals(&quot;stored fields of the copy: &quot; + doc, &quot;42&quot;, doc.get(&quot;price&quot;));
+        assertEquals(&quot;stored fields of the copy: &quot; + doc, 1, doc.getValues(&quot;title&quot;).length);
+      }
+    }
+  }
+
+  /** The same through a merge that wraps each segment with a parallel index (OneMerge API). */
+  public void testMergeThatWrapsSegmentsWithParallelReader() throws Exception {
+    try (Directory main = newDirectory();
+        Directory side = newDirectory()) {
+      addDocs(side, &quot;summary&quot;, &quot;summary0&quot;, &quot;summary1&quot;);
+      try (DirectoryReader sideReader = DirectoryReader.open(side)) {
+        LeafReader sideLeaf = getOnlyLeafReader(sideReader);
+        AtomicBoolean merged = new AtomicBoolean();
+        IndexWriterConfig iwc = new IndexWriterConfig();
+        iwc.setMergePolicy(
+            new FilterMergePolicy(new LogDocMergePolicy()) {
+              @Override
+              public MergeSpecification findForcedMerges(
+                  SegmentInfos infos,
+                  int maxSegmentCount,
+                  Map&lt;SegmentCommitInfo, Boolean&gt; segmentsToMerge,
+                  MergeContext mergeContext) {
+                if (merged.getAndSet(true)) {
+                  return null;
+                }
+                List&lt;SegmentCommitInfo&gt; segments = new ArrayList&lt;&gt;();
+                infos.forEach(segments::add);
+                MergeSpecification spec = new MergeSpecification();
+                spec.add(
+                    new OneMerge(segments) {
+                      final List&lt;ParallelLeafReader&gt; parallelReaders = new ArrayList&lt;&gt;();
+
+                      @Override
+                      public CodecReader wrapForMerge(CodecReader reader) throws IOException {
+                        ParallelLeafReader parallel = new ParallelLeafReader(false, reader, sideLeaf);
+                        parallelReaders.add(parallel);
+                        return SlowCodecReaderWrapper.wrap(parallel);
+                      }
+
+                      @Override
+                      public void mergeFinished(boolean success, boolean segmentDropped)
+                          throws IOException {
+                        super.mergeFinished(success, segmentDropped);
+                        for (ParallelLeafReader parallel : parallelReaders) {
+                          parallel.close();
+                        }
+                      }
+                    });
+                return spec;
+              }
+            });
+        try (IndexWriter w = new IndexWriter(main, iwc)) {
+          for (int i = 0; i &lt; 2; i++) {
+            Document doc = new Document();
+            doc.add(new StoredField(&quot;id&quot;, &quot;id&quot; + i));
+            doc.add(new StoredField(&quot;body&quot;, &quot;body&quot; + i));
+            w.addDocument(doc);
+          }
+          w.commit();
+          w.forceMerge(1);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(main)) {
+        Document doc = r.storedFields().document(0);
+        assertEquals(&quot;stored fields after the merge: &quot; + doc, &quot;summary0&quot;, doc.get(&quot;summary&quot;));
+        assertEquals(&quot;stored fields after the merge: &quot; + doc, 1, doc.getValues(&quot;id&quot;).length);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.index.TestParallelReaderCopyKeepsStoredFieldNames -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>The copied document holds <code>title="Lucene in Action"</code> and <code class='nw'>price="42"</code> (after the merge: <code class='nw'>id</code>, <code class='nw'>body</code> and <code class='nw'>summary</code>).</dd></div><div class='got'><dt>Observed</dt><dd>It holds <code>title="Lucene in Action"</code> and <code class='nw'>title="42"</code> and no <code class='nw'>price</code> (after the merge <code class='nw'>summary0</code> is a second <code class='nw'>id</code>); 2 of 2 tests fail, with assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-652/'>repro/LFV-652/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (396 lines) · 2,109 words</span></summary><div class='body'><p><code>TestParallelReaderCopyKeepsStoredFieldNames</code> (package <code>org.apache.lucene.index</code>, public API only, <code>new IndexWriterConfig()</code>). <code>testAddIndexesOfParallelReader</code> builds the two one-document indexes, asserts that the parallel reader returns <code class='nw'>title</code> and <code class='nw'>price</code>, copies it into an empty index, runs <code>TestUtil.checkIndex</code> and checks the copy. <code>testMergeThatWrapsSegmentsWithParallelReader</code> uses a <code>FilterMergePolicy</code> whose single forced <code>OneMerge.wrapForMerge</code> returns <code>SlowCodecReaderWrapper.wrap(new ParallelLeafReader(false, reader, sideLeaf))</code>.</p><p>Also attached: an independent reproducer's JUnit with other field names and value types and a control whose target is numbered differently (it passes); the expert-constructor aside; and a plain <code class='nw'>main()</code> for releases 5.0.0 to 9.12.3 (it uses <code>IndexReader.document</code>, which 10.x no longer has). The test framework randomizes the codec; 20 distinct master seeds failed 40 of 40 under 5 codecs (<code>Asserting(Lucene104)</code>, <code class='nw'>CheapBastard</code> and three compressing stored-fields variants).</p><div class="hd hd-3"><h3 id='code-2-h'>TestParallelLeafReaderCopyStoredFieldNames.java (independent reproducer, 3 tests incl. a control)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p><code>testAddIndexesFreshTarget</code> and <code>testWrapForMergeAddsStoredField</code> fail; <code>testAddIndexesShiftedTargetControl</code> passes because the target already numbers its fields differently.</p><figure class='code'><figcaption><span class='fname'>TestParallelLeafReaderCopyStoredFieldNames.java (independent reproducer, 3 tests incl. a control)</span><span class='meta'>246 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Independent check: copying a ParallelLeafReader (built over two separately created indexes) into
+ * a new index must keep every stored field under its own name, just like the ParallelLeafReader
+ * itself returns it.
+ *
+ * &lt;p&gt;Uses public API only (ParallelLeafReader, SlowCodecReaderWrapper, IndexWriter.addIndexes,
+ * MergePolicy.OneMerge.wrapForMerge). The default codec is pinned so the default stored-fields
+ * merge path is exercised.
+ */
+public class TestParallelLeafReaderCopyStoredFieldNames extends LuceneTestCase {
+
+  private static IndexWriterConfig defaultConfig() {
+    IndexWriterConfig iwc = new IndexWriterConfig();
+    iwc.setCodec(TestUtil.getDefaultCodec());
+    return iwc;
+  }
+
+  /** Index A: one doc with stored &quot;color&quot;. Field numbers in A: color=0. */
+  private static void buildA(Directory dir) throws IOException {
+    try (IndexWriter w = new IndexWriter(dir, defaultConfig())) {
+      Document d = new Document();
+      d.add(new StoredField(&quot;color&quot;, &quot;red&quot;));
+      w.addDocument(d);
+      w.forceMerge(1);
+    }
+  }
+
+  /** Index B: one doc with stored &quot;weight&quot; (int) and &quot;shape&quot;. Field numbers in B: weight=0, shape=1. */
+  private static void buildB(Directory dir) throws IOException {
+    try (IndexWriter w = new IndexWriter(dir, defaultConfig())) {
+      Document d = new Document();
+      d.add(new StoredField(&quot;weight&quot;, 7));
+      d.add(new StoredField(&quot;shape&quot;, &quot;circle&quot;));
+      w.addDocument(d);
+      w.forceMerge(1);
+    }
+  }
+
+  /** name -&gt; list of values (as strings), in visit order. */
+  private static Map&lt;String, List&lt;String&gt;&gt; fieldsOf(Document doc) {
+    Map&lt;String, List&lt;String&gt;&gt; m = new TreeMap&lt;&gt;();
+    for (IndexableField f : doc.getFields()) {
+      String v = f.stringValue() != null ? f.stringValue() : String.valueOf(f.numericValue());
+      m.computeIfAbsent(f.name(), k -&gt; new ArrayList&lt;&gt;()).add(v);
+    }
+    return m;
+  }
+
+  private static final String EXPECTED = &quot;{color=[red], shape=[circle], weight=[7]}&quot;;
+
+  private void copyAndCheck(boolean shiftTargetNumbering) throws IOException {
+    try (Directory dirA = newDirectory();
+        Directory dirB = newDirectory();
+        Directory target = newDirectory()) {
+      buildA(dirA);
+      buildB(dirB);
+      try (DirectoryReader ra = DirectoryReader.open(dirA);
+          DirectoryReader rb = DirectoryReader.open(dirB)) {
+        ParallelLeafReader plr =
+            new ParallelLeafReader(false, getOnlyLeafReader(ra), getOnlyLeafReader(rb));
+        try {
+          // Sanity: the parallel reader itself returns the union of the stored fields by name.
+          assertEquals(
+              &quot;ParallelLeafReader view&quot;, EXPECTED, fieldsOf(plr.storedFields().document(0)).toString());
+
+          try (IndexWriter w = new IndexWriter(target, defaultConfig())) {
+            if (shiftTargetNumbering) {
+              // Control: target already knows an unrelated field, so its numbering differs from the
+              // parallel reader&#x27;s and the merge must remap by name.
+              Document other = new Document();
+              other.add(new StoredField(&quot;unrelated&quot;, &quot;x&quot;));
+              w.addDocument(other);
+              w.commit();
+            }
+            w.addIndexes(SlowCodecReaderWrapper.wrap(plr));
+            w.forceMerge(1);
+          }
+        } finally {
+          plr.close();
+        }
+      }
+      // The copy is structurally valid: CheckIndex does not flag the renamed values.
+      TestUtil.checkIndex(target);
+      try (DirectoryReader copy = DirectoryReader.open(target)) {
+        LeafReader leaf = getOnlyLeafReader(copy);
+        int docId = shiftTargetNumbering ? 1 : 0;
+        assertEquals(shiftTargetNumbering ? 2 : 1, leaf.maxDoc());
+        assertEquals(
+            &quot;stored fields of the addIndexes copy (shiftTargetNumbering=&quot; + shiftTargetNumbering + &quot;)&quot;,
+            EXPECTED,
+            fieldsOf(leaf.storedFields().document(docId)).toString());
+      }
+    }
+  }
+
+  /** addIndexes(SlowCodecReaderWrapper.wrap(parallelReader)) into a fresh index. */
+  public void testAddIndexesFreshTarget() throws IOException {
+    copyAndCheck(false);
+  }
+
+  /** Control: same copy, but the target&#x27;s field numbering differs, so remapping is used. */
+  public void testAddIndexesShiftedTargetControl() throws IOException {
+    copyAndCheck(true);
+  }
+
+  /**
+   * The &quot;add a field on merge&quot; pattern: OneMerge.wrapForMerge returns a ParallelLeafReader of the
+   * segment plus a freshly built parallel index carrying an extra stored field.
+   */
+  public void testWrapForMergeAddsStoredField() throws IOException {
+    final List&lt;Closeable2&gt; toClose = new ArrayList&lt;&gt;();
+    MergePolicy mp =
+        new FilterMergePolicy(new LogDocMergePolicy()) {
+          @Override
+          public MergeSpecification findMerges(
+              MergeTrigger mergeTrigger, SegmentInfos segmentInfos, MergeContext mergeContext) {
+            return null; // only the forced merge below
+          }
+
+          @Override
+          public MergeSpecification findForcedMerges(
+              SegmentInfos segmentInfos,
+              int maxSegmentCount,
+              Map&lt;SegmentCommitInfo, Boolean&gt; segmentsToMerge,
+              MergeContext mergeContext)
+              throws IOException {
+            MergeSpecification spec =
+                super.findForcedMerges(
+                    segmentInfos, maxSegmentCount, segmentsToMerge, mergeContext);
+            if (spec == null) {
+              return null;
+            }
+            MergeSpecification wrapped = new MergeSpecification();
+            for (OneMerge m : spec.merges) {
+              wrapped.add(
+                  new OneMerge(m.segments) {
+                    @Override
+                    public CodecReader wrapForMerge(CodecReader reader) throws IOException {
+                      // Re-derive a parallel index for this segment: one doc per segment doc, in
+                      // order, with a stored &quot;note&quot; computed from the segment&#x27;s stored &quot;key&quot;.
+                      Directory pdir = newDirectory();
+                      try (IndexWriter pw = new IndexWriter(pdir, defaultConfig())) {
+                        StoredFields sf = reader.storedFields();
+                        for (int i = 0; i &lt; reader.maxDoc(); i++) {
+                          Document src = sf.document(i);
+                          Document d = new Document();
+                          d.add(new StoredField(&quot;note&quot;, &quot;note-&quot; + src.get(&quot;key&quot;)));
+                          pw.addDocument(d);
+                        }
+                        pw.forceMerge(1);
+                      }
+                      DirectoryReader pr = DirectoryReader.open(pdir);
+                      toClose.add(new Closeable2(pr, pdir));
+                      // closeSubReaders=true: the wrapper adds no references, so the segment
+                      // reader&#x27;s lifecycle stays with the writer; pr is closed after the merge.
+                      return SlowCodecReaderWrapper.wrap(
+                          new ParallelLeafReader(true, reader, getOnlyLeafReader(pr)));
+                    }
+                  });
+            }
+            return wrapped;
+          }
+        };
+
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc = defaultConfig();
+      iwc.setMergePolicy(mp);
+      iwc.setMergeScheduler(new SerialMergeScheduler());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        // two segments; main index field numbers: key=0, score=1
+        for (int seg = 0; seg &lt; 2; seg++) {
+          for (int i = 0; i &lt; 3; i++) {
+            Document d = new Document();
+            d.add(new StoredField(&quot;key&quot;, &quot;k&quot; + seg + i));
+            d.add(new StoredField(&quot;score&quot;, (long) (10 * seg + i)));
+            w.addDocument(d);
+          }
+          w.commit();
+        }
+        w.forceMerge(1);
+      } finally {
+        for (Closeable2 c : toClose) {
+          c.close();
+        }
+      }
+      TestUtil.checkIndex(dir);
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        LeafReader leaf = getOnlyLeafReader(r);
+        assertEquals(6, leaf.maxDoc());
+        StoredFields sf = leaf.storedFields();
+        for (int i = 0; i &lt; leaf.maxDoc(); i++) {
+          Map&lt;String, List&lt;String&gt;&gt; got = fieldsOf(sf.document(i));
+          String key = got.containsKey(&quot;key&quot;) ? got.get(&quot;key&quot;).get(0) : null;
+          assertNotNull(&quot;doc &quot; + i + &quot; lost its key: &quot; + got, key);
+          String expected =
+              &quot;{key=[&quot; + key + &quot;], note=[note-&quot; + key + &quot;], score=&quot; + got.get(&quot;score&quot;) + &quot;}&quot;;
+          assertEquals(&quot;stored fields after the wrapping merge, doc &quot; + i, expected, got.toString());
+        }
+      }
+    }
+  }
+
+  private static final class Closeable2 {
+    final DirectoryReader reader;
+    final Directory dir;
+
+    Closeable2(DirectoryReader reader, Directory dir) {
+      this.reader = reader;
+      this.dir = dir;
+    }
+
+    void close() throws IOException {
+      reader.close();
+      dir.close();
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.index.TestParallelLeafReaderCopyStoredFieldNames -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestParallelReaderExpertStoredFieldsReaders.java (expert-constructor aside)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>A stored-fields-only reader passed to <code>ParallelLeafReader(boolean, LeafReader[], LeafReader[])</code> has fields the parallel <code class='nw'>FieldInfos</code> does not list; its value <code class='nw'>x</code> is copied as a second <code class='nw'>a</code>. What such a copy should contain is not documented, so keep it as an aside.</p><figure class='code'><figcaption><span class='fname'>TestParallelReaderExpertStoredFieldsReaders.java (expert-constructor aside)</span><span class='meta'>68 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Wider trigger of the same defect through the expert constructor: a storedFieldsReader that is not
+ * one of the main readers contributes stored fields that the parallel reader&#x27;s FieldInfos do not
+ * list. Copying it renames the field (empty target) or fails with a NullPointerException (target
+ * whose field numbers differ).
+ */
+public class TestParallelReaderExpertStoredFieldsReaders extends LuceneTestCase {
+
+  private static void addDoc(Directory dir, String... fields) throws IOException {
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      Document doc = new Document();
+      for (String f : fields) {
+        doc.add(new StoredField(f, f + &quot;-value&quot;));
+      }
+      w.addDocument(doc);
+    }
+  }
+
+  public void testStoredOnlyReaderCopiedIntoEmptyIndex() throws Exception {
+    try (Directory main = newDirectory();
+        Directory stored = newDirectory();
+        Directory target = newDirectory()) {
+      addDoc(main, &quot;a&quot;, &quot;b&quot;);
+      addDoc(stored, &quot;x&quot;);
+      try (DirectoryReader rm = DirectoryReader.open(main);
+          DirectoryReader rs = DirectoryReader.open(stored)) {
+        LeafReader m = getOnlyLeafReader(rm);
+        ParallelLeafReader parallel =
+            new ParallelLeafReader(
+                false, new LeafReader[] {m}, new LeafReader[] {m, getOnlyLeafReader(rs)});
+        assertEquals(&quot;x-value&quot;, parallel.storedFields().document(0).get(&quot;x&quot;));
+        try (IndexWriter w = new IndexWriter(target, new IndexWriterConfig())) {
+          w.addIndexes(SlowCodecReaderWrapper.wrap(parallel));
+        }
+        parallel.close();
+      }
+      try (DirectoryReader copy = DirectoryReader.open(target)) {
+        Document doc = copy.storedFields().document(0);
+        assertEquals(&quot;stored fields of the copy: &quot; + doc, &quot;x-value&quot;, doc.get(&quot;x&quot;));
+        assertEquals(&quot;stored fields of the copy: &quot; + doc, 1, doc.getValues(&quot;a&quot;).length);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>ParallelCopyStoredNamesMain.java (plain main(), releases 5.0.0 to 9.12.3)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Prints <code>RESULT BUG: stored field renamed in copy</code> or <code>RESULT copy correct</code>. The two <code class='nw'>--add-opens</code> flags are needed on JDK 25 for the old 5.x/6.x <code class='nw'>MMapDirectory</code> unmap code (the 5.1.0 and 6.0.0 runs crashed before the check without them).</p><figure class='code'><figcaption><span class='fname'>ParallelCopyStoredNamesMain.java (plain main(), releases 5.0.0 to 9.12.3)</span><span class='meta'>82 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package repro;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.ParallelLeafReader;
+import org.apache.lucene.index.SlowCodecReaderWrapper;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+
+/**
+ * Release-history variant (Lucene 5.0 to 9.x API): addIndexes(SlowCodecReaderWrapper.wrap(new
+ * ParallelLeafReader(a, b))) into an empty index. Exit 1 if the copy stores b&#x27;s field under a&#x27;s
+ * field name, 0 if the copy is correct.
+ */
+public class ParallelCopyStoredNamesMain {
+  static IndexWriterConfig iwc() {
+    return new IndexWriterConfig(
+        new Analyzer() {
+          @Override
+          protected TokenStreamComponents createComponents(String fieldName) {
+            throw new UnsupportedOperationException(&quot;only stored fields are indexed&quot;);
+          }
+        });
+  }
+
+  static void add(Directory dir, String field, String value) throws Exception {
+    try (IndexWriter w = new IndexWriter(dir, iwc())) {
+      Document doc = new Document();
+      doc.add(new StoredField(field, value));
+      w.addDocument(doc);
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    Path tmp = Files.createTempDirectory(&quot;parallel-copy&quot;);
+    try (Directory a = FSDirectory.open(tmp.resolve(&quot;a&quot;));
+        Directory b = FSDirectory.open(tmp.resolve(&quot;b&quot;));
+        Directory target = FSDirectory.open(tmp.resolve(&quot;target&quot;))) {
+      add(a, &quot;title&quot;, &quot;Lucene in Action&quot;);
+      add(b, &quot;price&quot;, &quot;42&quot;);
+      try (DirectoryReader ra = DirectoryReader.open(a);
+          DirectoryReader rb = DirectoryReader.open(b)) {
+        ParallelLeafReader parallel =
+            new ParallelLeafReader(false, ra.leaves().get(0).reader(), rb.leaves().get(0).reader());
+        System.out.println(&quot;parallel reader: &quot; + parallel.document(0));
+        try (IndexWriter w = new IndexWriter(target, iwc())) {
+          w.addIndexes(SlowCodecReaderWrapper.wrap(parallel));
+        }
+        parallel.close();
+      }
+      try (DirectoryReader copy = DirectoryReader.open(target)) {
+        Document doc = copy.document(0);
+        System.out.println(&quot;copy:            &quot; + doc);
+        boolean ok = &quot;42&quot;.equals(doc.get(&quot;price&quot;)) &amp;&amp; doc.getValues(&quot;title&quot;).length == 1;
+        System.out.println(ok ? &quot;RESULT copy correct&quot; : &quot;RESULT BUG: stored field renamed in copy&quot;);
+        System.exit(ok ? 0 : 1);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-4' data-status='command-4-st'>Copy</button><span class='copy-st' id='command-4-st' role='status' aria-live='polite'></span></figcaption><pre id='command-4' tabindex='0'><code>javac -cp lucene-core.jar -d out ParallelCopyStoredNamesMain.java &amp;&amp; java --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens=java.base/jdk.internal.ref=ALL-UNNAMED -cp out:lucene-core.jar repro.ParallelCopyStoredNamesMain
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle): affected; releases 5.0.0 to 10.5.2 affected; 4.10.3 and 4.10.4 correct</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at a9779ef3c193 (or a later main where the three files are unchanged)
+cp $REPRO/TestParallelReaderCopyKeepsStoredFieldNames.java lucene/core/src/test/org/apache/lucene/index/
+./gradlew :lucene:core:test --tests org.apache.lucene.index.TestParallelReaderCopyKeepsStoredFieldNames -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (the same 2 failures)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestParallelReaderCopyKeepsStoredFieldNames &gt; testMergeThatWrapsSegmentsWithParallelReader FAILED
+    java.lang.AssertionError: stored fields after the merge: Document&lt;stored&lt;id:id0&gt; stored&lt;body:body0&gt; stored&lt;id:summary0&gt;&gt; expected:&lt;summary0&gt; but was:&lt;null&gt;
+TestParallelReaderCopyKeepsStoredFieldNames &gt; testAddIndexesOfParallelReader FAILED
+    java.lang.AssertionError: stored fields of the copy: Document&lt;stored&lt;title:Lucene in Action&gt; stored&lt;title:42&gt;&gt; expected:&lt;42&gt; but was:&lt;null&gt;
+2 tests completed, 2 failed            (identical with -Ptests.asserts=false)
+
+TestParallelLeafReaderCopyStoredFieldNames &gt; testWrapForMergeAddsStoredField FAILED
+    org.junit.ComparisonFailure: stored fields after the wrapping merge, doc 0 expected:&lt;{key=[k00[], note=[]note-k00], score=[0]...&gt; but was:&lt;{key=[k00[, ]note-k00], score=[0]...&gt;
+TestParallelLeafReaderCopyStoredFieldNames &gt; testAddIndexesFreshTarget FAILED
+    org.junit.ComparisonFailure: stored fields of the addIndexes copy (shiftTargetNumbering=false) expected:&lt;{color=[red[], shape=[circle], weight=[7]]}&gt; but was:&lt;{color=[red[, 7], weight=[circle]]}&gt;
+(testAddIndexesShiftedTargetControl passes)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Lucene's own composite merge wrapper maps each visited field to its own <code class='nw'>FieldInfo</code> by name; <code>ParallelLeafReader</code> renumbers but does not remap.</li><li><code class='nw'>addIndexes</code> "Merges the provided indexes into this index", and the view itself returns <code class='nw'>price</code>; only the copy loses it.</li><li>Up to 4.10.4 the merge matched fields by name and the copy is correct; the 5.0 change was a speed-up.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>354 words</span></summary><div class='body'><ul><li><strong>Contracts.</strong> <code>ParallelLeafReader</code>: "Each document contains the union of the fields of all documents with the same document number" (<code>ParallelLeafReader.java:38-39</code>). <code>IndexWriter.addIndexes(CodecReader...)</code>: "Merges the provided indexes into this index" (<code>IndexWriter.java:3255</code>). <code>SlowCodecReaderWrapper</code>: "Wraps arbitrary readers for merging" (<code class='nw'>:38</code>). <code>OneMerge.wrapForMerge</code>: "Wrap a reader prior to merging in order to add/remove fields or documents" (<code>MergePolicy.java:302</code>). The <code class='nw'>addIndexes</code> path uses no experimental or internal API; the merge path does: <code class='nw'>MergePolicy</code>, <code>MergePolicy.OneMerge</code> (which declares <code class='nw'>wrapForMerge</code>) and the repro's <code>FilterMergePolicy</code> are <code>@lucene.experimental</code> (<code>MergePolicy.java:69</code>, <code class='nw'>:189</code>; <code>FilterMergePolicy.java:27</code>).</li><li><strong>Lucene's own wrappers keep the invariant.</strong> <code>SlowCompositeCodecReaderWrapper</code> (#12622, 2023): "Remap FieldInfos to make sure consumers only see field infos from the composite reader, not from individual leaves" (<code>SlowCompositeCodecReaderWrapper.java:118-122</code>, used in every visitor callback at <code class='nw'>:162-205</code>). The test framework's <code>MismatchedLeafReader</code>, which renumbers fields on purpose, also renumbers the <code class='nw'>FieldInfo</code> its visitor passes on (<code>MismatchedLeafReader.java:110-135</code>); its issue, LUCENE-6135 (#7197), says merge shortcuts must be off when numbers do not line up, or values get mixed up across fields.</li><li><strong>History.</strong> Before LUCENE-6133 the merge loaded each document and wrote it through <code>fieldInfos.fieldInfo(field.name())</code>, by name; the removed code even had a TODO to "renumber the field number on the fly". LUCENE-6133 (5.0.0) was a speed-up, "Improve default StoredFieldsWriter.merge() to be more efficient" (<code>lucene/CHANGES.txt:11324</code>), and its issue (#7195) discusses only CPU cost. 4.10.4 copies correctly; builds of the commit fail and of its parent pass.</li><li><strong>Copying parallel readers is a tested path.</strong> <code>TestParallelReaderEmptyIndex</code>: "Adding this reader to a new index should not throw any exception", then <code>addIndexes(SlowCodecReaderWrapper.wrap(pr))</code> (<code class='nw'>:34-36</code>, <code class='nw'>:129-134</code>); <code>TestDemoParallelLeafReader</code> returns <code>SlowCodecReaderWrapper.wrap(ParallelLeafReader)</code> from <code class='nw'>wrapForMerge</code> (<code class='nw'>:644-650</code>); LUCENE-1918 (2.9.0) fixed exceptions when a ParallelReader was "passed to IndexWriter.addIndexes(IndexReader[])" (<code>lucene/CHANGES.txt:19473-19478</code>); in a 2009 java-user answer a committer (@mikemccand) suggested "use addIndexes(IndexReader[]), passing in your ParallelReader". None of these tests has a stored field in a later reader with an aligned target.</li><li><strong>Precedent.</strong> LUCENE-3575 (#4649, 2011), "Field names can be wrong for stored fields / term vectors after merging", the same symptom in older merge code, was fixed as a bug.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>231 words</span></summary><div class='body'><p>The intended-behaviour verifier built the strongest case for "not a bug": field numbers are internal; <code class='nw'>getFieldInfos()</code> warns its numbers "will likely not correspond" to the sub-readers'; <code>StoredFieldVisitor</code> is <code>@lucene.experimental</code> (<code>StoredFieldVisitor.java:35</code>); the class javadoc names searching as the use case (<code>ParallelLeafReader.java:42-44</code>) and warns that indexes not "created and modified the same way" give "undefined behavior" (<code class='nw'>:46-49</code>); and <code class='nw'>wrapForMerge</code> is experimental merge-policy API where the application supplies the reader, so maintainers could ask that reader to present consistent <code class='nw'>FieldInfo</code>s.</p><p>Why it fails for <code class='nw'>addIndexes</code>: the NOTE came with LUCENE-4055 (2012, about codec metadata), two and a half years before the merge shortcut, and describes a numbering difference, not renamed persisted data. The <code class='nw'>addIndexes</code> user calls only public, non-experimental API and never sees a <code class='nw'>FieldInfo</code>. The "same way" warning's only example concerns documents and their order and it states no field-number requirement, while the same javadoc expects different fields per index, which always number from 0. Upstream tests and CHANGES copy parallel readers. The cross-model reviews and the verifier rated the case weak; a cross-model fact check of this doc rates it moderate for <code class='nw'>wrapForMerge</code>, the experimental path, which is one more reason to lead with <code class='nw'>addIndexes</code>. <strong>Verdict: a defect.</strong> The issue should say up front that copying is supported by tests, CHANGES and a list answer rather than by the class javadoc.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: <code>ParallelLeafReader.storedFields()</code> presents its own <code class='nw'>FieldInfo</code></strong></p><p class='short'>Make <code>ParallelLeafReader.storedFields()</code> hand each visitor the view's own <code class='nw'>FieldInfo</code>, looked up by name, as Lucene's composite merge wrapper already does (+60/-1, one file). Both repros pass, and so do the 191 upstream tests in the 18 closest test classes. It does not cover the expert constructor's stored-only readers.</p><pre class='snippet' tabindex='0'><code>public void document(int docID, StoredFieldVisitor visitor) throws IOException {
+  // Sub-readers report their own FieldInfo (their own field numbers); present this
+  // reader&#x27;s FieldInfo instead, so consumers that trust FieldInfo.number (e.g. the
+  // stored fields merge) see numbers consistent with getFieldInfos().
+  StoredFieldVisitor remapping = new RemappingStoredFieldVisitor(visitor, fieldInfos);
+  for (StoredFields reader : fields) {
+    reader.document(docID, remapping);
+  }
+}
+// RemappingStoredFieldVisitor.remap(fi):
+//   FieldInfo own = fieldInfos.fieldInfo(fi.name); return own == null ? fi : own;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 737 words</span></summary><div class='body'><p>Two fixes were applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF, assertions on): A, at the class that breaks the invariant, and B, a defensive check in the merge. Either one fixes both repros. Neither makes the expert-constructor aside copy correctly.</p><div class="hd hd-3"><h3 id='fix-remap-visitor'>A: <code>ParallelLeafReader.storedFields()</code> presents its own <code class='nw'>FieldInfo</code> <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-remap-visitor" target="_self" aria-label="Link to this section" aria-describedby="fix-remap-visitor"><span aria-hidden="true">#</span></a></div><p>Wrap the caller's visitor so that <code class='nw'>needsField</code> and the seven value callbacks receive the parallel reader's <code class='nw'>FieldInfo</code> for that field name, falling back to the sub-reader's when the name is unknown. The same pattern as <code>SlowCompositeCodecReaderWrapper</code>. Patch: <code>optionA-parallelleafreader-remap-visitor.diff</code>, the finder's sketch, +60/-1 in <code>ParallelLeafReader.java</code>.</p><pre class='snippet' tabindex='0'><code>public void document(int docID, StoredFieldVisitor visitor) throws IOException {
+  // Sub-readers report their own FieldInfo (their own field numbers); present this
+  // reader&#x27;s FieldInfo instead, so consumers that trust FieldInfo.number (e.g. the
+  // stored fields merge) see numbers consistent with getFieldInfos().
+  StoredFieldVisitor remapping = new RemappingStoredFieldVisitor(visitor, fieldInfos);
+  for (StoredFields reader : fields) {
+    reader.document(docID, remapping);
+  }
+}
+// RemappingStoredFieldVisitor.remap(fi):
+//   FieldInfo own = fieldInfos.fieldInfo(fi.name); return own == null ? fi : own;</code></pre><p class='k'>Trade-offs</p><ul><li>Two hash lookups by name (<code>FieldInfos.fieldInfo(String)</code>) per loaded stored field (one in <code class='nw'>needsField</code>, one in the value callback; one for a skipped field) and one wrapper-visitor allocation per <code class='nw'>document()</code> call, on every read through a <code>ParallelLeafReader</code>, at search time too; it could be skipped for sub-readers whose numbering already matches. No benchmark was run.</li><li>Search-time visitors now see numbers consistent with <code class='nw'>getFieldInfos()</code>, arguably a fix too.</li><li>It protects <code>ParallelLeafReader</code> only, not other wrapping readers.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock: the finder's test fails 2 of 2, the independent test 2 of 3 (its control passes), the expert test 1 of 1.</li><li>With A: the finder's test 2/2 and the independent test 3/3 pass; the expert test still fails with the same rename.</li><li>Closest suites with A: <code class='nw'>TestParallel*</code> (4 upstream classes and the 2 new ones), <code>TestDemoParallelLeafReader</code>, <code class='nw'>TestAddIndexes</code>, <code class='nw'>TestFieldsReader</code>, <code>TestFilterCodecReader</code>, <code>TestFilterLeafReader</code>, <code>TestStoredFieldsConsumer</code>, <code>TestSortingStoredFieldsConsumer</code>, <code>TestStoredFieldsMergeReadAdvice</code>, <code>TestLucene90StoredFieldsFormat*</code> and <code>codecs.lucene90.compressing.*</code>: 20 classes, 196 tests, 8 skipped, 0 failures.</li><li>Earlier: the adjudication's re-run passes 3/3 with it; a cross-model reviewer ran 28 related upstream tests with it (all pass); the exhaustive harness shows 0 stored-field mismatches with it (8,040-configuration sample).</li></ul><div class="hd hd-3"><h3 id='fix-merge-check'>B: <code class='nw'>MergeVisitor</code> trusts a visited number only if it names the same field <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-merge-check" target="_self" aria-label="Link to this section" aria-describedby="fix-merge-check"><span aria-hidden="true">#</span></a></div><p>When the constructor found the numbering aligned, <code class='nw'>remap()</code> checks that the visited number names the same field in the merged <code class='nw'>FieldInfos</code>, and otherwise looks the field up by name. Patch: <code>optionB-mergevisitor-check-number.diff</code>, +9/-1 in <code>StoredFieldsWriter.java</code>.</p><pre class='snippet' tabindex='0'><code>// in MergeVisitor.remap(), after the existing remapper branch:
+FieldInfo merged = mergeFieldInfos.fieldInfo(field.number);
+if (merged != null &amp;&amp; merged.name.equals(field.name)) {
+  return field;
+}
+return mergeFieldInfos.fieldInfo(field.name);</code></pre><p class='k'>Trade-offs</p><ul><li>Protects every merge that copies stored fields through <code>StoredFieldsWriter.MergeVisitor</code> (the default merge and the Lucene90 <code class='nw'>VISITOR</code> strategy) against any wrapping reader that hands it foreign <code class='nw'>FieldInfo</code>, at the cost of one array lookup and one string comparison per stored field on that path only; the codec's bulk and per-document copy paths are untouched. No benchmark was run.</li><li>A stored-fields format that overrides <code class='nw'>merge</code> without <code class='nw'>MergeVisitor</code> is not covered, and a name the target does not know still yields <code class='nw'>null</code> (the <code>NullPointerException</code> of the expert aside).</li><li>Search-time visitors of a <code>ParallelLeafReader</code> still see sub-reader numbers.</li></ul><p class='k'>What the checks validated</p><ul><li>With B (A reverted): the finder's test 2/2 and the independent test 3/3 pass.</li><li>The expert aside now fails with <code>NullPointerException: Cannot read field "number" because "info" is null</code> in the merge thread (<code>Lucene90CompressingStoredFieldsWriter.writeField</code>): B turns that silent rename into an exception, it does not make it copy.</li><li>The same closest core suites plus <code>TestSimpleTextStoredFieldsFormat</code> (merges through the default <code>StoredFieldsWriter.merge</code>): 21 classes, 215 tests, 11 skipped, 0 failures.</li></ul><div class="hd hd-3"><h3 id='fix-both'>C: both A and B</h3><a class="hlink" href="#fix-both" target="_self" aria-label="Link to this section" aria-describedby="fix-both"><span aria-hidden="true">#</span></a></div><p>A fixes the reader that breaks the invariant; B guards the merge against any other reader that does the same.</p><p class='k'>Trade-offs</p><p>Two changes to review. Each was validated alone through gradle and the closest suites; together they were run once, in this doc's fact check, through the JUnit runner with both patched files shadowed: the finder's and the independent repros pass 5 of 5 (not run through gradle or the suites).</p><div class="hd hd-3"><h3 id='fix-expert'>D: the expert constructor's stored-fields-only readers</h3><a class="hlink" href="#fix-expert" target="_self" aria-label="Link to this section" aria-describedby="fix-expert"><span aria-hidden="true">#</span></a></div><p>Add their fields to the parallel <code class='nw'>FieldInfos</code>, or reject copying such a reader.</p><p class='k'>Trade-offs</p><p>A design question for upstream: what that copy should contain is not documented. Not run.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that copy a <code>ParallelLeafReader</code> with stored fields should check stored-field names in the copy; Solr main uses the same <code class='nw'>wrapForMerge</code> pattern without stored fields, so it is not hit (code reading only).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Bounded-exhaustive metamorphic testing: copies of a <code>ParallelLeafReader</code> were compared with one reference index built from the class javadoc's rules, over 128,625 small configurations. The suspicion came first, while writing an executable model of the javadoc; the run then found stored-field mismatches in 21,993 empty-target copies and none where the target was numbered differently.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>324 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive metamorphic translation validation</strong> (a hunt unit, 2026-10-27). No model checker, solver or prover was involved.</p><ul><li><strong>The relation.</strong> A <code>ParallelLeafReader</code> over readers A and B, and its <code class='nw'>addIndexes</code> copies into an empty target, a reverse-numbered target, an aligned target and through the expert constructor, must equal a reference single index built from the javadoc's union and first-owner rules, compared per live document: live docs, <code class='nw'>FieldInfos</code>, postings, norms, doc values, points, vectors, stored fields and term vectors.</li><li><strong>The space.</strong> 3 fields; in each of the 2 readers a field is absent or one of {stored, text with term vectors, numeric doc values, 1D int point, 2D float vector}, not absent in both, so 35 combinations per field; 35^3 x 3 deletion modes = 128,625 configurations, 3 documents per reader, 686,000 checks. Run on the stock jars of <code class='nw'>ea57360912ed</code>, whose stored-field code on this path is identical to <code class='nw'>a9779ef3c193</code> (the only differences in the classes involved, in <code>SlowCodecReaderWrapper</code> and the stored-fields reader, are vector-hint and merge-stream code); local samples on <code class='nw'>a9779ef3c193</code> agree.</li><li><strong>The result.</strong> Stored-field mismatches in 21,993 empty-target copies, 21,993 aligned-target copies and 7,331 expert-constructor copies; 0 in reverse-numbered targets; 0 with the fix sketch (8,040-configuration sample). The only other mismatch kind was term vectors, a separate registered bug on the same path. Live docs, postings, norms, numeric doc values, 1D points and float vectors never differed; other doc-values types, byte vectors, multi-dimensional points, payloads and fields that are both stored and indexed were not in the model.</li><li><strong>Order of events.</strong> The hypothesis came from reading code while writing the model (the stored-fields visitor is passed through while <code class='nw'>getFieldInfos()</code> renumbers); a probe confirmed it; the exhaustive run measured it. The finder (an AI tool) then reduced it to a public-API JUnit, ran the release bracket and wrote the fix sketch.</li><li>Then cross-model reviews, independent verifiers, an adjudication, a history bisect, a prior-report search, a security screen and an audit (see Independent checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): 163 tool queries over Lucene issues, PRs, commits, JIRA, the mailing lists and downstream trackers, 23 manual GitHub searches, the changed files of all 409 open PRs, and 9 web queries. Nearest: LUCENE-3575 (same symptom in older code, fixed 2011) and #13812 (same class of bug, for doc values and points).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>None of the searched items describes <code>ParallelLeafReader</code> handing sub-reader <code class='nw'>FieldInfo</code> numbers to stored-field visitors, or the merge's aligned-numbers shortcut renaming stored values copied from such a reader; nothing is by the owner. Word-based searches show what was found, not that no report exists; closed PR diffs and private lists cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene)</th><td class='when'>2026-10-27</td><td>three runs of the hunt's prior-report tool (76 issue/PR and 9 commit queries among its 163) and 23 manual searches, including all of GitHub and the owner's own issues; 38 issues and PRs read</td><td>no report; nearest #4649 (LUCENE-3575, fixed 2011), #7197 (LUCENE-6135, the invariant), #13812, #13809, #13805 (2024, doc values and points), #7195 (LUCENE-6133, the introducing change), #9093 (LUCENE-8045, dvGen), #1684 (LUCENE-606, Won't Fix)</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>the changed files of all 409 open apache/lucene PRs; the diffs of 5 related PRs (#16847, #13342, #14512, #15683, #16690)</td><td>none changes <code>ParallelLeafReader.storedFields()</code>, the <code class='nw'>FieldInfo</code> the visitor receives or the merge's alignment check</td></tr><tr><th scope='row'>Mailing lists and JIRA archive</th><td class='when'>2026-10-27</td><td>60 queries over dev@, java-user@, issues@ and commits@, 12 JIRA-archive queries; 10 threads read</td><td>no report; a 2009 java-user answer recommends copying a parallel reader with addIndexes</td></tr><tr><th scope='row'>Downstream and web</th><td class='when'>2026-10-27</td><td>6 queries on Elasticsearch, OpenSearch and Solr, a code search for <code>ParallelLeafReader</code> in those repositories, 9 web queries</td><td>no report; a downstream fork's issue merges through this path with a doc-values-only side index, and Solr main's <code class='nw'>DocAlignedMerge</code> carries no stored fields: neither can hit it</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 5.0.0 by LUCENE-6133 (2014-12-29), a stored-fields merge speed-up that skips the by-name lookup when field numbers look aligned; both commits bisected. Executed: 4.10.3 and 4.10.4 correct; the 14 releases run from 5.0.0 to 10.5.2, and main, wrong; tag containment covers the rest of that range. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-6133 "improve default stored fields merge algorithm" (#7195, by @rmuir, 2014-12-29; a JIRA patch committed through SVN): trunk <code class='nw'>d249f8bc3378</code> and the same-day branch_5x backport <code class='nw'>52b13f1946b5</code>. It replaced the by-name stored-fields merge with <code class='nw'>MergeVisitor</code> and its aligned-numbers shortcut. The reader side (renumbering in <code class='nw'>getFieldInfos()</code>, the visitor passed through) dates from <code>ParallelAtomicReader</code> (LUCENE-3736, 2012) and was harmless while the merge matched by name; the only later edit to the shortcut lines is the behaviour-preserving #12116 (2023).</p><p>All 15 5.x release tags contain the backport and all 83 tags from 6.0.0 to 10.5.2 contain the trunk commit, so every release from 5.0.0 to 10.5.2 is affected. Entry points: <code>addIndexes(CodecReader...)</code> with <code>SlowCodecReaderWrapper</code> since 5.0.0 (LUCENE-6165), <code>OneMerge.wrapForMerge</code> since 6.2.0 (LUCENE-6766). Releases before 9.12.3 and the 4.10.x results were run by the finder and the history pass; this doc's fact check re-ran 4.10.4, 5.0.0 and 7.7.3 with the same results. Not fixed upstream: no later commit to the three files on main at search time, and no open PR changes the code.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>4.10.3, 4.10.4</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>copy correct (<code>ParallelAtomicReader</code> copied with <code>addIndexes(IndexReader...)</code>)</td></tr><tr><th scope='row'>branch_5x <code class='nw'>52b13f1946b</code> vs parent <code class='nw'>b1dbc30b1d5</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>the commit copies <code>title=Lucene in Action, title=42</code>; its parent copies <code class='nw'>title</code>, <code class='nw'>price</code></td></tr><tr><th scope='row'>trunk <code class='nw'>d249f8bc337</code> vs parent <code class='nw'>410099b6fbd</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>the same: the commit renames, its parent copies correctly</td></tr><tr><th scope='row'>5.0.0, 5.1.0, 5.5.5, 6.0.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.4.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>plain <code class='nw'>main()</code> repro: the copy holds <code class='nw'>title</code> twice and no <code class='nw'>price</code></td></tr><tr><th scope='row'>9.12.3, 10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>JUnit: 2 of 2 fail (<code class='nw'>addIndexes</code> and <code class='nw'>wrapForMerge</code>)</td></tr><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>JUnit: 2 of 2 fail with assertions on and off; 40 of 40 over 20 master seeds and 5 codecs</td></tr><tr><th scope='row'>main + fix A, main + fix B</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>both repros pass; the expert aside still renames (A) or throws (B)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Cross-model reviews (OpenAI GPT-5.6, running code), an independent reproducer, a devil's advocate, an adjudication and an audit all said real and re-ran it with their own tests or seeds; the strongest "intended" case was rated weak. This doc's tests and both fixes ran through gradle.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>470 words</span></summary><div class='body'><p>All checks ran on main <code class='nw'>a9779ef3c193</code> unless noted; the cross-model reviews ran on <code class='nw'>ea57360912ed</code>, whose stored-field code on this path is identical, and the intended-lens verifier re-ran its test on <code class='nw'>a9779ef3c193</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder (a hunt unit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Exhaustive run: stored-field mismatches in 21,993 of 128,625 empty-target copies, 0 where the numbering differs, 0 with the fix sketch. JUnit fails 2/2 with -ea and -da, 40/40 over 20 iterations of one master seed (codec <code>Asserting(Lucene104)</code>), and on 10.5.2, 10.0.0 and 9.12.3.</td></tr><tr><th scope='row'>Cross-model review, refute lens (OpenAI GPT-5.6, ran code)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Its own test (other field names, a shifted-numbering control) fails with -ea and -da, the control passes; with the fix 7 upstream tests pass. Rated the intended argument weak and flagged the expert-constructor gap.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit fails 2 of 3 on main (-ea, -da), 10.5.2 and 9.12.3, control passes, CheckIndex clean; a probe shows the visitor gets numbers 0 and 1 while <code class='nw'>getFieldInfos()</code> says 1 and 2; 3/3 pass with the fix.</td></tr><tr><th scope='row'>Cross-model review, intended lens (OpenAI GPT-5.6, ran code)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Intended argument weak; own test fails with -ea, -da, the SimpleText codec and on 10.5.2, control passes; with the fix 28 related upstream tests pass; re-run on <code class='nw'>a9779ef3c193</code> fails.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high for addIndexes, medium for wrapForMerge, low for the expert aside)</span></td><td>Traced the <code class='nw'>getFieldInfos()</code> NOTE to 2012, two and a half years before the shortcut, and found that the in-tree composite merge wrapper remaps by name for this invariant; re-ran the repro on main and 10.5.2.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high; data corruption</span></td><td>Re-ran the independent reproduction's test with a new seed: 2 of 3 fail with -ea and -da, control passes; 3/3 pass with the fix. Filing caveats: lead with addIndexes, wrapForMerge is narrower, the expert case is an aside.</td></tr><tr><th scope='row'>History follow-up and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bisected; keep</span></td><td>Builds of both introducing commits fail and of their parents pass; 15 releases run. The audit re-ran the finder's test on main with new seeds (2 of 2 fail, -ea and -da).</td></tr><tr><th scope='row'>This doc's fix validation</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> both fixes pass the repros and the closest suites</span></td><td>Gradle in a scratch worktree: stock 5 of 6 fail; fix A 196 tests in 20 classes pass; fix B 215 tests in 21 classes pass; the expert aside stays broken under both (rename with A, <code>NullPointerException</code> with B).</td></tr><tr><th scope='row'>Fact checks of this doc (independent, and cross-model with OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; text corrections applied</span></td><td>Re-ran both repros (-ea, -da), the paste-ready gradle command, fix A, fix B and A+B together, 20 master seeds (40 of 40, 5 codecs), 4.10.4, 5.0.0, 7.7.3, 9.12.3 and 10.5.2; found three wording errors (seed/codec count, the experimental merge-policy API, where misplaced values land), corrected here.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-652/bug.png' download='parallelleafreader-stored-fields-foreign-fieldinfo-numbers-bug.png' target='_self'>PNG</a> <span class='n'>531 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,437 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-652, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>Copying a ParallelLeafReader into an index (IndexWriter.addIndexes over SlowCodecReaderWrapper, or a merge whose OneMerge.wrapForMerge returns one) silently stores a later sub-reader's stored fields under another field's name: ParallelLeafReader.storedFields() lets each sub-reader visit with its own FieldInfo numbers while getFieldInfos() renumbers the fields, and StoredFieldsWriter.MergeVisitor skips its remap-by-name step when the numbers look aligned</dd></div><div><dt>Area</dt><dd>core / index (ParallelLeafReader stored fields x StoredFieldsWriter.MergeVisitor, on addIndexes and wrapForMerge copies)</dd></div><div><dt>Priority</dt><dd>Medium, rank 101: Silent, permanent stored-field corruption that CheckIndex misses, present in every release since 5.0, but it only happens when a ParallelLeafReader is copied, which is rare.</dd></div><div><dt>Impact class</dt><dd>data corruption</dd></div><div><dt>Impact note</dt><dd>Hits applications that copy a ParallelLeafReader (or the leaves of a ParallelCompositeReader) built over two or more lockstep indexes into an index, with IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(...)) or from a custom OneMerge.wrapForMerge, when a later sub-reader has stored fields and the target numbers its fields the way the parallel reader does (for example a fresh, empty target); default IndexWriterConfig and codec, any size, with -ea and -da; the later reader's stored values are persisted under an earlier field's name (or the field drops out of the stored document), silently and permanently, CheckIndex passes, and postings, doc values, points, vectors, norms and live docs are copied correctly; a target whose numbering differs takes the remap-by-name path and gets a correct copy.</dd></div><div><dt>Summary</dt><dd>You build two indexes in lockstep, as ParallelLeafReader requires (index A stores title='Lucene in Action', index B stores price='42'), wrap them in a ParallelLeafReader, which itself returns both fields correctly, and copy it into a new index with IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(reader)), expecting the copy to hold title and price. Instead the copy holds title='Lucene in Action' and title='42' and no price field, with no error and a clean CheckIndex: storedFields() lets B report price with B's own field number 0, the parallel reader's getFieldInfos() numbers price 1, and because the target's merged numbers equal the parallel reader's, the stored-fields merge skips its remap-by-name step and writes the value under number 0, which is title. A merge whose OneMerge.wrapForMerge adds a parallel index with stored fields behind each segment goes wrong the same way (a 'summary' value stored as a second 'id').</dd></div><div><dt>Introduced</dt><dd>d249f8bc3378d7a349a78fd53ae6e86c695475a5 (LUCENE-6133 'improve default stored fields merge algorithm', migrated as GitHub issue #7195, svn r1648327, by Robert Muir; SVN/JIRA era, no PR; a performance change) on trunk, and its same-day branch_5x backport 52b13f1946b582d5ff7edc718e38f3198260058b (svn r1648332), which the released 5.x builds contain: it replaced the by-name stored-fields merge (DocumentStoredFieldVisitor plus fieldInfos.fieldInfo(field.name())) with StoredFieldsWriter.MergeVisitor and its 'if field numbers are aligned, we can save hash lookups' shortcut [exec: lucene-core built from the commit and from its parent on both lines, the repro fails on d249f8bc337 and 52b13f1946b and passes on the parents 410099b6fbd and b1dbc30b1d5; read: git blame of StoredFieldsWriter.java:182-192 on main and git log -S]. The reader side (FieldInfos.Builder renumbering in getFieldInfos(), the visitor passed unchanged to each sub-reader) dates from ParallelAtomicReader (LUCENE-3736, 2012) and was harmless while the merge matched fields by name; the only later edit to the shortcut lines is the behaviour-preserving #12116 (2023) (2014-12-29)</dd></div><div><dt>First affected version</dt><dd>5.0.0 [exec]; 4.10.3 and 4.10.4 copy correctly [exec] and no 4.x release tag contains either commit [git]</dd></div><div><dt>Affected versions</dt><dd>Every release from 5.0.0 through 10.5.2 (the latest release) and main a9779ef3c193; never fixed. [exec] follow-up history runs: 5.0.0, 5.1.0, 5.5.5, 6.0.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0 and 9.12.3 fail the version-independent main() repro (copy = title twice, no price), the finder's JUnit fails 2 of 2 on 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da), and the finder also ran 9.4.2 (fails); the independent reproduction's JUnit fails 2 of 3 on main (-ea and -da), 10.5.2 and 9.12.3; the intended-behaviour check re-ran the finder's repro on main and 10.5.2; not affected: 4.10.3 and 4.10.4 (a ParallelAtomicReader variant of the repro passes) and the parents of the introducing commits on trunk and branch_5x. [read] the 15 5.x tags contain the branch_5x commit and the 83 tags 6.0.0 to 10.5.2 contain the trunk commit; entry points: addIndexes(CodecReader...) with SlowCodecReaderWrapper since 5.0.0 (LUCENE-6165), OneMerge.wrapForMerge since 6.2.0 (LUCENE-6766, executed on 9.12.3, 10.0.0, 10.5.2 and main); no later commit to ParallelLeafReader.java, StoredFieldsWriter.java or SlowCodecReaderWrapper.java on upstream main after a9779ef3c193 at search time and no open PR changes the relevant code, so the unreleased lines are affected (not executed). Releases older than 9.12.3 were run only by the finder and the follow-up, not by a verifier. JDK 25.0.3, aarch64; pure Java logic.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27, read-only; the prior-report record, verdict new): three hunt prior-report tool runs (163 non-web queries over apache/lucene GitHub issues, PRs and commits, Elasticsearch, OpenSearch and Solr, the dev@, java-user@, issues@ and commits@ lists and the LUCENE JIRA archive), 23 manual GitHub searches (including downstream repositories, all of GitHub and the owner's own issues), the changed files of all 409 open apache/lucene PRs (none changes ParallelLeafReader.storedFields(), the FieldInfo the visitor receives or MergeVisitor's alignment check), 9 web queries, 38 issues and PRs and 10 list threads read; not fixed upstream (no commit to ParallelLeafReader.java, StoredFieldsWriter.java or SlowCodecReaderWrapper.java after a9779ef3c193 at search time). Nearest items, none a report of this bug: #4649 (LUCENE-3575, 2011, fixed: wrong stored field names after merging, a bug in older SegmentMerger bulk-copy code that predates this one; precedent that such renaming is a bug), #7197 (LUCENE-6135, 2014: states that merge shortcuts must be off when field numbers do not line up, or values get mixed up across fields; its test-only MismatchedLeafReader renumbers the visitor's FieldInfo, which ParallelLeafReader does not), #13812, #13809 and #13805 (2024: the same class of bug fixed for doc values and points, not stored fields), #7195 (LUCENE-6133, the introducing change; its discussion is about CPU cost only), #9093 (LUCENE-8045, a ParallelLeafReader dvGen bug fixed in getFieldInfos()), #1684 (LUCENE-606, 2006, overlapping fields in ParallelReader, Won't Fix), and a downstream fork's issue (mkhludnev/solr#29) that merges through SlowCodecReaderWrapper over ParallelLeafReader with a doc-values-only sidecar, which cannot hit this bug. Gaps: keyword search only, GitHub search does not cover closed PR diffs, private lists are not searchable; 'not found' is the best available evidence, not proof.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26 commit; runs on 2026-10-27): the finder's JUnit and an independent reproducer's JUnit through gradle with assertions on and off on stock main, and with fix A and fix B in a scratch worktree together with the closest core and codecs suites; repro runs by the finder, cross-model reviewers, verifiers, the adjudication and an audit with their own seeds; 14 releases from 5.0.0 to 10.5.2 (a <code class='nw'>main()</code> repro up to 9.12.3, the JUnit on 9.12.3, 10.0.0 and 10.5.2; tag containment covers the rest of that range), 4.10.3 and 4.10.4; builds of the two introducing commits and their parents. OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/ParallelLeafReader.java :36-49 (class javadoc: &#x27;Each document contains the union of the fields&#x27;, lockstep warning), :154-159 (FieldInfos.Builder, first reader having a field wins), :239-245 (getFieldInfos NOTE: numbers &#x27;will likely not correspond&#x27;), :277-298 (storedFields(): the caller&#x27;s visitor is passed unchanged to each sub-reader)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/StoredFieldsWriter.java :182-192 (MergeVisitor: remapper set only when the source&#x27;s getFieldInfos() numbers disagree with mergeFieldInfos), :237-243 (remap(): without a remapper the visited FieldInfo is returned as is)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/ParallelLeafReader.java:38-39, 123-124, 154-159, 242-244, 277-298</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfos.java:415-433</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SlowCodecReaderWrapper.java:38, 319-350</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/MergeState.java:133</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/StoredFieldsWriter.java:176-245</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene90/compressing/Lucene90CompressingStoredFieldsWriter.java:600-645, 678-698</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3255; index/MergePolicy.java:302</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/test/org/apache/lucene/index/TestDemoParallelLeafReader.java:178-182, 644-650</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java:118-122, 162-205</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/index/MismatchedLeafReader.java:110-135</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/StoredFieldVisitor.java:35</code></li><li><code>lucene/core/src/test/org/apache/lucene/index/TestParallelReaderEmptyIndex.java:34-36, 129-134</code></li><li><code>lucene/CHANGES.txt:11324 (LUCENE-6133), 19473-19478 (LUCENE-1918)</code></li><li><code>a Lucene clone git show d249f8bc3378 (removed by-name merge and its TODO)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/MergePolicy.java:52, 69, 189; FilterMergePolicy.java:27 (@lucene.experimental)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfos.java:330-332, 341-346</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone git log d249f8bc3378 (author, date, subject)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestParallelReaderCopyKeepsStoredFieldNames.java (core, 2 tests): <a href='../repro/LFV-652/TestParallelReaderCopyKeepsStoredFieldNames.java'><code>repro/LFV-652/TestParallelReaderCopyKeepsStoredFieldNames.java</code></a> (142 lines)</li><li>TestParallelLeafReaderCopyStoredFieldNames.java (independent reproducer, 3 tests incl. a control): <a href='../repro/LFV-652/TestParallelLeafReaderCopyStoredFieldNames.java'><code>repro/LFV-652/TestParallelLeafReaderCopyStoredFieldNames.java</code></a> (246 lines)</li><li>TestParallelReaderExpertStoredFieldsReaders.java (expert-constructor aside): <a href='../repro/LFV-652/TestParallelReaderExpertStoredFieldsReaders.java'><code>repro/LFV-652/TestParallelReaderExpertStoredFieldsReaders.java</code></a> (68 lines)</li><li>ParallelCopyStoredNamesMain.java (plain main(), releases 5.0.0 to 9.12.3): <a href='../repro/LFV-652/ParallelCopyStoredNamesMain.java'><code>repro/LFV-652/ParallelCopyStoredNamesMain.java</code></a> (82 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the repro's example, made in parallel with this doc from a probe run on main that prints every field number involved, the numbers a visitor receives, the merge's alignment check, the copies and CheckIndex's verdict. The PNG is the final summary card.</p><ul class='paths'><li><a href='../assets/LFV-652/bug.png'><code>assets/LFV-652/bug.png</code></a> (531 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

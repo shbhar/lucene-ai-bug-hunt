@@ -1,0 +1,186 @@
+diff --git a/lucene/core/src/test/org/apache/lucene/index/TestMergeCarryOverFromDisk.java b/lucene/core/src/test/org/apache/lucene/index/TestMergeCarryOverFromDisk.java
+index 46993a71891..2ed1a2df324 100644
+--- a/lucene/core/src/test/org/apache/lucene/index/TestMergeCarryOverFromDisk.java
++++ b/lucene/core/src/test/org/apache/lucene/index/TestMergeCarryOverFromDisk.java
+@@ -30,6 +30,10 @@ import org.apache.lucene.document.NumericDocValuesField;
+ import org.apache.lucene.document.SortedNumericDocValuesField;
+ import org.apache.lucene.document.StringField;
+ import org.apache.lucene.search.DocIdSetIterator;
++import org.apache.lucene.search.IndexSearcher;
++import org.apache.lucene.search.MatchNoDocsQuery;
++import org.apache.lucene.search.Query;
++import org.apache.lucene.search.QueryVisitor;
+ import org.apache.lucene.store.Directory;
+ import org.apache.lucene.store.FilterDirectory;
+ import org.apache.lucene.store.IOContext;
+@@ -38,6 +42,7 @@ import org.apache.lucene.tests.analysis.MockAnalyzer;
+ import org.apache.lucene.tests.util.LuceneTestCase;
+ import org.apache.lucene.util.Bits;
+ import org.apache.lucene.util.BytesRef;
++import org.apache.lucene.util.ThreadInterruptedException;
+ 
+ /**
+  * Deterministically exercises the doc-values-update merge carry-over path: an update that resolves
+@@ -398,4 +403,162 @@ public class TestMergeCarryOverFromDisk extends LuceneTestCase {
+     writer.close();
+     dir.close();
+   }
++
++  /** A delete-by-query matching nothing, whose first rewrite blocks until the test releases it. */
++  private static class BlockingQuery extends Query {
++    final CountDownLatch blocked = new CountDownLatch(1);
++    final CountDownLatch release = new CountDownLatch(1);
++
++    @Override
++    public Query rewrite(IndexSearcher searcher) {
++      if (blocked.getCount() > 0) {
++        blocked.countDown();
++        try {
++          release.await();
++        } catch (InterruptedException e) {
++          throw new ThreadInterruptedException(e);
++        }
++      }
++      return new MatchNoDocsQuery();
++    }
++
++    @Override
++    public void visit(QueryVisitor visitor) {
++      visitor.visitLeaf(this);
++    }
++
++    @Override
++    public String toString(String field) {
++      return "BlockingQuery";
++    }
++
++    @Override
++    public boolean equals(Object other) {
++      return this == other;
++    }
++
++    @Override
++    public int hashCode() {
++      return System.identityHashCode(this);
++    }
++  }
++
++  public void testInFlightUpdateWinsOverCarriedOverValue() throws Exception {
++    doInFlightUpdateDuringMergeCommit(0, false);
++  }
++
++  public void testInFlightUpdateWinsOverCarriedOverValueWithOverlays() throws Exception {
++    doInFlightUpdateDuringMergeCommit(4, false);
++  }
++
++  public void testInFlightUpdateDelGenNotReusedByCarryOverWithOverlays() throws Exception {
++    doInFlightUpdateDuringMergeCommit(4, true);
++  }
++
++  /**
++   * A packet that is still resolving when the merge commits re-resolves on the merged segment at
++   * its own delGen, so its update must win over the carried-over value of an older update that was
++   * written to a merging segment during the merge. Updates that finish out of order ({@link
++   * IndexWriter#tryUpdateDocValue}) leave residual updates with higher delGens on the merging
++   * segments; with {@code adjacentGens} the residual on segment 1 directly follows the in-flight
++   * packet's delGen.
++   */
++  private void doInFlightUpdateDuringMergeCommit(int maxOverlays, boolean adjacentGens)
++      throws Exception {
++    MergePausingDirectory dir = new MergePausingDirectory(newDirectory());
++    IndexWriterConfig conf =
++        newIndexWriterConfig(new MockAnalyzer(random()))
++            .setMergeScheduler(new ConcurrentMergeScheduler())
++            .setMergePolicy(new LogDocMergePolicy())
++            // buffer updates until an explicit flush or reopen freezes them into a packet
++            .setRAMBufferSizeMB(IndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB)
++            .setMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH)
++            .setMaxDocValuesOverlays(maxOverlays);
++    IndexWriter writer = new IndexWriter(dir, conf);
++    // segment 1 = {0, 1}, segment 2 = {2}; ndv = id
++    for (int i = 0; i < 3; i++) {
++      if (i == 2) {
++        writer.commit();
++      }
++      Document d = new Document();
++      d.add(new StringField("id", Integer.toString(i), StringField.Store.NO));
++      d.add(new NumericDocValuesField("ndv", i));
++      writer.addDocument(d);
++    }
++    writer.commit();
++
++    Thread merger =
++        new Thread(
++            () -> {
++              try {
++                writer.forceMerge(1);
++              } catch (Throwable t) {
++                dir.failure.compareAndSet(null, t);
++              }
++            },
++            "forceMerge");
++    merger.start();
++    dir.mergeStarted.await();
++
++    // doc 0 := 100, resolved and written to segment 1 on disk while it merges
++    writer.updateNumericDocValue(new Term("id", "0"), "ndv", 100L);
++    DirectoryReader reader = DirectoryReader.open(writer);
++
++    // doc 0 := 200, frozen together with a blocking delete-by-query into one packet that another
++    // thread starts to resolve and that is still running when the merge commits
++    BlockingQuery blockingQuery = new BlockingQuery();
++    writer.updateNumericDocValue(new Term("id", "0"), "ndv", 200L);
++    writer.deleteDocuments(blockingQuery);
++    AtomicReference<Throwable> applyFailure = new AtomicReference<>();
++    Thread applier =
++        new Thread(
++            () -> {
++              try {
++                writer.flush();
++              } catch (Throwable t) {
++                applyFailure.set(t);
++              }
++            },
++            "applyPacket");
++    applier.start();
++    blockingQuery.blocked.await();
++
++    // updates that finish before the blocked packet and stay pending on the merging segments
++    if (adjacentGens == false) {
++      assertTrue(writer.tryUpdateDocValue(reader, 2, new NumericDocValuesField("ndv", 302L)) > 0);
++    }
++    assertTrue(writer.tryUpdateDocValue(reader, 1, new NumericDocValuesField("ndv", 301L)) > 0);
++    reader.close();
++
++    // commit the merge (and its carry-over), then let the blocked packet re-resolve on the result
++    dir.resumeMerge.countDown();
++    merger.join();
++    blockingQuery.release.countDown();
++    applier.join();
++    assertNull("forceMerge failed: " + dir.failure.get(), dir.failure.get());
++    assertNull("applying the packet failed: " + applyFailure.get(), applyFailure.get());
++
++    Map<String, Long> expected = Map.of("0", 200L, "1", 301L, "2", adjacentGens ? 2L : 302L);
++    try (DirectoryReader r = DirectoryReader.open(writer)) {
++      assertEquals(1, r.leaves().size());
++      assertEquals(expected, ndvById(r.leaves().get(0).reader()));
++    }
++    writer.close();
++    try (DirectoryReader r = DirectoryReader.open(dir)) {
++      assertEquals(expected, ndvById(r.leaves().get(0).reader()));
++    }
++    dir.close();
++  }
++
++  private static Map<String, Long> ndvById(LeafReader leaf) throws IOException {
++    Map<String, Long> ndvById = new HashMap<>();
++    TermsEnum te = leaf.terms("id").iterator();
++    for (BytesRef t = te.next(); t != null; t = te.next()) {
++      int doc = te.postings(null, PostingsEnum.NONE).nextDoc();
++      NumericDocValues ndv = leaf.getNumericDocValues("ndv");
++      assertTrue(ndv.advanceExact(doc));
++      ndvById.put(t.utf8ToString(), ndv.longValue());
++    }
++    return ndvById;
++  }
+ }

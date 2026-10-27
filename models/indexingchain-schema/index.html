@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Formal models and scripts: indexingchain-schema</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Formal models and scripts: indexingchain-schema</h1>
+<p class="facts small">Tools: Alloy, Python</p>
+<p>These are the working models and scripts this part of the hunt used. Some encode the code as it is (a counterexample is the expected result), others a fixed or correct variant; read the header comment of each file. Paths inside them were replaced by placeholders such as <code>$LUCENE</code> (a Lucene checkout) and <code>$WORK</code>.</p>
+<h2>Bugs found</h2><ul>
+<li>The frozen-FieldType validation cache (#15886) keys a field on its first value&#x27;s type, so for a field built from several field types a later document skips the per-field schema check (or is checked against stale state after a rejected addBatch), depending on value order, flushes and earlier operations (bug LFV-118; <a href="../../repro/LFV-118/index.html">repro</a> · <a href="../../bugs/LFV-118.html">bug page</a>)</li>
+<li>A rejected document leaves its doc-values skip index type in the field&#x27;s per-document schema state, so later valid documents with that field are rejected until the in-memory segment is flushed (bug LFV-116; <a href="../../repro/LFV-116/index.html">repro</a>)</li>
+<li>IndexWriter#addBatch marks the frozen FieldType of an earlier rejected document as validated, so later documents with that type skip the per-field schema check (a wrong-dimension vector is stored truncated) (bug LFV-127; <a href="../../repro/LFV-127/index.html">repro</a>)</li>
+<li>A failed addIndexes(Directory...) leaves the incoming fields registered in the writer&#x27;s field schema, so getFieldNames lists them and later valid documents that use those names differently are rejected until the writer is reopened (bug LFV-124; <a href="../../repro/LFV-124/index.html">repro</a>)</li>
+</ul><h2>Files</h2><ul>
+<li><a href="addindexes-directory-registers-schema-before-failing/model/FieldNumbersTxn.als"><code>addindexes-directory-registers-schema-before-failing/model/FieldNumbersTxn.als</code></a> <span class="dim small">(used for LFV-124)</span></li>
+<li><a href="fieldschema-reset-keeps-skip-index/model/FieldSchemaCache.als"><code>fieldschema-reset-keeps-skip-index/model/FieldSchemaCache.als</code></a> <span class="dim small">(used for LFV-116)</span></li>
+<li><a href="fieldschema-reset-keeps-skip-index/model/FieldSchemaCacheSmall.als"><code>fieldschema-reset-keeps-skip-index/model/FieldSchemaCacheSmall.als</code></a> <span class="dim small">(used for LFV-116)</span></li>
+<li><a href="fieldschema-reset-keeps-skip-index/model/decode_m1.py"><code>fieldschema-reset-keeps-skip-index/model/decode_m1.py</code></a> <span class="dim small">(used for LFV-116)</span></li>
+<li><a href="frozen-type-cache-promotes-rejected-type-via-addbatch/model/FieldSchemaCache.als"><code>frozen-type-cache-promotes-rejected-type-via-addbatch/model/FieldSchemaCache.als</code></a> <span class="dim small">(used for LFV-127)</span></li>
+<li><a href="frozen-type-cache-promotes-rejected-type-via-addbatch/model/FieldSchemaCacheSmall.als"><code>frozen-type-cache-promotes-rejected-type-via-addbatch/model/FieldSchemaCacheSmall.als</code></a> <span class="dim small">(used for LFV-127)</span></li>
+<li><a href="frozen-type-cache-promotes-rejected-type-via-addbatch/model/decode_m1.py"><code>frozen-type-cache-promotes-rejected-type-via-addbatch/model/decode_m1.py</code></a> <span class="dim small">(used for LFV-127)</span></li>
+<li><a href="frozen-type-cache-skips-check-for-multi-type-fields/model/FieldSchemaCache.als"><code>frozen-type-cache-skips-check-for-multi-type-fields/model/FieldSchemaCache.als</code></a> <span class="dim small">(used for LFV-118)</span></li>
+<li><a href="frozen-type-cache-skips-check-for-multi-type-fields/model/FieldSchemaCacheSmall.als"><code>frozen-type-cache-skips-check-for-multi-type-fields/model/FieldSchemaCacheSmall.als</code></a> <span class="dim small">(used for LFV-118)</span></li>
+<li><a href="frozen-type-cache-skips-check-for-multi-type-fields/model/decode_m1.py"><code>frozen-type-cache-skips-check-for-multi-type-fields/model/decode_m1.py</code></a> <span class="dim small">(used for LFV-118)</span></li>
+</ul>
+<h2>How to run</h2><ul>
+<li>Alloy 6: open the <code>.als</code> file and run its commands (an instance found for a bug assertion is the bug).</li>
+<li>Python: <code>python3 &lt;file&gt;.py</code>; scripts that import <code>z3</code> need the <code>z3-solver</code> package.</li>
+</ul><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

@@ -1,0 +1,1253 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>MaxScoreBulkScorer can skip a document whose score equals the minimum competitive score</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-060 &middot; maxscore-required-clause-rounding</p><h1 id='top'>MaxScoreBulkScorer can skip a document whose score equals the minimum competitive score</h1><p class='tldr'>With 4 or more SHOULD clauses whose scores span a huge range, top-k search can skip a competitive document, here one float step above the k-th hit: <code>search(q, 1)</code> returns doc 0 (1.87501478), not doc 5000 (1.87501490), and <code class='nw'>searchAfter</code> paging never returns doc 5000. Every release since 9.9.0; contrived trigger.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 717</span><span class='sub'>MaxScoreBulkScorer can swap a doc exactly tied with the k-th score on a float-rounding midpoint (about 1 in 64M adversarial trials), silent but a 1-ulp tie with no real relevance loss.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>9.9.0 (#12589, 2023-10-24)<span class='sub'>introduced 2023-10-24 &middot; about 3 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>9.9.0 to 10.5.2 and main (all 22 releases run)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>a failed Dafny proof, then a Z3 floating-point counterexample</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a formal tool&#x27;s own output and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>MaxScoreBulkScorer</code> runs top-k SHOULD disjunctions (<code>minShouldMatch &lt;= 1</code>) by default. It skips documents that cannot reach the minimum competitive score; a rounding slip in one of its tests lets it skip a document that reaches the minimum exactly.</p><figure class='visual' id='maxscore-required-clause-rounding-short-visual'><div class='frame'><a class='still' href='../assets/LFV-060/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-060/bug.png' alt='Summary card of the MaxScoreBulkScorer rounding bug, end-to-end example on one segment: 4 SHOULD clauses BoostQuery(ConstantScoreQuery(TermQuery)) with boosts e 1.8749894, a 2.5451183E-5, t 1.1102315E-16 and j 1.0038807. Step 1: docs 0 to 1099 match e and a and score 1.8750148; doc 5000 matches e, a and t and scores 1.8750149; after 1001 hits TopScoreDocCollector sets the minimum competitive score to Math.nextUp(1.8750148f) = 1.8750149. Step 2: MaxScoreBulkScorer re-partitions at doc 5000: t, a and j are non-essential (max scores sum to 1.0039062), e is the only essential clause, so the required-clause test of #12589 runs at line 540. Step 3: (float) (e + (t + a)) = 1.8750148 &lt; 1.8750149, so j becomes required; the double sum is exactly a float rounding midpoint and rounds down, with no MathUtil.sumUpperBound. Step 4: doc 5000 has no j, so ScorerUtil.applyRequiredClause drops it, yet its score (e + a) + t = 1.8750149 is not less than the bar. Expected doc 5000 with 1.8750149 (explain and the COMPLETE search agree); actual doc 0 with 1.8750148. A float grid shows the bound going from the midpoint e + a down to 1.8750148 and doc 5000&#x27;s sum going from just above the midpoint up to 1.8750149. Notes: rare (4+ SHOULD clauses, one essential clause, scores spanning more than 2^29, a sum at a float midpoint, 1 in 64M trials in a simulation); affected 9.9.0 through 10.5.2 and main, this example from 10.1.0; a 2-document test where setMinCompetitiveScore(1.0000001f) skips a document that scores exactly 1.0000001; the executed fix wraps line 540 in MathUtil.sumUpperBound. The contract quotes of Scorable.setMinCompetitiveScore, IndexSearcher.search, TopScoreDocCollectorManager and MathUtil.sumUpperBound are at the bottom.' width='1920' height='1080'></a></div><figcaption>The end-to-end example step by step: after 1,001 hits the bar is 1.8750149, exactly doc 5000's score; the line-540 bound e + (t + a) rounds down to 1.8750148, so j becomes required and doc 5000, which lacks j, is dropped; <code>search(q, 1)</code> returns doc 0 (1.8750148). Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Run a SHOULD query of 4 constant-score clauses, <code class='nw'>e</code> = 0.75, <code class='nw'>a</code> = 0.25000006, <code class='nw'>t</code> = 1.1e-16 and <code class='nw'>j</code> = 0.5, over doc 0 (terms <code class='nw'>e</code>, <code class='nw'>a</code>, <code class='nw'>t</code>) and doc 1 (term <code class='nw'>j</code>). Doc 0 scores 1.00000012, the float just above 1.0, and <code class='nw'>explain</code> agrees.</span></li><li><span>Tell the scorer to skip only documents scoring below 1.00000012 (<code>setMinCompetitiveScore</code>). You expect doc 0 back: its score is not below the minimum. You get nothing. With a minimum of 1.0, doc 0 comes back with 1.00000012.</span></li><li><span>Why: to decide whether clause <code class='nw'>j</code> is required, <code>MaxScoreBulkScorer</code> checks whether <code>e + a + t</code> can still reach the minimum, but adds <code>e + (t + a)</code>. That lands exactly halfway between 1.0 and 1.00000012 and rounds down to 1.0, so <code class='nw'>j</code> becomes required and doc 0, which lacks <code class='nw'>j</code>, is dropped. Doc 0's own score, <code>(e + a) + t</code>, rounds up.</span></li><li><span>End to end, on 6,001 documents: <code>searcher.search(q, 1)</code> returns doc 0 (1.87501478), while the same search counting all 1,102 hits, the exhaustive search and <code class='nw'>explain</code> rank doc 5000 first (1.87501490). Paging with <code class='nw'>searchAfter</code> returns 1,101 hits and never doc 5000.</span></li><li><span>The class's other bounds that add the maxima in a different order from the score go through <code>MathUtil.sumUpperBound</code>, which exists because float sums depend on the order; this one (<code>MaxScoreBulkScorer.java:540</code>) does not. Wrapping it too fixes both tests.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Default top-k searches (<code>IndexSearcher#search(q, n)</code>) of 4 or more SHOULD clauses that run on <code>MaxScoreBulkScorer</code>, but only when clause scores span more than about 2^29 and a sum sits on a float rounding midpoint: 1 hit in 64M random trials in a model. The cost is one document lost near rank k, also across <code class='nw'>searchAfter</code> pages.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>932 words</span></summary><div class='body'><p>For a top-k (TOP_SCORES) disjunction of 4 or more SHOULD clauses that runs on <code>MaxScoreBulkScorer</code> (a pure SHOULD disjunction with <code>minShouldMatch &lt;= 1</code>, or SHOULD + FILTER with no MUST clause and <code class='nw'>minShouldMatch</code> 1), the scorer may make the best non-essential clause <strong>required</strong>: if the essential clause plus every other non-essential clause cannot reach the minimum competitive score, documents that lack that clause are dropped. The test that decides this (<code>MaxScoreBulkScorer.java:540</code>) casts a double sum to float without <code>MathUtil.sumUpperBound</code>, and it adds the clause maxima in a different order from the document's own score. When clause scores span more than about 2^29 and the exact sum sits next to a float rounding midpoint, the bound rounds one float step below a document that lacks the clause, so that document is skipped although its score equals the minimum. Through <code>IndexSearcher#search(q, n)</code> the k-th hit becomes one float step worse than a skipped document, and with <code class='nw'>searchAfter</code> paging the skipped document appears on no page. In this class and the other disjunction scorers, the floating-point bounds that add the maxima in a different order from the score use <code class='nw'>sumUpperBound</code>; line 540 does not. Introduced by #12589 (9.9.0); every release from 9.9.0 to 10.5.2 and main is affected. No upstream report was found.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Minimum competitive score</strong>: once a <code>TopScoreDocCollector</code> has counted more than <code>totalHitsThreshold</code> hits (1,000 for <code>IndexSearcher#search(q, n)</code>), it calls <code>setMinCompetitiveScore(nextUp(k-th score))</code> (<code>TopScoreDocCollector.java:154-164</code>). The scorer "may safely ignore all documents whose score is less than" it (<code>Scorable.java:45-47</code>).</li><li><strong>Essential, non-essential and required clauses</strong> (MAXSCORE): the clauses whose summed maximum scores stay below the minimum are non-essential; a competitive document must match an essential one. With a single essential clause, #12589 added one more step: if the essential clause plus every non-essential clause but the best one cannot reach the minimum, the best one becomes <strong>required</strong>, and documents without it are dropped.</li><li><strong><code>MathUtil.sumUpperBound(sum, n)</code></strong>: inflates a double sum of <code class='nw'>n</code> values by a relative 2(n-1)·2^-52 so that it bounds the sum in any order: "The error of sums depends on the order in which values are summed up" (<code>MathUtil.java:184-186</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-code-at-ea57360912ed'>The bug (code at <code class='nw'>ea57360912ed</code>)</h3><a class="hlink" href="#what-the-bug-is-the-bug-code-at-ea57360912ed" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-code-at-ea57360912ed"><span aria-hidden="true">#</span></a></div><ol><li>A TOP_SCORES query with 2 or more SHOULD clauses, no MUST or FILTER clause and <code>minShouldMatch &lt;= 1</code> gets a <code>MaxScoreBulkScorer</code> (<code>BooleanScorerSupplier.java:210</code>, <code class='nw'>:308-328</code>). So does SHOULD + FILTER with no MUST clause and <code class='nw'>minShouldMatch</code> exactly 1 (<code class='nw'>:233-234</code>, <code class='nw'>:340-364</code>), for example after <code>BooleanQuery.rewrite</code> inlines a single MUST disjunction next to a FILTER (<code>BooleanQuery.java:591-607</code>); FILTER + SHOULD with the default <code class='nw'>minShouldMatch</code> 0 does not. With sparse MUST_NOT clauses (cost at most 0.3% of <code class='nw'>maxDoc</code>) the Scorer-based path runs instead (<code class='nw'>:203-207</code>).</li><li><code class='nw'>partitionScorers</code> sorts the clauses by <code>maxWindowScore / Math.max(1L, cost)</code> and makes each clause non-essential whose max score keeps <code>(float) MathUtil.sumUpperBound(runningSum, count)</code> below <code>minCompetitiveScore</code>; the others become essential, so the non-essential set need not be a prefix of the sorted order (<code>MaxScoreBulkScorer.java:486-511</code>). The left fold of the non-essential maxima is stored in <code class='nw'>maxScoreSums</code> (<code class='nw'>:505</code>).</li><li>With a single essential clause (<code class='nw'>:524</code>), the required-clause loop (<code class='nw'>:535-547</code>) builds <code>maxRequiredScore + maxScoreSums[firstRequiredScorer - 2]</code> (<code class='nw'>:533</code>, <code class='nw'>:536-539</code>) and tests <code>if ((float) maxPossibleScoreWithoutPreviousClause &gt;= scorable.minCompetitiveScore) break;</code> (<code class='nw'>:540</code>), <strong>without</strong> <code class='nw'>sumUpperBound</code>.</li><li>A document's score starts from the essential clause (<code class='nw'>:343-348</code>) and adds clauses <code>i = n-2 .. 0</code> one at a time (<code class='nw'>:452-466</code>); required clauses go through <code>ScorerUtil.applyRequiredClause</code>, which drops every buffered document that does not match (<code>ScorerUtil.java:173-190</code>). Float cast at <code class='nw'>:469</code>.</li><li>So the bound adds the tail of the maxima as one pre-summed group, the document adds it one term at a time. With 3 clauses the orders coincide; with 4 or more they can differ by one double rounding step, and on a float rounding midpoint the bound casts one float below the document.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-of-the-contract-test'>The numbers of the contract test</h3><a class="hlink" href="#what-the-bug-is-the-numbers-of-the-contract-test" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-of-the-contract-test"><span aria-hidden="true">#</span></a></div><p>Clauses sorted <code class='nw'>t</code>, <code class='nw'>a</code>, <code class='nw'>j</code> (non-essential) and <code class='nw'>e</code> (essential) at minimum <code class='nw'>nextUp(1f)</code>:</p><div class="tbl"><table><thead><tr><th>quantity</th><th>double</th><th>float</th></tr></thead><tbody><tr><td>exact sum <code>e + a + t</code> = 1 + 2^-24 + 2^-53 + 2^-76</td><td>just above the midpoint 1 + 2^-24</td><td>would be <code class='nw'>nextUp(1f)</code></td></tr><tr><td>bound <code>e + (t + a)</code> (line 540)</td><td><code class='nw'>0x1.000001p0</code>, exactly the midpoint</td><td><code class='nw'>1.0f</code> (tie to even), below the minimum: <code class='nw'>j</code> becomes required</td></tr><tr><td>doc 0 <code>(e + a) + t</code></td><td><code>0x1.0000010000001p0</code></td><td><code class='nw'>0x1.000002p0</code> = the minimum</td></tr><tr><td>bound with <code>sumUpperBound(., 4)</code></td><td></td><td><code class='nw'>0x1.000002p0</code>: <code class='nw'>j</code> stays optional</td></tr></tbody></table></div><div class="hd hd-3"><h3 id='what-the-bug-is-what-it-takes'>What it takes</h3><a class="hlink" href="#what-the-bug-is-what-it-takes" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-it-takes"><span aria-hidden="true">#</span></a></div><ul><li>4 or more SHOULD clauses and a single essential clause in the window.</li><li>Clause scores spanning more than about 2^29: if every term is at least about 2^-29 of the total, every double addition is exact and the bound is sound. Examples: a tiny tie-break boost beside normal scores, or a BM25 term present in almost every document of a very large index.</li><li>An exact sum within a few double ulps of a float rounding midpoint. A model simulation with random scores and an adversarial minimum found 1 hit in 64M trials.</li><li>The skipped document scores exactly the minimum (the study verifier's argument for realistic clause counts). In the executed path, a single <code>TopScoreDocCollector</code>, that is one float step above the k-th hit. In concurrent search, when the shared minimum comes from a later slice (<code>TopScoreDocCollector.java:137-151</code>), and with a <code>TopFieldCollector</code> whose first sort is relevance (<code>TopFieldCollector.java:380-392</code>), the minimum can be the k-th score itself, so a document that ties it and would win on doc ID could be lost (read in code, not executed).</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>299 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> The ordinary public TOP_SCORES path, no experimental or opt-in feature: <code>IndexSearcher#search(q, n)</code> or another TOP_SCORES collection of a query with 4 or more SHOULD clauses that runs on <code>MaxScoreBulkScorer</code>: a pure SHOULD disjunction with <code>minShouldMatch &lt;= 1</code>, or SHOULD + FILTER with no MUST clause and <code class='nw'>minShouldMatch</code> 1 (the FILTER case read in code, not executed). Codec-independent. The repro pins the default codec, one segment, <code class='nw'>NoMergePolicy</code> and no query cache only to be deterministic; only the single-segment, no-executor path was executed.</li><li><strong>What they see.</strong> In the executed path, a document whose score is exactly one float step above the k-th returned hit is missing from the top k, and a hit one float step lower takes its place. With an executor or a relevance-first <code>TopFieldCollector</code>, a document that ties the k-th score exactly and would win on doc ID could be lost instead (read in code, not executed). The returned scores are correct, and nothing that does not match is added. No exception, with assertions on or off.</li><li><strong>Paging loses it for good.</strong> The skipped document ranks above the last hit of its page, so <code class='nw'>searchAfter</code> never returns it: on the repro index, 111 pages of 10 hold 1,101 of the 1,102 hits and miss the best one. With the fix, page 1 starts with it.</li><li><strong>How likely.</strong> Contrived (registry likelihood "contrived"): the 2^29 spread plus a sum at a rounding midpoint; the study's model simulation saw 1 hit in 64M adversarial trials. For relevance alone a one-float-step swap is negligible; it matters where exact top-k is relied on, such as paging or comparing pruned and unpruned results.</li><li><strong>Scale.</strong> None: 2 documents for the contract test, 6,001 for the end-to-end test.</li><li><strong>Long-standing.</strong> Every release since 9.9.0 (released 2023-12-04). Severity low (registry priority low).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code>lucene/core/src/test/org/apache/lucene/search/</code>, public API only, with 2 tests: the <code>setMinCompetitiveScore</code> contract on 2 documents, and <code>search(q, 1)</code> against the same search with <code>totalHitsThreshold</code> 10,000 on 6,001 documents. Both check their preconditions; deterministic; they fail with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestMaxScoreRequiredClauseRounding.java (JUnit for Lucene&#x27;s build)</span><span class='meta'>243 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * MaxScoreBulkScorer#partitionScorers decides that a non-essential clause is required by comparing
+ * {@code (float) (maxRequiredScore + maxScoreSums[firstRequiredScorer - 2])} with the minimum
+ * competitive score, without {@code MathUtil.sumUpperBound}. The bound and the document score add
+ * the same clause scores in different orders, so with 4 or more SHOULD clauses the bound can round
+ * one float ulp below the score of a document that does not match the clause. That document is then
+ * skipped although its score equals the minimum competitive score.
+ *
+ * &lt;p&gt;Public API only. Every clause is {@code BoostQuery(ConstantScoreQuery(TermQuery))}, so a
+ * clause&#x27;s score and maximum score both equal its boost.
+ */
+public class TestMaxScoreRequiredClauseRounding extends LuceneTestCase {
+
+  private static Query clause(String term, float boost) {
+    return new BoostQuery(new ConstantScoreQuery(new TermQuery(new Term(&quot;f&quot;, term))), boost);
+  }
+
+  private static Query disjunction(String[] terms, float[] boosts) {
+    BooleanQuery.Builder b = new BooleanQuery.Builder();
+    for (int i = 0; i &lt; terms.length; i++) {
+      b.add(clause(terms[i], boosts[i]), BooleanClause.Occur.SHOULD);
+    }
+    return b.build();
+  }
+
+  private static void addDoc(IndexWriter w, String... terms) throws IOException {
+    Document d = new Document();
+    for (String t : terms) {
+      d.add(new StringField(&quot;f&quot;, t, Field.Store.NO));
+    }
+    w.addDocument(d);
+  }
+
+  private static IndexWriter newWriter(Directory dir) throws IOException {
+    return new IndexWriter(
+        dir,
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setMergePolicy(NoMergePolicy.INSTANCE));
+  }
+
+  private static IndexSearcher newPlainSearcher(DirectoryReader r) {
+    IndexSearcher s = new IndexSearcher(r); // no executor: one slice
+    s.setQueryCache(null);
+    return s;
+  }
+
+  /**
+   * Drives the bulk scorer of every leaf with a fixed minimum competitive score and returns the
+   * collected &quot;doc:score&quot; pairs (score in hex).
+   */
+  private static List&lt;String&gt; collectWithMinScore(IndexSearcher s, Query q, float minScore)
+      throws IOException {
+    List&lt;String&gt; hits = new ArrayList&lt;&gt;();
+    Weight weight = s.createWeight(s.rewrite(q), ScoreMode.TOP_SCORES, 1f);
+    for (LeafReaderContext ctx : s.getIndexReader().leaves()) {
+      BulkScorer bs = weight.bulkScorer(ctx);
+      assertEquals(
+          &quot;precondition: the disjunction runs on MaxScoreBulkScorer&quot;,
+          &quot;MaxScoreBulkScorer&quot;,
+          bs.getClass().getSimpleName());
+      bs.score(
+          new LeafCollector() {
+            Scorable scorer;
+
+            @Override
+            public void setScorer(Scorable scorer) throws IOException {
+              this.scorer = scorer;
+              scorer.setMinCompetitiveScore(minScore);
+            }
+
+            @Override
+            public void collect(int doc) throws IOException {
+              hits.add((ctx.docBase + doc) + &quot;:&quot; + Float.toHexString(scorer.score()));
+            }
+          },
+          ctx.reader().getLiveDocs(),
+          0,
+          DocIdSetIterator.NO_MORE_DOCS);
+    }
+    return hits;
+  }
+
+  /**
+   * Scorable#setMinCompetitiveScore: the iterator &quot;may safely ignore all documents whose score is
+   * less than the given minScore&quot;. A document whose score equals minScore must still be collected.
+   *
+   * &lt;p&gt;Clause scores e = 0.75, a = 0.25 + 2^-24, t = 2^-53 + 2^-76, j = 0.5. Doc 0 matches e, a and
+   * t (not j); its score is nextUp(1f) both as explain() computes it and as MaxScoreBulkScorer
+   * collects it. With minScore = nextUp(1f), the required-clause bound for &quot;every clause except j&quot;
+   * is (float) (0.75 + (t + a)) = 1.0f, which is less than minScore, so j becomes required and doc
+   * 0 is skipped. The real sum of the maxima without j, 1 + 2^-24 + 2^-53 + 2^-76, is above
+   * minScore&#x27;s rounding midpoint, so the bound is too low.
+   */
+  public void testDocScoringExactlyMinCompetitiveScoreIsCollected() throws Exception {
+    String[] terms = {&quot;e&quot;, &quot;a&quot;, &quot;t&quot;, &quot;j&quot;};
+    float[] boosts = {0.75f, 0.25f + 0x1p-24f, 0x1p-53f + 0x1p-76f, 0.5f};
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = newWriter(dir)) {
+      addDoc(w, &quot;e&quot;, &quot;a&quot;, &quot;t&quot;); // doc 0: the document under test
+      addDoc(w, &quot;j&quot;); // doc 1: gives clause j a document (max score 0.5)
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;precondition: one segment&quot;, 1, r.leaves().size());
+        IndexSearcher s = newPlainSearcher(r);
+        Query q = disjunction(terms, boosts);
+        float docScore = Math.nextUp(1.0f);
+
+        assertEquals(
+            &quot;precondition: explain(doc 0)&quot;, docScore, s.explain(q, 0).getValue().floatValue(), 0f);
+        assertEquals(
+            &quot;control: minScore = 1.0f collects doc 0 with score nextUp(1f)&quot;,
+            List.of(&quot;0:&quot; + Float.toHexString(docScore)),
+            collectWithMinScore(s, q, 1.0f));
+
+        assertEquals(
+            &quot;doc 0 scores &quot;
+                + Float.toHexString(docScore)
+                + &quot; (scorer and explain), which is not less than minCompetitiveScore &quot;
+                + Float.toHexString(docScore)
+                + &quot;, so it must not be skipped&quot;,
+            List.of(&quot;0:&quot; + Float.toHexString(docScore)),
+            collectWithMinScore(s, q, docScore));
+      }
+    }
+  }
+
+  /**
+   * End to end: the top hit of a plain IndexSearcher#search(query, 1) must not depend on
+   * totalHitsThreshold, which only controls how accurately hits are counted
+   * (TopScoreDocCollectorManager javadoc). Clause scores found by an SMT solver. Docs 0..1099 match
+   * e and a; doc 5000 matches e, a and t and scores one float ulp higher; doc 6000 matches j. With
+   * the default threshold (1000) the collector raises the minimum competitive score to nextUp(score
+   * of doc 0), which is the score of doc 5000, and the required-clause test then skips doc 5000.
+   * With a threshold above the hit count (still TOP_SCORES, but no minimum competitive score is
+   * ever set) the same searcher returns doc 5000.
+   *
+   * &lt;p&gt;COMPLETE (exhaustive) search and explain() add clause scores in their own orders; for this
+   * clause order (e, a, t, j) they also rank doc 5000 first, which the preconditions check.
+   */
+  public void testTopHitDoesNotDependOnTotalHitsThreshold() throws Exception {
+    String[] terms = {&quot;e&quot;, &quot;a&quot;, &quot;t&quot;, &quot;j&quot;};
+    float[] boosts = {0x1.dfff4ep0f, 0x1.ab0p-16f, 0x1.00008p-53f, 0x1.00fe54p0f};
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = newWriter(dir)) {
+      for (int i = 0; i &lt; 1100; i++) {
+        addDoc(w, &quot;e&quot;, &quot;a&quot;); // more hits than the default totalHitsThreshold (1000)
+      }
+      for (int i = 1100; i &lt; 5000; i++) {
+        addDoc(w, &quot;x&quot;);
+      }
+      addDoc(w, &quot;e&quot;, &quot;a&quot;, &quot;t&quot;); // doc 5000
+      for (int i = 5001; i &lt; 6000; i++) {
+        addDoc(w, &quot;x&quot;);
+      }
+      addDoc(w, &quot;j&quot;); // doc 6000
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;precondition: one segment&quot;, 1, r.leaves().size());
+        IndexSearcher s = newPlainSearcher(r);
+        Query q = disjunction(terms, boosts);
+
+        float explain0 = s.explain(q, 0).getValue().floatValue();
+        float explain5000 = s.explain(q, 5000).getValue().floatValue();
+        assertTrue(
+            &quot;precondition: explain(5000) = &quot;
+                + Float.toHexString(explain5000)
+                + &quot; &gt; explain(0) = &quot;
+                + Float.toHexString(explain0),
+            explain5000 &gt; explain0);
+
+        ScoreDoc exhaustive =
+            s.search(q, new TopScoreDocCollectorManager(1, Integer.MAX_VALUE)).scoreDocs[0];
+        assertEquals(&quot;precondition: exhaustive (COMPLETE) top-1&quot;, 5000, exhaustive.doc);
+
+        // TOP_SCORES, every hit counted accurately: 1102 hits &lt;= 10000, so no pruning
+        TopDocs accurate = s.search(q, new TopScoreDocCollectorManager(1, 10_000));
+        assertEquals(
+            &quot;precondition: TOP_SCORES with totalHitsThreshold 10000 top-1&quot;,
+            5000,
+            accurate.scoreDocs[0].doc);
+
+        TopDocs pruned = s.search(q, 1); // TOP_SCORES, default totalHitsThreshold = 1000
+        String msg =
+            &quot;search(q, 1) top-1 = doc &quot;
+                + pruned.scoreDocs[0].doc
+                + &quot; (&quot;
+                + Float.toHexString(pruned.scoreDocs[0].score)
+                + &quot;, totalHits &quot;
+                + pruned.totalHits
+                + &quot;); with totalHitsThreshold 10000 top-1 = doc &quot;
+                + accurate.scoreDocs[0].doc
+                + &quot; (&quot;
+                + Float.toHexString(accurate.scoreDocs[0].score)
+                + &quot;, totalHits &quot;
+                + accurate.totalHits
+                + &quot;); exhaustive top-1 = doc &quot;
+                + exhaustive.doc
+                + &quot; (&quot;
+                + Float.toHexString(exhaustive.score)
+                + &quot;); explain(0) = &quot;
+                + Float.toHexString(explain0)
+                + &quot;, explain(5000) = &quot;
+                + Float.toHexString(explain5000);
+        assertEquals(msg, accurate.scoreDocs[0].doc, pruned.scoreDocs[0].doc);
+        assertEquals(msg, accurate.scoreDocs[0].score, pruned.scoreDocs[0].score, 0f);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp TestMaxScoreRequiredClauseRounding.java $LUCENE/lucene/core/src/test/org/apache/lucene/search/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests org.apache.lucene.search.TestMaxScoreRequiredClauseRounding -Ptests.seed=DEADBEEF
+# also with -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Doc 0 (1.00000012) is collected at minimum 1.00000012, and <code>search(q, 1)</code> returns doc 5000 (1.87501490).</dd></div><div class='got'><dt>Observed</dt><dd>Nothing is collected, and <code>search(q, 1)</code> returns doc 0 (1.87501478), one float step below the skipped doc 5000.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-060/'>repro/LFV-060/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (676 lines) · 3,477 words</span></summary><div class='body'><p>The class pins the default codec, uses <code>ByteBuffersDirectory</code>, <code class='nw'>NoMergePolicy</code> and a plain <code class='nw'>IndexSearcher</code> (no executor, no query cache). Every clause is <code>BoostQuery(ConstantScoreQuery(TermQuery))</code>, so a clause's score and max score are its boost.</p><ul><li><code>testDocScoringExactlyMinCompetitiveScoreIsCollected</code>: boosts 0.75, 0.25 + 2^-24, 2^-53 + 2^-76, 0.5. Preconditions: the leaf's <code class='nw'>BulkScorer</code> is a <code>MaxScoreBulkScorer</code>, <code>explain(doc 0)</code> is <code class='nw'>nextUp(1f)</code>, and at minimum 1.0 doc 0 is collected with <code class='nw'>nextUp(1f)</code>. Then at minimum <code class='nw'>nextUp(1f)</code> it must still be collected.</li><li><code>testTopHitDoesNotDependOnTotalHitsThreshold</code>: boosts found by an SMT solver (<code class='nw'>0x1.dfff4ep0</code>, <code class='nw'>0x1.ab0p-16</code>, <code class='nw'>0x1.00008p-53</code>, <code class='nw'>0x1.00fe54p0</code>); docs 0-1099 match <code class='nw'>e</code> and <code class='nw'>a</code>, doc 5000 matches <code class='nw'>e</code>, <code class='nw'>a</code> and <code class='nw'>t</code>, doc 6000 matches <code class='nw'>j</code>. Preconditions: <code>explain(5000) &gt; explain(0)</code>, and the COMPLETE and the threshold-10,000 TOP_SCORES top-1 are doc 5000. Then <code>search(q, 1)</code> must agree.</li></ul><p>It fails for seeds DEADBEEF, 1, CAFEBABE, 12345678, 5EED5EED and 0BADC0DE (20 of 20 over 10 iterations). For 9.9.x use the 9.x variant (the top-1 collectors come from <code>TopScoreDocCollector.create</code>). Two more independently written tests fail the same way with other numbers: one with 5 clauses where the bad rounding happens in the second iteration of the loop, and one from the cross-model reviewer. The paging probe is a demonstration, not a test for the issue.</p><div class="hd hd-3"><h3 id='code-2-h'>TestSkippedDocAcrossPages.java (paging probe: searchAfter never returns doc 5000)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestSkippedDocAcrossPages.java (paging probe: searchAfter never returns doc 5000)</span><span class='meta'>131 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Probe (not a repro for the issue): the index and query of
+ * TestMaxScoreRequiredClauseRounding#testTopHitDoesNotDependOnTotalHitsThreshold, paged with
+ * search(q, 10) and then searchAfter(lastHit, q, 10) until no hits are left. Doc 5000 is the
+ * best-scoring document. Prints what each step returns; fails if doc 5000 never appears on any page.
+ */
+public class TestSkippedDocAcrossPages extends LuceneTestCase {
+
+  private static Query disjunction(String[] terms, float[] boosts) {
+    BooleanQuery.Builder b = new BooleanQuery.Builder();
+    for (int i = 0; i &lt; terms.length; i++) {
+      b.add(
+          new BoostQuery(new ConstantScoreQuery(new TermQuery(new Term(&quot;f&quot;, terms[i]))), boosts[i]),
+          BooleanClause.Occur.SHOULD);
+    }
+    return b.build();
+  }
+
+  private static void addDoc(IndexWriter w, String... terms) throws IOException {
+    Document d = new Document();
+    for (String t : terms) {
+      d.add(new StringField(&quot;f&quot;, t, Field.Store.NO));
+    }
+    w.addDocument(d);
+  }
+
+  public void testPagingNeverReturnsTheBestDocument() throws Exception {
+    String[] terms = {&quot;e&quot;, &quot;a&quot;, &quot;t&quot;, &quot;j&quot;};
+    float[] boosts = {0x1.dfff4ep0f, 0x1.ab0p-16f, 0x1.00008p-53f, 0x1.00fe54p0f};
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w =
+            new IndexWriter(
+                dir,
+                new IndexWriterConfig()
+                    .setCodec(TestUtil.getDefaultCodec())
+                    .setMergePolicy(NoMergePolicy.INSTANCE))) {
+      for (int i = 0; i &lt; 1100; i++) {
+        addDoc(w, &quot;e&quot;, &quot;a&quot;);
+      }
+      for (int i = 1100; i &lt; 5000; i++) {
+        addDoc(w, &quot;x&quot;);
+      }
+      addDoc(w, &quot;e&quot;, &quot;a&quot;, &quot;t&quot;); // doc 5000
+      for (int i = 5001; i &lt; 6000; i++) {
+        addDoc(w, &quot;x&quot;);
+      }
+      addDoc(w, &quot;j&quot;); // doc 6000
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(1, r.leaves().size());
+        IndexSearcher s = new IndexSearcher(r);
+        s.setQueryCache(null);
+        Query q = disjunction(terms, boosts);
+
+        TopDocs exhaustive = s.search(q, new TopScoreDocCollectorManager(10, Integer.MAX_VALUE));
+        System.out.println(
+            &quot;COMPLETE top-1: doc &quot;
+                + exhaustive.scoreDocs[0].doc
+                + &quot; &quot;
+                + Float.toHexString(exhaustive.scoreDocs[0].score)
+                + &quot;, totalHits &quot;
+                + exhaustive.totalHits);
+
+        TopDocs first = s.search(q, 10);
+        System.out.println(
+            &quot;search(q, 10): first hit doc &quot;
+                + first.scoreDocs[0].doc
+                + &quot; &quot;
+                + Float.toHexString(first.scoreDocs[0].score)
+                + &quot;, totalHits &quot;
+                + first.totalHits);
+        List&lt;Integer&gt; seen = new ArrayList&lt;&gt;();
+        int pages = 0;
+        TopDocs page = first;
+        while (page.scoreDocs.length &gt; 0) {
+          pages++;
+          for (ScoreDoc sd : page.scoreDocs) {
+            seen.add(sd.doc);
+          }
+          ScoreDoc last = page.scoreDocs[page.scoreDocs.length - 1];
+          page = s.searchAfter(last, q, 10);
+        }
+        System.out.println(
+            &quot;paged with searchAfter: &quot;
+                + pages
+                + &quot; pages, &quot;
+                + seen.size()
+                + &quot; hits, distinct &quot;
+                + seen.stream().distinct().count()
+                + &quot;, contains doc 5000: &quot;
+                + seen.contains(5000)
+                + &quot;, contains doc 6000: &quot;
+                + seen.contains(6000));
+        assertTrue(&quot;doc 5000 (the best hit) appears on some page&quot;, seen.contains(5000));
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cp TestSkippedDocAcrossPages.java $LUCENE/lucene/core/src/test/org/apache/lucene/search/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests org.apache.lucene.search.TestSkippedDocAcrossPages -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestRequiredClauseSecondIteration.java (independent test: 5 clauses, second loop iteration)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestRequiredClauseSecondIteration.java (independent test: 5 clauses, second loop iteration)</span><span class='meta'>295 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package tiebreak;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
+import org.apache.lucene.search.BulkScorer;
+import org.apache.lucene.search.CollectorManager;
+import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Scorable;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.SimpleCollector;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TopScoreDocCollectorManager;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.search.CheckHits;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Independent check, written outside org.apache.lucene.search (public API only), with a different
+ * shape from the 4-clause inputs: five SHOULD clauses whose scores lie in [4, 8), where the bad
+ * rounding happens in the SECOND iteration of the required-clause loop.
+ *
+ * &lt;p&gt;Clause scores (each clause is BoostQuery(ConstantScoreQuery(TermQuery)), so score = max score =
+ * boost): e = 2.5, s3 = 1.0, s2 = 0.75, s1 = 0.5 + 2^-22, t = nextUp(2^-51) = 2^-51 + 2^-74. With
+ * equal costs the non-essential order is t, s1, s2, s3 and e is the single essential clause. At
+ * minCompetitiveScore = nextUp(4f): iteration 1 (without s3) gives (float)(2.5 + ((t + s1) + s2)) =
+ * 3.75 + 2^-22, below the minimum, so s3 becomes required (sound). Iteration 2 (without s2) gives
+ * (float)((2.5 + 1) + (t + s1)): t + s1 drops 2^-74, the double sum lands exactly on 4 + 2^-22 +
+ * 2^-51 (a double tie, rounded to even = 4 + 2^-22), and the float cast of that float midpoint rounds
+ * to even = 4.0f, so s2 becomes required. A document with e, s3, s1 and t but not s2 has the exact
+ * score 4 + 2^-22 + 2^-51 + 2^-74, above the float midpoint, and the scorer itself computes
+ * nextUp(4f) for it.
+ */
+public class TestRequiredClauseSecondIteration extends LuceneTestCase {
+
+  static final float E = 2.5f;
+  static final float S3 = 1.0f;
+  static final float S2 = 0.75f;
+  static final float S1 = 0.5f + 0x1p-22f;
+  static final float T = Math.nextUp(0x1p-51f);
+  static final float FOUR = 4.0f;
+  static final float NEXT_UP_FOUR = Math.nextUp(4.0f);
+
+  private static Query clause(String term, float boost) {
+    return new BoostQuery(new ConstantScoreQuery(new TermQuery(new Term(&quot;g&quot;, term))), boost);
+  }
+
+  /** Clause order e, s3, s2, s1, t. */
+  private static Query query() {
+    BooleanQuery.Builder b = new BooleanQuery.Builder();
+    b.add(clause(&quot;e&quot;, E), BooleanClause.Occur.SHOULD);
+    b.add(clause(&quot;s3&quot;, S3), BooleanClause.Occur.SHOULD);
+    b.add(clause(&quot;s2&quot;, S2), BooleanClause.Occur.SHOULD);
+    b.add(clause(&quot;s1&quot;, S1), BooleanClause.Occur.SHOULD);
+    b.add(clause(&quot;t&quot;, T), BooleanClause.Occur.SHOULD);
+    return b.build();
+  }
+
+  private static void add(IndexWriter w, String... terms) throws IOException {
+    Document d = new Document();
+    for (String term : terms) {
+      d.add(new StringField(&quot;g&quot;, term, Field.Store.NO));
+    }
+    w.addDocument(d);
+  }
+
+  private static IndexWriter writer(Directory dir) throws IOException {
+    return new IndexWriter(
+        dir,
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setMergePolicy(NoMergePolicy.INSTANCE));
+  }
+
+  private static IndexSearcher searcher(DirectoryReader r) {
+    IndexSearcher s = new IndexSearcher(r);
+    s.setQueryCache(null);
+    return s;
+  }
+
+  /** True iff the exact real sum of the given floats rounds (to nearest) to nextUp(4f). */
+  private static boolean exactSumRoundsToNextUpFour(float... v) {
+    BigDecimal sum = BigDecimal.ZERO;
+    for (float f : v) {
+      sum = sum.add(new BigDecimal((double) f));
+    }
+    BigDecimal lowMid = new BigDecimal(4.0).add(new BigDecimal(0x1p-22)); // 4 + ulp/2
+    BigDecimal highMid = new BigDecimal(4.0).add(new BigDecimal(0x1p-21 + 0x1p-22));
+    return sum.compareTo(lowMid) &gt; 0 &amp;&amp; sum.compareTo(highMid) &lt; 0;
+  }
+
+  /** TOP_SCORES collector that sets a fixed minimum competitive score and records doc:score. */
+  private static final class FixedMinScoreCollector extends SimpleCollector {
+    final List&lt;String&gt; hits = new ArrayList&lt;&gt;();
+    final float minScore;
+    Scorable scorer;
+    int docBase;
+
+    FixedMinScoreCollector(float minScore) {
+      this.minScore = minScore;
+    }
+
+    @Override
+    protected void doSetNextReader(LeafReaderContext context) {
+      docBase = context.docBase;
+    }
+
+    @Override
+    public void setScorer(Scorable scorer) throws IOException {
+      this.scorer = scorer;
+      scorer.setMinCompetitiveScore(minScore);
+    }
+
+    @Override
+    public void collect(int doc) throws IOException {
+      hits.add((docBase + doc) + &quot;:&quot; + Float.toHexString(scorer.score()));
+    }
+
+    @Override
+    public ScoreMode scoreMode() {
+      return ScoreMode.TOP_SCORES;
+    }
+  }
+
+  /** Runs IndexSearcher#search with a FixedMinScoreCollector per slice; returns doc:score. */
+  private static List&lt;String&gt; collectAtMinScore(IndexSearcher s, Query q, float minScore)
+      throws IOException {
+    return s.search(
+        q,
+        new CollectorManager&lt;FixedMinScoreCollector, List&lt;String&gt;&gt;() {
+          @Override
+          public FixedMinScoreCollector newCollector() {
+            return new FixedMinScoreCollector(minScore);
+          }
+
+          @Override
+          public List&lt;String&gt; reduce(Collection&lt;FixedMinScoreCollector&gt; collectors) {
+            List&lt;String&gt; all = new ArrayList&lt;&gt;();
+            for (FixedMinScoreCollector c : collectors) {
+              all.addAll(c.hits);
+            }
+            return all;
+          }
+        });
+  }
+
+  public void testDocScoringExactlyMinCompetitiveScoreSecondIteration() throws Exception {
+    assertTrue(&quot;precondition: exact sum of e+s3+s1+t rounds to nextUp(4f)&quot;,
+        exactSumRoundsToNextUpFour(E, S3, S1, T));
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = writer(dir)) {
+      add(w, &quot;e&quot;, &quot;s3&quot;, &quot;s1&quot;, &quot;t&quot;); // doc 0: no s2
+      add(w, &quot;s2&quot;); // doc 1: gives s2 a posting
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;precondition: one segment&quot;, 1, r.leaves().size());
+        IndexSearcher s = searcher(r);
+        Query q = query();
+        Weight weight = s.createWeight(s.rewrite(q), ScoreMode.TOP_SCORES, 1f);
+        BulkScorer bs = weight.bulkScorer(r.leaves().get(0));
+        String bulkScorerClass = bs.getClass().getSimpleName();
+        assertEquals(&quot;precondition: bulk scorer&quot;, &quot;MaxScoreBulkScorer&quot;, bulkScorerClass);
+
+        float explain0 = s.explain(q, 0).getValue().floatValue();
+        String expected = &quot;0:&quot; + Float.toHexString(NEXT_UP_FOUR);
+        // control: one float below the doc&#x27;s score, the same scorer collects it at nextUp(4f)
+        assertEquals(&quot;control at minScore 4.0f&quot;, List.of(expected), collectAtMinScore(s, q, FOUR));
+        // sanity: one float above the doc&#x27;s score, skipping it is allowed
+        assertEquals(
+            &quot;sanity at minScore nextUp(nextUp(4f))&quot;,
+            List.of(),
+            collectAtMinScore(s, q, Math.nextUp(NEXT_UP_FOUR)));
+
+        assertEquals(
+            &quot;doc 0 scores &quot;
+                + Float.toHexString(NEXT_UP_FOUR)
+                + &quot; (control run; explain = &quot;
+                + Float.toHexString(explain0)
+                + &quot;), not less than minCompetitiveScore &quot;
+                + Float.toHexString(NEXT_UP_FOUR)
+                + &quot;, so it must be collected&quot;,
+            List.of(expected),
+            collectAtMinScore(s, q, NEXT_UP_FOUR));
+      }
+    }
+  }
+
+  /** Index for the end-to-end tests (one segment). */
+  private static void buildEndToEndIndex(IndexWriter w) throws IOException {
+    for (int i = 0; i &lt; 1200; i++) {
+      add(w, &quot;e&quot;, &quot;s3&quot;, &quot;s1&quot;); // exact score 4 + 2^-22 -&gt; 4.0f (tie to even), any order
+    }
+    for (int i = 1200; i &lt; 4096; i++) {
+      add(w, &quot;x&quot;);
+    }
+    add(w, &quot;e&quot;, &quot;s3&quot;, &quot;s1&quot;); // doc 4096: 4.0f
+    add(w, &quot;e&quot;, &quot;s3&quot;, &quot;s1&quot;, &quot;t&quot;); // doc 4097: exact sum rounds to nextUp(4f)
+    for (int i = 4098; i &lt; 6000; i++) {
+      add(w, &quot;x&quot;);
+    }
+    for (int i = 6000; i &lt;= 7200; i++) {
+      add(w, &quot;s2&quot;); // 1201 docs: cost puts s2 between s1 and s3 in the ratio order
+    }
+  }
+
+  /** Lucene&#x27;s own test-framework oracle: TOP_SCORES top hits must equal COMPLETE top hits. */
+  public void testUpstreamCheckTopScoresOracle() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = writer(dir)) {
+      buildEndToEndIndex(w);
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;precondition: one segment&quot;, 1, r.leaves().size());
+        CheckHits.checkTopScores(random(), query(), searcher(r));
+      }
+    }
+  }
+
+  public void testSearchTopOneSecondIteration() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = writer(dir)) {
+      buildEndToEndIndex(w);
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;precondition: one segment&quot;, 1, r.leaves().size());
+        IndexSearcher s = searcher(r);
+        Query q = query();
+
+        TopDocs accurate = s.search(q, new TopScoreDocCollectorManager(1, 10_000));
+        TopDocs complete = s.search(q, new TopScoreDocCollectorManager(1, Integer.MAX_VALUE));
+        TopDocs pruned = s.search(q, 1);
+        float explain0 = s.explain(q, 0).getValue().floatValue();
+        float explain4097 = s.explain(q, 4097).getValue().floatValue();
+        String msg =
+            &quot;search(q,1) top-1 = doc &quot;
+                + pruned.scoreDocs[0].doc
+                + &quot; (&quot;
+                + Float.toHexString(pruned.scoreDocs[0].score)
+                + &quot;, &quot;
+                + pruned.totalHits
+                + &quot;); TopScoreDocCollectorManager(1, 10000) top-1 = doc &quot;
+                + accurate.scoreDocs[0].doc
+                + &quot; (&quot;
+                + Float.toHexString(accurate.scoreDocs[0].score)
+                + &quot;, &quot;
+                + accurate.totalHits
+                + &quot;); COMPLETE top-1 = doc &quot;
+                + complete.scoreDocs[0].doc
+                + &quot; (&quot;
+                + Float.toHexString(complete.scoreDocs[0].score)
+                + &quot;); explain(0) = &quot;
+                + Float.toHexString(explain0)
+                + &quot;, explain(4097) = &quot;
+                + Float.toHexString(explain4097);
+        assertEquals(&quot;precondition (unpruned TOP_SCORES): &quot; + msg, 4097, accurate.scoreDocs[0].doc);
+        assertEquals(&quot;precondition: &quot; + msg, NEXT_UP_FOUR, accurate.scoreDocs[0].score, 0f);
+        assertEquals(msg, accurate.scoreDocs[0].doc, pruned.scoreDocs[0].doc);
+        assertEquals(msg, accurate.scoreDocs[0].score, pruned.scoreDocs[0].score, 0f);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestMaxScoreRequiredClauseRounding9x.java (the same test for the 9.x API)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestMaxScoreRequiredClauseRounding9x.java (the same test for the 9.x API)</span><span class='meta'>250 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * MaxScoreBulkScorer#partitionScorers decides that a non-essential clause is required by comparing
+ * {@code (float) (maxRequiredScore + maxScoreSums[firstRequiredScorer - 2])} with the minimum
+ * competitive score, without {@code MathUtil.sumUpperBound}. The bound and the document score add
+ * the same clause scores in different orders, so with 4 or more SHOULD clauses the bound can round
+ * one float ulp below the score of a document that does not match the clause. That document is
+ * then skipped although its score equals the minimum competitive score.
+ *
+ * &lt;p&gt;Variant of TestMaxScoreRequiredClauseRounding for the 9.x API (used only for the 9.8.0 / 9.9.0
+ * bracket); the test bodies are identical except for how the top-1 collectors are created.
+ *
+ * &lt;p&gt;Public API only. Every clause is {@code BoostQuery(ConstantScoreQuery(TermQuery))}, so a
+ * clause&#x27;s score and maximum score both equal its boost.
+ */
+public class TestMaxScoreRequiredClauseRounding9x extends LuceneTestCase {
+
+  private static Query clause(String term, float boost) {
+    return new BoostQuery(new ConstantScoreQuery(new TermQuery(new Term(&quot;f&quot;, term))), boost);
+  }
+
+  private static Query disjunction(String[] terms, float[] boosts) {
+    BooleanQuery.Builder b = new BooleanQuery.Builder();
+    for (int i = 0; i &lt; terms.length; i++) {
+      b.add(clause(terms[i], boosts[i]), BooleanClause.Occur.SHOULD);
+    }
+    return b.build();
+  }
+
+  private static void addDoc(IndexWriter w, String... terms) throws IOException {
+    Document d = new Document();
+    for (String t : terms) {
+      d.add(new StringField(&quot;f&quot;, t, Field.Store.NO));
+    }
+    w.addDocument(d);
+  }
+
+  private static IndexWriter newWriter(Directory dir) throws IOException {
+    return new IndexWriter(
+        dir,
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setMergePolicy(NoMergePolicy.INSTANCE));
+  }
+
+  private static IndexSearcher newPlainSearcher(DirectoryReader r) {
+    IndexSearcher s = new IndexSearcher(r); // no executor: one slice
+    s.setQueryCache(null);
+    return s;
+  }
+
+  /**
+   * Drives the bulk scorer of every leaf with a fixed minimum competitive score and returns the
+   * collected &quot;doc:score&quot; pairs (score in hex).
+   */
+  private static List&lt;String&gt; collectWithMinScore(IndexSearcher s, Query q, float minScore)
+      throws IOException {
+    List&lt;String&gt; hits = new ArrayList&lt;&gt;();
+    Weight weight = s.createWeight(s.rewrite(q), ScoreMode.TOP_SCORES, 1f);
+    for (LeafReaderContext ctx : s.getIndexReader().leaves()) {
+      BulkScorer bs = weight.bulkScorer(ctx);
+      assertEquals(
+          &quot;precondition: the disjunction runs on MaxScoreBulkScorer&quot;,
+          &quot;MaxScoreBulkScorer&quot;,
+          bs.getClass().getSimpleName());
+      bs.score(
+          new LeafCollector() {
+            Scorable scorer;
+
+            @Override
+            public void setScorer(Scorable scorer) throws IOException {
+              this.scorer = scorer;
+              scorer.setMinCompetitiveScore(minScore);
+            }
+
+            @Override
+            public void collect(int doc) throws IOException {
+              hits.add((ctx.docBase + doc) + &quot;:&quot; + Float.toHexString(scorer.score()));
+            }
+          },
+          ctx.reader().getLiveDocs(),
+          0,
+          DocIdSetIterator.NO_MORE_DOCS);
+    }
+    return hits;
+  }
+
+  /**
+   * Scorable#setMinCompetitiveScore: the iterator &quot;may safely ignore all documents whose score is
+   * less than the given minScore&quot;. A document whose score equals minScore must still be collected.
+   *
+   * &lt;p&gt;Clause scores e = 0.75, a = 0.25 + 2^-24, t = 2^-53 + 2^-76, j = 0.5. Doc 0 matches e, a and
+   * t (not j); its score is nextUp(1f) both as explain() computes it and as MaxScoreBulkScorer
+   * collects it. With minScore = nextUp(1f), the required-clause bound for &quot;every clause except j&quot;
+   * is (float) (0.75 + (t + a)) = 1.0f, which is less than minScore, so j becomes required and doc 0
+   * is skipped. The real sum of the maxima without j, 1 + 2^-24 + 2^-53 + 2^-76, is above minScore&#x27;s
+   * rounding midpoint, so the bound is too low.
+   */
+  public void testDocScoringExactlyMinCompetitiveScoreIsCollected() throws Exception {
+    String[] terms = {&quot;e&quot;, &quot;a&quot;, &quot;t&quot;, &quot;j&quot;};
+    float[] boosts = {0.75f, 0.25f + 0x1p-24f, 0x1p-53f + 0x1p-76f, 0.5f};
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = newWriter(dir)) {
+      addDoc(w, &quot;e&quot;, &quot;a&quot;, &quot;t&quot;); // doc 0: the document under test
+      addDoc(w, &quot;j&quot;); // doc 1: gives clause j a document (max score 0.5)
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;precondition: one segment&quot;, 1, r.leaves().size());
+        IndexSearcher s = newPlainSearcher(r);
+        Query q = disjunction(terms, boosts);
+        float docScore = Math.nextUp(1.0f);
+
+        assertEquals(
+            &quot;precondition: explain(doc 0)&quot;, docScore, s.explain(q, 0).getValue().floatValue(), 0f);
+        assertEquals(
+            &quot;control: minScore = 1.0f collects doc 0 with score nextUp(1f)&quot;,
+            List.of(&quot;0:&quot; + Float.toHexString(docScore)),
+            collectWithMinScore(s, q, 1.0f));
+
+        assertEquals(
+            &quot;doc 0 scores &quot;
+                + Float.toHexString(docScore)
+                + &quot; (scorer and explain), which is not less than minCompetitiveScore &quot;
+                + Float.toHexString(docScore)
+                + &quot;, so it must not be skipped&quot;,
+            List.of(&quot;0:&quot; + Float.toHexString(docScore)),
+            collectWithMinScore(s, q, docScore));
+      }
+    }
+  }
+
+  /**
+   * End to end: the top hit of a plain IndexSearcher#search(query, 1) must not depend on
+   * totalHitsThreshold, which only controls how accurately hits are counted
+   * (TopScoreDocCollectorManager javadoc). Clause scores found by an SMT solver. Docs 0..1099 match
+   * e and a; doc 5000 matches e, a and t and scores one float ulp higher; doc 6000 matches j. With
+   * the default threshold (1000) the collector raises the minimum competitive score to nextUp(score
+   * of doc 0), which is the score of doc 5000, and the required-clause test then skips doc 5000.
+   * With a threshold above the hit count (still TOP_SCORES, but no minimum competitive score is
+   * ever set) the same searcher returns doc 5000.
+   *
+   * &lt;p&gt;COMPLETE (exhaustive) search and explain() add clause scores in their own orders; for this
+   * clause order (e, a, t, j) they also rank doc 5000 first, which the preconditions check.
+   */
+  public void testTopHitDoesNotDependOnTotalHitsThreshold() throws Exception {
+    String[] terms = {&quot;e&quot;, &quot;a&quot;, &quot;t&quot;, &quot;j&quot;};
+    float[] boosts = {0x1.dfff4ep0f, 0x1.ab0p-16f, 0x1.00008p-53f, 0x1.00fe54p0f};
+    try (Directory dir = new ByteBuffersDirectory();
+        IndexWriter w = newWriter(dir)) {
+      for (int i = 0; i &lt; 1100; i++) {
+        addDoc(w, &quot;e&quot;, &quot;a&quot;); // more hits than the default totalHitsThreshold (1000)
+      }
+      for (int i = 1100; i &lt; 5000; i++) {
+        addDoc(w, &quot;x&quot;);
+      }
+      addDoc(w, &quot;e&quot;, &quot;a&quot;, &quot;t&quot;); // doc 5000
+      for (int i = 5001; i &lt; 6000; i++) {
+        addDoc(w, &quot;x&quot;);
+      }
+      addDoc(w, &quot;j&quot;); // doc 6000
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;precondition: one segment&quot;, 1, r.leaves().size());
+        IndexSearcher s = newPlainSearcher(r);
+        Query q = disjunction(terms, boosts);
+
+        float explain0 = s.explain(q, 0).getValue().floatValue();
+        float explain5000 = s.explain(q, 5000).getValue().floatValue();
+        assertTrue(
+            &quot;precondition: explain(5000) = &quot;
+                + Float.toHexString(explain5000)
+                + &quot; &gt; explain(0) = &quot;
+                + Float.toHexString(explain0),
+            explain5000 &gt; explain0);
+
+        // TopScoreDocCollectorManager is not in 9.8.0 / 9.9.0: same collectors via create()
+        TopScoreDocCollector complete = TopScoreDocCollector.create(1, Integer.MAX_VALUE);
+        s.search(q, complete);
+        ScoreDoc exhaustive = complete.topDocs().scoreDocs[0];
+        assertEquals(&quot;precondition: exhaustive (COMPLETE) top-1&quot;, 5000, exhaustive.doc);
+
+        // TOP_SCORES, every hit counted accurately: 1102 hits &lt;= 10000, so no pruning
+        TopScoreDocCollector accurateCollector = TopScoreDocCollector.create(1, 10_000);
+        s.search(q, accurateCollector);
+        TopDocs accurate = accurateCollector.topDocs();
+        assertEquals(
+            &quot;precondition: TOP_SCORES with totalHitsThreshold 10000 top-1&quot;,
+            5000,
+            accurate.scoreDocs[0].doc);
+
+        TopDocs pruned = s.search(q, 1); // TOP_SCORES, default totalHitsThreshold = 1000
+        String msg =
+            &quot;search(q, 1) top-1 = doc &quot;
+                + pruned.scoreDocs[0].doc
+                + &quot; (&quot;
+                + Float.toHexString(pruned.scoreDocs[0].score)
+                + &quot;, totalHits &quot;
+                + pruned.totalHits
+                + &quot;); with totalHitsThreshold 10000 top-1 = doc &quot;
+                + accurate.scoreDocs[0].doc
+                + &quot; (&quot;
+                + Float.toHexString(accurate.scoreDocs[0].score)
+                + &quot;, totalHits &quot;
+                + accurate.totalHits
+                + &quot;); exhaustive top-1 = doc &quot;
+                + exhaustive.doc
+                + &quot; (&quot;
+                + Float.toHexString(exhaustive.score)
+                + &quot;); explain(0) = &quot;
+                + Float.toHexString(explain0)
+                + &quot;, explain(5000) = &quot;
+                + Float.toHexString(explain5000);
+        assertEquals(msg, accurate.scoreDocs[0].doc, pruned.scoreDocs[0].doc);
+        assertEquals(msg, accurate.scoreDocs[0].score, pruned.scoreDocs[0].score, 0f);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed (11.0.0-SNAPSHOT) and the 10.5.2 jars: reproduced; release matrix 9.7.0 to 10.5.2 (Maven Central, SHA-1 checked)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main ea57360912ed, seed DEADBEEF, assertions on (the same 2 failures with -Ptests.asserts=false)
+TestMaxScoreRequiredClauseRounding &gt; testTopHitDoesNotDependOnTotalHitsThreshold FAILED
+    java.lang.AssertionError: search(q, 1) top-1 = doc 0 (0x1.e000f8p0, totalHits 1100+ hits); with totalHitsThreshold 10000 top-1 = doc 5000 (0x1.e000fap0, totalHits 1102 hits); exhaustive top-1 = doc 5000 (0x1.e000fap0); explain(0) = 0x1.e000f8p0, explain(5000) = 0x1.e000fap0 expected:&lt;5000&gt; but was:&lt;0&gt;
+TestMaxScoreRequiredClauseRounding &gt; testDocScoringExactlyMinCompetitiveScoreIsCollected FAILED
+    java.lang.AssertionError: doc 0 scores 0x1.000002p0 (scorer and explain), which is not less than minCompetitiveScore 0x1.000002p0, so it must not be skipped expected:&lt;[0:0x1.000002p0]&gt; but was:&lt;[]&gt;
+2 tests completed, 2 failed
+
+# paging probe, main ea57360912ed (the same with -da and on 10.5.2)
+COMPLETE top-1: doc 5000 0x1.e000fap0, totalHits 1102 hits
+search(q, 10): first hit doc 0 0x1.e000f8p0, totalHits 1100+ hits
+paged with searchAfter: 111 pages, 1101 hits, distinct 1101, contains doc 5000: false, contains doc 6000: true
+# with the fix: search(q, 10) first hit doc 5000 0x1.e000fap0; 111 pages, 1102 hits, contains doc 5000: true</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code>Scorable.setMinCompetitiveScore</code> allows skipping only documents "whose score is less than the given minScore"; doc 0's score equals it.</li><li>Bounds summed in a different order from the score use <code>MathUtil.sumUpperBound</code>, which exists because sums depend on the order; #12589 wrapped its other new comparisons, not this one.</li><li>#13397 fixed the same kind of slip in another scorer as a bug.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>373 words</span></summary><div class='body'><p><strong>The contract, in its own words</strong> (at <code class='nw'>ea57360912ed</code>):</p><ul><li><code>Scorable#setMinCompetitiveScore</code>: "Tell the scorer that its iterator may safely ignore all documents whose score is less than the given <code class='nw'>minScore</code>" (<code>Scorable.java:45-47</code>).</li><li><code>IndexSearcher#search(Query, int)</code>: "Finds the top <code class='nw'>n</code> hits for <code class='nw'>query</code>." (<code>IndexSearcher.java:617-623</code>). <code>TopScoreDocCollectorManager</code>: <code>totalHitsThreshold</code> is "the number of docs to count accurately" (<code class='nw'>:35-55</code>).</li><li><code>MathUtil.sumUpperBound</code>: "The error of sums depends on the order in which values are summed up. In order to avoid this issue, we compute an upper bound of the value that the sum may take." (<code>MathUtil.java:184-186</code>).</li><li>The comment above the loop presents the step as exact: "we know that hits must match both the essential clause and the best non-essential clause" (<code>MaxScoreBulkScorer.java:525-531</code>).</li><li>Lucene's test oracle asserts that every document a pruned scorer skips scores strictly below <code class='nw'>minScore</code> (<code>CheckHits.java:744-749</code>).</li></ul><p><strong>Cross-order bounds.</strong> Where a floating-point bound adds the maxima in a different order from the score, Lucene wraps it in <code class='nw'>sumUpperBound</code>: the partition loop above line 540 (<code>MaxScoreBulkScorer.java:500-502</code>), <code>ScorerUtil.minRequiredScore</code> (<code>ScorerUtil.java:131-142</code>), <code>WANDScorer.java:192</code> and <code class='nw'>:591</code>, and <code>DisjunctionSumScorer.java:68</code>. The conjunction scorers cast a plain double sum (<code>BlockMaxConjunctionBulkScorer.java:74-83</code>, compared at <code class='nw'>:163</code>; <code>BlockMaxConjunctionScorer.java:225-231</code>), which is sound because they add in the score's own order (<code>MathUtil.java:188-191</code>: for conjunctions "the order in which scores are summed up is predictable"). Line 540 adds in a different order and is not wrapped. #12589 wrapped its two new per-document comparisons but not the new required-clause test (diff lines 169, 187 and 284 of <code>git show 611bbbd9512 -- lucene/core/src/java/org/apache/lucene/search/MaxScoreBulkScorer.java</code>).</p><p><strong>History.</strong> #12589 ("Sometimes intersect the essential clause and the best non-essential clause.", 2023-10-24): no discussion of rounding in the body or its 6 comments; the PR has no reviews. #13397 (2024-05-21) fixed a bound summed in float in <code>BlockMaxConjunctionBulkScorer</code> as a bug: "Otherwise, max scores may be returned that are less than actual scores." In the #14751 review a maintainer suggested <code>(float) MathUtil.sumUpperBound(maxRemainingScore, numScorers) &gt;= minCompetitiveScore</code>, the shape of the fix here.</p><p><strong>Why the tests miss it.</strong> <code>TestMaxScoreBulkScorer.testPartition</code> checks the required-clause partition with 3 clauses, where both orders coincide; its other tests use small integer scores with <code class='nw'>Math.nextUp</code> thresholds, where every sum is exact.</p></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>301 words</span></summary><div class='body'><p>Lucene accepts ulp-level score differences between execution strategies: <code>BooleanWeight.explain</code> pulls a scorer because "Replicating the same floating-point errors as the scorer does is quite complex" (<code>BooleanWeight.java:121-125</code>), and a 2021 maintainer comment on #10375 says top hits that differ "in the order of one ulp" can come from summation order. So a one-float-step swap at rank k could be called within tolerance. A read-only cross-model review recorded "not real, low confidence".</p><p>Why it fails:</p><ol><li>That tolerance is about different strategies disagreeing in the last bit. Here one scorer, under one partition, skips a document it itself scores exactly at the minimum (<code class='nw'>explain</code> agrees), and two TOP_SCORES runs on the same searcher that differ only in <code>totalHitsThreshold</code> return different top hits.</li><li>The class wraps its other cross-order bounds in <code class='nw'>sumUpperBound</code>, the same commit did so for its other new comparisons, and #13397 treated the same kind of error as a bug.</li><li>The fix adds a few floating-point operations per iteration of the required-clause loop (at most n-1 per partition), never per document.</li><li>The read-only reviewer could not run code; it wrote that its verdict is "not a substantive refutation" and that static inspection "strongly supports a genuine, rare wrong-results defect". Its earlier, code-executing attempt wrote its own test, which fails on main and passes with the fix.</li></ol><p><strong>Caveat for the issue:</strong> do not frame it as "TOP_SCORES must equal COMPLETE". With other numbers the exhaustive <code class='nw'>BooleanScorer</code> and <code class='nw'>explain()</code> score the affected document one float <em>lower</em>, so an exact TOP_SCORES-vs-COMPLETE check can fail even after the fix: over the 24 clause orders of the end-to-end index, COMPLETE returns doc 5000 in only 12, before and after the fix, while the pruned search returns doc 0 in all 24 on stock and doc 5000 in all 24 with the fix.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Wrap the bound in MathUtil.sumUpperBound</strong></p><p class='short'>Wrap the bound at <code>MaxScoreBulkScorer.java:540</code> in <code>MathUtil.sumUpperBound(..., allScorers.length)</code>, like the partition loop above it. One line, off the per-document path. Both tests pass, and so do 157 nearby tests (assertions on and off) and all 2,332 tests of the <code class='nw'>search</code> package.</p><pre class='snippet' tabindex='0'><code>// MaxScoreBulkScorer.partitionScorers, required-clause loop
+// (was: if ((float) maxPossibleScoreWithoutPreviousClause &gt;= scorable.minCompetitiveScore) {)
+if ((float) MathUtil.sumUpperBound(maxPossibleScoreWithoutPreviousClause, allScorers.length)
+    &gt;= scorable.minCompetitiveScore) {
+  break;
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 507 words</span></summary><div class='body'><p>One option was validated with gradle in a scratch worktree at <code class='nw'>ea57360912ed</code> (removed after the runs); a second was validated with the repro runner only; the third was not run.</p><div class="hd hd-3"><h3 id='fix-sum-upper-bound'>Wrap the bound in MathUtil.sumUpperBound <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-sum-upper-bound" target="_self" aria-label="Link to this section" aria-describedby="fix-sum-upper-bound"><span aria-hidden="true">#</span></a></div><p>The same pattern as the partition loop above it (<code class='nw'>:500-502</code>) and <code>ScorerUtil.minRequiredScore</code>.</p><pre class='snippet' tabindex='0'><code>// MaxScoreBulkScorer.partitionScorers, required-clause loop
+// (was: if ((float) maxPossibleScoreWithoutPreviousClause &gt;= scorable.minCompetitiveScore) {)
+if ((float) MathUtil.sumUpperBound(maxPossibleScoreWithoutPreviousClause, allScorers.length)
+    &gt;= scorable.minCompetitiveScore) {
+  break;
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Sound for any summation order, now or after later refactorings: the study's Dafny model proves the fixed test sound on an abstract real-number rounding model with 5 axioms, for clause counts with n·2^-53 &lt;= 1/16 (any realistic count); not a bit-level binary64 or bytecode proof. An independent replication fails the proof when the bug is re-introduced.</li><li>The inflation is a relative 2(n-1)·2^-52 (about 1.3e-15 for 4 clauses), so it only changes the decision next to a rounding midpoint; the per-document filter already applies the same inflation.</li><li>Cost: a few floating-point operations (<code class='nw'>Math.scalb</code>, three multiplies, an add) per iteration of the required-clause loop, at most n-1 per partition; never per document; no benchmark run. <code>allScorers.length</code> is conservative; any count at least the number of summed terms is sound.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, stock: the repro fails 2 of 2 with assertions on and off.</li><li>Gradle with the fix: the repro plus <code>TestMaxScoreBulkScorer</code>, <code class='nw'>TestBoolean2</code>, <code class='nw'>TestBooleanQuery</code>, <code>TestBooleanMinShouldMatch</code>, <code class='nw'>TestBooleanOr</code>, <code>TestBooleanScorer</code>, <code>TestBooleanScorerSupplier</code>, <code class='nw'>TestWANDScorer</code>, <code class='nw'>TestScorerUtil</code>, <code>TestTopDocsCollector</code> and <code class='nw'>TestMathUtil</code>: 157 tests, 0 failures (seed <code class='nw'>DEADBEEF</code>, assertions on; seed <code class='nw'>CAFEBABE</code>, assertions off).</li><li>Gradle with the fix: all of <code>org.apache.lucene.search.*</code> in <code class='nw'>:lucene:core</code>, 2,332 tests, 0 failures, 49 skipped.</li><li><code>./gradlew :lucene:core:tidy</code> leaves the fix line unchanged.</li><li>The repro runner: the three independent tests and the paging probe pass; 106 upstream tests pass stock and patched on seeds <code class='nw'>DEADBEEF</code> and <code class='nw'>CAFEBABE</code>, and 121 on seed <code class='nw'>7E57AB1E</code>.</li><li>Not run: the rest of <code class='nw'>:lucene:core</code>, other modules, a performance benchmark.</li></ul><div class="hd hd-3"><h3 id='fix-same-order'>Sum the bound in the scorer's own order (the repro runner only; not recommended) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-same-order" target="_self" aria-label="Link to this section" aria-describedby="fix-same-order"><span aria-hidden="true">#</span></a></div><p>Replace <code>+ maxScoreSums[firstRequiredScorer - 2]</code> by adding <code>allScorers[i].maxWindowScore</code> for <code>i = firstRequiredScorer - 2 .. 0</code> one at a time onto <code class='nw'>maxRequiredScore</code>, the order <code>scoreNonEssentialClauses</code> uses.</p><pre class='snippet' tabindex='0'><code>double maxPossibleScoreWithoutPreviousClause = maxRequiredScore;
+for (int i = firstRequiredScorer - 2; i &gt;= 0; --i) {
+  maxPossibleScoreWithoutPreviousClause += allScorers[i].maxWindowScore;
+}</code></pre><p class='k'>Trade-offs</p><p>Exact rather than inflated, because rounded addition is monotone (an argument, not proved). But it ties correctness to the summation order in <code>scoreNonEssentialClauses</code>, which has been refactored before; a later change there would silently bring the bug back. O(n) per loop iteration instead of O(1).</p><p class='k'>What the checks validated</p><p>The repro passes 2 of 2 with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, the 5-clause test 3 of 3, the reviewer's test 3 of 3, and 121 upstream tests pass (seed <code class='nw'>DEADBEEF</code>). Not run with gradle.</p><div class="hd hd-3"><h3 id='fix-drop-required'>Remove the required-clause optimization (not run)</h3><a class="hlink" href="#fix-drop-required" target="_self" aria-label="Link to this section" aria-describedby="fix-drop-required"><span aria-hidden="true">#</span></a></div><p>Return to the 9.8.0 partition without required clauses.</p><p class='k'>Trade-offs</p><p>Loses the #12589 speedup for single-essential-clause windows. Not recommended.</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An AI tool trying to prove Lucene's top-k pruning sound in Dafny could not prove this one comparison; the same comparison with <code class='nw'>sumUpperBound</code> proved. A Z3 floating-point model then found a scorer-level witness in 7.4 seconds and the end-to-end boosts of the JUnit in 6.0 seconds. Verifiers reproduced it with their own numbers.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>276 words</span></summary><div class='body'><p><strong>Method: deductive proof (Dafny) plus IEEE-754 SMT (Z3)</strong>, the study's formal tier, run 3, experiment "topk-pruning-proof" (2026-10-22, main <code class='nw'>7cecf79523</code>).</p><ul><li>An AI tool modelled Lucene's dynamic top-k pruning (the partition, the per-document filter and the required-clause test) and the document score fold, each mapped to Java lines. The obligation that the required-clause test as coded never drops a competitive document was not provable from the IEEE axioms (<code>RequiredClauseUnsound.dfy</code>); the same statement with <code>sumUpperBound(., n)</code> was proved.</li><li>A Z3 model with exact binary32/binary64 round-to-nearest-even semantics then produced a witness for the scorer-level failure in 7.4 s and, adding cost-feasibility for the clause sort and the measured <code class='nw'>BooleanScorer</code> order, an end-to-end witness in 6.0 s: the boosts of the end-to-end test. The 7.4 s witness has scores of about 1e-23; the contract test's round numbers (0.75, 0.25 + 2^-24, 2^-53 + 2^-76, 0.5) follow the same pattern, and the study's Dafny file lists them as an example, but no Z3 log records how they were chosen. A third query (every one of the 6 summation orders reaching the minimum) was UNSAT, so the bug needs an order-dependent score.</li><li>The AI tool reported seeing no hint about this area. A separate AI verifier reproduced it with its own numbers and layout and found the COMPLETE/explain caveat; an independent Dafny replication fails when the bug is re-introduced into the fixed test.</li><li>On 2026-10-26 the hunt re-ran it on <code class='nw'>ea57360912ed</code> and the release jars, built the history, searched for prior reports, ran a cross-model review and a second adjudication with a third independent test, and for this page validated the fix with gradle and ran the paging probe.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No report found in GitHub issues and PRs, commits, the dev@, java-user@, issues@, commits@ and builds@ lists, the JIRA archive, three downstream trackers or the web (2026-10-26). Not fixed upstream. Closest: #13397, the same kind of slip in another scorer, fixed as a bug.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No report of this bug was found, and upstream main, branch_10x and branch_10_6 still have the plain cast; no open PR changes the line (#15081, #14968, #14024 and #12446 modify <code>MaxScoreBulkScorer.java</code> elsewhere, and #15346 only adds a <code>MaxScoreBulkScorer</code> test). Closest items, none of them this bug: #12589 (introduced the loop; no rounding discussion), #13397 (closes #13371 and #13396; the same kind of error in <code>BlockMaxConjunctionBulkScorer</code>, fixed as a bug), the #14751 review (a maintainer suggested the fix's exact shape for another comparison), #14827 (rounding of the per-document filter, which uses <code class='nw'>sumUpperBound</code>), #972 / LUCENE-10480 (a maintainer asked for <code>scoreSumUpperBound</code> in the predecessor 2-clause scorer), #11464 / LUCENE-10428 (an earlier rounding bug in <code>MaxScoreSumPropagator</code>), #10375 (ulp-level differences from summation order, background), and Jenkins "docnumbers don't match" threads since 2023-10 (other tests, each explained or fixed).</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene), via a scripted prior-report search</th><td class='when'>2026-10-26</td><td>31 queries on class and field names (MaxScoreBulkScorer, MathUtil, ScorerUtil, sumUpperBound, partitionScorers, firstRequiredScorer, maxScoreSums, minCompetitiveScore, checkTopScores) and symptoms (rounding, floating point, ulp, "skips a document", "rank inversion", "docnumbers don't match", "required clause" maxscore)</td><td>no report; #12589 and #13397 are the closest</td></tr><tr><th scope='row'>Commits, downstream, mailing lists, JIRA, web (same tool)</th><td class='when'>2026-10-26</td><td>3 commit queries, 4 downstream (Elasticsearch, OpenSearch, Solr), 35 on dev@, java-user@, issues@, commits@ and builds@, 5 in the JIRA archive, 10 web; 88 queries in total, 310 distinct hits</td><td>nothing about this bug</td></tr><tr><th scope='row'>Manual searches</th><td class='when'>2026-10-26</td><td>27 quota-gated GitHub API searches, separate list and JIRA passes, 11 web searches</td><td>unrelated items only</td></tr><tr><th scope='row'>Open PRs and branches</th><td class='when'>2026-10-26</td><td>changed files of all 413 open PRs; all 288 issues and PRs updated since 2026-10-01; the file on main, branch_10x and branch_10_6</td><td>no change to line 540 (#15081, #14968, #14024, #12446 modify the file elsewhere; #15346 adds a test only); last commit on the file #16520 (2026-09-18)</td></tr><tr><th scope='row'>Earlier searches</th><td class='when'>2026-10-22 to 2026-10-26</td><td>the study's GitHub searches and the candidate step (51 queries)</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #12589 (merged 2023-10-24; its branch_9x backport shipped in 9.9.0). All 22 releases from 9.9.0 to 10.5.2 and main fail the contract test; 9.8.0 passes. The end-to-end input fails from 10.1.0, where #13800 repartitions sooner.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p>#12589 ("Sometimes intersect the essential clause and the best non-essential clause."; 9.9.0 CHANGES: "Disjunctions now sometimes run as conjunctions when the minimum competitive score requires multiple clauses to match.") was committed on 2023-10-24 as <code class='nw'>611bbbd9512</code> on main (first released in 10.0.0) and as the backport <code class='nw'>59e0a192097</code> on branch_9x, which shipped in <strong>9.9.0</strong>. Since then only three commits touched the line, each renaming <code>minCompetitiveScore</code> to or from <code>scorable.minCompetitiveScore</code> (#14046, its revert, #14852).</p><p>Every release row ran the repro on the release's Maven Central jars, SHA-1 checked; the commit rows swap only <code>MaxScoreBulkScorer.java</code> onto a release's jars. All rows ran on OpenJDK 25.0.3, Linux aarch64, not on each release's minimum supported JDK.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code> (unreleased 11.0)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>both tests fail, with -ea and -da</td></tr><tr><th scope='row'>10.1.0 to 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>both tests fail (-da checked on 10.1.0 and 10.5.2)</td></tr><tr><th scope='row'>9.9.0 to 9.12.3, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the contract test fails; this end-to-end input does not reach the bug</td></tr><tr><th scope='row'>9.8.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>both pass (MaxScoreBulkScorer without the required-clause test)</td></tr><tr><th scope='row'>9.7.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>no MaxScoreBulkScorer</td></tr><tr><th scope='row'><code class='nw'>59e0a192097</code> vs its parent <code class='nw'>1865ffebce5</code> (on 9.8.0 and 9.9.0 jars); <code class='nw'>611bbbd9512</code> vs <code class='nw'>5bca0aa3914</code> (on 10.0.0 jars)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>the parent passes, #12589 fails, on both lines</td></tr><tr><th scope='row'><code class='nw'>59e0a192097</code> + the one-line fix (on 9.9.0 jars)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix</span></td><td>passes</td></tr><tr><th scope='row'>#13800 <code class='nw'>8ad66899bc9</code> vs parent <code class='nw'>b8bfffa3681</code> (on 10.0.0 jars)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> end-to-end input</span></td><td>the end-to-end test starts failing with #13800, which re-runs the partition as soon as the minimum rises</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Tests written independently by the finder, the study's verifier, a cross-model reviewer and a second adjudication (4 or 5 clauses, different numbers) all fail on main and pass with the fix. A read-only cross-model review recorded a procedural "not real" and called it no substantive refutation.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>414 words</span></summary><div class='body'><p>Each check worked from the code or its own runs; none found a reason to call it intended.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Study verifier (top-k pruning proof)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new bug, severity low</span></td><td>Its own numbers (3.0, 2.0, 1 + 2^-22, 2^-51 + 2^-70) and layout; the fix passes its repro and 88 upstream tests. Found that TOP_SCORES vs COMPLETE is not a reliable signature (the caveat above) and ran the 1-in-64M simulation.</td></tr><tr><th scope='row'>Independent Dafny replication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> replicated with caveat</span></td><td>The required-clause test as coded fails to verify; re-introducing the bug into the fixed test fails the proof.</td></tr><tr><th scope='row'>Hunt verification</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Both tests fail on main and 10.5.2 with -ea and -da, on 5 seeds and 20 of 20 iterations; the fix passes them and 106 upstream tests.</td></tr><tr><th scope='row'>Cross-model refute review</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real, low confidence (procedural)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6). Its code-executing first attempt wrote its own test, which fails on main and passes with the fix; its read-only second attempt could not run code, recorded "not real" and called that "not a substantive refutation"; 9 of its 10 evidence items support the bug, and the 10th records that it could not run a command.</td></tr><tr><th scope='row'>Second adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high confidence</span></td><td>A third test with 5 clauses where the bad rounding is in the second loop iteration: 30 of 30 iterated runs fail, all pass with the fix; 121 upstream tests pass stock and patched.</td></tr><tr><th scope='row'>History and prior-report follow-ups</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> introduced by #12589 (9.9.0); new</span></td><td>Every release 9.7.0 to 10.5.2, one-file swaps on both branches; 88 tool queries plus manual searches found nothing.</td></tr><tr><th scope='row'>This page's own runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Gradle: the repro fails 2 of 2 stock (assertions on and off); with the fix 157 nearby tests and the 2,332 tests of the search package pass. The paging probe misses doc 5000 on main and 10.5.2 and finds it with the fix. A second fix variant passes all repros.</td></tr><tr><th scope='row'>Fact checks of this page and its diagram</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug confirmed; text corrected</span></td><td>A fact check re-ran the gradle repro (assertions on and off), the fix, the runner and the paging probe and recomputed the arithmetic; a second came from an independent reviewer from another model family (OpenAI GPT-5.6) with read-only file access; a diagram check re-ran the diagram's probe. All confirmed the bug; their corrections of scope, counts, dates and wording are applied, as listed in the resolution file.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-060/bug.png' download='maxscore-required-clause-rounding-bug.png' target='_self'>PNG</a> <span class='n'>574 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>593 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-060, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>MaxScoreBulkScorer can skip a document whose score equals the minimum competitive score (1-ulp rank inversion)</dd></div><div><dt>Area</dt><dd>search / scoring</dd></div><div><dt>Priority</dt><dd>Low, rank 717: MaxScoreBulkScorer can swap a doc exactly tied with the k-th score on a float-rounding midpoint (about 1 in 64M adversarial trials), silent but a 1-ulp tie with no real relevance loss.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Default scoring, but only disjunctions of 4+ SHOULD clauses with one essential clause, clause scores spanning more than 2^29 and a sum at a float midpoint (about 1 in 64M in simulation); released since 9.9.0.</dd></div><div><dt>Summary</dt><dd>You run a top-k disjunction of 4 or more SHOULD clauses whose clause scores span more than 2^29. You expect every document that is competitive by its own score to be collected. Instead the required-clause test skips MathUtil.sumUpperBound, so a document whose score equals minCompetitiveScore can be dropped and the top hits change by one rank.</dd></div><div><dt>Introduced</dt><dd>#12589 (611bbbd9512) (2023-10-24)</dd></div><div><dt>First affected version</dt><dd>9.9.0 [read]</dd></div><div><dt>Affected versions</dt><dd>9.9.0+ [read]; main [exec]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; also a cross-model review that could only read the code (its low-confidence “not real” is procedural); not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>formal: Dafny, Z3/cvc5</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (study searches 2026-10-22); precedent #13397</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (commit 2026-10-24; tested 2026-10-26): the JUnit repro with gradle in a scratch worktree, stock (assertions on and off) and with the fix, plus 157 nearby tests (assertions on and off) and the whole <code>org.apache.lucene.search</code> test package of <code class='nw'>:lucene:core</code> (2,332 tests) with the fix (the worktree was removed after the runs); the repro through the repro runner with <code class='nw'>-ea</code> and <code class='nw'>-da</code> on main and 10.5.2 and on the Maven Central jars of every release from 9.7.0 to 10.5.2 (SHA-1 checked); a paging probe on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and the fix; a second fix variant through the repro runner. The study reproduced it on <code class='nw'>7cecf79523</code> and the public-list rerun on <code class='nw'>b83101cdd2</code>; upstream main, branch_10x and branch_10_6 still had the same line on 2026-10-26.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/MaxScoreBulkScorer.java at ea57360912ed (lines 166, 337-353, 447-472, 474-551); lucene/core/src/java/org/apache/lucene/search/BooleanScorerSupplier.java:340-364 (filtered disjunction)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/ScorerUtil.java:131-142, 151-164, 173-190 at ea57360912ed; lucene/core/src/java/org/apache/lucene/util/MathUtil.java:162-194; lucene/core/src/java/org/apache/lucene/search/Scorable.java:45-52; lucene/core/src/java/org/apache/lucene/search/BooleanScorerSupplier.java:198-267 (routing: 203-207, 210, 233-234, 308-328, 340-364); lucene/core/src/java/org/apache/lucene/search/BooleanQuery.java:591-607; lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:100, 599; lucene/core/src/java/org/apache/lucene/search/TopScoreDocCollector.java:137-151, 154-164; lucene/core/src/java/org/apache/lucene/search/TopFieldCollector.java:342-346, 380-392</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/Scorable.java:45-52; lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:617-623; lucene/core/src/java/org/apache/lucene/search/TopScoreDocCollectorManager.java:35-55; lucene/core/src/java/org/apache/lucene/util/MathUtil.java:184-191; lucene/core/src/java/org/apache/lucene/search/MaxScoreBulkScorer.java:500-502, 525-531, 540 at ea57360912ed</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/ScorerUtil.java:131-142; lucene/core/src/java/org/apache/lucene/search/BlockMaxConjunctionBulkScorer.java:74-83, 163; lucene/core/src/java/org/apache/lucene/search/BlockMaxConjunctionScorer.java:225-231 at ea57360912ed (same-order sums, no sumUpperBound)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/WANDScorer.java:192, 591; lucene/core/src/java/org/apache/lucene/search/DisjunctionSumScorer.java:68; lucene/core/src/java/org/apache/lucene/search/BooleanWeight.java:121-125; lucene/test-framework/src/java/org/apache/lucene/tests/search/CheckHits.java:744-749; lucene/core/src/test/org/apache/lucene/search/TestMaxScoreBulkScorer.java:264-490, 849 at ea57360912ed</code></li><li><code>read-only GitHub API, 2026-10-26: pulls/12589/reviews (0) and pulls/12589/comments (none)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestMaxScoreRequiredClauseRounding.java (JUnit for Lucene&#x27;s build): <a href='../repro/LFV-060/TestMaxScoreRequiredClauseRounding.java'><code>repro/LFV-060/TestMaxScoreRequiredClauseRounding.java</code></a> (243 lines)</li><li>TestSkippedDocAcrossPages.java (paging probe: searchAfter never returns doc 5000): <a href='../repro/LFV-060/TestSkippedDocAcrossPages.java'><code>repro/LFV-060/TestSkippedDocAcrossPages.java</code></a> (131 lines)</li><li>TestRequiredClauseSecondIteration.java (independent test: 5 clauses, second loop iteration): <a href='../repro/LFV-060/TestRequiredClauseSecondIteration.java'><code>repro/LFV-060/TestRequiredClauseSecondIteration.java</code></a> (295 lines)</li><li>TestMaxScoreRequiredClauseRounding9x.java (the same test for the 9.x API): <a href='../repro/LFV-060/TestMaxScoreRequiredClauseRounding9x.java'><code>repro/LFV-060/TestMaxScoreRequiredClauseRounding9x.java</code></a> (250 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>The PNG is the summary card. Every value on screen was printed by an executed probe on the main jars (public API only, plus a prints-only copy of <code>MaxScoreBulkScorer</code> for the trace), or comes from the repro or the code. The diagram notes list each part with its sources.</p><ul class='paths'><li><a href='../assets/LFV-060/bug.png'><code>assets/LFV-060/bug.png</code></a> (574 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

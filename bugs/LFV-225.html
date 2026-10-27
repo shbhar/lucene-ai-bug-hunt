@@ -1,0 +1,669 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>ThaiTokenizer drops a number written right after a period, &#x27;#&#x27; or a currency sign other than ¢</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-225 &middot; thaitokenizer-drops-number-after-leading-punctuation</p><h1 id='top'>ThaiTokenizer drops a number written right after a period, &#x27;#&#x27; or a currency sign other than ¢</h1><p class='tldr'><code class='nw'>ThaiAnalyzer</code> silently drops a number glued to a leading period, <code class='nw'>#</code> or currency sign (any except <code class='nw'>¢</code>): <code>ราคา ฿1,500</code> ("price ฿1,500") is indexed as just <code class='nw'>ราคา</code>, and a document dated <code>1 ม.ค.2567</code> is not found by its year, 2567. Every release since 4.8.0 (2014), at default settings.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 26</span><span class='sub'>Since 4.8.0 the stock ThaiAnalyzer and ThaiTokenizer silently drop numbers written after a period, &#x27;#&#x27; or currency sign (baht amounts, Thai dates written without a space), ordinary Thai text that needs a reindex once fixed, limited to Thai-language indexes.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>4.8.0 (LUCENE-4984, 2014)<span class='sub'>introduced 2014-03-21 &middot; over 12 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>4.8.0 to 10.5.2 and main (8 releases and main run; 4.7.2 is clean)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>Targeted exploration of ThaiTokenizer, then a JUnit (no formal tool)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Java's word splitter cuts Thai text into pieces; <code class='nw'>ThaiTokenizer</code> then decides which pieces are words. That decision looks at one character only.</p><figure class='visual' id='thaitokenizer-drops-number-after-leading-punctuation-short-visual'><div class='frame'><a class='still' href='../assets/LFV-225/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-225/bug.png' alt='Diagram of the bug: the Thai sentence ประชุมวันที่ 1 ม.ค.2567 (meeting on 1 Jan. 2567) split by Java&#x27;s word splitter into pieces, the last of which is .2567; ThaiTokenizer&#x27;s skip loop tests only the first character of each piece, so .2567 is skipped whole, the year 2567 is not indexed and a TermQuery for 2567 counts 0 documents instead of 1; the same loss for prices such as ราคา ฿1,500, while text without the prefix keeps the number.' width='1920' height='1080'></a></div><figcaption>How <code>ประชุมวันที่ 1 ม.ค.2567</code> is split into word pieces, why the skip loop throws away <code class='nw'>.2567</code> (it tests only the first character), and the same loss in prices such as <code>ราคา ฿1,500</code>. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index the Thai sentence <code>ประชุมวันที่ 1 ม.ค.2567</code> ("meeting on 1 Jan. 2567") with the stock <code class='nw'>ThaiAnalyzer</code> and count <code>TermQuery(f:2567)</code>. You expect 1 hit, as when the date is written with a space (<code>ม.ค. 2567</code>). You get 0.</span></li><li><span>Prices too: <code>ราคา ฿1,500</code> is analyzed as just <code class='nw'>[ราคา]</code>, and <code>ราคา $100</code> as <code class='nw'>[ราคา]</code>. Written <code>ราคา 1,500 บาท</code>, without the sign, the amount <code class='nw'>1,500</code> is a term.</span></li><li><span>Why: Java's word splitter keeps a period, <code class='nw'>#</code> or currency sign (any except <code class='nw'>¢</code>) together with the number after it, so <code class='nw'>.2567</code> and <code class='nw'>฿1,500</code> are one piece each. That split is correct.</span></li><li><span><code class='nw'>ThaiTokenizer</code> then skips every piece whose first character is not a letter or digit (<code>ThaiTokenizer.java:173-180</code>). It looks only at that first character, so <code class='nw'>.</code>, <code class='nw'>฿</code> or <code class='nw'>#</code> takes the whole number with it.</span></li><li><span>No error, and the index is well formed. Skipping a piece only when it has no letter or digit, and starting the token at its first one, keeps <code class='nw'>1,500</code> and <code class='nw'>2567</code>; with that change all of analysis-common (1,918 tests including 9 new ones, 18 skipped) runs with 0 failures.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone indexing or searching Thai text with the stock <code class='nw'>ThaiAnalyzer</code>, <code class='nw'>ThaiTokenizer</code> or the <code class='nw'>thai</code> tokenizer, at default settings. Everyday-looking text triggers it: prices with a currency sign, item numbers with <code class='nw'>#</code>, dates like <code class='nw'>พ.ศ.2567</code>, Latin <code class='nw'>page.42</code>. Every occurrence is lost, whatever the index size, queries lose the number too, and recovering it needs a reindex.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>535 words</span></summary><div class='body'><p><code class='nw'>ThaiAnalyzer</code>, <code class='nw'>ThaiTokenizer</code> and the <code class='nw'>thai</code> tokenizer SPI silently drop a number when the JDK word <code class='nw'>BreakIterator</code> returns it in one segment with a leading period, <code class='nw'>#</code> or currency sign (any currency sign except the cent sign). <code>ราคา ฿1,500</code> ("price ฿1,500") is analyzed as <code class='nw'>[ราคา]</code>, the Buddhist Era date <code class='nw'>พ.ศ.2567</code> as <code>[พ, ศ]</code>, and <code class='nw'>page.42</code> as <code class='nw'>[page]</code>; a document containing <code>ประชุมวันที่ 1 ม.ค.2567</code> gets 0 hits for <code>TermQuery(f:2567)</code> instead of 1. The JDK segments correctly; <code>ThaiTokenizer.incrementWord</code> skips every segment whose first code point is not a letter or digit, so the whole number is thrown away. Nothing throws and the index is well formed. Every release from 4.8.0 (2014, LUCENE-4984) to 10.5.2 and main is affected (8 releases and main executed; all 107 release tags in that range contain the loop); a small change to the skip loop fixes every tested case.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Segment</strong>: a piece of text between two boundaries of the JDK word <code class='nw'>BreakIterator</code> for Thai. Some segments are words or numbers, others are spaces or punctuation.</li><li><strong>Number prefix</strong>: the JDK word rules' <code class='nw'>&lt;pre-num&gt;</code> class, "the period, the number sign, and all currency symbols except the cents sign". Such a character goes into the same segment as the number after it, by the rule <code>&lt;pre-num&gt;(&lt;number&gt;&lt;word&gt;)*{&lt;number&gt;{&lt;post-num&gt;}}</code>.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>ThaiAnalyzer</code> starts its chain with <code>new ThaiTokenizer()</code> (<code>ThaiAnalyzer.java:101-102</code>); the filters after it only see what the tokenizer emits.</li><li>The JDK splits <code class='nw'>พ.ศ.2567</code> into <code class='nw'>[พ][.][ศ][.2567]</code>, <code>ราคา ฿1,500</code> into <code>[ราคา][ ][฿1,500]</code> and <code class='nw'>page.42</code> into <code class='nw'>[page][.42]</code>. The cent sign is not a prefix: <code>ราคา ¢50</code> gives <code>[ราคา][ ][¢][50]</code>.</li><li><code>ThaiTokenizer.incrementWord</code> skips "non-tokens" with <code>while (end != BreakIterator.DONE &amp;&amp; !Character.isLetterOrDigit(Character.codePointAt(buffer, sentenceStart + start, sentenceEnd)))</code> (<code>ThaiTokenizer.java:173-180</code>): it tests the first code point of the segment only.</li><li><code class='nw'>.</code>, <code class='nw'>#</code>, <code class='nw'>฿</code> and <code class='nw'>$</code> are not letters or digits, so the whole segment, digits included, is skipped. The term is never created; the user-dictionary lookup (<code class='nw'>:186-207</code>) also starts after the skip.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-main-thaianalyzer-terms'>The numbers (main, <code class='nw'>ThaiAnalyzer</code> terms)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-main-thaianalyzer-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-main-thaianalyzer-terms"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>input</th><th>main</th><th>expected (and with the fix)</th></tr></thead><tbody><tr><td><code>ราคา ฿1,500</code></td><td><code class='nw'>[ราคา]</code></td><td><code>[ราคา, 1,500]</code></td></tr><tr><td><code>ราคา $100</code>, <code>ราคา €20</code></td><td><code class='nw'>[ราคา]</code></td><td><code>[ราคา, 100]</code>, <code>[ราคา, 20]</code></td></tr><tr><td><code class='nw'>พ.ศ.2567</code>, <code class='nw'>ค.ศ.2024</code>, <code class='nw'>ม.ค.67</code></td><td><code>[พ, ศ]</code>, <code>[ค, ศ]</code>, <code>[ม, ค]</code></td><td>with <code class='nw'>2567</code>, <code class='nw'>2024</code>, <code class='nw'>67</code></td></tr><tr><td><code>ข้อ #3</code>, <code>ค่า .5</code></td><td><code class='nw'>[ข้อ]</code>, <code class='nw'>[ค่า]</code></td><td>with <code class='nw'>3</code>, <code class='nw'>5</code></td></tr><tr><td><code class='nw'>page.42</code>, <code class='nw'>No.5</code>, <code class='nw'>abc.123</code></td><td><code class='nw'>[page]</code>, <code class='nw'>[no]</code>, <code class='nw'>[abc]</code></td><td>with <code class='nw'>42</code>, <code class='nw'>5</code>, <code class='nw'>123</code></td></tr><tr><td>controls <code>ราคา 1,500 บาท</code>, <code>พ.ศ. 2567</code>, <code>ราคา ¢50</code>, <code class='nw'>1.5</code></td><td>numbers kept</td><td>same</td></tr></tbody></table></div><p>End to end, one document <code>ประชุมวันที่ 1 ม.ค.2567</code>: <code>TermQuery(f:2567)</code> counts 0 (expected 1); written <code>ม.ค. 2567</code> it counts 1. At query time the same analyzer drops the number: the classic <code class='nw'>QueryParser</code> turns <code>+ราคา +฿1,500</code> into <code class='nw'>+body:ราคา</code>, which matches any price.</p><p>Secondary symptoms of the same loop: a Latin word glued to a prefixed number is lost with it (<code class='nw'>#1word</code> gives no token, because the JDK rule also absorbs <code>(&lt;number&gt;&lt;word&gt;)*</code>); a prefix right after a digit starts its own segment, so <code class='nw'>1#2</code>, <code class='nw'>1$2</code> and <code class='nw'>1฿2</code> are analyzed as <code class='nw'>[1]</code>; a segment that starts with a combining mark (<code class='nw'>่า</code>, a tone mark with no base consonant, malformed Thai) gives no token.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>302 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Users of <code class='nw'>ThaiAnalyzer</code>, <code class='nw'>ThaiTokenizer</code>, or the <code class='nw'>thai</code> tokenizer through the SPI (<code class='nw'>CustomAnalyzer</code>, factory configurations), with default settings. It is the Thai analyzer of analysis-common; outside its own package (where <code class='nw'>ThaiAnalyzer</code> and <code>ThaiTokenizerFactory</code> create the tokenizer), no main Lucene code uses these classes. Downstream engines that expose Lucene's Thai analysis were not tested.</li><li><strong>Everyday-looking input.</strong> A price with its sign (<code>ราคา ฿1,500</code>, even after a space), an item number (<code>ข้อ #3</code>), a decimal with a leading period (<code class='nw'>.5</code>), a date abbreviation followed by the year without a space (<code class='nw'>พ.ศ.2567</code>, <code class='nw'>ม.ค.67</code>), Latin text such as <code class='nw'>page.42</code> or <code class='nw'>No.5</code>. Numbers that start with a digit (<code class='nw'>1,500</code>, <code class='nw'>1.5</code>) and spaced dates are not affected. How often each form occurs in real Thai text was not measured.</li><li><strong>Silent and deterministic.</strong> No exception or warning; <code class='nw'>CheckIndex</code> is clean and the stored value is intact. The loss happens in the tokenizer, one segment at a time, so it is the same for every occurrence, with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, whatever the index size, on JREs that segment like OpenJDK 11, 17 and 25 (all three were run).</li><li><strong>Both sides.</strong> Indexed documents lack the number, so term, phrase and boolean searches for it miss them. In a query the number is dropped: <code>+ราคา +฿1,500</code> matches any price, and a query of only <code class='nw'>฿1,500</code> matches nothing.</li><li><strong>Not more than that.</strong> No crash and no corruption; indexing one document does not change another. One warm timing run, not a benchmark, showed no slowdown. At query time the dropped number can add false positives, as above.</li><li><strong>Reindex.</strong> Documents indexed before a fix lack the terms; a fix changes analysis output, so it needs a CHANGES/MIGRATE note.</li><li><strong>How common.</strong> Not measured on a corpus.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for the analysis-common Thai tests, public API only: two <code class='nw'>ThaiAnalyzer</code> checks, one index-and-search check, and controls that pass. It fails 3 of 4, the same way with and without assertions, on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestThaiNumberAfterPrefix.java (JUnit, 4 tests, drop-in for the analysis-common Thai tests)</span><span class='meta'>89 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.th;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/** ThaiAnalyzer drops a number that is glued to a leading &#x27;.&#x27;, &#x27;#&#x27; or currency sign. */
+public class TestThaiNumberAfterPrefix extends BaseTokenStreamTestCase {
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    assumeTrue(&quot;needs the JRE&#x27;s Thai BreakIterator&quot;, ThaiTokenizer.DBBI_AVAILABLE);
+  }
+
+  private static List&lt;String&gt; terms(String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (Analyzer a = new ThaiAnalyzer();
+        TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    return out;
+  }
+
+  /** Controls: without the prefix character (or with a space) the number is kept. */
+  public void testControls() throws IOException {
+    assertEquals(List.of(&quot;ราคา&quot;, &quot;1,500&quot;, &quot;บาท&quot;), terms(&quot;ราคา 1,500 บาท&quot;)); // price 1,500 baht
+    assertEquals(List.of(&quot;พ&quot;, &quot;ศ&quot;, &quot;2567&quot;), terms(&quot;พ.ศ. 2567&quot;)); // Buddhist Era 2567
+  }
+
+  /** A price written with the baht sign. */
+  public void testPriceAfterBahtSign() throws IOException {
+    assertEquals(List.of(&quot;ราคา&quot;, &quot;1,500&quot;), terms(&quot;ราคา ฿1,500&quot;));
+  }
+
+  /** A year written right after the era abbreviation, without a space. */
+  public void testYearAfterEraAbbreviation() throws IOException {
+    assertEquals(List.of(&quot;พ&quot;, &quot;ศ&quot;, &quot;2567&quot;), terms(&quot;พ.ศ.2567&quot;));
+  }
+
+  /** End to end: a document dated &quot;1 ม.ค.2567&quot; (1 January 2567) is not found by its year. */
+  public void testSearchByYear() throws IOException {
+    try (Analyzer a = new ThaiAnalyzer();
+        Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+        Document doc = new Document();
+        doc.add(new TextField(&quot;f&quot;, &quot;ประชุมวันที่ 1 ม.ค.2567&quot;, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(1, newSearcher(r).count(new TermQuery(new Term(&quot;f&quot;, &quot;2567&quot;))));
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># in a Lucene checkout ($LUCENE), JAVA_HOME = a JDK 25
+cp TestThaiNumberAfterPrefix.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/th/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test \
+  --tests TestThaiNumberAfterPrefix -Ptests.seed=1A2B3C4D
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>ราคา ฿1,500</code> -&gt; <code>[ราคา, 1,500]</code>, <code class='nw'>พ.ศ.2567</code> -&gt; <code>[พ, ศ, 2567]</code>, and <code>TermQuery(f:2567)</code> on <code>ประชุมวันที่ 1 ม.ค.2567</code> -&gt; 1 hit.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>[ราคา]</code>, <code>[พ, ศ]</code> and 0 hits; the controls <code>ราคา 1,500 บาท</code> and <code>พ.ศ. 2567</code> keep their numbers.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-225/'>repro/LFV-225/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (224 lines) · 1,535 words</span></summary><div class='body'><p>Three pieces, all on the public API:</p><ul><li><strong>The repro</strong> <code>TestThaiNumberAfterPrefix</code> (4 tests): <code>ราคา ฿1,500</code> and <code class='nw'>พ.ศ.2567</code> through <code class='nw'>ThaiAnalyzer</code>, a one-document index searched with <code>TermQuery(f:2567)</code>, and controls (<code>ราคา 1,500 บาท</code>, <code>พ.ศ. 2567</code>) that pass. It passes <code>checkGoogleJavaFormat</code> as is. Its input text is fixed; the index and searcher come from the randomized test framework, and the same 3 failures were recorded at two seeds.</li><li><strong>A fix check</strong> <code>TestThaiTokenizerPrefixedNumbers</code> (5 tests): tokens and offsets for prefixed inputs, punctuation-only segments still skipped, a user-dictionary case, an oracle that every letter or digit of 2,000 random strings lies inside a token, and <code class='nw'>checkRandomData</code>. It fails 3 of 5 on stock main and passes with the fix; meant to go with a PR.</li><li><strong>A probe</strong> <code class='nw'>ThaiPrefixProbe</code> (plain <code class='nw'>main()</code>): prints the JDK segments, <code class='nw'>ThaiTokenizer</code> tokens with offsets and <code class='nw'>ThaiAnalyzer</code> terms for 20 inputs and 5 user-dictionary cases.</li></ul><p>The result depends on the JRE's word <code class='nw'>BreakIterator</code> keeping the prefix and the number in one segment; OpenJDK 11, 17 and 25 do. The tests skip themselves when the JRE has no Thai <code class='nw'>BreakIterator</code> (<code>assumeTrue(ThaiTokenizer.DBBI_AVAILABLE)</code>), like the upstream Thai tests.</p><div class="hd hd-3"><h3 id='code-2-h'>TestThaiTokenizerPrefixedNumbers.java (fix check, 5 tests: tokens, offsets, dictionary, oracle)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails 3 of 5 on stock main (<code>token 1 does not exist</code>, <code>term 0 expected:&lt;[1,500]บาท&gt; but was:&lt;[]บาท&gt;</code>, <code>lost '1' at 2 in ...</code>); passes 5 of 5 with the fix, with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</p><figure class='code'><figcaption><span class='fname'>TestThaiTokenizerPrefixedNumbers.java (fix check, 5 tests: tokens, offsets, dictionary, oracle)</span><span class='meta'>120 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.th;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.List;
+import java.util.Random;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/** Fix checks: tokens and offsets for numbers glued to a leading &#x27;.&#x27;, &#x27;#&#x27; or currency sign. */
+public class TestThaiTokenizerPrefixedNumbers extends BaseTokenStreamTestCase {
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    assumeTrue(&quot;needs the JRE&#x27;s Thai BreakIterator&quot;, ThaiTokenizer.DBBI_AVAILABLE);
+  }
+
+  private static Analyzer tokenizerOnly(CharArraySet dict) {
+    return new Analyzer() {
+      @Override
+      protected TokenStreamComponents createComponents(String fieldName) {
+        return new TokenStreamComponents(new ThaiTokenizer(dict));
+      }
+    };
+  }
+
+  public void testPrefixedNumbersKeepTheNumber() throws IOException {
+    try (Analyzer a = tokenizerOnly(null)) {
+      assertAnalyzesTo(
+          a, &quot;ราคา ฿1,500&quot;, new String[] {&quot;ราคา&quot;, &quot;1,500&quot;}, new int[] {0, 6}, new int[] {4, 11});
+      assertAnalyzesTo(
+          a, &quot;พ.ศ.2567&quot;, new String[] {&quot;พ&quot;, &quot;ศ&quot;, &quot;2567&quot;}, new int[] {0, 2, 4}, new int[] {1, 3, 8});
+      assertAnalyzesTo(a, &quot;ข้อ #3&quot;, new String[] {&quot;ข้อ&quot;, &quot;3&quot;}, new int[] {0, 5}, new int[] {3, 6});
+      assertAnalyzesTo(a, &quot;ค่า .5&quot;, new String[] {&quot;ค่า&quot;, &quot;5&quot;}, new int[] {0, 5}, new int[] {3, 6});
+      assertAnalyzesTo(
+          a, &quot;page.42&quot;, new String[] {&quot;page&quot;, &quot;42&quot;}, new int[] {0, 5}, new int[] {4, 7});
+    }
+  }
+
+  public void testPunctuationOnlySegmentsAreStillSkipped() throws IOException {
+    try (Analyzer a = tokenizerOnly(null)) {
+      assertAnalyzesTo(
+          a, &quot;ราคา - บาท&quot;, new String[] {&quot;ราคา&quot;, &quot;บาท&quot;}, new int[] {0, 7}, new int[] {4, 10});
+      assertAnalyzesTo(a, &quot;...&quot;, new String[0]);
+      assertAnalyzesTo(
+          a,
+          &quot;ราคา 1,500 บาท&quot;,
+          new String[] {&quot;ราคา&quot;, &quot;1,500&quot;, &quot;บาท&quot;},
+          new int[] {0, 5, 11},
+          new int[] {4, 10, 14});
+    }
+  }
+
+  /** The dictionary lookup now starts at the first letter or digit of the segment. */
+  public void testUserDictionaryAfterPrefix() throws IOException {
+    CharArraySet dict = new CharArraySet(List.of(&quot;1,500บาท&quot;), false);
+    try (Analyzer a = tokenizerOnly(dict)) {
+      assertAnalyzesTo(a, &quot;฿1,500บาท&quot;, new String[] {&quot;1,500บาท&quot;}, new int[] {1}, new int[] {9});
+    }
+  }
+
+  /** Oracle: every letter or digit of the input lies inside some token. */
+  public void testNoLetterOrDigitIsLost() throws IOException {
+    String[] alphabet = {&quot;ก&quot;, &quot;า&quot;, &quot;่&quot;, &quot;1&quot;, &quot;x&quot;, &quot;.&quot;, &quot;,&quot;, &quot;#&quot;, &quot;฿&quot;, &quot;$&quot;, &quot; &quot;, &quot;-&quot;};
+    Random r = random();
+    for (int i = 0; i &lt; 2000; i++) {
+      StringBuilder sb = new StringBuilder();
+      int len = 1 + r.nextInt(10);
+      for (int j = 0; j &lt; len; j++) {
+        sb.append(alphabet[r.nextInt(alphabet.length)]);
+      }
+      String text = sb.toString();
+      boolean[] covered = new boolean[text.length()];
+      Tokenizer t = new ThaiTokenizer();
+      t.setReader(new StringReader(text));
+      try (TokenStream ts = t) {
+        OffsetAttribute off = ts.addAttribute(OffsetAttribute.class);
+        ts.reset();
+        while (ts.incrementToken()) {
+          for (int k = off.startOffset(); k &lt; off.endOffset(); k++) {
+            covered[k] = true;
+          }
+        }
+        ts.end();
+      }
+      for (int k = 0; k &lt; text.length(); k++) {
+        if (Character.isLetterOrDigit(text.charAt(k)) &amp;&amp; covered[k] == false) {
+          fail(&quot;lost &#x27;&quot; + text.charAt(k) + &quot;&#x27; at &quot; + k + &quot; in &#x27;&quot; + text + &quot;&#x27;&quot;);
+        }
+      }
+    }
+  }
+
+  public void testRandomStrings() throws IOException {
+    try (Analyzer a = tokenizerOnly(null)) {
+      checkRandomData(random(), a, 200 * RANDOM_MULTIPLIER);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>ThaiPrefixProbe.java (plain main(): segments, tokens with offsets, terms)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Its workaround chain uses <code>ThaiNormalizationFilter</code> and <code class='nw'>ThaiRepeatFilter</code>, which are on main but in no release yet, so it compiles on main only; the workaround check for releases is option C under the fixes.</p><figure class='code'><figcaption><span class='fname'>ThaiPrefixProbe.java (plain main(): segments, tokens with offsets, terms)</span><span class='meta'>104 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>import java.io.StringReader;
+import java.text.BreakIterator;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.LowerCaseFilter;
+import org.apache.lucene.analysis.StopFilter;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.DecimalDigitFilter;
+import org.apache.lucene.analysis.pattern.PatternReplaceCharFilter;
+import org.apache.lucene.analysis.th.ThaiAnalyzer;
+import org.apache.lucene.analysis.th.ThaiNormalizationFilter;
+import org.apache.lucene.analysis.th.ThaiRepeatFilter;
+import org.apache.lucene.analysis.th.ThaiTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+
+/** Prints JDK word segments, ThaiTokenizer tokens (with offsets) and ThaiAnalyzer terms. */
+public class ThaiPrefixProbe {
+  static String segments(String s) {
+    BreakIterator bi = BreakIterator.getWordInstance(new Locale.Builder().setLanguageTag(&quot;th&quot;).build());
+    bi.setText(s);
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (int a = bi.first(), b = bi.next(); b != BreakIterator.DONE; a = b, b = bi.next()) {
+      out.add(&quot;[&quot; + s.substring(a, b) + &quot;]&quot;);
+    }
+    return String.join(&quot;&quot;, out);
+  }
+
+  static String tokens(Tokenizer t, String s) throws Exception {
+    t.setReader(new StringReader(s));
+    return dump(t, true);
+  }
+
+  static String dump(TokenStream ts, boolean offsets) throws Exception {
+    CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+    OffsetAttribute off = ts.addAttribute(OffsetAttribute.class);
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    ts.reset();
+    while (ts.incrementToken()) {
+      out.add(term + (offsets ? &quot;[&quot; + off.startOffset() + &quot;,&quot; + off.endOffset() + &quot;)&quot; : &quot;&quot;));
+    }
+    ts.end();
+    ts.close();
+    return out.toString();
+  }
+
+  /** Workaround for released versions: a char filter that puts a space between the prefix and the number. */
+  static Analyzer workaround() {
+    Pattern p = Pattern.compile(&quot;(?&lt;!\\p{N})([.#\\p{Sc}])(?=\\p{N})&quot;);
+    return new Analyzer() {
+      @Override
+      protected TokenStreamComponents createComponents(String field) {
+        Tokenizer src = new ThaiTokenizer();
+        TokenStream r = new LowerCaseFilter(src);
+        r = new DecimalDigitFilter(r);
+        r = new ThaiNormalizationFilter(r);
+        r = new ThaiRepeatFilter(r);
+        r = new StopFilter(r, ThaiAnalyzer.getDefaultStopSet());
+        return new TokenStreamComponents(src, r);
+      }
+
+      @Override
+      protected java.io.Reader initReader(String field, java.io.Reader reader) {
+        return new PatternReplaceCharFilter(p, &quot;$1 &quot;, reader);
+      }
+    };
+  }
+
+  public static void main(String[] args) throws Exception {
+    System.out.println(&quot;java.version=&quot; + System.getProperty(&quot;java.version&quot;) + &quot; DBBI=&quot; + ThaiTokenizer.DBBI_AVAILABLE);
+    String[] inputs = {
+      &quot;ราคา ฿1,500&quot;, &quot;ราคา $100&quot;, &quot;ราคา €20&quot;, &quot;ราคา ¢50&quot;, &quot;พ.ศ.2567&quot;, &quot;ค.ศ.2024&quot;, &quot;ม.ค.67&quot;, &quot;ข้อ #3&quot;, &quot;ค่า .5&quot;,
+      &quot;page.42&quot;, &quot;No.5&quot;, &quot;abc.123&quot;, &quot;#1word&quot;,
+      // controls
+      &quot;ราคา 1,500 บาท&quot;, &quot;พ.ศ. 2567&quot;, &quot;1.5&quot;, &quot;50%&quot;, &quot;ราคา - บาท&quot;, &quot;...&quot;, &quot;้ำ&quot;
+    };
+    try (Analyzer thai = new ThaiAnalyzer();
+        Analyzer wa = workaround()) {
+      for (String s : inputs) {
+        System.out.println(&quot;INPUT &quot; + s);
+        System.out.println(&quot;  jdk segments       &quot; + segments(s));
+        System.out.println(&quot;  ThaiTokenizer      &quot; + tokens(new ThaiTokenizer(), s));
+        System.out.println(&quot;  ThaiAnalyzer       &quot; + dump(thai.tokenStream(&quot;f&quot;, s), false));
+        System.out.println(&quot;  workaround filter  &quot; + dump(wa.tokenStream(&quot;f&quot;, s), false));
+      }
+    }
+    // user dictionary interplay (the fix moves the start of the dictionary lookup)
+    String[][] dictCases = {
+      {&quot;1,500บาท&quot;, &quot;฿1,500บาท&quot;}, {&quot;ราคา&quot;, &quot;ราคา ฿1,500&quot;}, {&quot;฿1,500&quot;, &quot;ราคา ฿1,500&quot;}, {&quot;2567&quot;, &quot;พ.ศ.2567&quot;},
+      {&quot;แม่น&quot;, &quot;แม่น้ำ&quot;}
+    };
+    for (String[] c : dictCases) {
+      CharArraySet dict = new CharArraySet(List.of(c[0]), false);
+      System.out.println(&quot;DICT {&quot; + c[0] + &quot;} INPUT &quot; + c[1]);
+      System.out.println(&quot;  jdk segments       &quot; + segments(c[1]));
+      System.out.println(&quot;  ThaiTokenizer      &quot; + tokens(new ThaiTokenizer(dict), c[1]));
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>javac -cp lucene-core-&lt;v&gt;.jar:lucene-analysis-common-&lt;v&gt;.jar -d out ThaiPrefixProbe.java
+java -cp lucene-core-&lt;v&gt;.jar:lucene-analysis-common-&lt;v&gt;.jar:out ThaiPrefixProbe
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed (11.0.0-SNAPSHOT); release jars 10.5.2 and 9.12.3, SHA-1 checked against Maven Central</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (OpenJDK 11.0.33 and 17.0.21 split every input of the table the same way)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64 (pure Java; only this platform was run)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code># $REPRO holds TestThaiNumberAfterPrefix.java; $LUCENE is a Lucene checkout; JAVA_HOME = a JDK 25
+cp $REPRO/TestThaiNumberAfterPrefix.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/th/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test \
+  --tests TestThaiNumberAfterPrefix -Ptests.seed=1A2B3C4D
+# also -Ptests.asserts=false; the same 3 failures at seeds 1A2B3C4D and 0FAC7C25
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, scratch worktree at ea57360912ed, stock, seed 1A2B3C4D
+TestThaiNumberAfterPrefix &gt; testYearAfterEraAbbreviation FAILED
+    java.lang.AssertionError: expected:&lt;[พ, ศ, 2567]&gt; but was:&lt;[พ, ศ]&gt;
+TestThaiNumberAfterPrefix &gt; testSearchByYear FAILED
+    java.lang.AssertionError: expected:&lt;1&gt; but was:&lt;0&gt;
+TestThaiNumberAfterPrefix &gt; testPriceAfterBahtSign FAILED
+    java.lang.AssertionError: expected:&lt;[ราคา, 1,500]&gt; but was:&lt;[ราคา]&gt;
+4 tests completed, 3 failed
+
+# the same 3 failures and messages on main -ea, main -da, 10.5.2 -ea and 9.12.3 -da (the repro runner)
+# and at seed 0FAC7C25 on main, 10.5.2 and 9.12.3, each -ea and -da (fact check)
+# with the fix: 4 tests, 0 failed
+
+# probe, main -da: JDK segments -&gt; ThaiTokenizer tokens [start,end)
+ราคา ฿1,500   [ราคา][ ][฿1,500]      -&gt; [ราคา[0,4)]
+พ.ศ.2567      [พ][.][ศ][.2567]      -&gt; [พ[0,1), ศ[2,3)]
+page.42       [page][.42]           -&gt; [page[0,4)]
+ราคา ¢50      [ราคา][ ][¢][50]       -&gt; [ราคา[0,4), 50[6,8)]   (cent sign: not a prefix)
+# probe with the fix
+ราคา ฿1,500   -&gt; [ราคา[0,4), 1,500[6,11)]
+พ.ศ.2567      -&gt; [พ[0,1), ศ[2,3), 2567[4,8)]
+page.42       -&gt; [page[0,4), 42[5,7)]</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The loop's comment says it skips "non-tokens", and it tests letter-or-digit: digits are meant to be tokens (<code>TestThaiAnalyzer.testDigits</code>).</li><li>Java's word rules call these signs "punctuation that can occur at the beginning of a number"; only Lucene's first-character shortcut drops the number.</li><li>Before 4.8 <code class='nw'>ThaiAnalyzer</code> kept these numbers; <code class='nw'>ICUTokenizer</code> and <code>StandardTokenizer</code> keep them today.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>300 words</span></summary><div class='body'><ul><li><strong>Comment and test.</strong> <code>// find the next set of boundaries, skipping over non-tokens</code> (<code>ThaiTokenizer.java:173</code>), tested with <code>Character.isLetterOrDigit</code> (<code class='nw'>:176</code>). <code class='nw'>.2567</code> contains four digits.</li><li><strong>Upstream tests.</strong> <code>TestThaiAnalyzer.testDigits</code> (<code>TestThaiAnalyzer.java:131-135</code>) checks that <code class='nw'>๑๒๓๔</code> is indexed as <code class='nw'>1234</code>. No explicit upstream test puts a prefix character before a number (random-text tests may generate one but do not check which characters become tokens), and no test, javadoc, CHANGES or MIGRATE entry documents the drop. With it removed (fix A), the 56 upstream Thai tests pass, and all of analysis-common, 1,918 tests including the 9 new ones (18 skipped), runs with 0 failures.</li><li><strong>The JDK means these as numbers.</strong> <code>BreakIteratorRules.java:100-102</code> and <code class='nw'>:136-139</code> (JDK 25): the prefix class is "punctuation that can occur at the beginning of a number", and the rule keeps a sequence "that starts with a number-prefix character and a number" together.</li><li><strong>Where the loop comes from.</strong> It copies <code class='nw'>ICUTokenizer</code>'s <code>// find the next set of boundaries, skipping over non-tokens (rule status 0)</code> (<code>ICUTokenizer.java:209-214</code>), which skips a span with no letter or number. <code>java.text.BreakIterator</code> has no rule status; the first-code-point test stands in for it (our reading; the commit and issue do not explain the choice).</li><li><strong>Before and beside.</strong> 4.7.2's <code class='nw'>ThaiAnalyzer</code> (StandardTokenizer + ThaiWordFilter) gives <code>[พ, ศ, 2567]</code> and <code>[ราคา, 1,500]</code>; so does the 4.8.0 jar with <code class='nw'>matchVersion</code> <code class='nw'>LUCENE_47</code>. <code class='nw'>ICUTokenizer</code>, named in the <code class='nw'>ThaiTokenizer</code> javadoc as the portable alternative (<code>ThaiTokenizer.java:35-37</code>), gives <code>[ค.ศ, 2024]</code> and <code>[page, 42]</code>; <code class='nw'>StandardAnalyzer</code> gives <code>[page, 42]</code>. LUCENE-4984 changed the chain to fix offsets with CharFilters; its discussion says nothing about numbers.</li><li><strong>Precedent.</strong> LUCENE-2404 (2010): a committer called the old ThaiWordFilter's first-character test "cheating with the UnicodeBlock check on charAt(0)". LUCENE-5076 (open): a first-code-point-only word test in ICU-module code, called a bug by a committer.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>298 words</span></summary><div class='body'><p><strong>The case for "intended"</strong> (raised by the cross-model reviews, which rated it moderate, and examined by a third verifier, which found that it does not survive): <code class='nw'>ThaiTokenizer</code> promises only that it "uses BreakIterator to tokenize Thai text" and warns that it may not be supported by all JREs; the JDK's own <code class='nw'>BreakIterator</code> javadoc (the <code>nextWordStartAfter</code> example) calls a span a word only "If the characters between this boundary and the next boundary include at least one letter", and <code class='nw'>.2567</code> has none; and <code class='nw'>พ.ศ.2567</code> without a space is informal.</p><p><strong>Why it fails:</strong></p><ul><li>That idiom scans every character of the span; Lucene's loop scans one. And Lucene's test is letter or digit, not letter. Together, <code class='nw'>.2567</code> is a token.</li><li>The JRE splits these inputs correctly: OpenJDK 11, 17 and 25 split every input of the table the same way. The loss is Lucene's.</li><li>The currency case, <code>ราคา ฿1,500</code> after a space, is a plausible everyday way to write a price (not checked against a corpus), so "informal input" does not cover it.</li><li>"Twelve years and nobody complained": nobody discussed it or closed it as won't-fix either, and the loss is silent.</li></ul><p><strong>What a maintainer could still raise:</strong></p><ul><li>Prefix-free terms are not a written contract, so which terms a prefixed number gives is a design choice, and changing it changes analysis output (reindex; CHANGES and MIGRATE notes).</li><li>The input kinds differ: the price after a space is the hardest to call intended; a date without a space (<code class='nw'>พ.ศ.2567</code>) and Latin or decimal forms (<code class='nw'>page.42</code>, <code class='nw'>.5</code>) leave more room for a style or token-policy argument.</li><li>Against a shared design: in the same <code>SegmentingTokenizerBase</code> family, <code>HMMChineseTokenizer</code> has no first-character test, and the test tokenizer in <code>TestSegmentingTokenizerBase</code> skips forward to the first letter or digit, as the fix does.</li></ul></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: skip only segments with no letter or digit; start the token at the first one</strong></p><p class='short'>In <code>ThaiTokenizer.incrementWord</code>, skip a word piece only if none of its characters is a letter or digit; otherwise start the token at the first one (<code class='nw'>฿1,500</code> -&gt; <code class='nw'>1,500</code>, offsets [6,11)). +16/-4 lines; all of analysis-common (1,918 tests including the 9 new ones, 18 skipped) runs with 0 failures. Existing indexes need a reindex to gain the numbers.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 996 words</span></summary><div class='body'><p>Option A was validated with gradle in a scratch worktree at <code class='nw'>ea57360912ed</code> (JDK 25.0.3) and through the repro runner; option C on the 10.5.2, 9.12.3 and main jars; option B was not run. With A, file the related LFV-229 (a user-dictionary match that ends inside a character cluster) separately: A changes its symptom but does not fix it.</p><div class="hd hd-3"><h3 id='fix-scan-segment'>A: skip only segments with no letter or digit; start the token at the first one <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-scan-segment" target="_self" aria-label="Link to this section" aria-describedby="fix-scan-segment"><span aria-hidden="true">#</span></a></div><p>Replace the first-code-point test with a scan of the segment: if no code point is a letter or digit, skip the segment as before; otherwise move <code class='nw'>start</code> to the first letter or digit and emit from there. Results: <code>ราคา ฿1,500</code> -&gt; <code class='nw'>ราคา</code>, <code class='nw'>1,500</code> [6,11); <code class='nw'>พ.ศ.2567</code> -&gt; <code class='nw'>พ</code>, <code class='nw'>ศ</code>, <code class='nw'>2567</code> [4,8); <code>ข้อ #3</code> -&gt; <code class='nw'>3</code> [5,6); <code class='nw'>page.42</code> -&gt; <code class='nw'>42</code> [5,7); <code class='nw'>#1word</code> -&gt; <code class='nw'>1word</code> [1,6). Punctuation-only and space segments are still skipped (<code>ราคา - บาท</code> -&gt; <code>[ราคา, บาท]</code>), and every control is unchanged. A prefix after a digit is fixed too (<code class='nw'>1#2</code> -&gt; <code>[1, 2]</code>). This is the finder's patch; an independent verifier wrote an equivalent one.</p><pre class='snippet' tabindex='0'><code>// ThaiTokenizer.incrementWord: replaces the loop at lines 174-180
+int end = wordBreaker.next();
+while (end != BreakIterator.DONE) {
+  int s = start;
+  while (s &lt; end) {
+    int cp = Character.codePointAt(buffer, sentenceStart + s, sentenceEnd);
+    if (Character.isLetterOrDigit(cp)) {
+      break;
+    }
+    s += Character.charCount(cp);
+  }
+  if (s &lt; end) {
+    start = s; // drop a leading &#x27;.&#x27;, &#x27;#&#x27; or currency sign, keep the number
+    break;
+  }
+  start = end;
+  end = wordBreaker.next();
+}</code></pre><p class='k'>Trade-offs</p><ul><li><strong>New terms, so reindex.</strong> Old indexes lack the numbers. Mixing analyzers changes results: after the fix, <code>ราคา ฿1,500</code> in a query analyzes to <code class='nw'>ราคา</code> and <code class='nw'>1,500</code>, which an old index cannot match. Positions after a recovered number shift by one. Needs a CHANGES entry and a MIGRATE note.</li><li><strong>The token excludes the prefix</strong> (<code class='nw'>1,500</code>, not <code class='nw'>฿1,500</code>), as <code class='nw'>ICUTokenizer</code> and <code>StandardTokenizer</code> produce for these inputs.</li><li><strong>User dictionary.</strong> The lookup starts at the trimmed start: with <code class='nw'>{1,500บาท}</code>, <code class='nw'>฿1,500บาท</code> gives <code class='nw'>1,500บาท</code> [1,9) (stock: <code class='nw'>[บาท]</code>). An entry that itself starts with a prefix character (<code class='nw'>฿1,500</code>) still never matches, as on stock.</li><li><strong>Every leading non-letter/digit is trimmed</strong>, not only <code class='nw'>.</code>, <code class='nw'>#</code> and currency signs. A segment that starts with a combining mark now yields the rest: <code class='nw'>้ำ</code> gives <code class='nw'>ำ</code> and <code class='nw'>่า</code> gives <code class='nw'>า</code> (stock: nothing); <code class='nw'>ICUTokenizer</code> gives the same <code class='nw'>ำ</code> and <code class='nw'>า</code> for these inputs. Whether a stray tone mark should leave its vowel as a token is its own question. With <code class='nw'>{แม่น}</code>, <code class='nw'>แม่น้ำ</code> gives <code>[แม่น, ำ]</code> instead of <code class='nw'>[แม่น]</code>; that is LFV-229, which needs its own fix.</li><li><strong>Cost.</strong> A segment that starts with a letter or digit costs one check, as now; a punctuation or space segment is scanned to its end (usually one character). Not benchmarked.</li></ul><p class='k'>What the checks validated</p><ul><li>The repro: 3 of 4 fail on stock, 4 of 4 pass with the fix (gradle; the repro runner with <code class='nw'>-ea</code>).</li><li>The fix check: 3 of 5 fail on stock, 5 of 5 pass with the fix, with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</li><li><code>:lucene:analysis:common:test --tests 'org.apache.lucene.analysis.th.*'</code>: 65 tests (56 upstream + 9 new) pass with <code class='nw'>-ea</code> (seed 1A2B3C4D) and with <code>-Ptests.asserts=false</code> (seed 77AA77AA).</li><li>All of <code>:lucene:analysis:common:test</code>: 1,918 tests including the 9 new ones, 18 skipped, 0 failed. <code class='nw'>TestRandomChains</code> (<code>:lucene:analysis.tests</code>): 2 tests pass; random chains need not pick ThaiTokenizer.</li><li><code>checkGoogleJavaFormat</code> passes on the patched <code>ThaiTokenizer.java</code>.</li><li>The finder's bounded-exhaustive check: 13,107 of 111,110 strings of up to 5 symbols lose a letter or digit on main, 0 with the fix. Its 10-symbol alphabet has no <code class='nw'>#</code>, currency sign or supplementary character, and it checks that letters and digits land in some token, not that the tokens are right; the fix-check oracle adds <code class='nw'>#</code>, <code class='nw'>฿</code> and <code class='nw'>$</code>.</li><li>Scope: the suites ran on main only (OpenJDK 25.0.3, Linux aarch64, one seed per assertion mode). On releases the fix was checked only by the history step's 4.8.0 jar with the loop replaced.</li></ul><div class="hd hd-3"><h3 id='fix-keep-prefix'>B: keep the whole segment as the token (not run) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-keep-prefix" target="_self" aria-label="Link to this section" aria-describedby="fix-keep-prefix"><span aria-hidden="true">#</span></a></div><p>Skip only segments without any letter or digit, but keep <code class='nw'>start</code>, so the token is <code class='nw'>฿1,500</code> or <code class='nw'>.2567</code>.</p><p class='k'>Trade-offs</p><p>A smaller change in offsets, but <code>TermQuery(f:2567)</code> still misses <code class='nw'>พ.ศ.2567</code>, and the terms differ from <code class='nw'>ICUTokenizer</code> and <code>StandardTokenizer</code>. Not recommended.</p><p class='k'>What the checks validated</p><p>Not run.</p><div class="hd hd-3"><h3 id='fix-char-filter-workaround'>C: workaround on released versions: split the prefix off with a char filter <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-char-filter-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-char-filter-workaround"><span aria-hidden="true">#</span></a></div><p>Without patching Lucene, put a <code>PatternReplaceCharFilter</code> in front of the ThaiTokenizer chain that inserts a space between a prefix character and a digit, unless the prefix follows a digit (so <code class='nw'>1.5</code> is untouched). Switching to <code class='nw'>ICUTokenizer</code> (analysis-icu) also keeps the numbers, but segments Thai differently, so it is a reindex with different terms.</p><pre class='snippet' tabindex='0'><code>Pattern p = Pattern.compile(&quot;(?&lt;!\\p{N})([.#\\p{Sc}])(?=\\p{N})&quot;);
+// in Analyzer.initReader(field, reader):
+return new PatternReplaceCharFilter(p, &quot;$1 &quot;, reader);</code></pre><p class='k'>Trade-offs</p><p>Restores the number of every prefixed input in the table, with the same offsets as option A, and needs no Lucene change. But it is an application-side chain that must be used at index and at query time, documents already indexed need a reindex, it leaves a prefix after a digit alone (<code class='nw'>1#2</code>, <code class='nw'>1$2</code>, <code class='nw'>1฿2</code> still lose the <code class='nw'>2</code>), and it also changes the segmentation of other <code class='nw'>.</code>/<code class='nw'>#</code>/currency-digit pairs that follow a non-digit.</p><p class='k'>What the checks validated</p><p>On 10.5.2, 9.12.3 and main, with <code class='nw'>ThaiTokenizer</code> + <code class='nw'>LowerCaseFilter</code> + <code>DecimalDigitFilter</code> + <code>StopFilter(ThaiAnalyzer.getDefaultStopSet())</code>: all 11 prefixed inputs of the table get their number back with the same offsets as option A; <code class='nw'>1.5</code>, <code class='nw'>50%</code>, <code>ราคา ¢50</code>, <code>ราคา 1,500 บาท</code> and <code>พ.ศ. 2567</code> are unchanged. On main it also works in front of a copy of the full stock <code class='nw'>ThaiAnalyzer</code> chain, with <code class='nw'>ThaiCharFilter</code> and the 10.6 <code>ThaiNormalizationFilter</code> and <code class='nw'>ThaiRepeatFilter</code>; that copy without the extra char filter gives exactly <code class='nw'>ThaiAnalyzer</code>'s tokens and offsets.</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An AI tool exploring <code class='nw'>ThaiTokenizer</code> with user-dictionary words that contain periods saw a year go missing, confirmed it with a public-API JUnit and then checked all 111,110 strings of up to 5 symbols. Independent verifiers and a reviewer from another model family (OpenAI GPT-5.6) reproduced it with their own tests.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>213 words</span></summary><div class='body'><p><strong>Method: targeted exploration, then a bounded-exhaustive check</strong> (the hunt's non-formal tier; no formal tool produced the first signal).</p><ul><li>The finder explored <code class='nw'>ThaiTokenizer</code> with user-dictionary words that contain periods (<code class='nw'>พ.ศ.</code>), noticed that <code class='nw'>พ.ศ.2567</code> lost its year, and wrote a public-API JUnit: 3 of 4 tests fail on main with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, and on 10.5.2 and 9.12.3.</li><li>It then enumerated all 111,110 strings of 1 to 5 symbols over <code>{ก, า, 1, x, '.', ',', '-', space, U+0E48, U+0E4C}</code> with the oracle "every letter or digit lies inside some token": 13,107 strings lose one on main (3,927 after a period, the rest after a tone or cancellation mark), 0 with the fix. The alphabet has no <code class='nw'>#</code> or currency sign, and the oracle checks coverage, not that the tokens are right. That oracle is stronger than anything Lucene documents; the verdict rests on the number cases.</li><li>An independent reviewer from another model family (OpenAI GPT-5.6) ran its own checks (<code class='nw'>release.2026</code> gives <code class='nw'>[release]</code>, <code class='nw'>ปี.2026</code> gives <code class='nw'>[ปี]</code>). Claude verifiers wrote their own tests: the independent reproduction (<code class='nw'>ค.ศ.2024</code>, <code class='nw'>ม.ค.67</code>, <code class='nw'>page.42</code>, a search) and the intended-behaviour check (<code class='nw'>฿1,500</code>, <code class='nw'>$100</code>, <code class='nw'>#3</code>), which also found the JDK's number-prefix rule. An adjudication re-ran both with fresh seeds.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No report found (searched 2026-10-26). The nearest items are the change that introduced the loop (LUCENE-4984) and first-character shortcuts in other code (LUCENE-2404, LUCENE-5076); none reports this.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Novelty <code class='nw'>new</code>: no issue, PR, JIRA entry, mailing-list thread, forum post or web page reports <code class='nw'>ThaiTokenizer</code>, <code class='nw'>ThaiAnalyzer</code> or a downstream <code class='nw'>thai</code> tokenizer dropping a number after <code class='nw'>.</code>, <code class='nw'>#</code> or a currency sign, or questions the first-code-point test. The owner has filed nothing. Gaps: all searches match keywords, so a report written only in Thai or in a closed forum cannot be ruled out; private security reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene and migrated JIRA issues)</th><td class='when'>2026-10-26</td><td>18 issue/PR and 3 commit queries with the prior-report tool; 121 GraphQL searches over apache/lucene, apache/lucene-solr, apache/solr, apache/lucenenet and all of GitHub</td><td>no report; LUCENE-4984 / #6048 introduced the loop (none of its 13 comments is about numbers)</td></tr><tr><th scope='row'>Downstream repositories</th><td class='when'>2026-10-26</td><td>Elasticsearch, OpenSearch and Solr issues; GraphQL searches</td><td>adoption issues for the 10.6 Thai changes; no number loss</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@) and the LUCENE JIRA archive</th><td class='when'>2026-10-26</td><td>32 list queries, 8 + 4 JIRA queries</td><td>nothing</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>15 queries, 2 in Thai; 7 pages read</td><td>a forum thread and a Q&amp;A about keeping <code class='nw'>#</code> as a token (no number lost)</td></tr><tr><th scope='row'>Open PRs and recent commits</th><td class='when'>2026-10-26</td><td>changed paths of all 413 open apache/lucene PRs; Thai file history on main and branch_10x</td><td>no PR touches the Thai package; the loop is unchanged</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-4984 (<code class='nw'>6e2f6a69eb0</code>, 2014-03-21), first released in 4.8.0: 4.7.2 keeps the numbers, 4.8.0 drops them, and the 4.8.0 jar with only the loop replaced keeps them. Every release since, through 10.5.2 and main, is affected.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p>LUCENE-4984 (issue #6048 "Fix ThaiWordFilter"; commit "LUCENE-4984: Fix ThaiWordFilter, smartcn WordTokenFilter"; patch by Robert Muir, +1 from two other committers) added <code class='nw'>ThaiTokenizer</code> with this loop and switched <code class='nw'>ThaiAnalyzer</code> to it: trunk <code class='nw'>6e2f6a69eb0</code> (svn r1579846) and the branch_4x backport <code class='nw'>72a0e1d09e4</code> (svn r1579855), which shipped in 4.8.0. There was no PR (pre-GitHub). The loop was later only reformatted (<code class='nw'>8ef6a0da568</code>, LUCENE-9570); the 2026 Thai changes (#16722, #16727, <code class='nw'>b304eeae024</code>, on branch_10x backported as <code class='nw'>361da20c595</code>) do not touch it.</p><p>In 4.8-5.x a <code class='nw'>matchVersion</code> below 4.8 still selected the old, unaffected chain; LUCENE-5969 removed it for 6.0. All 107 release tags from 4.8.0 to 10.5.2 contain one of the two introducing commits. The record runs used JDK 25.0.3; OpenJDK 11 and 17 segment every input of the table the same way; the Java 7/8 JREs of 2014-era users were not tested.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the repro fails 3 of 4 with -ea and -da (seeds 1A2B3C4D and 0FAC7C25); TermQuery 2567: 0 hits</td></tr><tr><th scope='row'>9.12.3, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the repro fails 3 of 4 (same messages); every table row gives the same terms as on main</td></tr><tr><th scope='row'>4.8.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>version probe: <code class='nw'>พ.ศ.2567</code> -&gt; <code>[พ, ศ]</code>, <code>ราคา ฿1,500</code> -&gt; <code class='nw'>[ราคา]</code>, <code class='nw'>abc.123</code> -&gt; <code class='nw'>[abc]</code>, TermQuery 2567: 0 hits</td></tr><tr><th scope='row'>4.7.2 (last before)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td><code>[พ, ศ, 2567]</code>, <code>[ราคา, 1,500]</code>, <code>[abc, 123]</code>, 1 hit (StandardTokenizer + ThaiWordFilter)</td></tr><tr><th scope='row'>4.8.0 with matchVersion LUCENE_47</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> A/B</span></td><td>the old chain on the same jar keeps the numbers</td></tr><tr><th scope='row'>4.8.0 with only the skip loop replaced</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> A/B</span></td><td>keeps the numbers: the loss comes from the loop</td></tr><tr><th scope='row'>main with fix A</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix</span></td><td>the repro passes 4 of 4; all of analysis-common, 1,918 tests including the 9 new ones (18 skipped), runs with 0 failures</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Reproduced on main with and without assertions and on 10.5.2 and 9.12.3; confirmed by independent verifiers, cross-model reviews and an adjudication, each from its own runs or reading; fix A validated with gradle.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>436 words</span></summary><div class='body'><p>Each check worked from the code or its own runs. Fact checks of this page's brief and a diagram check ran on 2026-10-26; their corrections are applied (see the last item).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder's JUnit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td><code>TestThaiTokenizerNumberAfterPeriod</code>: 3 of 4 fail on main with -ea and -da, on 10.5.2 and on 9.12.3; passes 4 of 4 with the fix, and 37 tests of four upstream Thai suites pass with it.</td></tr><tr><th scope='row'>Cross-model refute review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high confidence</span></td><td>Its own checks (<code class='nw'>release.2026</code>, <code class='nw'>ปี.2026</code>) fail on main with -ea and -da; the fix makes them pass. Intended-behaviour argument rated moderate.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit: 4 of 8 fail on main, 10.5.2 and 9.12.3; its own loop-only patch fixes all 8 with correct offsets; ICUTokenizer and StandardTokenizer keep the numbers; the 4.10.4 old chain keeps them.</td></tr><tr><th scope='row'>Works-as-designed review (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium confidence</span></td><td>Root cause agreed, inputs in contract; the stage re-ran the finder's JUnit on main -ea, main -da and 10.5.2 (3 of 4 fail each).</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high confidence</span></td><td>No intended or misuse argument survives; found the JDK number-prefix rule; its currency test fails 3 of 4 on main, 10.5.2 and 9.12.3 and passes with the fix.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's test (seed C0FFEE02: 4 of 8 fail, -ea and -da) and the intended-behaviour check's (3 of 4 fail).</td></tr><tr><th scope='row'>Security screen</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> none</span></td><td>Recall loss only: linear work, CheckIndex clean, the loss stays in the prefixed segment, a keyword-field restriction still applies.</td></tr><tr><th scope='row'>Brief runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> fails 3 of 4 on main, 10.5.2, 9.12.3; fix passes</span></td><td>The page's repro through the repro runner and gradle; the fix check, the Thai suites, all analysis-common tests and the format check with fix A; the workaround on three versions.</td></tr><tr><th scope='row'>Fact checks of this page and its diagram</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug confirmed; text corrected</span></td><td>A fact check re-ran the repro at a fresh seed (harness and gradle, assertions on and off, main, 10.5.2 and 9.12.3), the fix with the analysis-common suite, its own probes and ICUTokenizer; a second came from an independent reviewer from another model family (OpenAI GPT-5.6) that read the files and run logs only; a diagram check re-ran the section 7 inputs on nine releases. All confirmed the bug, the mechanism, the history and the fix; their corrections of counts, scope, citations and wording are applied, and new runs close the gaps they found (all table inputs on three JDKs and three Lucene versions, the workaround with the full main chain).</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-225/bug.png' download='thaitokenizer-drops-number-after-leading-punctuation-bug.png' target='_self'>PNG</a> <span class='n'>409 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,298 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-225, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>ThaiTokenizer and ThaiAnalyzer silently drop a number written directly after a period, '#' or currency sign (2567 in 'พ.ศ.2567', 1,500 in 'ราคา ฿1,500', 42 in 'page.42'), because a word segment is skipped whole when its first character is not a letter or digit</dd></div><div><dt>Area</dt><dd>analysis / Thai (ThaiTokenizer#incrementWord skip loop; ThaiAnalyzer and the 'thai' tokenizer SPI)</dd></div><div><dt>Priority</dt><dd>Medium, rank 26: Since 4.8.0 the stock ThaiAnalyzer and ThaiTokenizer silently drop numbers written after a period, &#x27;#&#x27; or currency sign (baht amounts, Thai dates written without a space), ordinary Thai text that needs a reindex once fixed, limited to Thai-language indexes.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Anyone who indexes or searches Thai text with the stock ThaiAnalyzer, ThaiTokenizer or the 'thai' tokenizer SPI at default settings silently loses every number that the JDK word BreakIterator returns in one segment with a leading period, '#' or currency sign (every currency sign except the cent sign): Thai dates written without a space ('พ.ศ.2567', 'ค.ศ.2024', 'ม.ค.67'), amounts even after a space ('ราคา ฿1,500', 'ราคา $100'), item numbers ('ข้อ #3'), leading-period decimals ('.5') and Latin text such as 'page.42' or 'No.5'; a TermQuery for the number then misses the document, deterministically at any index size, with -ea and -da, in every release from 4.8.0 (2014) to 10.5.2, while numbers that start with a digit ('1.5', '1,500') and spaced dates ('พ.ศ. 2567') are unaffected, nothing throws and the index stays well formed.</dd></div><div><dt>Summary</dt><dd>You index Thai text such as 'ประชุมวันที่ 1 ม.ค.2567' or 'ราคา ฿1,500' with the stock ThaiAnalyzer and expect the year 2567 or the amount 1,500 to be searchable, as they are when written 'พ.ศ. 2567' or 'ราคา 1,500 บาท'. Instead the number never reaches the index: the JDK word BreakIterator returns it together with its leading period or currency sign as one segment ('.2567', '฿1,500'), and ThaiTokenizer skips any segment whose first character is not a letter or digit, so the whole number is thrown away. A TermQuery for 2567 then finds 0 documents instead of 1, with no error.</dd></div><div><dt>Introduced</dt><dd>6e2f6a69eb0adbefe90798b178e51539ab81aeca (trunk, svn r1579846; LUCENE-4984 / GitHub #6048 'Fix ThaiWordFilter', ThaiTokenizer patch by rmuir, +1 from rjernst and s1monw; pre-GitHub, no PR) and its branch_4x backport 72a0e1d09e421b3cb76dbadd743ec9449ad701d8 (svn r1579855), which shipped in 4.8.0; the commit added ThaiTokenizer with the first-code-point skip loop and switched ThaiAnalyzer to it [read: git blame of ThaiTokenizer.java:173-180 (lines 175-177 only reformatted by 8ef6a0da568, LUCENE-9570; git blame -w -M -C on its parent gives 6e2f6a69eb0 for the whole loop); exec: 4.7.2 keeps the numbers and 4.8.0 drops them on the same JDK, the 4.8.0 jar with matchVersion LUCENE_47 keeps them, and the 4.8.0 jar with only the skip loop replaced keeps them] (2014-03-21 (trunk commit and branch_4x backport))</dd></div><div><dt>First affected version</dt><dd>4.8.0 [exec] (4.7.2, the last release before, has no ThaiTokenizer, and its ThaiAnalyzer, StandardTokenizer + ThaiWordFilter, keeps the numbers [exec])</dd></div><div><dt>Affected versions</dt><dd>every release from 4.8.0 to 10.5.2 (the latest release) and main ea57360912ed: 4.8.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3 and 8.11.4 [exec: main() probes, -da], 9.12.3, 10.5.2 and main [exec: probe -da and the finder's JUnit, 3 of 4 fail; the independent reproduction, the intended-behaviour check and the refute reviewer also reproduced on 9.12.3 and 10.5.2]; all 107 release tags from 4.8.0 to 10.5.2 contain one of the two introducing commits and the loop is identical, ignoring whitespace, in the inspected tags 4.8.0 to 10.5.2 [read]; in 4.8-5.x matchVersion &lt; 4.8 still selected the old, unaffected chain (removed for 6.0 by LUCENE-5969); not fixed upstream: the loop is unchanged on main and branch_10x (newest ThaiTokenizer.java commit b304eeae024, 2026-09-29) and no open PR touches the Thai package [read-only check 2026-10-26]. JRE caveat: the drop needs the JDK word BreakIterator to keep the prefix and the number in one segment; executed on JDK 25.0.3, with supplementary runs on OpenJDK 11.0.33 and 17.0.21 that segment the same way; the Java 7/8 JREs of 2014-era users were not tested</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-26, read-only: a scripted prior-report search 73 queries (18 GitHub issue/PR, 3 commit, 2 downstream-repo, 32 mailing-list over dev@, java-user@, issues@ and commits@, 8 JIRA, 10 web), 121 GitHub GraphQL searches over apache/lucene, apache/lucene-solr, apache/solr, apache/lucenenet, elastic/elasticsearch, opensearch-project and all of GitHub, 4 direct JIRA queries, 5 extra web queries (2 in Thai), the changed paths of all 413 open apache/lucene PRs, and the commit history of the Thai files on main and branch_10x; 57 GitHub items and 7 web pages read in full; the finder's, the independent reproduction's, the cross-model review's and the intended-behaviour check's own searches found nothing either). Not fixed upstream: the skip loop is unchanged on main and branch_10x and no open PR touches the Thai package or SegmentingTokenizerBase. Nearest items, none a report of this bug: LUCENE-4984 / #6048 (introduced the loop; none of its 13 comments discusses numbers or punctuation-led segments), LUCENE-2404 / #3479 (2010: rmuir on the since-removed ThaiWordFilter 'cheating with the UnicodeBlock check on charAt(0)'), LUCENE-5076 / #6140 (open: a first-code-point-only word test in ICU-module code, called a bug by a committer; that code no longer exists and ThaiTokenizer is not mentioned). The owner (shbhar) has filed nothing. Gaps: keyword search only, so a report written only in Thai or in a closed forum cannot be ruled out; private reports to security@lucene.apache.org are not visible.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (commit 2026-10-24; tested 2026-10-26) on JDK 25.0.3: the JUnit repro through the repro runner with -ea and -da, and through gradle in a scratch worktree, stock and with the fix (the worktree was removed after the runs); the same repro on the 10.5.2 and 9.12.3 jars; the history step's version probes on 4.7.2, 4.8.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3 and 8.11.4; the segmentation of every input in the table also on OpenJDK 11.0.33 and 17.0.21; the fact checks re-ran the repro at a fresh seed on main, 10.5.2 and 9.12.3, with -ea and -da.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiTokenizer.java:29-37 (class javadoc: uses BreakIterator, JRE warning, ICUTokenizer as the portable alternative), :173-180 (skip loop: comment &#x27;skipping over non-tokens&#x27;, Character.isLetterOrDigit on the first code point only)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiAnalyzer.java:34 (class javadoc) and :101-109 (createComponents starts with ThaiTokenizer)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiTokenizerFactory.java:44 (SPI name &#x27;thai&#x27;)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/th/TestThaiAnalyzer.java:131-135 (testDigits: digits are indexed)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiTokenizer.java:46-47, 135, 166-221 (word BreakIterator; incrementWord; skip loop 173-180)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiAnalyzer.java:101-109 (createComponents)</code></li><li><code>JDK 25 sources: java.base/sun/text/resources/BreakIteratorRules.java:100-102, 136-139; jdk.localedata/sun/text/resources/ext/BreakIteratorRules_th.java:64, 73</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiTokenizerFactory.java:39-44 (SPI name thai)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiAnalyzer.java:101-109</code></li><li><code>grep of non-test sources under lucene for ThaiTokenizer / ThaiAnalyzer (only the th package and module-info); lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiAnalyzer.java:102, ThaiTokenizerFactory.java:74</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiTokenizer.java:28-38, 173-180</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/th/TestThaiAnalyzer.java:131-135 (testDigits)</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizer.java:209-214</code></li><li><code>JDK 25 sources: java.base/sun/text/resources/BreakIteratorRules.java:100-102, 136-139; java/text/BreakIterator.java class javadoc (nextWordStartAfter)</code></li><li><code>lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/HMMChineseTokenizer.java:65-76; lucene/analysis/common/src/test/org/apache/lucene/analysis/util/TestSegmentingTokenizerBase.java:238-251</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiAnalyzer.java:102-107, 119-123 (the chain with the 10.6 filters, and ThaiCharFilter, on main)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestThaiNumberAfterPrefix.java (JUnit, 4 tests, drop-in for the analysis-common Thai tests): <a href='../repro/LFV-225/TestThaiNumberAfterPrefix.java'><code>repro/LFV-225/TestThaiNumberAfterPrefix.java</code></a> (89 lines)</li><li>TestThaiTokenizerPrefixedNumbers.java (fix check, 5 tests: tokens, offsets, dictionary, oracle): <a href='../repro/LFV-225/TestThaiTokenizerPrefixedNumbers.java'><code>repro/LFV-225/TestThaiTokenizerPrefixedNumbers.java</code></a> (120 lines)</li><li>ThaiPrefixProbe.java (plain main(): segments, tokens with offsets, terms): <a href='../repro/LFV-225/ThaiPrefixProbe.java'><code>repro/LFV-225/ThaiPrefixProbe.java</code></a> (104 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A summary diagram (PNG). The diagram is produced separately from this text. Its footnote names the finder's JUnit <code>TestThaiTokenizerNumberAfterPeriod</code>, an earlier public-API repro of the same bug (its <code class='nw'>testSearchByYear</code> is the user code shown); the repro on this page is <code>TestThaiNumberAfterPrefix</code>. A diagram check re-ran the release inputs of its section 7.</p><ul class='paths'><li><a href='../assets/LFV-225/bug.png'><code>assets/LFV-225/bug.png</code></a> (409 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

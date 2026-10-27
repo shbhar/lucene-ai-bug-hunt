@@ -1,0 +1,632 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>openIfChanged returns null and isCurrent() stays true after a flush when the only changes are doc-values updates</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-001 &middot; openifchanged-null-after-dv-only-flush</p><h1 id='top'>openIfChanged returns null and isCurrent() stays true after a flush when the only changes are doc-values updates</h1><p class='tldr'>If the only changes since an NRT reader opened are doc-values updates and the writer flushes, <code class='nw'>isCurrent()</code> is true and <code class='nw'>openIfChanged</code> returns null, although a fresh reader shows the change. <code class='nw'>SearcherManager</code> keeps serving old values; it fails with the default config on every release from 7.4.0 to 10.5.2 and main.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>High, rank 1</span><span class='sub'>Top of High: the widest-reaching silent bug in the set, in the default NRT path since 7.x, where apps that do doc-values updates or updateDocValues soft deletes and reopen after a flush, a no-op forceMerge, a writeAllDeletes reader or an automatic RAM-pressure write keep a stale searcher that still shows soft-deleted docs (filed as #16900, local fix exists).</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.4.0 (<code class='nw'>flush()</code>, <code class='nw'>writeAllDeletes</code>); 7.0.0 (RAM pressure, <code>hasUncommittedChanges()</code>)<span class='sub'>introduced 2018-05-02 &middot; about 8 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>7.4.0 to 10.5.2, <code class='nw'>branch_10_6</code> and main; 7.0.0+ for RAM pressure and <code>hasUncommittedChanges()</code></dd></div><div><dt>Status</dt><dd><span data-live='status'>filed</span></dd></div><div class='wide'><dt>Found by</dt><dd>AI-assisted randomized model-based testing; re-found by 14 methods (area hinted), including TLA+</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a testing baseline (randomized, fuzz, property-based or stress testing, or static analysis) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><figure class='visual' id='openifchanged-null-after-dv-only-flush-short-visual'><div class='frame'><a class='still' href='../assets/LFV-001/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-001/bug.png' alt='Diagram of the bug on Lucene main. An NRT reader opened at writer version 3 shows val = 1. After updateNumericDocValue sets val = 2, the update is pending and the reader is not current. After flush() writes the update to disk without bumping the version, nothing is pending and the writer is still at version 3, so isCurrent() is true and openIfChanged returns null, while a fresh reader, also at version 3, shows val = 2.' width='1920' height='1080'></a></div><figcaption>The writer's version and the reader through open, update, flush and reopen. Without the flush the reopen raises the version to 4 and shows the update; with it the version stays at 3 and the reopen returns null. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index two documents with a numeric doc-values field <code>val = 1</code> and open an NRT reader <code>r = DirectoryReader.open(w)</code>. It records the writer's version: 3.</span></li><li><span>Call <code>w.updateNumericDocValue(new Term("id", "1"), "val", 2)</code>, then <code class='nw'>w.flush()</code>, then <code>DirectoryReader.openIfChanged(r, w)</code>.</span></li><li><span>You expect <code class='nw'>r.isCurrent()</code> to be false and a new reader with <code>val = 2</code>. That is what happens without the <code class='nw'>flush()</code>: the reopen shows <code>val = 2</code> at version 4.</span></li><li><span>Instead <code class='nw'>r.isCurrent()</code> is true and <code class='nw'>openIfChanged</code> returns null, so <code class='nw'>SearcherManager</code> keeps the stale searcher. A fresh <code>DirectoryReader.open(w)</code> shows <code>val = 2</code> yet reports version 3: <code class='nw'>flush()</code> wrote the update without bumping the version.</span></li><li><span>No error, and it lasts until something bumps the version. A soft delete made with <code class='nw'>updateDocValues</code> (if the segment keeps a live document) and a <code class='nw'>forceMerge(1)</code> with nothing to merge do the same, and with a <code>writeAllDeletes=true</code> reader the reopen returns null although <code class='nw'>isCurrent()</code> is false; <code>hasUncommittedChanges()</code> can return false for an update the next <code class='nw'>commit()</code> still writes.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that make doc-values-only changes (updates, or <code class='nw'>updateDocValues</code> soft deletes that leave the segment a live document) and refresh NRT readers with <code class='nw'>openIfChanged</code>, <code class='nw'>SearcherManager</code>, <code class='nw'>ReaderManager</code> or <code class='nw'>PrimaryNode</code>, when <code class='nw'>flush()</code>, a no-op <code class='nw'>forceMerge</code>, a <code>writeAllDeletes=true</code> reader or reader-pool RAM pressure writes the changes. Searches silently read old values. Elasticsearch and OpenSearch are not exposed on their normal paths (from reading code).</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>869 words</span></summary><div class='body'><p>Suppose the only changes since an NRT reader was opened are doc-values updates, or soft deletes made with <code class='nw'>updateDocValues</code> that leave the segment at least one live document. If <code class='nw'>flush()</code>, a <code class='nw'>forceMerge</code> that has nothing to merge, or a <code class='nw'>writeAllDeletes</code> reader writes those changes to disk, the reader is then reported current and <code>DirectoryReader.openIfChanged(reader, writer)</code> returns null. A fresh reader shows the change, yet <code class='nw'>SearcherManager</code> keeps serving the old values.</p><p>It is deterministic and needs only the default config and a single document. The filed case fails on every tested release from 7.4.0 through 10.5.2 and on main. The same gap makes <code>hasUncommittedChanges()</code> return false for an update that the writer has applied but not yet written, since 7.0.0. The owner filed it as #16900. A three-file fix that records the change in <code>IndexWriter.finishApply</code> passes the repro and the full core test suite (one seed).</p><div class="hd hd-3"><h3 id='what-the-bug-is-what-you-do'>What you do</h3><a class="hlink" href="#what-the-bug-is-what-you-do" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-you-do"><span aria-hidden="true">#</span></a></div><p>You keep a near-real-time (NRT) reader open on an <code class='nw'>IndexWriter</code> and refresh it with <code>DirectoryReader.openIfChanged(reader, writer)</code>. <code>SearcherManager.maybeRefresh()</code> ends in the same code: it calls <code>openIfChanged(reader, commit)</code> with a null commit by default, and for an NRT reader that also goes to the writer (<code>StandardDirectoryReader.java:412-413</code>). You change documents in place with doc-values updates, for example <code>updateNumericDocValue</code>, and at some point the writer is flushed.</p><div class="hd hd-3"><h3 id='what-the-bug-is-a-tiny-example-executed-on-main'>A tiny example, executed on main</h3><a class="hlink" href="#what-the-bug-is-a-tiny-example-executed-on-main" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-a-tiny-example-executed-on-main"><span aria-hidden="true">#</span></a></div><ol><li><strong>Set up.</strong> Index two documents, id 1 and id 2, each with a numeric doc-values field <code>val = 1</code>. Open <code>r = DirectoryReader.open(w)</code>. The reader records the writer's version number: <strong>3</strong>.</li><li><strong>Update.</strong> Call <code>w.updateNumericDocValue(new Term("id", "1"), "val", 2)</code>.</li><li><strong>Without a flush, it works.</strong> <code class='nw'>r.isCurrent()</code> is false, and <code>openIfChanged(r, w)</code> returns a new reader that shows <code>val = 2</code>, at version <strong>4</strong>.</li><li><strong>With a flush, it fails.</strong> Do the same, but call <code class='nw'>w.flush()</code> before reopening:<ul><li><code class='nw'>r.isCurrent()</code> says <strong>true</strong>.</li><li><code>openIfChanged(r, w)</code> returns <strong>null</strong>, which means "nothing changed".</li><li>A fresh <code>DirectoryReader.open(w)</code> shows <code>val = 2</code> and also reports version <strong>3</strong>, the same number as the stale reader <code class='nw'>r</code>.</li></ul></li></ol><p>The same happens in these cases:</p><ul><li><strong>Soft delete, then flush.</strong> The soft delete is made with <code class='nw'>updateDocValues</code> on the soft-deletes field. The deleted document stays visible: the old reader counts 2 documents, a fresh one 1. This needs the segment to keep a live document (here id 2). A soft delete of a segment's last live document makes the writer drop the empty segment with a version bump, and the reopen works.</li><li><strong>A merge that has nothing to merge:</strong> <code class='nw'>forceMerge(1)</code> on an index that already has one segment.</li><li><strong>A reader opened with writeAllDeletes = true</strong>, that is <code>DirectoryReader.open(writer, true, true)</code>. No flush is needed; that reopen itself returns null.</li><li><strong>SearcherManager.</strong> <code class='nw'>maybeRefresh()</code> returns true, which its javadoc defines as "either refreshed or that there were no changes to refresh"; it returns true in the working case too. The symptom is that <code class='nw'>acquire()</code> keeps returning the stale searcher.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-why-one-version-number-two-ways-to-write'>Why: one version number, two ways to write</h3><a class="hlink" href="#what-the-bug-is-why-one-version-number-two-ways-to-write" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-why-one-version-number-two-ways-to-write"><span aria-hidden="true">#</span></a></div><ul><li><strong>The version is the reader's change stamp.</strong> <code class='nw'>isCurrent()</code> and <code class='nw'>openIfChanged</code> answer "nothing changed" when the writer's version equals the reader's and nothing is pending in the writer (<code>IndexWriter.nrtIsCurrent</code>, <code>IndexWriter.java:6140-6146</code>).</li><li><strong>A doc-values update goes through three stages.</strong> It is buffered, then <strong>applied</strong> (resolved to document numbers and parked in the writer's per-segment state, the reader pool), then <strong>written</strong> to a new doc-values file on disk.</li><li><strong>Applying it does not bump the version.</strong> <code class='nw'>finishApply</code> bumps it only when documents were deleted, or when it drops segments whose documents are all deleted (<code>IndexWriter.java:6721-6724</code>, <code class='nw'>:6726-6734</code>). A doc-values-only packet does neither. While the update is parked, it counts as pending (<code>readerPool.anyDocValuesChanges()</code>), so the reader is correctly not current.</li><li><strong>The normal reopen bumps it.</strong> It writes the parked update and calls <code class='nw'>checkpoint()</code>, which raises the version (<code>IndexWriter.java:608</code>, <code class='nw'>:4123-4126</code>). That is step 3.</li><li><strong>Three other paths write it without a bump.</strong> <code class='nw'>flush()</code>, a <code class='nw'>forceMerge</code> with nothing to merge, and a <code>writeAllDeletes=true</code> reader all write the parked update through <code>ReaderPool.commit</code> and then <code>checkpointNoSIS()</code>, which "does NOT bump segmentInfos.version" (<code>IndexWriter.java:4119-4122</code>, <code class='nw'>:4424</code>, <code class='nw'>:2913-2916</code>). The comment in <code>ReaderPool.commit</code> says the bump "was done previously (after we invoked BDS.applyDeletes)" (<code>ReaderPool.java:363-369</code>). That is true for deletes, not for doc-values updates.</li><li><strong>After such a write, nothing is pending and the version is still 3.</strong> So the writer reports the reader as current, and <code class='nw'>doOpenFromWriter</code> returns null (<code>StandardDirectoryReader.java:462</code>, <code class='nw'>:469-472</code>). That is step 4.</li><li><strong>Second symptom.</strong> The missing step also leaves the writer's change counter untouched. Commit, set a tiny RAM buffer so the update is applied at once, and update: <code>hasUncommittedChanges()</code> returns false, yet the next <code class='nw'>commit()</code> writes <code>val = 2</code> (<code>IndexWriter.java:4225-4232</code>).</li><li><strong>A fourth path, with no flush at all.</strong> Under reader-pool RAM pressure, <code>writeSomeDocValuesUpdates</code> writes parked updates with <code>checkpointNoSIS()</code> too (<code>IndexWriter.java:854-859</code>). It needs at least two update packets: the probe committed 200,000 documents, then, with a 0.5 MB buffer, sent one update matching all of them and 100,000 updates matching nothing. There <code class='nw'>isCurrent()</code> is false, yet <code class='nw'>openIfChanged</code> returns null, because the reader it opens has the same version as the old one and is discarded (<code>StandardDirectoryReader.java:469-472</code>), as in the <code class='nw'>writeAllDeletes</code> case.</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>420 words</span></summary><div class='body'><ul><li><strong>Silent wrong results.</strong> There is no exception. Searches keep reading old doc-values, so anything built on them sees old values, such as sort keys, scoring signals, facets and doc-values filters (inferred from the stale values, not run feature by feature). Documents soft-deleted with <code class='nw'>updateDocValues</code> stay visible. The stale state lasts until something bumps the version: an add, a hard delete that actually removes a document, a real merge or a commit. A delete that matches nothing does not end it, and repeated reopens keep returning null.</li><li><strong>Default configuration.</strong> The owner's filed steps exactly (the default <code>IndexWriterConfig</code>, one document, no threads) return null on every release from 7.4.0 to 10.5.2, on <code class='nw'>branch_10_6</code> and on main. The hunt test fails 20 of 20 derived seeds for each of its 5 bug tests. The reopen forms were run only on one- and two-document indexes and in a 200,000-document RAM-pressure probe; nothing in the mechanism depends on size, but that is read from the code. The soft-delete form uses the opt-in soft-deletes field. The <code class='nw'>writeAllDeletes</code> form uses the expert <code>open(writer, true, true)</code>.</li><li><strong>Who is exposed.</strong> Applications that make doc-values-only changes and then do one of these:<ul><li>call <code class='nw'>flush()</code>;</li><li>call <code class='nw'>forceMerge(1)</code> or <code>forceMergeDeletes()</code> when there is nothing to merge;</li><li>open, anywhere on the same writer, a reader with <code>writeAllDeletes=true</code>. This makes even a different, plain NRT reader stale;</li><li>send updates that hit reader-pool RAM pressure. That takes at least two update packets; the probe used one update matching 200,000 documents plus 100,000 that matched nothing, with a 0.5 MB buffer.</li></ul></li><li><strong>NRT helpers inherit it.</strong><ul><li><code class='nw'>SearcherManager</code> and <code class='nw'>ReaderManager</code> keep the stale reader.</li><li><code>ControlledRealTimeReopenThread.waitForGeneration</code> returns true although the update is not visible.</li><li>The replicator's <code class='nw'>PrimaryNode</code> opens its manager with <code>writeAllDeletes=true</code> (<code>PrimaryNode.java:125</code>). In the study, its <code>flushAndRefresh()</code> did not publish a doc-values-only change ("version 3 -&gt; 3").</li></ul></li><li><strong>"Commit only if dirty" can lose updates.</strong> The study's sequence: tiny buffer, update, <code>if (hasUncommittedChanges()) commit()</code>, then <code class='nw'>rollback()</code>. The commit was skipped and the update was lost. With the default 16 MB buffer, updating 1.5 million distinct documents once each made <code>hasUncommittedChanges()</code> false after update 1,470,089.</li><li><strong>Downstream, from reading code only.</strong> Elasticsearch and OpenSearch are not exposed on their normal paths. They do not call <code>IndexWriter.flush()</code> on the indexing path, they open readers with <code>writeAllDeletes=false</code>, and every soft delete also adds a document. Applications built on <code class='nw'>PrimaryNode</code> that use <code class='nw'>updateDocValues</code> are possibly exposed. Solr in-place updates followed by an optimize or expungeDeletes that merges nothing were only simulated at the Lucene level.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class on the public API with no threads, merges or timing: 5 bug tests (update + <code class='nw'>flush()</code>, soft delete + <code class='nw'>flush()</code>, no-op <code class='nw'>forceMerge(1)</code>, a <code>writeAllDeletes=true</code> reader, <code>hasUncommittedChanges()</code>) and a control without <code class='nw'>flush()</code>. The oracle is a fresh <code>DirectoryReader.open(writer)</code>, or the next <code class='nw'>commit()</code> for <code>hasUncommittedChanges()</code>. Copy it into Lucene core's test sources and run the command with JDK 25.</p><figure class='code'><figcaption><span class='fname'>TestOpenIfChangedAfterDocValuesOnlyFlush.java (5 bug tests + 1 control, public API)</span><span class='meta'>208 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * An NRT reader must not be reported as current, and {@code DirectoryReader.openIfChanged(reader,
+ * writer)} must not return null, while the writer holds a change that the reader does not see.
+ *
+ * &lt;p&gt;In every test the only change after the reader was opened is a doc-values update (or a soft
+ * delete made with {@code updateDocValues}), and something then writes it to the existing segment:
+ * {@code flush()}, a {@code forceMerge(1)} that has nothing to merge, or an NRT reader opened with
+ * {@code writeAllDeletes=true}. A fresh {@code DirectoryReader.open(writer)} is the oracle: it shows
+ * the change, so the old reader is stale. The control test is the same sequence without {@code
+ * flush()} and passes.
+ *
+ * &lt;p&gt;Uses public API only. Deterministic: one segment, no merges, no threads.
+ */
+public class TestOpenIfChangedAfterDocValuesOnlyFlush extends LuceneTestCase {
+
+  private static final String SOFT_DELETES = &quot;soft_delete&quot;;
+
+  private static Document doc(String id) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.NO));
+    doc.add(new NumericDocValuesField(&quot;val&quot;, 1));
+    return doc;
+  }
+
+  /** Two documents (ids 1 and 2, val=1) so that a soft delete never drops the whole segment. */
+  private static IndexWriter newWriter(Directory dir, boolean softDeletes) throws IOException {
+    IndexWriterConfig iwc = new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE);
+    if (softDeletes) {
+      iwc.setSoftDeletesField(SOFT_DELETES);
+    }
+    IndexWriter w = new IndexWriter(dir, iwc);
+    w.addDocument(doc(&quot;1&quot;));
+    w.addDocument(doc(&quot;2&quot;));
+    return w;
+  }
+
+  /** The value of &quot;val&quot; for doc id 1 (docID 0 of the only segment). */
+  private static long valOfDoc1(DirectoryReader r) throws IOException {
+    assertEquals(1, r.leaves().size());
+    NumericDocValues v = r.leaves().get(0).reader().getNumericDocValues(&quot;val&quot;);
+    assertTrue(v.advanceExact(0));
+    return v.longValue();
+  }
+
+  /**
+   * Checks the reopen contract for a stale reader {@code r}: the writer must report a change, and
+   * {@code openIfChanged} must return a reader that sees val=2.
+   */
+  private static void assertReopenSeesUpdate(DirectoryReader r, IndexWriter w) throws IOException {
+    try (DirectoryReader fresh = DirectoryReader.open(w)) {
+      assertEquals(&quot;oracle: a fresh NRT reader sees the update&quot;, 2, valOfDoc1(fresh));
+    }
+    assertEquals(&quot;the old reader does not see the update&quot;, 1, valOfDoc1(r));
+    boolean current = r.isCurrent();
+    DirectoryReader r2 = DirectoryReader.openIfChanged(r, w);
+    try {
+      assertTrue(
+          &quot;the reader is stale, but isCurrent()=&quot;
+              + current
+              + &quot; and openIfChanged returned &quot;
+              + (r2 == null ? &quot;null&quot; : &quot;a new reader&quot;),
+          current == false &amp;&amp; r2 != null);
+      assertEquals(2, valOfDoc1(r2));
+    } finally {
+      if (r2 != null) {
+        r2.close();
+      }
+    }
+  }
+
+  /** The main case: a numeric doc-values update, then flush(). */
+  public void testNumericUpdateThenFlush() throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir, false);
+        DirectoryReader r = DirectoryReader.open(w)) {
+      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;1&quot;), &quot;val&quot;, 2);
+      w.flush(); // without this line the test passes (see testControlNumericUpdateNoFlush)
+      assertReopenSeesUpdate(r, w);
+    }
+  }
+
+  /** A soft delete through updateDocValues, then flush(): the deleted doc stays visible. */
+  public void testSoftDeleteThenFlush() throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir, true);
+        DirectoryReader r = DirectoryReader.open(w)) {
+      assertEquals(2, r.numDocs());
+      w.updateDocValues(new Term(&quot;id&quot;, &quot;1&quot;), new NumericDocValuesField(SOFT_DELETES, 1));
+      w.flush();
+      try (DirectoryReader fresh = DirectoryReader.open(w)) {
+        assertEquals(&quot;oracle: a fresh NRT reader sees the soft delete&quot;, 1, fresh.numDocs());
+      }
+      boolean current = r.isCurrent();
+      DirectoryReader r2 = DirectoryReader.openIfChanged(r, w);
+      try {
+        assertTrue(
+            &quot;the reader is stale, but isCurrent()=&quot;
+                + current
+                + &quot; and openIfChanged returned &quot;
+                + (r2 == null ? &quot;null&quot; : &quot;a new reader&quot;),
+            current == false &amp;&amp; r2 != null);
+        assertEquals(1, r2.numDocs());
+      } finally {
+        if (r2 != null) {
+          r2.close();
+        }
+      }
+    }
+  }
+
+  /** forceMerge(1) on an index that already has one segment merges nothing, but writes the update. */
+  public void testNumericUpdateThenNoOpForceMerge() throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      w.addDocument(doc(&quot;1&quot;));
+      w.addDocument(doc(&quot;2&quot;));
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;1&quot;), &quot;val&quot;, 2);
+        w.forceMerge(1);
+        assertReopenSeesUpdate(r, w);
+      }
+    }
+  }
+
+  /** A reader opened with writeAllDeletes=true: no flush() is needed. */
+  public void testNumericUpdateWithWriteAllDeletesReader() throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir, false);
+        DirectoryReader r = DirectoryReader.open(w, true, true)) {
+      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;1&quot;), &quot;val&quot;, 2);
+      boolean current = r.isCurrent();
+      DirectoryReader r2 = DirectoryReader.openIfChanged(r, w);
+      try {
+        assertTrue(
+            &quot;the reader is stale, but isCurrent()=&quot;
+                + current
+                + &quot; and openIfChanged returned &quot;
+                + (r2 == null ? &quot;null&quot; : &quot;a new reader&quot;),
+            r2 != null);
+        assertEquals(2, valOfDoc1(r2));
+      } finally {
+        if (r2 != null) {
+          r2.close();
+        }
+      }
+    }
+  }
+
+  /**
+   * hasUncommittedChanges() may return true when nothing changed, but not false while a change is
+   * uncommitted. With a tiny RAM buffer the writer applies the update at once and keeps the new
+   * value in memory; it then reports no uncommitted changes, although commit() writes the update.
+   */
+  public void testHasUncommittedChangesAfterAppliedUpdate() throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      w.addDocument(doc(&quot;1&quot;));
+      w.commit();
+      assertFalse(w.hasUncommittedChanges());
+      w.getConfig().setRAMBufferSizeMB(0.0001); // makes the writer apply the update right away
+      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;1&quot;), &quot;val&quot;, 2);
+      boolean hasUncommittedChanges = w.hasUncommittedChanges();
+      w.commit();
+      try (DirectoryReader committed = DirectoryReader.open(dir)) {
+        assertEquals(&quot;oracle: commit() wrote the update, so it was uncommitted&quot;, 2, valOfDoc1(committed));
+      }
+      assertTrue(
+          &quot;the update was not committed yet, but hasUncommittedChanges() returned false&quot;,
+          hasUncommittedChanges);
+    }
+  }
+
+  /** Control (passes): the same as testNumericUpdateThenFlush without flush(). */
+  public void testControlNumericUpdateNoFlush() throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir, false);
+        DirectoryReader r = DirectoryReader.open(w)) {
+      w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;1&quot;), &quot;val&quot;, 2);
+      assertReopenSeesUpdate(r, w);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># $REPRO = the directory holding TestOpenIfChangedAfterDocValuesOnlyFlush.java (the first file above)
+cd $LUCENE      # apache/lucene main at ea57360912ed; JAVA_HOME = a JDK 25
+cp $REPRO/TestOpenIfChangedAfterDocValuesOnlyFlush.java lucene/core/src/test/org/apache/lucene/index/
+./gradlew :lucene:core:test --tests org.apache.lucene.index.TestOpenIfChangedAfterDocValuesOnlyFlush -Dtests.seed=DEADBEEF
+# add -Dtests.asserts=false to run without assertions (same 5 failures)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>openIfChanged</code> returns a reader that sees the change, as in the control, and <code>hasUncommittedChanges()</code> is true until the commit.</dd></div><div class='got'><dt>Observed</dt><dd>5 of 6 tests fail on main, 10.5.2 and 9.12.3: <code class='nw'>openIfChanged</code> returns null while a fresh reader sees the change, and <code>hasUncommittedChanges()</code> returns false; the control passes.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-001/'>repro/LFV-001/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>1 more file (78 lines) · 694 words</span></summary><div class='body'><p>A JUnit class in <code>org.apache.lucene.index</code> that uses public API only. It has no threads, no merges and no timing, and runs on the stock test framework.</p><ul><li><strong>Bug tests (5).</strong> A numeric update followed by <code class='nw'>flush()</code>; a soft delete followed by <code class='nw'>flush()</code>; an update followed by a no-op <code class='nw'>forceMerge(1)</code> (default <code>IndexWriterConfig</code>); an update with a <code>writeAllDeletes=true</code> reader; and the <code>hasUncommittedChanges()</code> case with a tiny RAM buffer.</li><li><strong>Control (1).</strong> The first case without <code class='nw'>flush()</code>. It passes.</li><li><strong>Oracle.</strong> A fresh <code>DirectoryReader.open(writer)</code> in the flush, soft-delete and <code class='nw'>forceMerge</code> tests; the <code class='nw'>writeAllDeletes</code> test requires a non-null reopen that shows <code>val = 2</code>; the next <code class='nw'>commit()</code> for <code>hasUncommittedChanges()</code>.</li></ul><p>Save the first file below as <code>TestOpenIfChangedAfterDocValuesOnlyFlush.java</code> in a directory <code class='nw'>$REPRO</code>, then run the command below from <code class='nw'>$LUCENE</code>, an apache/lucene main checkout, with a JDK 25. The second block is Fix B as applied to <code class='nw'>ea57360912ed</code> (see Fixes).</p><p>The owner's filed #16900 snippet (1 document, <code>assertNotNull(r2)</code>) was also run verbatim by the 2026-10-23 claim re-check on main <code class='nw'>b83101cdd2</code>. It failed 6 of 6 runs, and passed 6 of 6 with the <code class='nw'>flush()</code> line removed.</p><div class="hd hd-3"><h3 id='code-2-h'>Fix B as applied at ea57360912ed (3 files, +16/-2)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>The study's <code class='nw'>fixB.diff</code>. It applies to <code class='nw'>ea57360912ed</code> with no offsets. The test class is not part of the diff.</p><figure class='code'><figcaption><span class='fname'>Fix B as applied at ea57360912ed (3 files, +16/-2)</span><span class='meta'>78 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/index/BufferedUpdatesStream.java b/lucene/core/src/java/org/apache/lucene/index/BufferedUpdatesStream.java
+index 817b0d057d7..24b8ff65e00 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/BufferedUpdatesStream.java
++++ b/lucene/core/src/java/org/apache/lucene/index/BufferedUpdatesStream.java
+@@ -116,9 +116,11 @@ final class BufferedUpdatesStream implements Accountable {
+ 
+   /**
+    * @param anyDeletes True if any actual deletes took place:
++   * @param anyDocValuesUpdates True if any doc values updates were resolved into the reader pool
+    * @param allDeleted If non-null, contains segments that are 100% deleted
+    */
+-  record ApplyDeletesResult(boolean anyDeletes, List&lt;SegmentCommitInfo&gt; allDeleted) {}
++  record ApplyDeletesResult(
++      boolean anyDeletes, boolean anyDocValuesUpdates, List&lt;SegmentCommitInfo&gt; allDeleted) {}
+ 
+   /**
+    * Waits for all in-flight packets, which are already being resolved concurrently by indexing
+@@ -267,6 +269,9 @@ final class BufferedUpdatesStream implements Accountable {
+     final int startDelCount;
+     private final IOConsumer&lt;ReadersAndUpdates&gt; onClose;
+ 
++    /** Set when at least one resolved doc values update was added to {@link #rld}. */
++    boolean anyDocValuesUpdates;
++
+     TermsEnum termsEnum;
+     PostingsEnum postingsEnum;
+     BytesRef term;
+diff --git a/lucene/core/src/java/org/apache/lucene/index/FrozenBufferedUpdates.java b/lucene/core/src/java/org/apache/lucene/index/FrozenBufferedUpdates.java
+index 4ffb200facb..3329c8545bf 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/FrozenBufferedUpdates.java
++++ b/lucene/core/src/java/org/apache/lucene/index/FrozenBufferedUpdates.java
+@@ -353,6 +353,7 @@ final class FrozenBufferedUpdates {
+       if (update.any()) {
+         update.finish();
+         segState.rld.addDVUpdate(update);
++        segState.anyDocValuesUpdates = true;
+       }
+     }
+ 
+diff --git a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+index 45b59fa46dd..d905c2ed563 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+@@ -6721,6 +6721,11 @@ public class IndexWriter
+       if (result.anyDeletes()) {
+         maybeMerge.set(true);
+         checkpoint();
++      } else if (result.anyDocValuesUpdates()) {
++        // Resolved doc values updates are a new NRT-visible change, just like deletes: bump the SIS
++        // version now, because the flush/commit/RAM-pressure paths that later write them to disk
++        // (ReaderPool#commit, writeSomeDocValuesUpdates) only call checkpointNoSIS():
++        checkpoint();
+       }
+ 
+       if (result.allDeleted() != null) {
+@@ -6740,10 +6745,12 @@ public class IndexWriter
+       BufferedUpdatesStream.SegmentState[] segStates, boolean success) throws IOException {
+     List&lt;SegmentCommitInfo&gt; allDeleted = null;
+     long totDelCount = 0;
++    boolean anyDocValuesUpdates = false;
+     try {
+       for (BufferedUpdatesStream.SegmentState segState : segStates) {
+         if (success) {
+           totDelCount += segState.rld.getDelCount() - segState.startDelCount;
++          anyDocValuesUpdates |= segState.anyDocValuesUpdates;
+           int fullDelCount = segState.rld.getDelCount();
+           assert fullDelCount &lt;= segState.rld.info.info.maxDoc()
+               : fullDelCount + &quot; &gt; &quot; + segState.rld.info.info.maxDoc();
+@@ -6771,7 +6778,8 @@ public class IndexWriter
+               + readerPool.ramBytesUsed());
+     }
+ 
+-    return new BufferedUpdatesStream.ApplyDeletesResult(totDelCount &gt; 0, allDeleted);
++    return new BufferedUpdatesStream.ApplyDeletesResult(
++        totDelCount &gt; 0, anyDocValuesUpdates, allDeleted);
+   }
+ 
+   /** Opens SegmentReader and inits SegmentState for each segment. */
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed (11.0.0-SNAPSHOT): 5 of 6 fail with assertions on and off; the 10.5.2 and 9.12.3 release jars: the same 5 fail</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestOpenIfChangedAfterDocValuesOnlyFlush &gt; testNumericUpdateWithWriteAllDeletesReader FAILED
+    java.lang.AssertionError: the reader is stale, but isCurrent()=false and openIfChanged returned null
+TestOpenIfChangedAfterDocValuesOnlyFlush &gt; testNumericUpdateThenFlush FAILED
+    java.lang.AssertionError: the reader is stale, but isCurrent()=true and openIfChanged returned null
+TestOpenIfChangedAfterDocValuesOnlyFlush &gt; testSoftDeleteThenFlush FAILED
+    java.lang.AssertionError: the reader is stale, but isCurrent()=true and openIfChanged returned null
+TestOpenIfChangedAfterDocValuesOnlyFlush &gt; testNumericUpdateThenNoOpForceMerge FAILED
+    java.lang.AssertionError: the reader is stale, but isCurrent()=true and openIfChanged returned null
+TestOpenIfChangedAfterDocValuesOnlyFlush &gt; testHasUncommittedChangesAfterAppliedUpdate FAILED
+    java.lang.AssertionError: the update was not committed yet, but hasUncommittedChanges() returned false
+6 tests completed, 5 failed          (testControlNumericUpdateNoFlush passes)
+
+# with Fix B applied, the same command:
+:lucene:core:test (SUCCESS): 6 tests</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Javadoc: <code class='nw'>openIfChanged</code> returns null only "if there are no new changes"; <code class='nw'>isCurrent()</code> checks for "any new uncommitted changes" via the writer.</li><li>An extra call hides a change: without <code class='nw'>flush()</code> the update is seen; a hard delete plus <code class='nw'>flush()</code> is detected.</li><li>7.3.1 returns the new reader; it flipped at LUCENE-8290, a soft-deletes change. Similar misses (#6050, #6353) were fixed as bugs.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>355 words</span></summary><div class='body'><ul><li><strong>The contracts say otherwise</strong> (<code>DirectoryReader.java</code> at <code class='nw'>ea57360912ed</code>):<ul><li><code>openIfChanged(reader, writer)</code> returns a reader "searching both committed and uncommitted changes from the writer" (<code class='nw'>:304-306</code>), and null only "if there are no new changes" (<code class='nw'>:334-335</code>).</li><li>For an NRT reader, <code class='nw'>isCurrent()</code> "checks if either a new commit has occurred, or any new uncommitted changes have taken place via the writer" (<code class='nw'>:633-634</code>).</li><li><code class='nw'>getVersion()</code> "is advanced every time a change is made with IndexWriter" (<code class='nw'>:620-621</code>).</li><li><code>IndexWriter.hasUncommittedChanges()</code> "Returns true if there may be changes that have not been committed". Its javadoc documents false positives and names no case where it returns false with uncommitted changes, though it does not promise that in so many words (<code>IndexWriter.java:4219-4224</code>). Here the next <code class='nw'>commit()</code> does write the update, and LUCENE-5289 (#6353) fixed a false negative of this method as a bug.</li></ul></li><li><strong>The code's own comment assumes the bump happened.</strong> <code>ReaderPool.commit</code> says the version bump "was done previously (after we invoked BDS.applyDeletes)" (<code>ReaderPool.java:363-369</code>). That holds for deletes only.</li><li><strong>An extra call makes a change less visible.</strong> Without <code class='nw'>flush()</code> the update is seen. A hard delete followed by <code class='nw'>flush()</code> is detected (version 3 to 4). So is <code>tryUpdateDocValue</code> followed by <code class='nw'>flush()</code>, because that method calls <code class='nw'>changed()</code> (<code>IndexWriter.java:1780-1782</code>).</li><li><strong>It used to work.</strong> On 7.3.1 the same steps return a new reader with <code>val = 2</code> at version 4. The behaviour flips exactly at LUCENE-8290, a change about soft deletes whose issue never discusses <code class='nw'>isCurrent</code>, <code class='nw'>openIfChanged</code> or the version.</li><li><strong>No test or document covers it.</strong> The two randomized stress tests that reopen readers accept a null reopen without comparing it with a fresh reader (<code>TestNumericDocValuesUpdates.java:1370-1374</code>, <code>TestMixedDocValuesUpdates.java:263-267</code>), and they never flush after a doc-values update. Other tests do flush after doc-values updates (<code>TestMixedDocValuesUpdates.java:531-546</code>, <code class='nw'>:658-662</code>), but then open a fresh <code>DirectoryReader.open(writer)</code> (<code class='nw'>:560</code>, <code class='nw'>:675</code>) instead of reopening an existing reader, so they cannot see the staleness. No javadoc, CHANGES or MIGRATE entry describes it.</li><li><strong>Precedents were fixed as bugs.</strong> #6050 (LUCENE-4986): an NRT reader missed <code>tryDeleteDocument</code>. #6353 (LUCENE-5289): <code>hasUncommittedChanges()</code> returned false for a pending delete-by-term.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>270 words</span></summary><div class='body'><p><strong>The strongest case for "intended"</strong> was built by the independent reviewer:</p><ul><li>Writer-based NRT is <code>@lucene.experimental</code>, with "no hard guarantee on how quickly you can get a new reader" (<code>DirectoryReader.java:313-314</code>).</li><li>The <code class='nw'>IndexWriter</code> class javadoc says flushed changes "are not visible to IndexReader until either commit() or close is called" (<code>IndexWriter.java:131-133</code>).</li><li><code class='nw'>getVersion()</code> first says it "returns the version recorded in the commit that the reader opened" (<code>DirectoryReader.java:620</code>), and only then that it "is advanced every time a change is made".</li><li>Lucene's own randomized tests tolerate a null reopen.</li></ul><p><strong>Why it fails:</strong></p><ul><li>The latency caveat is about how fast a reopen happens, not about a reopen that reports "no changes" and never sees them.</li><li>The flush sentence is unqualified, so it does conflict with the NRT contracts; the issue should acknowledge that rather than explain it away. It predates them: it was added in 2008 (LUCENE-1194, <code class='nw'>5b113c8af63</code>), a year before writer-based NRT readers (LUCENE-1516, <code class='nw'>3c91517add2</code>, 2009), and its wording is the same today apart from formatting. The NRT javadocs are the more specific promise, and Lucene itself does not follow the flush sentence here: a fresh NRT <code>DirectoryReader.open(writer)</code> does see the change, and a hard delete across the same <code class='nw'>flush()</code> is detected. Only <code class='nw'>isCurrent()</code> and <code class='nw'>openIfChanged</code> disagree with the fresh reader.</li><li><code>@lucene.experimental</code> weakens API stability, not the stated meaning of null.</li></ul><p>The reviewer rated the argument "moderate" and the bug "real" with high confidence. One caution for the issue: the same javadoc still says "(though, the current implementation never returns null)" (<code>DirectoryReader.java:306-307</code>). That line is stale, so do not rely on it.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Fix B: record the change when doc-values updates are applied (<code class='nw'>finishApply</code>)</strong></p><p class='short'>In <code>IndexWriter.finishApply</code>, call <code class='nw'>checkpoint()</code> when an applied packet resolved doc-values updates and deleted nothing, as deletes already do (3 files, +16/-2, package-private). It fixes every trigger and <code>hasUncommittedChanges()</code>. The repro, the 16 closest suites, the full core suite (8,871 tests, one seed) and the nightly replicator tests pass. Cost: one extra checkpoint per such packet, not benchmarked.</p><pre class='snippet' tabindex='0'><code>if (result.anyDeletes()) {
+  maybeMerge.set(true);
+  checkpoint();
+} else if (result.anyDocValuesUpdates()) {
+  // Resolved doc values updates are a new NRT-visible change, just like deletes: bump the SIS
+  // version now, because the flush/commit/RAM-pressure paths that later write them to disk
+  // (ReaderPool#commit, writeSomeDocValuesUpdates) only call checkpointNoSIS():
+  checkpoint();
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 789 words</span></summary><div class='body'><p>One fix, Fix B, was validated in a scratch worktree at <code class='nw'>ea57360912ed</code>: it passes the repro, the closest suites and the full core suite. Fix A comes from the study and is known to be incomplete. The other options are untested sketches.</p><div class="hd hd-3"><h3 id='fix-fix-b'>Fix B: record the change when doc-values updates are applied (<code class='nw'>finishApply</code>) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-fix-b" target="_self" aria-label="Link to this section" aria-describedby="fix-fix-b"><span aria-hidden="true">#</span></a></div><p>What it does:</p><ul><li><code>FrozenBufferedUpdates</code> sets a flag on the segment state when it adds a resolved update (<code class='nw'>:355</code>).</li><li><code>closeSegmentStates</code> returns that flag in <code>ApplyDeletesResult</code>.</li><li><code class='nw'>finishApply</code> calls <code class='nw'>checkpoint()</code> when doc-values updates were resolved and nothing was deleted.</li></ul><p>Three files, +16/-2, all package-private.</p><pre class='snippet' tabindex='0'><code>if (result.anyDeletes()) {
+  maybeMerge.set(true);
+  checkpoint();
+} else if (result.anyDocValuesUpdates()) {
+  // Resolved doc values updates are a new NRT-visible change, just like deletes: bump the SIS
+  // version now, because the flush/commit/RAM-pressure paths that later write them to disk
+  // (ReaderPool#commit, writeSomeDocValuesUpdates) only call checkpointNoSIS():
+  checkpoint();
+}</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Reach.</strong> It fixes every trigger (<code class='nw'>flush()</code>, no-op <code class='nw'>forceMerge</code>, <code class='nw'>writeAllDeletes</code> readers, RAM pressure) and the <code>hasUncommittedChanges()</code> symptom, because it fixes the step they share.</li><li><strong>Cost.</strong> One extra <code class='nw'>checkpoint()</code> (an <code class='nw'>IndexFileDeleter</code> checkpoint) per applied packet that resolved doc-values updates, the same cost deletes already pay. Not benchmarked.</li><li><strong>Version timing.</strong> The version now also moves when updates are applied. Reopen frequency should not change, because a parked update already makes <code class='nw'>nrtIsCurrent</code> false. That is reasoning from the code, not a measurement.</li><li><strong>Two bumps per update on the normal reopen path.</strong> The version moves once when the packet is applied and again when <code>writeReaderPool(false)</code> writes the update and calls <code class='nw'>checkpoint()</code> (<code>IndexWriter.java:4123-4126</code>). A probe on main shows it: an update and a reopen without flush give version 4 unpatched and version 5 with Fix B (with <code class='nw'>-ea</code> and <code class='nw'>-da</code>). The reader-side checks compare versions for equality (<code>IndexWriter.java:6143</code>, <code>StandardDirectoryReader.java:469</code>), so the gap is probably harmless; no other user of the version was checked.</li></ul><p class='k'>What the checks validated</p><p>At <code class='nw'>ea57360912ed</code>, 2026-10-25, Gradle with JDK 25:</p><ul><li><strong>Repro.</strong> 6 of 6 pass (seed DEADBEEF). With assertions off and <code class='nw'>-Dtests.iters=10</code> (seed 1234ABCD), 60 of 60 pass. Unpatched, the seed DEADBEEF command fails 5 of 6 with and without assertions; the 10-iteration command was not run unpatched.</li><li><strong>Closest suites.</strong> 17 classes, 341 tests, 0 failures, 12 skipped (seed 5EED0001): TestNumericDocValuesUpdates, TestBinaryDocValuesUpdates, TestMixedDocValuesUpdates, TestIndexWriterReader, TestDirectoryReaderReopen, TestSoftDeletesRetentionMergePolicy, TestSoftDeletesDirectoryReaderWrapper, TestIndexWriter, TestIndexWriterDelete, TestReaderPool, TestPendingSoftDeletes, TestStressNRT, TestIndexWriterThreadsToSegments, TestDocValuesFieldUpdates, TestSearcherManager, TestControlledRealTimeReopenThread and the repro (so the count includes its 6 tests).</li><li><strong>Full core suite.</strong> <code>./gradlew :lucene:core:test</code>: 8,871 tests, 0 failures, 323 skipped (seed 5EED0002; the repro file was in the tree, so this includes its 6 tests).</li><li><strong>Nightly replicator.</strong> <code>:lucene:replicator:test -Dtests.nightly=true</code> (seed 5EED0003): 15 tests, 0 failures, 1 skipped, including TestNRTReplication 13 of 13 and TestStressNRTReplication 1 of 1.</li><li><strong>Format and lint.</strong> <code class='nw'>ecjLintMain</code> and <code class='nw'>ecjLintTest</code> pass. <code>checkGoogleJavaFormat</code> passes for the three fixed files and flags only line wrapping in the repro test class; run <code>./gradlew tidy</code> before using it in a PR.</li><li><strong>Earlier, at the study commit</strong> <code class='nw'>7cecf79523</code>. The study report counts 32 new tests passing, including the RAM-pressure, <code class='nw'>PrimaryNode</code> and <code>hasUncommittedChanges</code> tests (its logs show two runs, of 30 + 1 and of 31 tests). The full core suite: 8,895 tests, 0 failures. Nightly <code>TestNRTReplication</code>: 13 of 13. A TLA+ model of the version protocol: clean at 221,551 and 2,835,596 states.</li><li><strong>Independent reviewer.</strong> Their own two test classes pass with it, and so do TestNumericDocValuesUpdates.testUpdatesAreFlushed, testReopen and TestIndexWriterReader.testIsCurrent.</li></ul><div class="hd hd-3"><h3 id='fix-fix-a'>Fix A: inside <code>writeReaderPool(true)</code>, write the doc-values updates with a version bump first</h3><a class="hlink" href="#fix-fix-a" target="_self" aria-label="Link to this section" aria-describedby="fix-fix-a"><span aria-hidden="true">#</span></a></div><p>Six lines, which restore what <code class='nw'>getReader</code> did before 7.4. Before <code>readerPool.commit</code>, call <code>readerPool.writeAllDocValuesUpdates()</code> and then <code class='nw'>checkpoint()</code>.</p><pre class='snippet' tabindex='0'><code>if (writeDeletes) {
+  if (readerPool.writeAllDocValuesUpdates()) {
+    checkpoint();
+  }
+  if (readerPool.commit(segmentInfos)) {
+    checkpointNoSIS();
+  }
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Fixes <code class='nw'>flush()</code>, no-op <code class='nw'>forceMerge</code> and <code class='nw'>writeAllDeletes</code>.</li><li>Leaves the RAM-pressure path (<code>writeSomeDocValuesUpdates</code>) and <code>hasUncommittedChanges()</code> broken. At the study commit, 2 of the study's 30 new tests failed with it: the RAM-pressure test and a repeated-reopen probe. A TLA+ model found the hole first.</li><li>Not re-run at <code class='nw'>ea57360912ed</code>.</li></ul><div class="hd hd-3"><h3 id='fix-write-site'>Bump the version wherever doc-values files are written</h3><a class="hlink" href="#fix-write-site" target="_self" aria-label="Link to this section" aria-describedby="fix-write-site"><span aria-hidden="true">#</span></a></div><p>Let <code>ReaderPool.commit</code> report "doc-values updates written" separately from "live docs written", and call <code class='nw'>checkpoint()</code> for the first. Do the same in <code>writeSomeDocValuesUpdates</code>. Untested sketch.</p><p class='k'>Trade-offs</p><p>Same reach as Fix A plus the RAM path. <code>hasUncommittedChanges()</code> stays wrong, because an applied but unwritten update is still not counted.</p><div class="hd hd-3"><h3 id='fix-has-uncommitted'>Make <code>hasUncommittedChanges()</code> also check <code>readerPool.anyDocValuesChanges()</code></h3><a class="hlink" href="#fix-has-uncommitted" target="_self" aria-label="Link to this section" aria-describedby="fix-has-uncommitted"><span aria-hidden="true">#</span></a></div><p>Untested sketch.</p><p class='k'>Trade-offs</p><p>Fixes only the second symptom, so it would have to come together with Fix A or the write-site option.</p><div class="hd hd-3"><h3 id='fix-reader-side'>Detect the change on the reader side</h3><a class="hlink" href="#fix-reader-side" target="_self" aria-label="Link to this section" aria-describedby="fix-reader-side"><span aria-hidden="true">#</span></a></div><p>Compare per-segment doc-values and delete generations, instead of relying on the <code class='nw'>SegmentInfos</code> version alone. Untested sketch.</p><p class='k'>Trade-offs</p><p>More invasive: it changes what "same version" means for readers and for <code class='nw'>doOpenFromWriter</code>'s equal-version shortcut.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Not attacker-driven: the application itself issues the updates, soft deletes and flushes, so the screen rates it outside Lucene's threat model, and it is already public as #16900. It can still matter downstream: if an application uses soft deletes for authorization, retention or privacy erasure, a stale reader keeps serving the "deleted" documents with no error.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>AI-assisted randomized model-based testing found it: a randomized test of a hash-based postings format under development failed on some seeds. The owner filed #16900. A study re-found it with 14 methods, with the area hinted: fastest a stateful fuzzer (under a second) and a TLA+ model (a 2-step trace), which also found the hole in Fix A. Five static analyzers missed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>304 words</span></summary><div class='body'><p><strong>Found by AI-assisted randomized model-based testing, without formal tools.</strong> A randomized test of a hash-based postings format under development, written and run with AI, failed on some seeds; the failures traced back to this reopen behaviour, and the owner filed #16900 on 2026-10-23.</p><p><strong>Re-found by the 2026-10-22 study with 14 methods.</strong> None of these finds was blind: the task texts named the bug-note file pattern or listed the classes, so the area was hinted.</p><ul><li><strong>Fastest.</strong> A bug-agnostic stateful fuzzer found it in under a second. A TLA+ model of the version protocol (<code class='nw'>NrtVersion.tla</code>) gave a 2-step trace for <code class='nw'>flush()</code> and another for <code class='nw'>writeAllDeletes</code>. The same model later found the hole in Fix A.</li><li><strong>Missed.</strong> Five static analyzers: none of about 2,170 index-package reports pointed at it.</li><li><strong>What every success had in common.</strong> An oracle that states the freshness contract ("null or <code class='nw'>isCurrent()</code> implies the same content as a fresh reader"). An operation set with a doc-values-only change plus a flush, a no-op forceMerge or a <code class='nw'>writeAllDeletes</code> reader. And, in the models, <code class='nw'>checkpoint</code> and <code class='nw'>checkpointNoSIS</code> kept as separate steps.</li><li><strong>Second symptom.</strong> The <code>hasUncommittedChanges()</code> form was reached first by Alloy and TLC model checking in sessions that had no hint of this symptom (the area itself was hinted). In the study's votes Alloy called it a new bug and TLA+ the same root cause; a follow-up adjudicated it as a second symptom of the same root cause: one fix at <code class='nw'>finishApply</code> removes both.</li></ul><p><strong>This hunt</strong> (2026-10-25):</p><ul><li>turned the study's tests into one minimal JUnit (5 bug tests and a control) and re-verified it on main <code class='nw'>ea57360912ed</code>, 10.5.2 and 9.12.3;</li><li>had it reviewed by an independent reviewer from another model family (OpenAI GPT-5.6), who wrote and ran their own repro;</li><li>re-bisected the history and repeated the prior-report search;</li><li>validated Fix B with Gradle.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No earlier report: 205 queries over GitHub issues and PRs, JIRA, commits, mailing lists, downstream code and the web, plus a scan of all 412 open PRs, found only the owner's #16900 (open, no comments on 2026-10-26). No open PR changes the fix sites. Add new material to #16900; do not file again.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>No report predates the owner's own #16900. On 2026-10-25 #16900 was open, labelled <code class='nw'>type:bug</code>, with no comments and no linked PR; a read-only re-check on 2026-10-26 found it still open with 0 comments, and upstream main still at <code class='nw'>ea57360912ed</code>. No open PR changes the fix sites. Add new material to #16900; do not file again.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub apache/lucene issues and PRs (open and closed, including migrated JIRA issues)</th><td class='when'>2026-10-25</td><td>60 tool queries plus 18 manual searches, for example openIfChanged, isCurrent, nrtIsCurrent, checkpointNoSIS, writeReaderPool, finishApply, hasUncommittedChanges, updateNumericDocValue, writeAllDeletes, LUCENE-8290, LUCENE-7868, "openIfChanged returns null", "stale reader", "no changes to refresh"</td><td>only #16900 (ranked first, matched by 36 queries)</td></tr><tr><th scope='row'>Open PRs, file-level scan</th><td class='when'>2026-10-25</td><td>all 412 open apache/lucene PRs, checked for lines at the fix sites</td><td>27 touch the involved files; 0 change finishApply, checkpointNoSIS, writeReaderPool, nrtIsCurrent, doOpenFromWriter, hasUncommittedChanges or getVersion</td></tr><tr><th scope='row'>Commit messages, JIRA archive, mailing lists (dev@, java-user@, issues@, commits@)</th><td class='when'>2026-10-25</td><td>6 commit queries, 15 plus 9 JIRA queries, 56 list queries plus 8 recent-window checks</td><td>nothing relevant; issues@ has only the notification of #16900</td></tr><tr><th scope='row'>Downstream repositories and the general web</th><td class='when'>2026-10-25</td><td>5 tool and 9 manual downstream queries, 12 web searches</td><td>context only: an open Elasticsearch PR adding updatable doc-values fields reports no staleness; older Q&amp;A threads predate LUCENE-8290</td></tr><tr><th scope='row'>Related items (read)</th><td class='when'>2026-10-25</td><td>the closest threads</td><td>different mechanisms: #6050 (LUCENE-4986), #4620 and #4625 (earlier nrtIsCurrent misses); #6353 (LUCENE-5289, the hasUncommittedChanges analog); #15831 (ReferenceManager lock race, refresh skipped rather than null)</td></tr><tr><th scope='row'>Before filing (study and triple-check)</th><td class='when'>2026-10-22/23</td><td>about 420 study queries; 52 GitHub queries plus mailing lists and downstream repositories; 6 claim re-check queries</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 7.4.0 by LUCENE-8290 (#9337, 2018), which made <code class='nw'>flush()</code> and <code class='nw'>writeAllDeletes</code> readers write parked updates without a version bump. The gap underneath dates from LUCENE-7868 in 7.0.0 (RAM-pressure path, <code>hasUncommittedChanges()</code>); LUCENE-7976 (7.5.0) widened it by making <code class='nw'>forceMerge(1)</code> of a lone segment a no-op. 6.6.6 is clean; each commit was checked against its parent.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>10 rows</span></summary><div class='body'><p><strong>Introduced by LUCENE-8290</strong> "Keep soft deletes in sync with on-disk DocValues" (#9337). The master commit is <code class='nw'>591fc6627ac</code> and the branch_7x backport <code class='nw'>8fdd3d7584b</code>, authored 2018-05-02 and first released in 7.4.0. It made <code class='nw'>doFlush</code> write parked updates through <code>writeReaderPool(applyAllDeletes)</code> (true for <code class='nw'>flush()</code>), which ends in <code>checkpointNoSIS()</code>. It also replaced <code class='nw'>getReader</code>'s unconditional <code>writeAllDocValuesUpdates()</code> + <code class='nw'>checkpoint()</code> with <code>writeReaderPool(writeAllDeletes)</code>, so <code>writeAllDeletes=true</code> readers lost the bump; a default reopen still bumps.</p><p><strong>The gap underneath is older.</strong> LUCENE-7868 (#8919, <code class='nw'>58105a203a1</code>, 2017-06-21, first released in 7.0.0) began parking applied updates in the reader pool without a version bump. It also added the RAM-pressure writer and the <code>hasUncommittedChanges()</code> symptom.</p><p><strong>Two later changes only widened exposure.</strong> LUCENE-7976 (<code class='nw'>9c4e315c1cb</code>, 7.5.0) made <code class='nw'>forceMerge(1)</code> of a lone segment a no-op. LUCENE-8590 (<code class='nw'>eaf840867fa</code>, 7.7.0) changed when a long update loop reaches the <code>hasUncommittedChanges()</code> gap.</p><p>All of these were found by running the same probe on lucene-core built at each commit and at its parent.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>JUnit 5 of 6 fail (Gradle and the harness, -ea and -da, 20 of 20 seeds); the probe shows all 9 bug scenarios</td></tr><tr><th scope='row'><code class='nw'>branch_10_6</code> <code class='nw'>d04ee73177</code>, main <code class='nw'>b83101cdd2</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>flush case fails (2026-10-23 triple-check)</td></tr><tr><th scope='row'>7.5.0 to 10.5.2 (66 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>flush, writeAllDeletes, soft delete, no-op forceMerge(1) and SearcherManager all stale; 10.5.2 and 9.12.3 also fail the hunt JUnit 5 of 6</td></tr><tr><th scope='row'>7.4.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> all but default forceMerge</span></td><td>flush, writeAllDeletes, soft delete and SearcherManager stale; forceMerge(1) still rewrote the segment by default, so it was detected (stale with compound files off)</td></tr><tr><th scope='row'>7.0.0 to 7.3.1</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> older symptoms only</span></td><td>flush and writeAllDeletes correct (new reader, val = 2, version 4); the RAM-pressure reopen and hasUncommittedChanges() with a tiny buffer already fail; soft deletes have no API before 7.4.0 (soft-delete flush is OK at both LUCENE-8290 parent commits)</td></tr><tr><th scope='row'>6.6.6</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>every scenario correct</td></tr><tr><th scope='row'><code class='nw'>591fc6627ac</code> (LUCENE-8290) vs parent <code class='nw'>8b9c2a3185d</code>; backport <code class='nw'>8fdd3d7584b</code> vs <code class='nw'>0c89db84250</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>flips exactly the flush-family scenarios on both branches</td></tr><tr><th scope='row'><code class='nw'>58105a203a1</code> (LUCENE-7868) vs parent <code class='nw'>1737fce5df1</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>flips exactly the RAM-pressure and tiny-buffer hasUncommittedChanges scenarios</td></tr><tr><th scope='row'><code class='nw'>9c4e315c1cb</code> (LUCENE-7976) vs parent <code class='nw'>20c1b7a24a8</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>first commit where the default no-op forceMerge(1) is stale</td></tr><tr><th scope='row'>Fix B at <code class='nw'>ea57360912ed</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>repro 6 of 6 pass; full core suite 8,871 tests, 0 failures</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Confirmed by every study verifier that examined it, a triple-check with a claim re-check, the hunt verifier (main, 10.5.2, 9.12.3; 20 of 20 seeds) and an independent reviewer from another model family (OpenAI GPT-5.6). The triple-check refuted one draft claim: <code class='nw'>maybeRefresh()</code> returns true, not false. Fact checks and a diagram check found text errors only, all fixed.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>477 words</span></summary><div class='body'><p>Independent checks, from the 2026-10-22 study to this hunt. Each row links to its record.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Study verifiers</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> same root cause (adjudicated as a second symptom)</span></td><td>Proof audit, fuzzing, model-based testing, TLA+, Alloy, P, Dafny, JBMC, JML and concurrency checks attributed their finds to this root cause. For the hasUncommittedChanges() form, Alloy voted new bug and TLA+ same root cause; it was then adjudicated a second symptom.</td></tr><tr><th scope='row'>Issue triple-check (lenses and a claim re-check)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> confirmed, one claim refuted</span></td><td>Re-ran the draft on main and 6 releases. Refuted the draft's "maybeRefresh() returns false": it returns true and keeps the stale searcher. Noted that for writeAllDeletes readers isCurrent() is false and the null comes from the equal-version check.</td></tr><tr><th scope='row'>Hunt verifier</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>The new JUnit reproduces on ea57360912ed with -ea and -da, on 10.5.2 and on 9.12.3, and on 20 of 20 seeds. Shadowing Fix B turns all 6 tests into passes.</td></tr><tr><th scope='row'>Independent reviewer (OpenAI GPT-5.6, refute lens)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high confidence</span></td><td>Wrote and ran their own two test classes (flush case and control), also with an explicit production codec: the flush case fails and the controls pass. Rated the intended-behaviour case "moderate". Did not independently reproduce the soft-delete, forceMerge, writeAllDeletes and hasUncommittedChanges variants. A separate run re-ran their tests.</td></tr><tr><th scope='row'>History follow-up</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> confirmed, registry corrected</span></td><td>Commit-level bisects of LUCENE-8290, LUCENE-7868 and LUCENE-7976. Corrected the registry: the loop variant of hasUncommittedChanges first fails in 7.7.0, while the tiny-buffer variant fails from 7.0.0.</td></tr><tr><th scope='row'>Prior-art search</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> no earlier report</span></td><td>205 queries and a scan of 412 open PRs: only the owner's #16900.</td></tr><tr><th scope='row'>Fix validation (this doc)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> Fix B passes</span></td><td>Repro, the 16 closest suites (17 classes with the repro) and the full core suite (one seed) pass at ea57360912ed.</td></tr><tr><th scope='row'>Security screen</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> public is fine</span></td><td>The application issues the writer operations itself, which is outside Lucene's threat model; already public as #16900.</td></tr><tr><th scope='row'>Fact check (independent AI tool)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug confirmed; 12 low text errors fixed</span></td><td>Re-ran the repro on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), on 10.5.2 and with the page's Gradle command in a fresh clone (5 of 6 fail each time), applied Fix B and reproduced every validation count, and checked every file:line, quote, commit and count. All 12 findings were wording or scope fixes; none changed a conclusion.</td></tr><tr><th scope='row'>Fact check (cross-model reviewer)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug confirmed; 6 medium text errors fixed</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6), read-only. Found 6 medium errors (soft-delete scope, the second <code class='nw'>checkpoint()</code> in <code class='nw'>finishApply</code>, the test-flush claim, the flush-javadoc rebuttal, the LUCENE-8290 routing, the unpatched-run sentence), 4 overclaims and 3 missing caveats; all were fixed. It rated the intended-behaviour case "moderate".</td></tr><tr><th scope='row'>Diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> 2 text errors fixed, re-rendered</span></td><td>Checked every frame value and code reference against <code class='nw'>ea57360912ed</code> with its own probe (call stacks, real files).</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-001/bug.png' download='openifchanged-null-after-dv-only-flush-bug.png' target='_self'>PNG</a> <span class='n'>426 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>679 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-001, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>openIfChanged returns null and isCurrent() stays true after a flush when the only changes are doc-values updates</dd></div><div><dt>Area</dt><dd>index / IndexWriter NRT</dd></div><div><dt>Priority</dt><dd>High, rank 1: Top of High: the widest-reaching silent bug in the set, in the default NRT path since 7.x, where apps that do doc-values updates or updateDocValues soft deletes and reopen after a flush, a no-op forceMerge, a writeAllDeletes reader or an automatic RAM-pressure write keep a stale searcher that still shows soft-deleted docs (filed as #16900, local fix exists).</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Anyone using NRT reopen (openIfChanged, SearcherManager, the replicator's PrimaryNode) with doc-values updates or soft deletes followed by flush(), a no-op forceMerge or a writeAllDeletes reader; default configuration, ordinary scale, released since 7.0.0/7.4.0.</dd></div><div><dt>Summary</dt><dd>You open an NRT reader, update a doc-values field (or soft-delete through updateDocValues), and then call flush(), a no-op forceMerge(1), or open readers with writeAllDeletes=true. You expect DirectoryReader.openIfChanged(reader, writer) to return a reader that sees the change. Instead it returns null and reader.isCurrent() is true, so SearcherManager keeps the stale searcher, and hasUncommittedChanges() can also return false while updates are uncommitted.</dd></div><div><dt>Introduced</dt><dd>LUCENE-8290 591fc6627ac (flush, no-op forceMerge and writeAllDeletes paths); LUCENE-7868 58105a203a19 (RAM-pressure path and the hasUncommittedChanges symptom, commit-level bisect) (2018-05-02 (LUCENE-8290, authored); 2017-06-21 (LUCENE-7868))</dd></div><div><dt>First affected version</dt><dd>7.0.0 (RAM-pressure path and hasUncommittedChanges); 7.4.0 (flush and writeAllDeletes paths)</dd></div><div><dt>Affected versions</dt><dd>flush and open(w,true,true): every release 7.4.0-10.5.2 plus branch_10_6 and main [exec]; no-op forceMerge(1) variant from 7.5.0 with the default config [exec]; RAM-pressure path and hasUncommittedChanges: 7.0.0+ [exec]; 7.3.1 and earlier correct for the flush case</dd></div><div><dt>Status</dt><dd>filed <span class='n'>(filed upstream by the owner)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; also a cross-model review that agreed; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal baseline: randomized/MBT; also reached by TLA+/TLC</dd></div><div><dt>Upstream and prior reports</dt><dd>filed #16900 by the owner on 2026-10-23 (open, type:bug); before filing no report was found (study: about 420 more queries; triple-check: 52 GitHub queries plus mailing lists and downstream repos, and 6 claim re-check queries)</dd></div><div><dt>Lucene commit tested</dt><dd>Main <code class='nw'>ea57360912ed</code>: the hunt JUnit, run with the repro harness (assertions on and off, 20 derived seeds) and with Gradle in a clean scratch worktree (2026-10-25). The 10.5.2 and 9.12.3 release jars. A plain-Java history probe on 16 releases from 6.6.6 to 10.5.2, on lucene-core built at 6 commits, and in 2 bisects. The 2026-10-23 triple-check on all 74 releases from 7.0.0 to 10.5.2, plus 6.6.6, <code class='nw'>branch_10_6</code> <code class='nw'>d04ee73177</code> and main <code class='nw'>b83101cdd2</code>. Fix B at <code class='nw'>ea57360912ed</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>SECURITY.md:28 (threat model)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:608, :2913-2920, :4119-4126, :4225-4232, :4424, :6140-6146, :6721-6724, :854-859</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/ReaderPool.java:363-369; StandardDirectoryReader.java:462, :469-472</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:6726-6734 (finishApply drops 100%-deleted segments); :4128-4142 (writeReaderPool drops them)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/DirectoryReader.java:282-284; StandardDirectoryReader.java:412-413; search/SearcherManager.java:199-202; search/RefreshCommitSupplier.java:36-38</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/replicator/src/java/org/apache/lucene/replicator/nrt/PrimaryNode.java:125</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/DirectoryReader.java:304-307, :313-314, :334-335, :620-621, :633-634</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:131-133, :1780-1782, :4219-4224</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/test/org/apache/lucene/index/TestNumericDocValuesUpdates.java:1370-1374; TestMixedDocValuesUpdates.java:263-267, :531-546, :560, :658-662, :675</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/DirectoryReader.java:618-621 (getVersion javadoc)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestOpenIfChangedAfterDocValuesOnlyFlush.java (5 bug tests + 1 control, public API): <a href='../repro/LFV-001/TestOpenIfChangedAfterDocValuesOnlyFlush.java'><code>repro/LFV-001/TestOpenIfChangedAfterDocValuesOnlyFlush.java</code></a> (208 lines)</li><li>Fix B as applied at ea57360912ed (3 files, +16/-2): <a href='../repro/LFV-001/fixB-applied-ea57360912ed.diff'><code>repro/LFV-001/fixB-applied-ea57360912ed.diff</code></a> (78 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the writer's version number and of the reader through the steps of the tiny example: open, update, flush, reopen. Without the flush, the reopen raises the version to 4 and shows the update. With the flush, the version stays at 3 and the reopen returns null.</p><p>An independent diagram check compared every on-screen value, name and line reference with the code at <code class='nw'>ea57360912ed</code> and with executed probes (its own probe printed the call stacks and used real files on disk).</p><ul class='paths'><li><a href='../assets/LFV-001/bug.png'><code>assets/LFV-001/bug.png</code></a> (426 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

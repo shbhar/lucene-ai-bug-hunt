@@ -1,0 +1,811 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Index-sort merges misplace a NaN whose sign bit is set, so FLOAT/DOUBLE-sorted segments break their own sort</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-145 &middot; indexsorter-float-merge-signed-nan-order</p><h1 id='top'>Index-sort merges misplace a NaN whose sign bit is set, so FLOAT/DOUBLE-sorted segments break their own sort</h1><p class='tldr'>Merges of a FLOAT or DOUBLE index sort rank a NaN whose sign bit is set (from <code class='nw'>-x</code> for a NaN <code class='nw'>x</code>) below -Infinity; flush puts it after +Infinity. Segments {3, 1, NaN} and {2, 0.5} merge to [2.0, 0.5, NaN, 3.0, 1.0], and sorted searches return wrong top hits.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 68</span><span class='sub'>Since 9.11 every merge misplaces a sign-bit NaN in an opt-in FLOAT/DOUBLE index sort, which leaves a persistently misordered segment (CheckIndex level 2 fails, early-terminated sorted searches return wrong top hits, a reindex is needed), and that persistence puts it above the count-only LFV-086, but it needs a run-time negated or binary NaN (possibly ordinary computed NaNs on x86, not executed).</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>data corruption</span></dd></div><div><dt>Since</dt><dd>9.11.0 (#13320, 2024)<span class='sub'>introduced 2024-05-14 &middot; about 2 years</span></dd></div><div><dt>Affected</dt><dd>9.11.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading while setting up a bounded-exhaustive check of index-sort early termination</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Lucene can keep an index physically sorted by a float field so that searches sorted the same way stop early. Flush sorts with <code class='nw'>Float.compare</code>, which puts every NaN after +Infinity. A merge compares the raw stored bits instead, and for a NaN whose sign bit is set those bits rank below -Infinity, so the merged segment follows neither order.</p><ol class='steps'><li><span>Sort the index by a float field, descending: <code>setIndexSort(new Sort(new SortField("f", FLOAT, true)))</code>. Flush segment 1 with 3.0, 1.0 and a NaN whose sign bit is set (raw bits 0xffc00000, what <code class='nw'>-x</code> gives for a NaN <code class='nw'>x</code>), and segment 2 with 2.0 and 0.5.</span></li><li><span>Flush sorts with <code class='nw'>Float.compare</code>, which puts every NaN after +Infinity, so segment 1 is [NaN, 3.0, 1.0]. After <code class='nw'>forceMerge(1)</code> you expect [NaN, 3.0, 2.0, 1.0, 0.5].</span></li><li><span>You get [2.0, 0.5, NaN, 3.0, 1.0]. The merge compares <code>NumericUtils.sortableFloatBits</code> of the raw stored bits: the NaN's key, -2,143,289,345, is below the key of -Infinity, -2,139,095,041. So the NaN, and the 3.0 and 1.0 behind it, wait until segment 2 is used up.</span></li><li><span>Searches sorted by the index sort stop early because they trust the order: the top hit of a query that excludes the NaN document is 2.0 instead of 3.0. CheckIndex at level 2 or higher reports <code>docID=1 sorts after docID=2</code>; level 1, the command-line default, reports the index clean.</span></li><li><span>The damage stays: later merges keep it, and a code fix does not repair merged segments. The canonical <code class='nw'>Float.NaN</code> merges correctly, and 9.10.0 merges the same index correctly.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that opt into an index sort on a FLOAT or DOUBLE <code class='nw'>SortField</code> and index a NaN whose sign bit is set: run-time negation of a NaN (for example storing <code class='nw'>-value</code> to reverse an order), <code class='nw'>Math.copySign</code>, or raw binary floats. Text parsing canonicalizes NaN. One document suffices, a merge can misplace it, and the damage persists.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>705 words</span></summary><div class='body'><p>With <code>IndexWriterConfig#setIndexSort</code> on a <code class='nw'>SortField</code> of type FLOAT or DOUBLE (values from <code>FloatDocValuesField</code> / <code>DoubleDocValuesField</code>), flush sorts documents with <code class='nw'>Float.compare</code> / <code class='nw'>Double.compare</code>, which put every NaN after +Infinity. Merges order documents by the keys of <code>IndexSorter.FloatSorter/DoubleSorter.getComparableProviders</code>, which since #13320 (9.11.0) are <code>NumericUtils.sortableFloatBits</code> / <code>sortableDoubleBits</code> of the raw stored bits. The doc-values fields store raw bits, so a NaN keeps its sign bit, and a NaN with the sign bit set gets a key below -Infinity. The merge interleaves already-sorted segments by a key that disagrees with their order, so the merged segment can end up in neither order: descending segments {3, 1, NaN} and {2, 0.5} merge to [2.0, 0.5, NaN, 3.0, 1.0]. CheckIndex's index-sort test (level 2 or higher) rejects the segment, and searches sorted by the index sort that terminate early return wrong top hits, also for queries that do not match the NaN document. The same for DOUBLE. Every release from 9.11.0 through 10.5.2 and main; restoring the NaN canonicalization that #13320 removed fixes it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Index sort</strong>: <code>IndexWriterConfig#setIndexSort</code> keeps every segment physically sorted, "for all (flushed and merged) segments" (<code>IndexWriterConfig.java:504</code>). A search sorted by the index sort, or by a prefix of it, stops collecting a segment at the first document that cannot compete (<code>TopFieldCollector.java:56-71</code>, <code class='nw'>:91-112</code>, <code class='nw'>:151-170</code>).</li><li><strong>Sign-bit NaN</strong>: a NaN whose sign bit is set, raw bits <code class='nw'>0xffc00000</code> (float) or <code>0xfff8000000000000</code> (double). <code class='nw'>Float.compare</code> treats it like every other NaN: greater than +Infinity. Run-time negation of a NaN, <code>Math.copySign(Float.NaN, -1f)</code> and binary decoding produce it; text parsing does not.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-mechanism-main-ea57360912ed'>The mechanism (main <code class='nw'>ea57360912ed</code>)</h3><a class="hlink" href="#what-the-bug-is-the-mechanism-main-ea57360912ed" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-mechanism-main-ea57360912ed"><span aria-hidden="true">#</span></a></div><ol><li><code>FloatDocValuesField</code> stores <code>Float.floatToRawIntBits(value)</code> (<code>FloatDocValuesField.java:21</code>, <code class='nw'>:40</code>); <code>DoubleDocValuesField</code> stores <code>doubleToRawLongBits</code> (<code class='nw'>:21</code>, <code class='nw'>:39</code>). The sign bit survives.</li><li>Flush: <code>IndexSorter.FloatSorter.getDocComparator</code> uses <code class='nw'>Float.compare</code> (<code>IndexSorter.java:385</code>; <code class='nw'>Double.compare</code> at <code class='nw'>:449</code>). The search comparator and <code>CheckIndex.testSort</code> use the same order.</li><li>Merge: <code class='nw'>MultiSorter.sort</code> calls <code>getComparableValues</code> (<code>MultiSorter.java:84</code>), whose default adapts <code>getComparableProviders</code> (<code>IndexSorter.java:147-150</code>). <code>FloatSorter.getComparableProviders</code> returns <code>NumericUtils.sortableFloatBits(valueBits)</code> of the raw bits (<code class='nw'>:364</code>; double <code>sortableDoubleBits</code> at <code class='nw'>:428</code>).</li><li><code>sortableFloatBits(bits)</code> is <code>bits ^ (bits &gt;&gt; 31) &amp; 0x7fffffff</code>, with no NaN handling (<code>NumericUtils.java:88-91</code>). For <code class='nw'>0xffc00000</code> it gives <code class='nw'>0x803fffff</code> (-2,143,289,345), below -Infinity's <code class='nw'>0x807fffff</code> (-2,139,095,041). A positive NaN (any payload) stays above +Infinity, so only sign-bit NaNs are misplaced; positive NaNs with different payloads get different keys, which <code class='nw'>Float.compare</code> treats as equal, so that breaks no order. <code>floatToSortableInt</code>, the key before #13320, canonicalizes through <code class='nw'>floatToIntBits</code> first (<code class='nw'>:70-72</code>).</li><li><code class='nw'>MultiSorter</code> is a k-way merge whose inputs "must already be sorted by the same sort!" (<code>MultiSorter.java:35-39</code>); it only interleaves, taking each input's documents in their existing order (<code class='nw'>:118-136</code>). Segment 1 arrives as [NaN, 3.0, 1.0], but the merge sees its head as the smallest key, so in a descending merge it takes 2.0 and 0.5 first: [2.0, 0.5, NaN, 3.0, 1.0]. Ascending, {1, NaN} + {0.5, 2, 3} give [0.5, 1.0, NaN, 2.0, 3.0].</li><li>Early termination trusts the order: for top 1 of a query without the NaN document, doc 0 (2.0) fills the queue, doc 1 (0.5) cannot compete, and 3.0 is never looked at. Here the hit count stays exact (4 hits); above the searcher's default 1,000-hit threshold, an early-terminated search reports a lower bound, with or without this bug.</li><li><code>CheckIndex.testSort</code> ("This segment claims its documents are sorted according to the incoming sort ... let's make sure", <code>CheckIndex.java:1219-1222</code>) rejects the segment, but only at level 2 or higher (<code class='nw'>:1114</code>, <code class='nw'>:1148</code>). Level 1, the command-line default (<code class='nw'>:4673</code>, <code class='nw'>:4748</code>), reports the index clean, and a <code class='nw'>CheckIndex</code> created in code without <code class='nw'>setLevel</code> runs at level 0 (<code class='nw'>:499</code>), which skips the test too.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-repro-s-numbers'>The repro's numbers</h3><a class="hlink" href="#what-the-bug-is-the-repro-s-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-repro-s-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th></th><th>expected (<code class='nw'>Float.compare</code>)</th><th>merged segment on main</th></tr></thead><tbody><tr><td>merged order, descending</td><td>[NaN, 3.0, 2.0, 1.0, 0.5]</td><td><strong>[2.0, 0.5, NaN, 3.0, 1.0]</strong></td></tr><tr><td>index-sort check (CheckIndex level 2+)</td><td>no error</td><td><strong><code>segment has indexSort=&lt;float: "f"&gt;! but docID=1 sorts after docID=2</code></strong></td></tr><tr><td>top 1 by the index sort, NaN document excluded</td><td>3.0</td><td><strong>2.0</strong></td></tr><tr><td>top 1 by the index sort, all documents</td><td>NaN</td><td><strong>2.0</strong> (<code class='nw'>TotalHits</code> 5, exact)</td></tr><tr><td>DOUBLE, merged order</td><td>[NaN, 3.0, 2.0, 1.0, 0.5]</td><td><strong>[2.0, 0.5, NaN, 3.0, 1.0]</strong></td></tr><tr><td>control: canonical <code class='nw'>Float.NaN</code></td><td>[NaN, 3.0, 2.0, 1.0, 0.5]</td><td>[NaN, 3.0, 2.0, 1.0, 0.5]</td></tr></tbody></table></div></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>564 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications with an index sort on <code>SortField.Type.FLOAT</code> or <code class='nw'>DOUBLE</code> (values from <code>FloatDocValuesField</code> / <code>DoubleDocValuesField</code>) that index a NaN with the sign bit set. Index sorting is opt-in; codec, merge policy and searcher are the defaults otherwise. A merge that involves the document (<code class='nw'>forceMerge</code> or an ordinary background merge) can misorder the merged segment, depending on the segments' contents.</li><li><strong>How a sign-bit NaN arises</strong> (executed on JDK 25, aarch64): run-time negation <code class='nw'>-x</code> of a NaN, in the interpreter (<code class='nw'>-Xint</code>), with C1 and C2 (<code class='nw'>-Xcomp</code>) and after warm-up (<code class='nw'>0xffc00000</code> / <code>0xfff8000000000000</code>), for example an application that indexes <code class='nw'>-value</code> to reverse an order; <code>Math.copySign(Float.NaN, -1f)</code>; binary decoding that keeps bits, such as <code>ByteBuffer.getFloat</code>. <strong>Not</strong> a trigger: <code>Float.parseFloat("-NaN")</code> and <code>Double.parseDouble("-NaN")</code> (canonical NaN), the compile-time constant <code class='nw'>-Float.NaN</code> (folded to <code class='nw'>0x7fc00000</code>), and on aarch64 <code class='nw'>0f/0f</code>, <code>inf - inf</code>, <code class='nw'>sqrt(-1)</code> and <code>NaN * -1f</code>.</li><li><strong>x86 (not executed).</strong> Intel documents that the default NaN of SSE arithmetic ("QNaN floating-point indefinite") has the sign bit set, so computed NaNs there may trigger it. No x86 host was used; do not claim it without running it.</li><li><strong>Not affected.</strong> <code>SortedNumericSortField</code> over <code class='nw'>FloatField</code> / <code class='nw'>DoubleField</code>, which store <code>floatToSortableInt</code> / <code>doubleToSortableLong</code> and so canonicalize NaN at index time; INT, LONG, STRING and SORTED_SET sorts; the canonical NaN.</li><li><strong>Scale.</strong> 5 documents in 2 segments; deterministic (this doc's test failed in all 10 iterations). A bounded-exhaustive check of two flushed segments of 1-2 documents over {missing, sign-bit NaN, NaN, -Inf, -1, -0.0, 0.0, 1, +Inf} found 13,652 FLOAT and 13,620 DOUBLE order violations in 48,600 merges each and 4,976 wrong top-1 hits each; 0 without the sign-bit NaN and 0 with the fix. So 13,652 of the 17,496 FLOAT merges that contain a sign-bit NaN break the order, not all of them (a rate over the enumeration, not over real data). With three 400-document segments and one sign-bit NaN, all 20 early-terminated searches tried (4 queries, k from 1 to 200) differed from the full sort in a descending sort; in an ascending sort all 20 matched, although CheckIndex still rejected the merged segment.</li><li><strong>What you see.</strong> No error at merge or search time. Searches sorted by the index sort (or a prefix of it) can return wrong top hits, also for queries that do not match the NaN document; hit counts are not made wrong. CheckIndex at level 2 or higher condemns the merged segment; level 1, the command-line default, reports it clean. "Corrupt" here means a segment that breaks its declared sort: document contents, deletions and blocks are intact.</li><li><strong>It persists.</strong> A second <code class='nw'>forceMerge(1)</code> with 500 more documents still fails CheckIndex level 2 (executed, stock code). A merge keeps each input's documents in their existing order, so two documents out of order inside a merged segment stay out of order in every later merge, with or without the fix, unless one is deleted (code reading; not executed with the fix). A code fix stops new damage only: segments already merged by 9.11.0-10.5.2 need a reindex or a re-sort. CheckIndex <code class='nw'>-exorcise</code> would drop the whole segment (1,500 of 1,500 documents in a probe).</li><li><strong>Downstream</strong> (read, not tested): Elasticsearch and OpenSearch reject non-finite float/double values at parse time and Elasticsearch index sorts use <code>SortedNumericSortField</code>; Solr's point fields write doc values through <code class='nw'>floatToIntBits</code> / <code class='nw'>doubleToLongBits</code>. No affected path was found there.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit file on the public API: a descending float index sort, two flushed segments with five documents, <code class='nw'>forceMerge(1)</code>. Four tests check the merged order (FLOAT and DOUBLE), Lucene's index-sort check and a top-1 search; a fifth, with the canonical NaN, is a control. On main 4 of 5 fail, with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestIndexSortSignedNaNMerge.java (JUnit for Lucene&#x27;s build, 5 tests)</span><span class='meta'>141 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoubleDocValuesField;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FloatDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * A FLOAT or DOUBLE index sort puts every NaN after +Infinity (Float.compare / Double.compare), at
+ * flush time and at search time. A merge must keep that order, also for a NaN whose sign bit is
+ * set, which is what {@code -x} gives at run time for {@code x = NaN}.
+ */
+public class TestIndexSortSignedNaNMerge extends LuceneTestCase {
+
+  /** A NaN with the sign bit set, e.g. {@code Math.copySign(Float.NaN, -1f)}. */
+  private static final float SIGNED_NAN_F = Float.intBitsToFloat(0xffc00000);
+
+  private static final double SIGNED_NAN_D = Double.longBitsToDouble(0xfff8000000000000L);
+
+  /** Descending by Float.compare / Double.compare: every NaN sorts after +Infinity, so first. */
+  private static final List&lt;Double&gt; EXPECTED = List.of(Double.NaN, 3.0, 2.0, 1.0, 0.5);
+
+  /** Descending: segment 1 = {3, 1, NaN}, segment 2 = {2, 0.5}, then forceMerge(1). */
+  private static Directory buildIndex(SortField.Type type, boolean signedNaN) throws IOException {
+    Directory dir = new ByteBuffersDirectory();
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setIndexSort(new Sort(new SortField(&quot;f&quot;, type, true)));
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      double[][] segments = {{3, 1, Double.NaN}, {2, 0.5}};
+      for (double[] segment : segments) {
+        for (double v : segment) {
+          Document doc = new Document();
+          doc.add(new StringField(&quot;isNaN&quot;, Double.isNaN(v) ? &quot;yes&quot; : &quot;no&quot;, Field.Store.NO));
+          if (type == SortField.Type.FLOAT) {
+            float f = Double.isNaN(v) ? (signedNaN ? SIGNED_NAN_F : Float.NaN) : (float) v;
+            doc.add(new FloatDocValuesField(&quot;f&quot;, f));
+          } else {
+            double d = Double.isNaN(v) ? (signedNaN ? SIGNED_NAN_D : Double.NaN) : v;
+            doc.add(new DoubleDocValuesField(&quot;f&quot;, d));
+          }
+          w.addDocument(doc);
+        }
+        w.flush();
+      }
+      w.forceMerge(1);
+    }
+    return dir;
+  }
+
+  /** The values of the merged segment, in doc ID order. */
+  private static List&lt;Double&gt; mergedOrder(Directory dir, SortField.Type type) throws IOException {
+    try (DirectoryReader reader = DirectoryReader.open(dir)) {
+      assertEquals(1, reader.leaves().size());
+      LeafReader leaf = reader.leaves().get(0).reader();
+      NumericDocValues dv = leaf.getNumericDocValues(&quot;f&quot;);
+      List&lt;Double&gt; order = new ArrayList&lt;&gt;();
+      for (int doc = 0; doc &lt; leaf.maxDoc(); doc++) {
+        assertTrue(dv.advanceExact(doc));
+        long bits = dv.longValue();
+        order.add(
+            type == SortField.Type.FLOAT
+                ? (double) Float.intBitsToFloat((int) bits)
+                : Double.longBitsToDouble(bits));
+      }
+      return order;
+    }
+  }
+
+  public void testFloatMergedOrder() throws IOException {
+    try (Directory dir = buildIndex(SortField.Type.FLOAT, true)) {
+      assertEquals(EXPECTED, mergedOrder(dir, SortField.Type.FLOAT));
+    }
+  }
+
+  public void testDoubleMergedOrder() throws IOException {
+    try (Directory dir = buildIndex(SortField.Type.DOUBLE, true)) {
+      assertEquals(EXPECTED, mergedOrder(dir, SortField.Type.DOUBLE));
+    }
+  }
+
+  /** Lucene&#x27;s own index sort check (CheckIndex at level 2 or higher runs it). */
+  public void testFloatCheckIndexSort() throws IOException {
+    try (Directory dir = buildIndex(SortField.Type.FLOAT, true);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      CodecReader leaf = (CodecReader) reader.leaves().get(0).reader();
+      Sort indexSort = new Sort(new SortField(&quot;f&quot;, SortField.Type.FLOAT, true));
+      Throwable error = CheckIndex.testSort(leaf, indexSort, null, false).error;
+      assertNull(error == null ? null : error.getMessage(), error);
+    }
+  }
+
+  /** Top 1 by the index sort of a query that does not match the NaN document: 3.0. */
+  public void testFloatTopHitWithoutNaNDoc() throws IOException {
+    try (Directory dir = buildIndex(SortField.Type.FLOAT, true);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      Sort indexSort = new Sort(new SortField(&quot;f&quot;, SortField.Type.FLOAT, true));
+      TopFieldDocs top = searcher.search(new TermQuery(new Term(&quot;isNaN&quot;, &quot;no&quot;)), 1, indexSort);
+      assertEquals(3.0f, ((FieldDoc) top.scoreDocs[0]).fields[0]);
+    }
+  }
+
+  /** Control: the canonical NaN (sign bit clear) is merged correctly. */
+  public void testFloatCanonicalNaNControl() throws IOException {
+    try (Directory dir = buildIndex(SortField.Type.FLOAT, false)) {
+      assertEquals(EXPECTED, mergedOrder(dir, SortField.Type.FLOAT));
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at ea57360912ed (or later, while IndexSorter.java:364 and :428 are unchanged)
+cp $REPRO/TestIndexSortSignedNaNMerge.java lucene/core/src/test/org/apache/lucene/index/
+./gradlew :lucene:core:test --tests org.apache.lucene.index.TestIndexSortSignedNaNMerge -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>The merged segment is [NaN, 3.0, 2.0, 1.0, 0.5], the index-sort check passes, and the top hit without the NaN document is 3.0.</dd></div><div class='got'><dt>Observed</dt><dd>The merged segment is [2.0, 0.5, NaN, 3.0, 1.0] (FLOAT and DOUBLE), the check reports <code>docID=1 sorts after docID=2</code>, and the top hit is 2.0.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-145/'>repro/LFV-145/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (333 lines) · 2,092 words</span></summary><div class='body'><p>The test pins the default codec and uses <code>ByteBuffersDirectory</code>, so every seed takes the same path and the test framework's close-time CheckIndex (which would also fail) adds no noise. The sign-bit NaN is written as raw bits (<code>Float.intBitsToFloat(0xffc00000)</code>), so the test does not depend on the platform's arithmetic; <code class='nw'>-x</code> for a NaN <code class='nw'>x</code> and <code>Math.copySign(Float.NaN, -1f)</code> give the same bits. It is in package <code>org.apache.lucene.index</code>, as Lucene's index tests are, uses only public API, passes <code>:lucene:core:check -x test</code>, and compiles and runs against the 9.10.0, 9.11.0, 9.12.3 and 10.5.2 jars. DOUBLE has only the merged-order test here; the CheckIndex and top-hit tests are FLOAT-only (for DOUBLE, a probe shows CheckIndex level 2 rejecting the merged segment, and the bounded-exhaustive check counts wrong top-1 hits).</p><p>Other executed repros of the same bug: the finder's 4-test JUnit (also an ascending case: [0.5, 1.0, NaN, 2.0, 3.0]); an independent reproducer's 9-test JUnit (three segments, the NaN made by run-time negation, three oracles: doc-order scan, CheckIndex's sort test and brute-force top n; merged [8.0, 7.0, 1.0, NaN, 10.0, 4.0], top 1 of a query without the NaN document 8.0 instead of 10.0; single-segment and canonical-NaN controls pass); cross-model reviewers' own tests with other NaN payloads (<code class='nw'>0xffd23456</code> and <code class='nw'>0xffc12345</code>; a re-run CheckIndex test also uses <code class='nw'>0xff800001</code>); a security probe; and a bounded-exhaustive merge-order check.</p><div class="hd hd-3"><h3 id='code-2-h'>The fix with the test: fix-with-test.diff</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The fix with the test: fix-with-test.diff</span><span class='meta'>171 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/index/IndexSorter.java b/lucene/core/src/java/org/apache/lucene/index/IndexSorter.java
+index 1de8b14ac0c..1ba7e7799a2 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/IndexSorter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/IndexSorter.java
+@@ -361,7 +361,8 @@ public interface IndexSorter {
+             docID -&gt; {
+               final int valueBits =
+                   values.advanceExact(docID) ? (int) values.longValue() : missValueBits;
+-              return NumericUtils.sortableFloatBits(valueBits);
++              // canonicalize NaN like Float.compare (used at flush time) does
++              return NumericUtils.floatToSortableInt(Float.intBitsToFloat(valueBits));
+             };
+       }
+       return providers;
+@@ -425,7 +426,8 @@ public interface IndexSorter {
+             docID -&gt; {
+               final long valueBits =
+                   values.advanceExact(docID) ? values.longValue() : missingValueBits;
+-              return NumericUtils.sortableDoubleBits(valueBits);
++              // canonicalize NaN like Double.compare (used at flush time) does
++              return NumericUtils.doubleToSortableLong(Double.longBitsToDouble(valueBits));
+             };
+       }
+       return providers;
+diff --git a/lucene/core/src/test/org/apache/lucene/index/TestIndexSortSignedNaNMerge.java b/lucene/core/src/test/org/apache/lucene/index/TestIndexSortSignedNaNMerge.java
+new file mode 100644
+index 00000000000..e2899d6e12a
+--- /dev/null
++++ b/lucene/core/src/test/org/apache/lucene/index/TestIndexSortSignedNaNMerge.java
+@@ -0,0 +1,141 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the &quot;License&quot;); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.index;
++
++import java.io.IOException;
++import java.util.ArrayList;
++import java.util.List;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.DoubleDocValuesField;
++import org.apache.lucene.document.Field;
++import org.apache.lucene.document.FloatDocValuesField;
++import org.apache.lucene.document.StringField;
++import org.apache.lucene.search.FieldDoc;
++import org.apache.lucene.search.IndexSearcher;
++import org.apache.lucene.search.Sort;
++import org.apache.lucene.search.SortField;
++import org.apache.lucene.search.TermQuery;
++import org.apache.lucene.search.TopFieldDocs;
++import org.apache.lucene.store.ByteBuffersDirectory;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.util.LuceneTestCase;
++import org.apache.lucene.tests.util.TestUtil;
++
++/**
++ * A FLOAT or DOUBLE index sort puts every NaN after +Infinity (Float.compare / Double.compare), at
++ * flush time and at search time. A merge must keep that order, also for a NaN whose sign bit is
++ * set, which is what {@code -x} gives at run time for {@code x = NaN}.
++ */
++public class TestIndexSortSignedNaNMerge extends LuceneTestCase {
++
++  /** A NaN with the sign bit set, e.g. {@code Math.copySign(Float.NaN, -1f)}. */
++  private static final float SIGNED_NAN_F = Float.intBitsToFloat(0xffc00000);
++
++  private static final double SIGNED_NAN_D = Double.longBitsToDouble(0xfff8000000000000L);
++
++  /** Descending by Float.compare / Double.compare: every NaN sorts after +Infinity, so first. */
++  private static final List&lt;Double&gt; EXPECTED = List.of(Double.NaN, 3.0, 2.0, 1.0, 0.5);
++
++  /** Descending: segment 1 = {3, 1, NaN}, segment 2 = {2, 0.5}, then forceMerge(1). */
++  private static Directory buildIndex(SortField.Type type, boolean signedNaN) throws IOException {
++    Directory dir = new ByteBuffersDirectory();
++    IndexWriterConfig iwc =
++        new IndexWriterConfig()
++            .setCodec(TestUtil.getDefaultCodec())
++            .setIndexSort(new Sort(new SortField(&quot;f&quot;, type, true)));
++    try (IndexWriter w = new IndexWriter(dir, iwc)) {
++      double[][] segments = {{3, 1, Double.NaN}, {2, 0.5}};
++      for (double[] segment : segments) {
++        for (double v : segment) {
++          Document doc = new Document();
++          doc.add(new StringField(&quot;isNaN&quot;, Double.isNaN(v) ? &quot;yes&quot; : &quot;no&quot;, Field.Store.NO));
++          if (type == SortField.Type.FLOAT) {
++            float f = Double.isNaN(v) ? (signedNaN ? SIGNED_NAN_F : Float.NaN) : (float) v;
++            doc.add(new FloatDocValuesField(&quot;f&quot;, f));
++          } else {
++            double d = Double.isNaN(v) ? (signedNaN ? SIGNED_NAN_D : Double.NaN) : v;
++            doc.add(new DoubleDocValuesField(&quot;f&quot;, d));
++          }
++          w.addDocument(doc);
++        }
++        w.flush();
++      }
++      w.forceMerge(1);
++    }
++    return dir;
++  }
++
++  /** The values of the merged segment, in doc ID order. */
++  private static List&lt;Double&gt; mergedOrder(Directory dir, SortField.Type type) throws IOException {
++    try (DirectoryReader reader = DirectoryReader.open(dir)) {
++      assertEquals(1, reader.leaves().size());
++      LeafReader leaf = reader.leaves().get(0).reader();
++      NumericDocValues dv = leaf.getNumericDocValues(&quot;f&quot;);
++      List&lt;Double&gt; order = new ArrayList&lt;&gt;();
++      for (int doc = 0; doc &lt; leaf.maxDoc(); doc++) {
++        assertTrue(dv.advanceExact(doc));
++        long bits = dv.longValue();
++        order.add(
++            type == SortField.Type.FLOAT
++                ? (double) Float.intBitsToFloat((int) bits)
++                : Double.longBitsToDouble(bits));
++      }
++      return order;
++    }
++  }
++
++  public void testFloatMergedOrder() throws IOException {
++    try (Directory dir = buildIndex(SortField.Type.FLOAT, true)) {
++      assertEquals(EXPECTED, mergedOrder(dir, SortField.Type.FLOAT));
++    }
++  }
++
++  public void testDoubleMergedOrder() throws IOException {
++    try (Directory dir = buildIndex(SortField.Type.DOUBLE, true)) {
++      assertEquals(EXPECTED, mergedOrder(dir, SortField.Type.DOUBLE));
++    }
++  }
++
++  /** Lucene&#x27;s own index sort check (CheckIndex at level 2 or higher runs it). */
++  public void testFloatCheckIndexSort() throws IOException {
++    try (Directory dir = buildIndex(SortField.Type.FLOAT, true);
++        DirectoryReader reader = DirectoryReader.open(dir)) {
++      CodecReader leaf = (CodecReader) reader.leaves().get(0).reader();
++      Sort indexSort = new Sort(new SortField(&quot;f&quot;, SortField.Type.FLOAT, true));
++      Throwable error = CheckIndex.testSort(leaf, indexSort, null, false).error;
++      assertNull(error == null ? null : error.getMessage(), error);
++    }
++  }
++
++  /** Top 1 by the index sort of a query that does not match the NaN document: 3.0. */
++  public void testFloatTopHitWithoutNaNDoc() throws IOException {
++    try (Directory dir = buildIndex(SortField.Type.FLOAT, true);
++        DirectoryReader reader = DirectoryReader.open(dir)) {
++      IndexSearcher searcher = new IndexSearcher(reader);
++      Sort indexSort = new Sort(new SortField(&quot;f&quot;, SortField.Type.FLOAT, true));
++      TopFieldDocs top = searcher.search(new TermQuery(new Term(&quot;isNaN&quot;, &quot;no&quot;)), 1, indexSort);
++      assertEquals(3.0f, ((FieldDoc) top.scoreDocs[0]).fields[0]);
++    }
++  }
++
++  /** Control: the canonical NaN (sign bit clear) is merged correctly. */
++  public void testFloatCanonicalNaNControl() throws IOException {
++    try (Directory dir = buildIndex(SortField.Type.FLOAT, false)) {
++      assertEquals(EXPECTED, mergedOrder(dir, SortField.Type.FLOAT));
++    }
++  }
++}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>The finder&#x27;s test: TestIndexSortMergeSignedNaN.java (FLOAT and DOUBLE descending, FLOAT ascending, search)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The finder&#x27;s test: TestIndexSortMergeSignedNaN.java (FLOAT and DOUBLE descending, FLOAT ascending, search)</span><span class='meta'>162 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoubleDocValuesField;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FloatDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * An index sorted by a FLOAT (or DOUBLE) SortField orders a NaN last (Float.compare / Double.compare,
+ * as FloatComparator and the flush-time IndexSorter.FloatSorter do). A NaN whose sign bit is set
+ * (raw bits 0xffc00000, kept as-is by FloatDocValuesField, which stores Float.floatToRawIntBits) is
+ * placed elsewhere when segments are merged, because the merge-time comparable values are
+ * NumericUtils.sortableFloatBits of the raw bits. The merged segment then violates its own index
+ * sort, and a search sorted by the index sort terminates early on the wrong documents.
+ */
+public class TestIndexSortMergeSignedNaN extends LuceneTestCase {
+
+  private static final float NEG_NAN_F = Float.intBitsToFloat(0xffc00000);
+  private static final double NEG_NAN_D = Double.longBitsToDouble(0xfff8000000000000L);
+
+  public void testFloatDescending() throws IOException {
+    check(SortField.Type.FLOAT, true);
+  }
+
+  public void testDoubleDescending() throws IOException {
+    check(SortField.Type.DOUBLE, true);
+  }
+
+  /** Only the search: top hit of a query that does not match the NaN document. */
+  public void testFloatDescendingSearchWithoutNaNDoc() throws IOException {
+    checkSearchOnly(SortField.Type.FLOAT);
+  }
+
+  public void testFloatAscending() throws IOException {
+    check(SortField.Type.FLOAT, false);
+  }
+
+  private static void addDoc(IndexWriter w, SortField.Type type, double v) throws IOException {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;isNaN&quot;, Double.isNaN(v) ? &quot;yes&quot; : &quot;no&quot;, Field.Store.NO));
+    if (type == SortField.Type.FLOAT) {
+      doc.add(new FloatDocValuesField(&quot;f&quot;, Double.isNaN(v) ? NEG_NAN_F : (float) v));
+    } else {
+      doc.add(new DoubleDocValuesField(&quot;f&quot;, Double.isNaN(v) ? NEG_NAN_D : v));
+    }
+    w.addDocument(doc);
+  }
+
+  private void checkSearchOnly(SortField.Type type) throws IOException {
+    SortField sortField = new SortField(&quot;f&quot;, type, true);
+    Sort indexSort = new Sort(sortField);
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig().setIndexSort(indexSort))) {
+        addDoc(w, type, 3.0);
+        addDoc(w, type, 1.0);
+        addDoc(w, type, Double.NaN);
+        w.flush();
+        addDoc(w, type, 2.0);
+        addDoc(w, type, 0.5);
+        w.flush();
+        w.forceMerge(1);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        TopFieldDocs top = searcher.search(new TermQuery(new Term(&quot;isNaN&quot;, &quot;no&quot;)), 1, indexSort);
+        // the largest value among the non-NaN documents is 3.0
+        assertEquals(3.0, ((Number) ((FieldDoc) top.scoreDocs[0]).fields[0]).doubleValue(), 0.0);
+      }
+    }
+  }
+
+  private void check(SortField.Type type, boolean reverse) throws IOException {
+    SortField sortField = new SortField(&quot;f&quot;, type, reverse);
+    Sort indexSort = new Sort(sortField);
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig iwc = new IndexWriterConfig().setIndexSort(indexSort);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        // descending: segment 1 = {3, 1, NaN with the sign bit set}, segment 2 = {2, 0.5}
+        // ascending:  segment 1 = {1, NaN with the sign bit set},    segment 2 = {0.5, 2, 3}
+        double[][] segments =
+            reverse
+                ? new double[][] {{3.0, 1.0, Double.NaN}, {2.0, 0.5}}
+                : new double[][] {{1.0, Double.NaN}, {0.5, 2.0, 3.0}};
+        for (double[] segment : segments) {
+          for (double v : segment) {
+            addDoc(w, type, v);
+          }
+          w.flush();
+        }
+        w.forceMerge(1);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        assertEquals(1, reader.leaves().size());
+        LeafReader leaf = reader.leaves().get(0).reader();
+
+        // 1) the merged segment must be sorted by its index sort (Float.compare / Double.compare)
+        NumericDocValues dv = leaf.getNumericDocValues(&quot;f&quot;);
+        List&lt;Double&gt; order = new ArrayList&lt;&gt;();
+        for (int doc = 0; doc &lt; leaf.maxDoc(); doc++) {
+          assertTrue(dv.advanceExact(doc));
+          order.add(
+              type == SortField.Type.FLOAT
+                  ? (double) Float.intBitsToFloat((int) dv.longValue())
+                  : Double.longBitsToDouble(dv.longValue()));
+        }
+        for (int i = 1; i &lt; order.size(); i++) {
+          int cmp = Double.compare(order.get(i - 1), order.get(i));
+          assertTrue(
+              &quot;merged segment is not sorted by &quot; + indexSort + &quot;: &quot; + order,
+              reverse ? cmp &gt;= 0 : cmp &lt;= 0);
+        }
+
+        // 2) a search sorted by the index sort returns the top hit of the sort order
+        IndexSearcher searcher = new IndexSearcher(reader);
+        TopFieldDocs top = searcher.search(new MatchAllDocsQuery(), 1, indexSort);
+        TopFieldDocs ref =
+            searcher.search(new MatchAllDocsQuery(), 1, new Sort(sortField, SortField.FIELD_DOC));
+        assertEquals(
+            &quot;top hit&quot;, ((FieldDoc) ref.scoreDocs[0]).fields[0], ((FieldDoc) top.scoreDocs[0]).fields[0]);
+
+        // 3) the same for a query that does not match the NaN document
+        TermQuery noNaN = new TermQuery(new Term(&quot;isNaN&quot;, &quot;no&quot;));
+        top = searcher.search(noNaN, 1, indexSort);
+        ref = searcher.search(noNaN, 1, new Sort(sortField, SortField.FIELD_DOC));
+        assertEquals(
+            &quot;top hit without the NaN document&quot;,
+            ((FieldDoc) ref.scoreDocs[0]).fields[0],
+            ((FieldDoc) top.scoreDocs[0]).fields[0]);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed: affected; also the 10.5.2, 9.12.3 and 9.11.0 release jars (fail) and 9.10.0 (pass); the finder&#x27;s repro fails on all 18 releases 9.11.0-10.5.2</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main ea57360912ed, -Ptests.seed=DEADBEEF -Ptests.asserts=true (the same with asserts off)
+TestIndexSortSignedNaNMerge &gt; testFloatTopHitWithoutNaNDoc FAILED
+    java.lang.AssertionError: expected:&lt;3.0&gt; but was:&lt;2.0&gt;
+TestIndexSortSignedNaNMerge &gt; testDoubleMergedOrder FAILED
+    java.lang.AssertionError: expected:&lt;[NaN, 3.0, 2.0, 1.0, 0.5]&gt; but was:&lt;[2.0, 0.5, NaN, 3.0, 1.0]&gt;
+TestIndexSortSignedNaNMerge &gt; testFloatMergedOrder FAILED
+    java.lang.AssertionError: expected:&lt;[NaN, 3.0, 2.0, 1.0, 0.5]&gt; but was:&lt;[2.0, 0.5, NaN, 3.0, 1.0]&gt;
+TestIndexSortSignedNaNMerge &gt; testFloatCheckIndexSort FAILED
+    java.lang.AssertionError: segment has indexSort=&lt;float: &quot;f&quot;&gt;! but docID=1 sorts after docID=2 expected null, but was:&lt;org.apache.lucene.index.CheckIndex$CheckIndexException: segment has indexSort=&lt;float: &quot;f&quot;&gt;! but docID=1 sorts after docID=2&gt;
+5 tests completed, 4 failed
+
+# campaign JUnit runner, seed DEADBEEF unless noted
+main -ea / -da                    FAIL 4 of 5 each (same messages; the control passes)
+main, 10 iterations (5EED1234)    FAIL 40 of 50
+10.5.2 -ea / -da, 9.12.3, 9.11.0  FAIL 4 of 5 each
+9.10.0                            PASS 5 of 5
+main + fix (shadow class) -ea/-da PASS 5 of 5</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>setIndexSort</code> covers "all (flushed and merged) segments", and flush, search and CheckIndex all order by <code class='nw'>Float.compare</code>, which puts every NaN after +Infinity.</li><li>LUCENE-3582 (2011) fixed the same kind of NaN defect in <code class='nw'>NumericUtils</code>; its sign-bit-NaN tests still pass. #13320 bypassed that helper without discussing NaN.</li><li>9.10.0 merges the same index correctly.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>361 words</span></summary><div class='body'><ul><li><strong>Contracts.</strong> <code>IndexWriterConfig#setIndexSort</code>: "Set the <code class='nw'>Sort</code> order to use for all (flushed and merged) segments." (<code>IndexWriterConfig.java:504</code>). <code>IndexSorter.ComparableProvider#getAsComparableLong</code>: "Returns a long so that the natural ordering of long values matches the ordering of doc IDs for the given comparator" (<code>IndexSorter.java:57-62</code>). <code class='nw'>MultiSorter.sort</code>: "The documents for each incoming leaf reader must already be sorted by the same sort!" (<code>MultiSorter.java:35-39</code>). <code>NumericUtils.floatToSortableInt</code>, the merge key before #13320: "The sort order (including <code class='nw'>Float#NaN</code>) is defined by <code class='nw'>Float#compareTo</code>; <code class='nw'>NaN</code> is greater than positive infinity." (<code>NumericUtils.java:61-66</code>; double at <code class='nw'>:37-43</code>). <code>CheckIndex.testSort</code>, Lucene's own integrity check, rejects the merged segment.</li><li><strong>Lucene decided this order.</strong> LUCENE-3582 (#4656, 2011) fixed the same kind of defect in <code class='nw'>NumericUtils</code>: raw bits made sign-bit NaNs sort before -Infinity; the fix canonicalized through <code class='nw'>floatToIntBits</code> / <code class='nw'>doubleToLongBits</code> and added <code class='nw'>TestNumericUtils</code> cases with sign-bit NaNs (<code class='nw'>0xff800001</code>, <code class='nw'>0xffffffff</code>, <code>0xfff0000000000001L</code>, <code>0xffffffffffffffffL</code>) that must sort above +Infinity; they are still on main (<code>TestNumericUtils.java:280-302</code>, <code class='nw'>:343-365</code>). LUCENE-4937 (#6001, 2013) moved the comparators to <code class='nw'>Float.compare</code> / <code class='nw'>Double.compare</code> ("Fix incorrect sorting of float/double values (+/-0, NaN)").</li><li><strong>History.</strong> #13320 "Remove unnecessary bit conversion for IndexSorter" (by @bugmakerrrrrr, merged by @jpountz on 2024-05-14) (its title presents the conversion as unnecessary) replaced <code>floatToSortableInt(Float.intBitsToFloat(bits))</code> with <code>sortableFloatBits(bits)</code> and the double equivalent; the two differ exactly for non-canonical NaNs. The PR has the empty description template, no reviews, no test change and no CHANGES entry; nobody discussed NaN.</li><li><strong>Upstream tests.</strong> No test indexes a NaN as an index-sort value; <code class='nw'>TestIndexSorting</code> draws floats and doubles in [0, 1) (<code>TestIndexSorting.java:2481-2557</code>). With the fix the whole core suite passes, so no test pins the current behaviour.</li><li><strong>Trigger legality.</strong> Public API only. <code>FloatDocValuesField</code> / <code>DoubleDocValuesField</code> accept any value and document that they store raw bits; neither <code class='nw'>setIndexSort</code> nor <code class='nw'>SortField</code> restricts NaN. Where Lucene does not support NaN, it says so or rejects it: scores are documented as invalid and asserted, and <code class='nw'>FloatRange</code> / <code class='nw'>DoubleRange</code> and <code class='nw'>XYDocValuesField</code> throw.</li><li><strong>Precedent.</strong> LUCENE-8592 (#9638, 2018): the merge order differed from the index sort for <code class='nw'>MIN_VALUE</code> with a reverse sort; upstream treated it as index corruption, with a CHANGES note that CheckIndex detects affected indices.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>319 words</span></summary><div class='body'><p>The strongest case for "intended or unsupported" (built by the devil's advocate and by a reviewer from another model family, OpenAI GPT-5.6, with a works-as-designed lens): IEEE 754 NaN is unordered and Java says NaN has no sign, so the order of exotic NaN bit patterns is unspecified; <code>SortField.Type.FLOAT</code> only says "lower values are at the front"; the doc-values fields store raw bits on purpose, so ordering raw bits is consistent; a committer merged #13320; in the LUCENE-3582 thread one participant said Lucene does not really support NaN as a value; and the recorded searches found no public report in the more than two years since 9.11.0 (tagged 2024-06-06).</p><p>Why it fails: Lucene does specify the order (flush, search and CheckIndex all use <code class='nw'>Float.compare</code>; the <code>floatToSortableInt</code> javadoc puts NaN after +Infinity; LUCENE-4937 made it a bug fix), and LUCENE-3582's tests cover sign-bit NaNs specifically; the LUCENE-3582 fix was committed despite that remark. The merge contract is to match the comparator, not the bits, and the repro's merged output follows no order at all, misordering ordinary values too. #13320's title presents the conversion as unnecessary, and the PR never considers NaN. A plain <code class='nw'>-x</code> produces the value. What still weighs on the other side: no javadoc says in so many words that NaN is a supported index-sort value, and a maintainer could say that applications should sanitize raw binary floats (the doc's cross-model fact check, OpenAI GPT-5.6, rates that case moderate, "NaN is not a supported sort value" weak as an account of today's code but moderate as a future policy, and the <code class='nw'>-x</code> case weak); neither explains why flush, search and CheckIndex use one order and the merge another. The likely maintainer reply is "real but rare, low priority, restore the canonicalization", not "by design"; no source supports by design. The GPT-5.6 reviewer rated the intended case weak; the devil's advocate found no argument that outweighs the contracts.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Canonicalize NaN in the merge keys (2 lines)</strong></p><p class='short'>Canonicalize NaN before encoding the merge key, as before 9.11.0: <code>NumericUtils.floatToSortableInt(Float.intBitsToFloat(valueBits))</code> and <code>doubleToSortableLong(Double.longBitsToDouble(valueBits))</code>, two lines in <code class='nw'>IndexSorter.java</code>. The repro passes, and so do all 8,870 core tests (assertions on and off) and <code>:lucene:core:check</code>. Segments merged before the fix still need a reindex.</p><pre class='snippet' tabindex='0'><code>-              return NumericUtils.sortableFloatBits(valueBits);
++              // canonicalize NaN like Float.compare (used at flush time) does
++              return NumericUtils.floatToSortableInt(Float.intBitsToFloat(valueBits));
+...
+-              return NumericUtils.sortableDoubleBits(valueBits);
++              // canonicalize NaN like Double.compare (used at flush time) does
++              return NumericUtils.doubleToSortableLong(Double.longBitsToDouble(valueBits));</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 502 words</span></summary><div class='body'><p>Option A was validated in a scratch worktree at <code class='nw'>ea57360912ed</code> (removed afterwards); B and C were not run. Until a fix ships, users can canonicalize NaN before indexing (the workaround; the test's canonical-NaN control shows it merges correctly).</p><div class="hd hd-3"><h3 id='fix-canonicalize'>Canonicalize NaN in the merge keys (2 lines) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-canonicalize" target="_self" aria-label="Link to this section" aria-describedby="fix-canonicalize"><span aria-hidden="true">#</span></a></div><p>In <code class='nw'>FloatSorter</code> / <code>DoubleSorter.getComparableProviders</code>, encode through <code>floatToSortableInt</code> / <code>doubleToSortableLong</code>, which go through <code class='nw'>floatToIntBits</code> / <code class='nw'>doubleToLongBits</code> and so map every NaN to the canonical NaN above +Infinity. This restores the 9.10.0 merge keys.</p><pre class='snippet' tabindex='0'><code>-              return NumericUtils.sortableFloatBits(valueBits);
++              // canonicalize NaN like Float.compare (used at flush time) does
++              return NumericUtils.floatToSortableInt(Float.intBitsToFloat(valueBits));
+...
+-              return NumericUtils.sortableDoubleBits(valueBits);
++              // canonicalize NaN like Double.compare (used at flush time) does
++              return NumericUtils.doubleToSortableLong(Double.longBitsToDouble(valueBits));</code></pre><p class='k'>Trade-offs</p><p>One NaN canonicalization per merge key (the <code class='nw'>intBitsToFloat</code> round trip is a reinterpretation). No benchmark was run. It changes only the key used while merging: stored values keep their raw bits, as the doc-values fields document. It prevents new damage only: segments already merged by 9.11.0-10.5.2 stay misordered and need a reindex or a re-sort; the issue or a CHANGES entry should say so, and that CheckIndex at level 2 or higher finds them.</p><p class='k'>What the checks validated</p><ul><li>Through gradle at <code class='nw'>ea57360912ed</code>: this doc's test fails 4 of 5 on stock (assertions on and off) and passes 5 of 5 with the fix (on and off).</li><li>With the fix: <code class='nw'>TestIndexSorting</code> (62 tests), <code>TestSortingCodecReader</code> (3), <code class='nw'>TestNumericUtils</code> (24), <code class='nw'>TestCheckIndex</code> (9), the <code class='nw'>TestSort*</code> and <code>TestTopFieldCollector*</code> classes and this test: 15 classes, 241 tests, 0 failures; the whole <code>:lucene:core:test</code>: 8,870 tests, 0 failures, with assertions on (322 skipped) and off (325 skipped); <code>:lucene:core:check -x test</code> (checkGoogleJavaFormat, ecjLint, forbiddenApis) successful. The suite runs used the test before a formatting-only edit; the repro and check runs used the final file.</li><li>Earlier steps: the finder's repro, the independent reproducer's 9 tests, the reviewers' tests, the security probe and the bounded-exhaustive check (0 violations in 48,600 merges each for FLOAT and DOUBLE) pass with the same patch as a shadow class.</li></ul><div class="hd hd-3"><h3 id='fix-index-time'>Canonicalize at index time in the doc-values fields</h3><a class="hlink" href="#fix-index-time" target="_self" aria-label="Link to this section" aria-describedby="fix-index-time"><span aria-hidden="true">#</span></a></div><p>Store <code class='nw'>floatToIntBits</code> / <code class='nw'>doubleToLongBits</code> in <code>FloatDocValuesField</code> / <code>DoubleDocValuesField</code>.</p><p class='k'>Trade-offs</p><p>Changes their documented raw-bits storage for every user, does nothing for values written by older versions or by other producers of NUMERIC doc values, and leaves the merge key inconsistent with its contract. Not recommended on its own. Not run.</p><div class="hd hd-3"><h3 id='fix-flush-by-bits'>Sort flushed segments by the merge key instead</h3><a class="hlink" href="#fix-flush-by-bits" target="_self" aria-label="Link to this section" aria-describedby="fix-flush-by-bits"><span aria-hidden="true">#</span></a></div><p>Make <code class='nw'>getDocComparator</code> order by <code>sortableFloatBits</code> of the raw bits.</p><p class='k'>Trade-offs</p><p>Flush and merge would agree, but the search comparator and <code>CheckIndex.testSort</code> use <code class='nw'>Float.compare</code>, so early termination would still return wrong hits. Not viable. Not run.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround until a fix ships <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p>Canonicalize before indexing: <code>if (Float.isNaN(v)) v = Float.NaN;</code> (and <code class='nw'>Double.NaN</code> for doubles). Reindex indexes that already hold sign-bit NaNs.</p><p class='k'>Trade-offs</p><p>Needs a change in every application that can produce such values; does not repair merged segments.</p><p class='k'>What the checks validated</p><p>The test's canonical-NaN control merges correctly on stock main (5 runs: it passes every time).</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream: the trigger is one document value, often client-supplied, and the damage is persistent and cross-user: wrong top hits for every user of a shared index, and a whole segment that CheckIndex (level 2+) condemns. Reach is narrow: an opt-in FLOAT/DOUBLE index sort and a sign-bit NaN, which text parsing cannot produce. No over-matching or data exposure.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder, an AI tool, compared the flush-time and merge-time orderings of every index sorter while setting up a bounded-exhaustive check of index-sort early termination, and saw that the FLOAT/DOUBLE merge keys differ only for sign-bit NaNs. A JUnit, CheckIndex and a release bisection confirmed it; the exhaustive check then found no other value that breaks the order.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>233 words</span></summary><div class='body'><p><strong>Method: code reading</strong> (a hunt unit, sorted search and index-sort early termination, 2026-10-26), while setting up a bounded-exhaustive check of the contract that early termination presumes: every segment really is in index-sort order.</p><ul><li>The finder compared, for every <code class='nw'>IndexSorter</code> that <code class='nw'>SortField</code> uses, the flush-time <code class='nw'>getDocComparator</code> with the merge-time <code>getComparableProviders</code>, and saw that the FLOAT/DOUBLE merge keys (<code>sortableFloatBits</code> / <code>sortableDoubleBits</code> of raw bits) differ from <code class='nw'>Float.compare</code> / <code class='nw'>Double.compare</code> only for NaNs with the sign bit set.</li><li>It confirmed this with a public-API JUnit on the stock main jars, CheckIndex at level 3 and a release bisection (9.10.0 passes, 9.11.0 fails).</li><li>A bounded-exhaustive merge-order check written afterwards (two flushed segments of 1-2 documents over {missing, sign-bit NaN, NaN, -Inf, -1, -0.0, 0.0, 1, +Inf}, every FLOAT/DOUBLE SortField variant, order checked with the search comparator as CheckIndex does) showed that the sign-bit NaN is the only value in that domain that breaks the order; INT, LONG, sorted-numeric FLOAT/DOUBLE, STRING and SORTED_SET gave 0 violations.</li><li>Then: a refute review by an independent reviewer from another model family (OpenAI GPT-5.6, with its own executed test), an independent reproducer, a GPT-5.6 "works as designed" review with local re-runs, a devil's advocate with a reachability probe, an adjudication with fresh-seed re-runs, a per-release history sweep, a prior-report search, a security assessment and probe, and this doc's own test and fix validation. No model checker or prover was involved.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found: 307 read-only queries on 2026-10-26 over GitHub, JIRA, the mailing lists, downstream projects and the web, plus a content scan of 139 items and the changed files of all 413 open PRs. Closest: LUCENE-3582 (2011), which fixed the same kind of NaN defect in <code class='nw'>NumericUtils</code>, and #16809, the same symptoms from a different cause.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>Every hit about index sorting, merge order, NaN or float sorting was read; none is this bug and none is by the owner. Precedents of the same class, all fixed long before: LUCENE-3582, LUCENE-4937, LUCENE-8592, LUCENE-10210. Same symptoms, different cause: #16809 / #16810 (open; doc-values updates on the sort field; would not fix this), #16887, #14399. Would rely on the merged order, by code reading: #16699 / #16698 (open; FLOAT/DOUBLE support in <code>IndexSortSortedNumericDocValuesRangeQuery</code>). A sibling hunt finding, LFV-144 (search-time skip-index bounds over raw float bits), is in the same family on a different code path; cross-reference them if both are filed. Limits: a search cannot prove absence, and private security@ reports are invisible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene)</th><td class='when'>2026-10-26</td><td>28 queries of a scripted prior-report search and 72 GraphQL phrasings (class and method names, NaN, sign bit, "sorts after docID", early termination, "Remove unnecessary bit conversion"), also in elastic/elasticsearch, opensearch-project/OpenSearch and apache/solr; a content scan of the body, comments and review comments of all 139 items created since 2024-05-01</td><td>no report; #13320 (the introducing PR, no NaN discussion); #16809 / #16810 (same symptoms, different cause); #16699 / #16698 (would rely on the merged order)</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>changed files of all 413 open apache/lucene PRs</td><td>none touches <code class='nw'>IndexSorter.java</code> or <code>NumericUtils.java</code>; #16571, #16851 and #16847 touch <code class='nw'>MultiSorter.java</code> but not the merge keys or NaN handling</td></tr><tr><th scope='row'>JIRA (LUCENE)</th><td class='when'>2026-10-26</td><td>24 archive queries; LUCENE-3582, LUCENE-4937, LUCENE-8592, LUCENE-10210, LUCENE-7569, LUCENE-7574 and LUCENE-7945 read</td><td>only precedents and unrelated failures; the regression postdates the move to GitHub</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@, builds@)</th><td class='when'>2026-10-26</td><td>158 queries</td><td>only automatic notifications of #13320; no report</td></tr><tr><th scope='row'>Commits, downstream and web</th><td class='when'>2026-10-26</td><td>4 commit and 4 downstream-repo queries, a scan of the local full history; 17 web queries</td><td>no fix commit on any branch; no downstream report; nothing relevant on the web</td></tr><tr><th scope='row'>Earlier runs</th><td class='when'>2026-10-26</td><td>the finder's prior-art run (51 queries) and the devil's advocate's (27); direct GitHub searches by verifiers</td><td>nothing</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 9.11.0 by #13320 (merged 2024-05-14), a refactoring that dropped the NaN canonicalization from the merge keys. The same test fails on all 18 releases 9.11.0-10.5.2 and on main and passes on 9.1.0-9.10.0; upstream branches still carry the lines.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #13320 "Remove unnecessary bit conversion for IndexSorter" (author @bugmakerrrrrr, merged by @jpountz on 2024-05-14): <code class='nw'>37837133c357</code> on main, backport <code class='nw'>b1470b945f91</code> on branch_9x; first released in 9.11.0 (2024-06-06), first 10.x release 10.0.0. It replaced <code>floatToSortableInt(Float.intBitsToFloat(bits))</code>, which canonicalizes NaN through <code class='nw'>floatToIntBits</code>, with <code>sortableFloatBits(bits)</code>, which does not; the same for doubles. The old conversion came from LUCENE-9330 (2020).</p><p>From 10.5.0, <code class='nw'>MultiSorter</code> calls <code>getComparableValues</code> (#16202), whose default adapts <code>getComparableProviders</code>; FloatSorter and DoubleSorter do not override it, so merges still use the changed lines. Upstream main, branch_10x, branch_10_6, branch_10_5 and branch_9_12 carry them (read on 2026-10-26), so 10.6.0 will be affected unless fixed first. Releases before 8.0.0 were checked by reading only; x86 was not run.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 4 of 5 through gradle and the runner, assertions on and off; the finder's, the reproducer's and the reviewers' tests fail too</td></tr><tr><th scope='row'>upstream main, branch_10x, branch_10_6, branch_10_5, branch_9_12</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> read</span></td><td>same lines on 2026-10-26; no CHANGES entry</td></tr><tr><th scope='row'>10.0.0 - 10.5.2 (12 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's JUnit fails 4 of 4 on each; this doc's test fails on 10.5.2 with -ea and -da</td></tr><tr><th scope='row'>9.11.0 - 9.12.3 (6 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first affected 9.11.0</span></td><td>fail on each; this doc's test fails on 9.12.3 and 9.11.0</td></tr><tr><th scope='row'>9.1.0 - 9.10.0 (14 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> last unaffected 9.10.0</span></td><td>the finder's JUnit passes 4 of 4 on each (9.10.0 also with -da); this doc's test passes 5 of 5 on 9.10.0</td></tr><tr><th scope='row'>8.0.0, 8.6.0, 8.11.4, 9.0.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>a core-only probe passes and prints the correct merged order [0xffc00000, 3.0, 2.0, 1.0, 0.5], so the passes are not vacuous</td></tr><tr><th scope='row'>6.2.0 - 7.7.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> read</span></td><td>merge order through Float.compare or the boxed compareTo, which treat every NaN alike (code reading only)</td></tr><tr><th scope='row'>main + the two-line fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>this doc's test 5 of 5; all 8,870 core tests, assertions on and off</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, reviewers from another model family (each with its own executed test), a devil's advocate and an adjudication say real; the adjudication re-ran with fresh seeds. This doc's test fails on stock and passes with the two-line fix, and with the fix the whole core suite passes.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>366 words</span></summary><div class='body'><p>No reviewer dissented.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder (a hunt unit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>4-test JUnit fails 4 of 4 on main (assertions on and off), 10.5.2, 9.12.3 and 9.11.0, passes on 9.10.0 and with the fix; CheckIndex level 3 rejects the merged segment.</td></tr><tr><th scope='row'>Bounded-exhaustive merge-order check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> supports</span></td><td>13,652 FLOAT and 13,620 DOUBLE order violations in 48,600 merges each, 4,976 wrong top-1 hits each; 0 without the sign-bit NaN, 0 with the fix, 0 for the other sort types.</td></tr><tr><th scope='row'>Refute review (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Its own test fails for FLOAT and DOUBLE with assertions on and off, a positive-NaN control passes; the fix passes it plus TestIndexSorting and TestSortingCodecReader; intended argument weak.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Own 9-test JUnit from the claim only (three segments, NaN by run-time negation, three oracles): 7 of 9 fail on main, 10.5.2, 9.12.3 and 9.11.0; controls pass; 9 of 9 on 9.10.0 and with its own 2-line fix.</td></tr><tr><th scope='row'>Works-as-designed review (OpenAI GPT-5.6) and re-runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Intended argument weak; its test with payloads 0xffd23456 / 0xfffa23456789abcd fails 3 of 4 on main and 9.11.0, passes on 9.10.0 and with the fix; a CheckIndex test flags 0xffc00000 and 0xff800001, positive-payload controls pass.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the strongest "NaN order unspecified" case and answered it (LUCENE-4937, the floatToSortableInt javadoc, LUCENE-3582's tests); reachability probe: run-time negation and copySign give 0xffc00000, text parsing does not.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's tests with fresh seed 0BADF00D (7 of 9 fail, assertions on and off; 9 of 9 pass with the fix and on 9.10.0) and the finder's with 0BADF00E (4 of 4 fail).</td></tr><tr><th scope='row'>Security assessment and probe</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> out of scope of SECURITY.md, public route recommended</span></td><td>Persistent cross-user result manipulation and a whole-segment CheckIndex verdict (exorcise drops 1,500 of 1,500 documents); no over-matching, deleted-document exposure, data mixing, broken blocks or hang.</td></tr><tr><th scope='row'>This doc's test and fix validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>A new 5-test JUnit fails 4 of 5 through gradle and the runner on main, 10.5.2, 9.12.3 and 9.11.0 and passes on 9.10.0; with the fix it and all 8,870 core tests pass, and <code>:lucene:core:check -x test</code> succeeds.</td></tr></tbody></table></div></div></details></div></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources and repro files</span><span class='n'>1,562 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-145, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>Merging segments of an index sorted by a FLOAT or DOUBLE field misplaces a NaN whose sign bit is set, so the merged segment violates its declared index sort (CheckIndex at level 2 or higher reports it) and sorted searches that terminate early on the index sort return wrong top hits</dd></div><div><dt>Area</dt><dd>index / index sorting at merge time (IndexSorter.FloatSorter/DoubleSorter merge keys, MultiSorter) -&gt; search / TopFieldCollector index-sort early termination</dd></div><div><dt>Priority</dt><dd>Medium, rank 68: Since 9.11 every merge misplaces a sign-bit NaN in an opt-in FLOAT/DOUBLE index sort, which leaves a persistently misordered segment (CheckIndex level 2 fails, early-terminated sorted searches return wrong top hits, a reindex is needed), and that persistence puts it above the count-only LFV-086, but it needs a run-time negated or binary NaN (possibly ordinary computed NaNs on x86, not executed).</dd></div><div><dt>Impact class</dt><dd>data corruption</dd></div><div><dt>Impact note</dt><dd>Applications that opt into an index sort on a SortField of type FLOAT or DOUBLE over FloatDocValuesField/DoubleDocValuesField and index a NaN whose sign bit is set (a run-time sign flip of a NaN, such as unary negation or Math.copySign, or raw binary floats passed through; Java text parsing canonicalizes even '-NaN') get, after any merge that involves that document, a persisted segment that violates its declared sort: CheckIndex at level 2 or higher rejects it (the default level 1 does not run the sort check) and sorted searches that terminate early on the index sort return wrong top hits, also for queries that do not match the NaN document; deterministic with -ea and -da, tiny scale (5 documents in 2 segments), in every release since 9.11.0, and segments already merged stay misordered after a code fix.</dd></div><div><dt>Summary</dt><dd>You configure IndexWriterConfig#setIndexSort with a FLOAT (or DOUBLE) SortField over a FloatDocValuesField (DoubleDocValuesField), index a document whose value is a NaN with the sign bit set, for example the run-time negation of a NaN, and expect every flushed and merged segment to follow the sort, in which Float.compare puts every NaN after +Infinity. Flush gets this right, but a merge orders documents by NumericUtils.sortableFloatBits of the raw stored bits, which ranks that NaN below -Infinity, so the merged segment follows neither order: segments {3, 1, NaN} and {2, 0.5} sorted descending merge to [2.0, 0.5, NaN, 3.0, 1.0]. CheckIndex at level 2 or higher reports the segment as unsorted, and a top-1 search sorted by the index sort returns 2.0 instead of NaN, and 2.0 instead of 3.0 for a query that does not match the NaN document.</dd></div><div><dt>Introduced</dt><dd>37837133c357 (apache/lucene#13320 'Remove unnecessary bit conversion for IndexSorter', author bugmakerrrrrr, merged by jpountz; branch_9x backport b1470b945f91) replaced NumericUtils.floatToSortableInt(Float.intBitsToFloat(bits)) and doubleToSortableLong(Double.longBitsToDouble(bits)), which canonicalize NaN through floatToIntBits/doubleToLongBits, with sortableFloatBits(bits) and sortableDoubleBits(bits) on the raw stored bits in FloatSorter/DoubleSorter.getComparableProviders [read: git log -S on the new and the old conversion over IndexSorter.java, git blame of IndexSorter.java:355, 362-364, 418-419 and 426-428 on main, git tag --contains and merge-base for the release boundary; the boundary was also executed: 9.10.0 passes, 9.11.0 fails]; the PR has the empty description template, no reviews or review comments, no test change and no CHANGES entry (2024-05-14 (#13320 merged on main and branch_9x); first released 2024-06-06 (9.11.0))</dd></div><div><dt>First affected version</dt><dd>9.11.0 [exec]; first affected 10.x release 10.0.0 [exec]</dd></div><div><dt>Affected versions</dt><dd>every release from 9.11.0 through 10.5.2 (18 releases: 9.11.0, 9.11.1, 9.12.0-9.12.3, 10.0.0, 10.1.0, 10.2.0-10.2.2, 10.3.0-10.3.2, 10.4.0, 10.5.0-10.5.2) and main ea57360912ed: the finder JUnit fails 4 of 4 on each with identical messages [exec], also with -da on 9.11.0, 10.5.2 and main [exec]; unaffected: 9.1.0 through 9.10.0 (14 releases, the JUnit passes 4 of 4 [exec], 9.10.0 also with -da) and 8.0.0, 8.6.0, 8.11.4 and 9.0.0 (a core-only probe passes and prints the correct merged order [exec]); 6.2.0 (first release with IndexWriter index sorting) through 7.7.3 by code reading only: their merge order goes through Float.compare (6.2.0-6.6.6) or the boxed compareTo (7.0.0-8.1.1), both of which treat every NaN alike [read]; upstream branch_10x, branch_10_6, branch_10_5 and branch_9_12 carry the same lines (read-only contents API, 2026-10-26) [read], so 10.6.0 will be affected unless fixed first [not executed]; not fixed upstream [read]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading; also reached by exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26: the follow-up prior-report search ran 327 queries: scripted prior-report searches A-D (28 GitHub issue/PR, 4 commit, 4 downstream-repo, 158 mailing-list over dev@, java-user@, issues@, commits@ and builds@, 24 JIRA-archive, 17 web), 72 GraphQL issue/PR searches including elastic/elasticsearch, opensearch-project/OpenSearch and apache/solr, a content scan of the body, comments and review comments of all 139 apache/lucene items created since 2024-05-01, and the changed-file lists of all 413 open apache/lucene PRs (none touches IndexSorter.java or NumericUtils.java; #16571, #16851 and #16847 touch MultiSorter.java but not the merge keys or NaN handling); plus the finder's scripted prior-report search (51 queries), the intended-behaviour check's (27 queries) and direct GitHub searches by the independent reproduction and the intended-behaviour check); the owner (shbhar) has no upstream report of it; related prior items: #13320 (introduced it; no discussion of NaN), #4656/LUCENE-3582 (precedent: the same NaN canonicalization defect in NumericUtils, fixed in 2011, whose fix #13320 bypassed), #6001/LUCENE-4937 (precedent: comparators moved to Float.compare/Double.compare), #9638/LUCENE-8592 and #11247/LUCENE-10210 (precedents of the bug class, merge order differing from the index sort, with different causes), #16809 and its fix PR #16810 (open: the same symptoms from a different cause, doc-values updates on the sort field; would not fix this), #16699/#16698 (open: FLOAT/DOUBLE support in IndexSortSortedNumericDocValuesRangeQuery, which by code reading would also rely on the merged order; no NaN discussion), #16887 and #14399 (index-sort early termination returning wrong hits for other causes)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (commit of 2026-10-24; tested 2026-10-26): this doc's test through gradle in a scratch worktree (stock fails 4 of 5 with assertions on and off; with the fix it passes, and so do all 8,870 <code class='nw'>lucene/core</code> tests with assertions on and off and <code>:lucene:core:check -x test</code>; the worktree was removed afterwards) and through the hunt's JUnit runner on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>, 10 iterations) and on the Maven Central jars of 10.5.2 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 9.12.3 and 9.11.0 (fail) and 9.10.0 (pass); the finder's repro on every release 9.1.0-10.5.2 and on main (fails from 9.11.0); upstream main, branch_10x, branch_10_6, branch_10_5 and branch_9_12 read on 2026-10-26 (lines unchanged).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/IndexSorter.java:55-62 (ComparableProvider#getAsComparableLong: &#x27;the natural ordering of long values matches the ordering of doc IDs for the given comparator&#x27;), :351-369 (FloatSorter.getComparableProviders: missing value through floatToIntBits at :355, NumericUtils.sortableFloatBits(valueBits) of the raw bits at :362-364), :371-386 (FloatSorter.getDocComparator: Float.compare at :385), :413-432 and :435-450 (DoubleSorter: sortableDoubleBits at :428, Double.compare at :449)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/MultiSorter.java:35-39 (&#x27;The documents for each incoming leaf reader must already be sorted by the same sort!&#x27;); IndexWriterConfig.java:504 (&#x27;Set the Sort order to use for all (flushed and merged) segments&#x27;); CheckIndex.java:1114 and :1148 (testSort runs only at level &gt;= MIN_LEVEL_FOR_INTEGRITY_CHECKS), :1219-1222 (&#x27;This segment claims its documents are sorted according to the incoming sort ... let&#x27;s make sure&#x27;), :4742-4754 (DEFAULT_VALUE = MIN_VALUE = 1, MIN_LEVEL_FOR_INTEGRITY_CHECKS = 2)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/util/NumericUtils.java:60-72 (floatToSortableInt: &#x27;The sort order (including Float#NaN) is defined by Float#compareTo; NaN is greater than positive infinity&#x27;, via Float.floatToIntBits), :83-91 (sortableDoubleBits/sortableFloatBits: no NaN canonicalization); document/FloatDocValuesField.java:21 and :40, DoubleDocValuesField.java:21 and :39 (store floatToRawIntBits/doubleToRawLongBits); search/TopFieldCollector.java:56-71 and :151-170 (early termination when the search sort is a prefix of the segment&#x27;s index sort)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexSorter.java:57-62 (ComparableProvider), 147-150 (default getComparableValues), 351-369 (FloatSorter.getComparableProviders; missing value 355, return 364), 371-386 (getDocComparator, Float.compare at 385), 413-432 and 435-450 (DoubleSorter: 418-419, 428, 449)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/MultiSorter.java:35-39 (inputs already sorted), 84 (getComparableValues), 88-102 (queue), 118-136 (merge loop; each input&#x27;s documents in order, 129)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/NumericUtils.java:47-49, 70-72 (doubleToSortableLong / floatToSortableInt via doubleToLongBits / floatToIntBits), 84-91 (sortableDoubleBits / sortableFloatBits)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/document/FloatDocValuesField.java:21, 40; document/DoubleDocValuesField.java:21, 39 (raw bits)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/TopFieldCollector.java:56-71, 91-112, 151-170 (early termination on an index-sort prefix; 98-100 GREATER_THAN_OR_EQUAL_TO above the threshold); search/IndexSearcher.java:100, 733 (TOTAL_HITS_THRESHOLD = 1000)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:1114, 1148 (testSort at level &gt;= MIN_LEVEL_FOR_INTEGRITY_CHECKS), 1219-1285 (testSort), 4742-4754 (DEFAULT_VALUE = MIN_VALUE = 1, MIN_LEVEL_FOR_INTEGRITY_CHECKS = 2), 4673 (command-line Options.level = DEFAULT_VALUE), 499 (the level field, no initializer: 0 without setLevel)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriterConfig.java:504</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/document/FloatField.java:73, 105 (floatToSortableInt at index time); search/SortField.java:586-597 (FLOAT/DOUBLE -&gt; FloatSorter/DoubleSorter over NUMERIC doc values)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/MultiSorter.java:118-136 (the merge takes each input&#x27;s documents in order)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriterConfig.java:504; index/IndexSorter.java:57-62; index/MultiSorter.java:35-39; util/NumericUtils.java:37-43, 61-66; index/CheckIndex.java:1219-1285</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/test/org/apache/lucene/util/TestNumericUtils.java:280-302, 343-365 (sign-bit NaN cases sort above +Inf); lucene/core/src/test/org/apache/lucene/index/TestIndexSorting.java:2481-2557 (nextFloat/nextDouble)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/document/FloatRange.java:130-142, document/DoubleRange.java:130-142, document/XYDocValuesField.java:79, 91 (NaN rejected); search/TopScoreDocCollector.java:30, search/FieldComparator.java:160, 167 (NaN scores documented as invalid, asserted); search/SortField.java:82-98</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/NumericUtils.java:47-49, 70-72; document/FloatDocValuesField.java:21, 40; index/CheckIndex.java:1219-1285</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestIndexSortSignedNaNMerge.java (JUnit for Lucene&#x27;s build, 5 tests): <a href='../repro/LFV-145/TestIndexSortSignedNaNMerge.java'><code>repro/LFV-145/TestIndexSortSignedNaNMerge.java</code></a> (141 lines)</li><li>The fix with the test: fix-with-test.diff: <a href='../repro/LFV-145/fix-with-test.diff'><code>repro/LFV-145/fix-with-test.diff</code></a> (171 lines)</li><li>The finder&#x27;s test: TestIndexSortMergeSignedNaN.java (FLOAT and DOUBLE descending, FLOAT ascending, search): <a href='../repro/LFV-145/TestIndexSortMergeSignedNaN.java'><code>repro/LFV-145/TestIndexSortMergeSignedNaN.java</code></a> (162 lines)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

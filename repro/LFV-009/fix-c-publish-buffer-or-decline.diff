@@ -1,0 +1,64 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/index/DocumentsWriter.java b/lucene/core/src/java/org/apache/lucene/index/DocumentsWriter.java
+index a9887aaf546..dc5e99a71b1 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/DocumentsWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/DocumentsWriter.java
+@@ -377,6 +377,26 @@ final class DocumentsWriter implements Closeable, Accountable {
+     return deleteQueue.anyChanges();
+   }
+ 
++  /**
++   * Returns true if deletes or doc-values updates are buffered, or frozen but not yet published, so
++   * that they do not have a delete generation yet.
++   */
++  boolean anyUnpublishedDeletesOrUpdates() {
++    return anyDeletions() || ticketQueue.hasTickets() || pendingChangesInCurrentFullFlush;
++  }
++
++  /**
++   * Freezes the global buffer of deletes and doc-values updates into a flush ticket, like the
++   * RAM-triggered apply does, so that it gets its delete generation when the ticket is published.
++   * Does nothing during a full flush, which freezes the buffer itself.
++   */
++  synchronized void freezeGlobalBuffer() throws IOException {
++    final DocumentsWriterDeleteQueue deleteQueue = this.deleteQueue;
++    if (flushControl.isFullFlush() == false && deleteQueue.isOpen() && deleteQueue.anyChanges()) {
++      ticketQueue.addTicket(() -> maybeFreezeGlobalBuffer(deleteQueue));
++    }
++  }
++
+   @Override
+   public void close() throws IOException {
+     closed = true;
+diff --git a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+index 45b59fa46dd..df706b82f33 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+@@ -1718,8 +1718,27 @@ public class IndexWriter
+    * If you need to update documents indexed after opening the NRT reader you must use {@link
+    * #updateDocValues(Term, Field...)}.
+    */
+-  public synchronized long tryUpdateDocValue(IndexReader readerIn, int docID, Field... fields)
++  public long tryUpdateDocValue(IndexReader readerIn, int docID, Field... fields)
+       throws IOException {
++    // Buffered term-based deletes and doc-values updates only get their delete generation when
++    // they are frozen and published, while this method takes one right away. Publish the ones
++    // buffered before this call first, so that an earlier buffered update cannot win over this
++    // later one.
++    if (docWriter.anyUnpublishedDeletesOrUpdates()) {
++      docWriter.freezeGlobalBuffer();
++      publishFlushedSegments(true);
++    }
++    return tryUpdateDocValueInternal(readerIn, docID, fields);
++  }
++
++  private synchronized long tryUpdateDocValueInternal(
++      IndexReader readerIn, int docID, Field... fields) throws IOException {
++    if (docWriter.anyUnpublishedDeletesOrUpdates()) {
++      // Something is still buffered or waiting to be published (for example behind a segment
++      // flush that is still running, or added by another thread since): it has no delete
++      // generation yet and would win over this update. Let the caller retry.
++      return -1;
++    }
+     // NOTE: DON'T use docID inside the closure
+     final DocValuesUpdate[] dvUpdates = buildDocValuesUpdate(null, fields);
+     return tryModifyDocument(

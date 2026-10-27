@@ -1,0 +1,339 @@
+diff --git a/lucene/core/src/test/org/apache/lucene/document/TestCosineTinyNormValidation.java b/lucene/core/src/test/org/apache/lucene/document/TestCosineTinyNormValidation.java
+new file mode 100644
+index 00000000000..9448d0c617a
+--- /dev/null
++++ b/lucene/core/src/test/org/apache/lucene/document/TestCosineTinyNormValidation.java
+@@ -0,0 +1,312 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.document;
++
++import java.io.ByteArrayOutputStream;
++import java.io.PrintStream;
++import java.nio.charset.StandardCharsets;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++import java.util.Random;
++import org.apache.lucene.codecs.Codec;
++import org.apache.lucene.codecs.lucene104.Lucene104HnswScalarQuantizedVectorsFormat;
++import org.apache.lucene.index.CheckIndex;
++import org.apache.lucene.index.DirectoryReader;
++import org.apache.lucene.index.IndexWriter;
++import org.apache.lucene.index.IndexWriterConfig;
++import org.apache.lucene.index.NoMergePolicy;
++import org.apache.lucene.index.SerialMergeScheduler;
++import org.apache.lucene.index.TieredMergePolicy;
++import org.apache.lucene.index.VectorSimilarityFunction;
++import org.apache.lucene.search.IndexSearcher;
++import org.apache.lucene.search.KnnFloatVectorQuery;
++import org.apache.lucene.search.ScoreDoc;
++import org.apache.lucene.search.TopDocs;
++import org.apache.lucene.store.ByteBuffersDirectory;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.util.LuceneTestCase;
++import org.apache.lucene.tests.util.TestUtil;
++import org.apache.lucene.util.IOUtils;
++
++/**
++ * A COSINE float vector that is non-zero and finite is accepted by {@link KnnFloatVectorField} (the
++ * field only rejects vectors whose components are all exactly 0). If every component is at most
++ * about 2.6e-23 in magnitude, the float32 sum of squares that every codec computes for it is 0 (or
++ * subnormal), so the vector behaves like the zero vector the field is meant to reject.
++ *
++ * <p>Each index-side test passes if the field rejects the vector up front with an
++ * IllegalArgumentException, as it does for the all-zero vector. If the field accepts it, the test
++ * asserts the documented behaviour: COSINE scores are in [0, 1], kNN returns the nearest vectors,
++ * CheckIndex is clean, and merges succeed. Public API only.
++ */
++public class TestCosineTinyNormValidation extends LuceneTestCase {
++
++  private static final VectorSimilarityFunction COSINE = VectorSimilarityFunction.COSINE;
++
++  /** Non-zero and finite, but (1e-30)^2 = 1e-60 is below the smallest float, so it rounds to 0. */
++  private static final float[] TINY = {1e-30f, 0f};
++
++  private static final String FIELD = "v";
++
++  /**
++   * COSINE.compare must return a score in [0, 1] (VectorSimilarityFunction.COSINE javadoc: "The
++   * similarity score is normalised to assure it is positive"; VectorUtil.normalizeToUnitInterval:
++   * "a normalized score between 0 and 1") for vectors the field accepts.
++   */
++  public void testCosineScoreOfAcceptedVectorIsInUnitInterval() {
++    // x*x rounds down to the smallest subnormal float, so the norm is under-estimated
++    float subnormal = (float) Math.sqrt(1.49 * Math.scalb(1.0, -149));
++    float[][][] pairs = {
++      {{0.6f, 0.8f}, TINY}, // positive dot product
++      {{0f, 1f}, TINY}, // orthogonal: dot product 0
++      {{1f, 0f}, {subnormal, 0f}} // same direction, true cosine 1, subnormal squared norm
++    };
++    List<String> bad = new ArrayList<>();
++    for (float[][] p : pairs) {
++      if (accepted(p[1]) == false) {
++        continue; // rejected up front: fine
++      }
++      String what = "compare(" + Arrays.toString(p[0]) + ", " + Arrays.toString(p[1]) + ")";
++      float s;
++      try {
++        s = COSINE.compare(p[0], p[1]);
++      } catch (AssertionError e) {
++        bad.add(what + " tripped Lucene's internal assertion (" + e + ")");
++        continue;
++      }
++      if ((s >= 0f && s <= 1f) == false) {
++        bad.add(what + " = " + s);
++      }
++    }
++    assertTrue("COSINE scores outside [0, 1] for accepted vectors: " + bad, bad.isEmpty());
++  }
++
++  /**
++   * Default codec: the kNN top hit for {0.6, 0.8} must be the identical vector, finitely scored.
++   */
++  public void testDefaultCodecTopHitIsIdenticalVector() throws Exception {
++    if (accepted(TINY) == false) {
++      return;
++    }
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
++        add(w, "exact", new float[] {0.6f, 0.8f});
++        add(w, "near", new float[] {0.8f, 0.6f});
++        add(w, "tiny", TINY);
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        IndexSearcher s = new IndexSearcher(r);
++        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0.6f, 0.8f}, 3), 3);
++        String hits = describe(s, td);
++        assertTrue("no hits", td.scoreDocs.length > 0);
++        assertEquals("top hit; hits=" + hits, "exact", id(s, td.scoreDocs[0]));
++        assertTrue("top score must be finite; hits=" + hits, Float.isFinite(td.scoreDocs[0].score));
++      }
++    }
++  }
++
++  /**
++   * Default codec: a query orthogonal to the tiny doc must still find the identical vector. (The
++   * tiny doc scores NaN, and the NaN maximum of its 64-ordinal scoring batch hides the batch.)
++   */
++  public void testDefaultCodecOrthogonalQueryFindsIdenticalVector() throws Exception {
++    if (accepted(TINY) == false) {
++      return;
++    }
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
++        add(w, "exact01", new float[] {0f, 1f});
++        add(w, "tiny", TINY);
++        add(w, "d10", new float[] {1f, 0f});
++        add(w, "d0707", new float[] {0.7071f, 0.7071f});
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        IndexSearcher s = new IndexSearcher(r);
++        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0f, 1f}, 4), 4);
++        assertTrue("kNN for {0, 1} returned no hits", td.scoreDocs.length > 0);
++        assertEquals("top hit; hits=" + describe(s, td), "exact01", id(s, td.scoreDocs[0]));
++      }
++    }
++  }
++
++  /** Default codec: CheckIndex must report an index built only from accepted vectors as clean. */
++  public void testDefaultCodecCheckIndexIsClean() throws Exception {
++    Random rnd = new Random(5);
++    float[] minValue = new float[64];
++    Arrays.fill(minValue, Float.MIN_VALUE); // finite and non-zero
++    if (accepted(minValue) == false) {
++      return;
++    }
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
++        add(w, "minValue", minValue);
++        for (int i = 0; i < 49; i++) {
++          add(w, "d" + i, unitGaussian(rnd, 64));
++        }
++      }
++      try (CheckIndex ci = new CheckIndex(dir)) {
++        ci.setLevel(CheckIndex.Level.MIN_LEVEL_FOR_INTEGRITY_CHECKS);
++        ByteArrayOutputStream bos = new ByteArrayOutputStream();
++        ci.setInfoStream(new PrintStream(bos, true, StandardCharsets.UTF_8));
++        CheckIndex.Status st = ci.checkIndex();
++        String vectorsLine = "";
++        for (String line : bos.toString(StandardCharsets.UTF_8).split("\n")) {
++          if (line.contains("test: vectors")) {
++            vectorsLine = line.trim();
++          }
++        }
++        assertTrue("CheckIndex must be clean: " + vectorsLine, st.clean);
++      }
++    }
++  }
++
++  /** OSQ format: one tiny doc must not stop kNN from returning the segment's other docs. */
++  public void testOsqSegmentWithTinyVectorReturnsHits() throws Exception {
++    if (accepted(TINY) == false) {
++      return;
++    }
++    Codec osq = TestUtil.alwaysKnnVectorsFormat(new Lucene104HnswScalarQuantizedVectorsFormat());
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(osq))) {
++        add(w, "d10", new float[] {1f, 0f});
++        add(w, "d01", new float[] {0f, 1f});
++        add(w, "tiny", TINY);
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        assertEquals(1, r.leaves().size());
++        IndexSearcher s = new IndexSearcher(r);
++        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0.6f, 0.8f}, 3), 3);
++        assertEquals("kNN(k=3) hit count; hits=" + describe(s, td), 3, td.scoreDocs.length);
++      }
++    }
++  }
++
++  /** OSQ format: merging a segment that holds an accepted tiny vector must not fail. */
++  public void testOsqMergeWithTinyVectorSucceeds() throws Exception {
++    if (accepted(TINY) == false) {
++      return;
++    }
++    Codec osq = TestUtil.alwaysKnnVectorsFormat(new Lucene104HnswScalarQuantizedVectorsFormat());
++    try (Directory dir = new ByteBuffersDirectory()) {
++      IndexWriterConfig iwc =
++          config(osq)
++              .setMergePolicy(new TieredMergePolicy())
++              .setMergeScheduler(new SerialMergeScheduler());
++      IndexWriter w = new IndexWriter(dir, iwc);
++      Throwable thrown = null;
++      try {
++        add(w, "d10", new float[] {1f, 0f});
++        add(w, "d01", new float[] {0f, 1f});
++        w.commit();
++        add(w, "tiny", TINY);
++        w.commit();
++        try {
++          w.forceMerge(1);
++        } catch (Throwable t) {
++          thrown = t;
++        }
++      } finally {
++        IOUtils.closeWhileHandlingException(w);
++      }
++      if (thrown != null) {
++        Throwable root = thrown;
++        while (root.getCause() != null) {
++          root = root.getCause();
++        }
++        throw new AssertionError(
++            "forceMerge(1) failed (writer open after: " + w.isOpen() + "); root cause: " + root,
++            thrown);
++      }
++    }
++  }
++
++  /**
++   * Query side (default codec): a tiny query vector pointing like {1, 0} must either be rejected
++   * with an IllegalArgumentException or return all 3 docs with finite scores.
++   */
++  public void testTinyQueryVectorReturnsNeighbours() throws Exception {
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
++        add(w, "d10", new float[] {1f, 0f});
++        add(w, "d01", new float[] {0f, 1f});
++        add(w, "d0608", new float[] {0.6f, 0.8f});
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        IndexSearcher s = new IndexSearcher(r);
++        TopDocs td;
++        try {
++          td = s.search(new KnnFloatVectorQuery(FIELD, TINY, 3), 3);
++        } catch (IllegalArgumentException _) {
++          return; // rejecting the query vector up front is acceptable
++        }
++        String hits = describe(s, td);
++        assertEquals("kNN(k=3) hit count; hits=" + hits, 3, td.scoreDocs.length);
++        for (ScoreDoc sd : td.scoreDocs) {
++          assertTrue("finite score; hits=" + hits, Float.isFinite(sd.score));
++        }
++      }
++    }
++  }
++
++  /** True if KnnFloatVectorField accepts {@code v} for COSINE; false if it rejects it (IAE). */
++  private static boolean accepted(float[] v) {
++    try {
++      new KnnFloatVectorField(FIELD, v, COSINE);
++      return true;
++    } catch (IllegalArgumentException _) {
++      return false;
++    }
++  }
++
++  private static IndexWriterConfig config(Codec codec) {
++    return new IndexWriterConfig().setCodec(codec).setMergePolicy(NoMergePolicy.INSTANCE);
++  }
++
++  private static void add(IndexWriter w, String id, float[] v) throws Exception {
++    Document d = new Document();
++    d.add(new StringField("id", id, Field.Store.YES));
++    d.add(new KnnFloatVectorField(FIELD, v, COSINE));
++    w.addDocument(d);
++  }
++
++  private static String id(IndexSearcher s, ScoreDoc sd) throws Exception {
++    return s.storedFields().document(sd.doc).get("id");
++  }
++
++  private static String describe(IndexSearcher s, TopDocs td) throws Exception {
++    StringBuilder sb = new StringBuilder("[");
++    for (ScoreDoc sd : td.scoreDocs) {
++      sb.append(' ').append(id(s, sd)).append('=').append(sd.score);
++    }
++    return sb.append(" ]").toString();
++  }
++
++  private static float[] unitGaussian(Random rnd, int dim) {
++    float[] v = new float[dim];
++    double n = 0;
++    for (int i = 0; i < dim; i++) {
++      v[i] = (float) rnd.nextGaussian();
++      n += (double) v[i] * v[i];
++    }
++    n = Math.sqrt(n);
++    for (int i = 0; i < dim; i++) {
++      v[i] = (float) (v[i] / n);
++    }
++    return v;
++  }
++}
+diff --git a/lucene/core/src/test/org/apache/lucene/document/column/TestColumnBatchVectorColumn.java b/lucene/core/src/test/org/apache/lucene/document/column/TestColumnBatchVectorColumn.java
+index b6b39051d1d..d4ef0bc963c 100644
+--- a/lucene/core/src/test/org/apache/lucene/document/column/TestColumnBatchVectorColumn.java
++++ b/lucene/core/src/test/org/apache/lucene/document/column/TestColumnBatchVectorColumn.java
+@@ -240,6 +240,16 @@ public class TestColumnBatchVectorColumn extends LuceneTestCase {
+                     simpleBatch(2, new ArrayDenseFloatVectorColumn("cos", cosine, zeroVectors))));
+     assertTrue(e.getMessage(), e.getMessage().contains("zero vector at batch doc 1"));
+ 
++    // non-zero components whose float32 squares underflow: the norm is zero, as for {0, 0}
++    float[][] tinyVectors = {{1f, 2f}, {1e-30f, 0f}};
++    e =
++        expectThrows(
++            IllegalArgumentException.class,
++            () ->
++                w.addBatch(
++                    simpleBatch(2, new ArrayDenseFloatVectorColumn("cos", cosine, tinyVectors))));
++    assertTrue(e.getMessage(), e.getMessage().contains("zero vector at batch doc 1"));
++
+     w.rollback();
+     dir.close();
+   }

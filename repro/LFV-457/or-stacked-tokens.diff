@@ -1,0 +1,26 @@
+diff --git a/lucene/queries/src/java/org/apache/lucene/queries/intervals/IntervalBuilder.java b/lucene/queries/src/java/org/apache/lucene/queries/intervals/IntervalBuilder.java
+index 1af63bdac0c..7bf7cbd8401 100644
+--- a/lucene/queries/src/java/org/apache/lucene/queries/intervals/IntervalBuilder.java
++++ b/lucene/queries/src/java/org/apache/lucene/queries/intervals/IntervalBuilder.java
+@@ -227,10 +227,18 @@ final class IntervalBuilder {
+           clauses.add(Intervals.or(paths.toArray(IntervalsSource[]::new)));
+         }
+       } else {
++        // no side path: every finite string is a single token at this position, and there is
++        // more than one if synonyms are stacked here
++        List<IntervalsSource> synonyms = new ArrayList<>();
+         Iterator<TokenStream> it = graph.getFiniteStrings(start, end);
+-        TokenStream ts = it.next();
+-        clauses.addAll(analyzeTerms(ts));
+-        assert it.hasNext() == false;
++        while (it.hasNext()) {
++          synonyms.addAll(analyzeTerms(it.next()));
++        }
++        if (synonyms.size() == 1) {
++          clauses.add(synonyms.get(0));
++        } else {
++          clauses.add(Intervals.or(synonyms.toArray(IntervalsSource[]::new)));
++        }
+       }
+     }
+     return clauses;

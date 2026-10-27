@@ -1,0 +1,181 @@
+diff --git a/lucene/monitor/src/java/org/apache/lucene/monitor/WritableQueryIndex.java b/lucene/monitor/src/java/org/apache/lucene/monitor/WritableQueryIndex.java
+index 367de7653a6..15d583319de 100644
+--- a/lucene/monitor/src/java/org/apache/lucene/monitor/WritableQueryIndex.java
++++ b/lucene/monitor/src/java/org/apache/lucene/monitor/WritableQueryIndex.java
+@@ -46,6 +46,7 @@ import org.apache.lucene.search.Query;
+ import org.apache.lucene.search.ScoreMode;
+ import org.apache.lucene.search.SearcherManager;
+ import org.apache.lucene.search.SimpleCollector;
++import org.apache.lucene.search.TermInSetQuery;
+ import org.apache.lucene.search.Weight;
+ import org.apache.lucene.util.BytesRef;
+ import org.apache.lucene.util.IOUtils;
+@@ -110,16 +111,17 @@ class WritableQueryIndex extends QueryIndex {
+       purgeLock.readLock().lock();
+       try {
+         if (indexables.size() > 0) {
+-          Set<String> ids = new HashSet<>();
++          Set<BytesRef> ids = new HashSet<>();
++          List<Document> docs = new ArrayList<>(indexables.size());
+           for (Indexable update : indexables) {
+-            ids.add(update.queryCacheEntry.queryId);
+-          }
+-          for (String id : ids) {
+-            writer.deleteDocuments(new Term(FIELDS.query_id, id));
++            ids.add(new BytesRef(update.queryCacheEntry.queryId));
++            docs.add(update.document);
+           }
++          // one atomic update: if IndexWriter rejects any document, none of the deletes and none
++          // of the documents is applied, and the cache below is left unchanged
++          writer.updateDocuments(new TermInSetQuery(FIELDS.query_id, ids), docs);
+           for (Indexable update : indexables) {
+             this.queries.put(update.queryCacheEntry.cacheId, update.queryCacheEntry);
+-            writer.addDocument(update.document);
+             if (purgeCache != null)
+               purgeCache.put(update.queryCacheEntry.cacheId, update.queryCacheEntry);
+           }
+diff --git a/lucene/monitor/src/test/org/apache/lucene/monitor/TestRejectedRegisterKeepsQueries.java b/lucene/monitor/src/test/org/apache/lucene/monitor/TestRejectedRegisterKeepsQueries.java
+new file mode 100644
+index 00000000000..54393d85359
+--- /dev/null
++++ b/lucene/monitor/src/test/org/apache/lucene/monitor/TestRejectedRegisterKeepsQueries.java
+@@ -0,0 +1,139 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.monitor;
++
++import java.io.IOException;
++import java.nio.file.Path;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.Field;
++import org.apache.lucene.document.TextField;
++import org.apache.lucene.index.Term;
++import org.apache.lucene.search.Query;
++import org.apache.lucene.search.TermQuery;
++import org.apache.lucene.tests.util.LuceneTestCase;
++
++/**
++ * A register() call that the query index's IndexWriter rejects must not delete or corrupt the
++ * queries it was updating: a query whose update was rejected keeps its old version, the other
++ * queries of the call do not disappear, and getQuery() and match() agree.
++ */
++public class TestRejectedRegisterKeepsQueries extends LuceneTestCase {
++
++  private static final MonitorQuerySerializer SERIALIZER =
++      MonitorQuerySerializer.fromParser(TestRejectedRegisterKeepsQueries::parse);
++
++  /** One term longer than IndexWriter.MAX_TERM_LENGTH (32766 bytes): IndexWriter rejects it. */
++  private static final String HUGE = "x".repeat(40_000);
++
++  private static Query parse(String term) {
++    return new TermQuery(new Term("f", term));
++  }
++
++  private static MonitorQuery mq(String id, String term) {
++    return new MonitorQuery(id, parse(term), term, Map.of());
++  }
++
++  private static MonitorQuery mq(String id, String term, String lang) {
++    return new MonitorQuery(id, parse(term), term, Map.of("lang", lang));
++  }
++
++  /** A persistent Monitor that filters on the metadata field "lang". */
++  private static Monitor open(Path path) throws IOException {
++    Presearcher presearcher =
++        new TermFilteredPresearcher(
++            TermFilteredPresearcher.DEFAULT_WEIGHTOR, List.of(), Set.of("lang"));
++    return new Monitor(
++        new WhitespaceAnalyzer(),
++        presearcher,
++        new MonitorConfiguration().setIndexPath(path, SERIALIZER));
++  }
++
++  private static boolean matches(Monitor monitor, String id, String text) throws IOException {
++    Document doc = new Document();
++    doc.add(new TextField("f", text, Field.Store.NO));
++    return monitor.match(doc, QueryMatch.SIMPLE_MATCHER).matches(id) != null;
++  }
++
++  /** Right after the rejected update q2 is still "b", so it must still match "b". */
++  public void testRejectedUpdateStillMatchesTheOldVersion() throws IOException {
++    try (Monitor monitor = open(createTempDir())) {
++      monitor.register(mq("q2", "b"));
++      expectThrows(IllegalArgumentException.class, () -> monitor.register(mq("q2", "y", HUGE)));
++      assertEquals("b", monitor.getQuery("q2").getQueryString());
++      assertTrue("getQuery(q2) is b, but q2 does not match \"b\"", matches(monitor, "q2", "b"));
++    }
++  }
++
++  /** The next, unrelated register() must not delete q2. */
++  public void testNextRegisterKeepsTheRejectedQuery() throws IOException {
++    try (Monitor monitor = open(createTempDir())) {
++      monitor.register(mq("q2", "b"));
++      expectThrows(IllegalArgumentException.class, () -> monitor.register(mq("q2", "y", HUGE)));
++      monitor.register(mq("q3", "z"));
++      assertEquals(Set.of("q2", "q3"), monitor.getQueryIds());
++    }
++  }
++
++  /** close() must not delete q2, nor q1, whose new version in the same call was valid. */
++  public void testCloseKeepsTheQueriesOfTheRejectedCall() throws IOException {
++    Path path = createTempDir();
++    try (Monitor monitor = open(path)) {
++      monitor.register(mq("q1", "a"), mq("q2", "b"));
++      expectThrows(
++          IllegalArgumentException.class,
++          () -> monitor.register(mq("q2", "y", HUGE), mq("q1", "c")));
++    }
++    try (Monitor monitor = open(path)) {
++      assertEquals(Set.of("q1", "q2"), monitor.getQueryIds());
++    }
++  }
++
++  /** Default configuration: a rejected new query must not delete q1, updated in the same call. */
++  public void testDefaultMonitorKeepsTheOtherQueriesOfTheCall() throws IOException {
++    // a legal 32765-byte id, but its cache id "<id>_0" is 32767 bytes, over the 32766-byte
++    // SortedDocValues limit, so only IndexWriter.addDocument rejects the new query
++    String longId = "i".repeat(32765);
++    try (Monitor monitor = new Monitor(new WhitespaceAnalyzer())) {
++      monitor.register(new MonitorQuery("q1", parse("a")));
++      expectThrows(
++          IllegalArgumentException.class,
++          () ->
++              monitor.register(
++                  new MonitorQuery(longId, parse("z")), new MonitorQuery("q1", parse("c"))));
++      monitor.register(new MonitorQuery("q3", parse("q")));
++      assertTrue(
++          "q1 was deleted by a register() call that threw", monitor.getQueryIds().contains("q1"));
++    }
++  }
++
++  /** Control (passes today): a call rejected before any write leaves every query as it was. */
++  public void testCallRejectedBeforeAnyWriteKeepsQueries() throws IOException {
++    try (Monitor monitor = new Monitor(new WhitespaceAnalyzer())) {
++      monitor.register(new MonitorQuery("q1", parse("a")), new MonitorQuery("q2", parse("b")));
++      // the query's own term is too long: the presearcher rejects it while building the documents
++      expectThrows(
++          RuntimeException.class, () -> monitor.register(new MonitorQuery("q2", parse(HUGE))));
++      monitor.register(new MonitorQuery("q3", parse("z")));
++      assertEquals(Set.of("q1", "q2", "q3"), monitor.getQueryIds());
++      assertTrue(matches(monitor, "q2", "b"));
++    }
++  }
++}

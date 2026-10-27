@@ -1,0 +1,1098 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>COSINE vectors whose float32 norm underflows to zero pass validation, then score +Infinity or NaN and break OSQ segments</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-046 &middot; cosine-tiny-norm-validation</p><h1 id='top'>COSINE vectors whose float32 norm underflows to zero pass validation, then score +Infinity or NaN and break OSQ segments</h1><p class='tldr'>Lucene rejects the all-zero COSINE vector but accepts <code>{1e-30, 0}</code>, whose float32 norm is also 0 (1e-30 x 1e-30 rounds to 0). The document scores +Infinity or NaN: it takes the top hit, can hide up to 63 other documents and, with OSQ quantization, breaks its segment and merges.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 140</span><span class='sub'>On the default HNSW COSINE path a vector whose squared norm underflows yields +Inf/NaN scores (a wrong top hit, dropped hits, CheckIndex false failures, failing OSQ merges), just below LFV-047 because real embeddings never produce such a vector.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>9.0.0 (#366, 2021; not a regression)<span class='sub'>introduced 2021-10-11 &middot; about 5 years</span></dd></div><div><dt>Affected</dt><dd>9.0.0 to 10.5.2 (33 releases) and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>Z3 floating-point queries (formal)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a formal tool&#x27;s own output and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Lucene computes COSINE norms in float32. A vector whose components are all at most about 2.6e-23 gets a norm of exactly 0, so it scores like the zero vector, but the field only rejects vectors whose components are all exactly 0.</p><figure class='visual' id='cosine-tiny-norm-validation-short-visual'><div class='frame'><a class='still' href='../assets/LFV-046/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-046/bug.png' alt='Diagram of the bug: KnnFloatVectorField accepts the COSINE vector {1e-30, 0} because it is finite and not all zeros; in float32, 1e-30 x 1e-30 = 1e-60 rounds to 0, so its squared norm is 0; its COSINE score against {0.6, 0.8} is +Infinity and against {0, 1} is NaN, so it takes the top hit above the identical vector (1.0), a NaN hides its batch of up to 64 vectors, and with the OSQ format the segment returns no hits and forceMerge fails.' width='1920' height='1080'></a></div><figcaption>From the accepted vector <code>{1e-30, 0}</code> to its float32 norm of 0, and to the +Infinity and NaN scores that follow in search and in the OSQ segment. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index three COSINE vectors with the default codec: exact <code>{0.6, 0.8}</code>, near <code>{0.8, 0.6}</code> and tiny <code>{1e-30, 0}</code>. <code>KnnFloatVectorField</code> accepts tiny: it is finite and not all zeros.</span></li><li><span>Search for <code>{0.6, 0.8}</code> with k=3. You expect exact first, with score 1.0.</span></li><li><span>Instead tiny comes first, with score +Infinity. Lucene computes the norm in float32, where 1e-30 x 1e-30 = 1e-60 rounds to 0, so the cosine is 6e-31 / 0.</span></li><li><span>Against <code>{0, 1}</code> the score is 0 / 0 = NaN, and one NaN makes the search skip its whole batch of up to 64 vectors: a 4-document segment returns 0 hits for <code>{0, 1}</code>, and <code class='nw'>CheckIndex</code> at level 2 or higher reports the index as broken.</span></li><li><span>With the opt-in OSQ (scalar-quantized) format, the same vector makes the segment's centroid NaN: kNN returns 0 of 3 documents, and <code class='nw'>forceMerge</code> throws and closes the <code class='nw'>IndexWriter</code>.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Every float32 COSINE field. On the default codec one such document scores +Infinity against any query with a positive dot product, tops the hits when reached, and can hide up to 63 others; on opt-in OSQ it poisons its segment and blocks merges. Ordinary embeddings should not produce it; buggy pipelines or untrusted input can.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>1,076 words</span></summary><div class='body'><p><code>KnnFloatVectorField</code> rejects a COSINE vector only when every component is exactly 0, but every in-tree Java COSINE scorer and the quantized writer compute the squared norm in float32. For a vector whose components are all at most about 2.6e-23 (2^-75), such as <code>{1e-30, 0}</code>, each square rounds to 0, so the vector is accepted yet has a computed norm of exactly 0, like the zero vector the check is meant to keep out. Its COSINE score is then <code>dot / 0</code>: +Infinity, NaN or 0. On the default codec it takes the top hit above the identical vector (score 1.0), a NaN in a batch of up to 64 scored vectors makes the search skip the whole batch (a 4-document segment returns 0 hits), and <code class='nw'>CheckIndex</code> at level 2 or higher (its logical integrity checks; the default level 1 checks only checksums) reports an index built only from accepted vectors as broken. On the opt-in Lucene104 scalar-quantized (OSQ) formats it turns the segment's centroid into NaN: every quantized score in the segment is NaN (a 3-document segment returns no hits), and every merge that includes it throws and closes the <code class='nw'>IndexWriter</code> until the document is deleted. A slightly larger one-component vector has a subnormal, badly rounded norm, so its scores can exceed 1 (1.1103). A tiny query vector returns 0 hits too. The float32 norms date from the commit that added COSINE, so every release since 9.0.0 is affected.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>float32 squared norm</strong>: <code>x1*x1 + x2*x2 + ...</code> computed in <code class='nw'>float</code>, as all of Lucene's in-tree Java COSINE code does. The smallest positive float is 2^-149 (about 1.4e-45), so a square below about 7e-46 rounds to 0.</li><li><strong>Subnormal</strong>: a float below <code class='nw'>Float.MIN_NORMAL</code> (2^-126, about 1.2e-38). It has fewer significant bits, so a norm in that range is badly rounded.</li><li><strong>OSQ</strong>: the opt-in Lucene104 scalar-quantized vector formats (<code>Lucene104HnswScalarQuantizedVectorsFormat</code>, <code>Lucene104ScalarQuantizedVectorsFormat</code>). For COSINE they normalize each vector and quantize it around a per-segment centroid.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><strong>Validation checks exact zeros only.</strong> <code>KnnFloatVectorField</code> rejects COSINE vectors with <code>VectorUtil.isZeroVector</code> (<code>KnnFloatVectorField.java:53-56</code>, <code class='nw'>:146-150</code>, <code class='nw'>:172-175</code>), true only if every component <code>== 0</code> (<code>VectorUtil.java:515-523</code>). Columnar <code class='nw'>addBatch</code> does the same (<code>ColumnValidation.java:364-381</code>). Query targets get only <code class='nw'>checkFinite</code> (<code>KnnFloatVectorQuery.java:97</code>).</li><li><strong>The norms are float32.</strong> <code>DefaultVectorUtilSupport.cosine</code> (<code class='nw'>:79-117</code>) and <code>PanamaVectorUtilSupport.cosine</code> (<code class='nw'>:177-199</code>) accumulate <code>fma(x, x, norm)</code> in <code class='nw'>float</code> and return <code>(float) (sum / Math.sqrt((double) norm1 * (double) norm2))</code>; so do the off-heap bulk scorers (<code>MemorySegmentBulkVectorOps</code>, java25, <code class='nw'>:180-206</code>). (The optional native provider's external <code>lucene_cosineFloat</code> was not checked.) If every <code>|x_i| &lt;= 2^-75</code>, the norm is exactly 0 and the result is <code>sum / 0</code>: +Infinity, -Infinity or NaN. For a one-component vector <code>{x, 0}</code> with 2^-75 &lt; x &lt; 2^-63 the norm is subnormal and badly rounded, up or down, so scores can exceed 1 (1.1103) or fall below the true value (0.947 for <code>{4.735e-23, 0}</code>).</li><li><strong>The score transform passes them through.</strong> <code class='nw'>COSINE.compare</code> is <code>normalizeToUnitInterval(cosine(v1, v2))</code> (<code>VectorSimilarityFunction.java:84-86</code>), which is <code>Math.max((1 + value) / 2, 0)</code> (<code>VectorUtil.java:461-463</code>). The finiteness assert at <code>VectorUtil.java:105</code> is off in production.</li><li><strong>One NaN hides a batch.</strong> <code>RandomVectorScorer.bulkScore</code> returns the batch maximum via <code class='nw'>Math.max</code>, NaN if any score is NaN (<code>RandomVectorScorer.java:47-54</code>). The exhaustive search scores 64 vectors at a time and keeps a batch only if that maximum is <code>&gt; minCompetitiveSimilarity()</code> (<code>Lucene99HnswVectorsReader.java:81</code>, <code class='nw'>:396</code>, <code class='nw'>:408</code>), which is false for NaN; HNSW expansion uses the same test (<code>HnswGraphSearcher.java:341-343</code>). At level 2 or higher (<code>CheckIndex.java:1114</code>, <code class='nw'>:1141</code>; the command-line default is level 1, checksums only), <code class='nw'>CheckIndex</code> runs kNN searches with stored vectors and fails when one returns no hit (<code>CheckIndex.java:3112-3137</code>).</li><li><strong>OSQ centroid.</strong> As each document is added, <code>Lucene104ScalarQuantizedVectorsWriter.FieldWriter.addValue</code> calls <code class='nw'>accumulate</code> (<code class='nw'>:841-843</code>), which divides the vector by <code>(float) Math.sqrt(dotProduct(v, v))</code> = 0 and adds the Infinity or NaN to the in-memory centroid sums (<code class='nw'>:767-780</code>). At flush, <code class='nw'>computeCentroid</code> (<code class='nw'>:786-798</code>) averages and normalizes them; <code class='nw'>l2normalize</code> throws only when the squared norm <code>== 0</code>, false for NaN (<code>DefaultVectorUtilSupport.java:479-498</code>), so a NaN centroid is written with the segment and every quantized score in it is NaN (0 hits in the 3-document repro; the study's 2,001-document HNSW segment returned 1 hit, scored NaN). <code class='nw'>CheckIndex</code> at level 2 or higher fails on the OSQ-HNSW segment; the flat OSQ format passes, because <code class='nw'>CheckIndex</code> does not search flat formats (<code>CheckIndex.java:3106-3110</code>).</li><li><strong>OSQ merge.</strong> The merge re-normalizes each raw COSINE vector (<code>NormalizedFloatVectorValues.java:51</code>, via <code>Lucene104ScalarQuantizedVectorsWriter.java:317-318</code>); for the tiny vector that throws <code>IllegalArgumentException("Cannot normalize a zero-length vector")</code> (<code>DefaultVectorUtilSupport.java:483</code>), and <code class='nw'>IndexWriter</code> treats this merge exception as tragic and closes (<code>IndexWriter.java:5109-5113</code>; only a <code>MergeAbortedException</code> on a non-external merge is swallowed, <code class='nw'>:5043-5053</code>). A buffered uncommitted document is lost; a second writer fails the same way; deleting the document lets the merge succeed (executed probe).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Main <code class='nw'>ea57360912ed</code>, assertions off, one segment each:</p><div class="tbl"><table><thead><tr><th>what you do</th><th>expected</th><th>got</th></tr></thead><tbody><tr><td><code>new KnnFloatVectorField("v", {1e-30f, 0f}, COSINE)</code></td><td>rejected like <code>{0, 0}</code></td><td>accepted</td></tr><tr><td><code class='nw'>COSINE.compare</code> of <code>{0.6, 0.8}</code>, <code>{0, 1}</code> with tiny; <code>{1, 0}</code> with <code>{4.57e-23, 0}</code></td><td>in [0, 1]</td><td><code class='nw'>Infinity</code>, <code class='nw'>NaN</code>, <code class='nw'>1.1103277</code></td></tr><tr><td>default codec, docs <code>{0.6, 0.8}</code>, <code>{0.8, 0.6}</code>, tiny; kNN <code>{0.6, 0.8}</code>, k=3</td><td>exact first</td><td><code>tiny=Infinity exact=1.0 near=0.98</code></td></tr><tr><td>default codec, docs <code>{0, 1}</code>, tiny, <code>{1, 0}</code>, <code>{0.7071, 0.7071}</code>; kNN <code>{0, 1}</code>, k=4</td><td><code>{0, 1}</code> first</td><td>0 hits</td></tr><tr><td>49 random unit 64-d docs + 64 x <code class='nw'>Float.MIN_VALUE</code>; <code class='nw'>CheckIndex</code> at level 2</td><td>clean</td><td><code>failed to search k nearest neighbors</code></td></tr><tr><td>OSQ, docs <code>{1, 0}</code>, <code>{0, 1}</code>, tiny; kNN <code>{0.6, 0.8}</code>, k=3</td><td>3 hits</td><td>0 hits</td></tr><tr><td>OSQ, segments <code>{1, 0}</code>, <code>{0, 1}</code> and tiny; <code class='nw'>forceMerge(1)</code></td><td>succeeds</td><td><code>Cannot normalize a zero-length vector</code>; writer closed</td></tr><tr><td>query side: 3 docs, kNN with target tiny, k=3</td><td>3 hits or an error</td><td>0 hits</td></tr><tr><td>columnar <code class='nw'>addBatch</code> with a COSINE <code>{1e-30, 0}</code> (main; unreleased)</td><td>rejected</td><td>accepted</td></tr></tbody></table></div><p>In the study's larger runs: in one 3,000-document 16-d segment, a document with all components <code class='nw'>1e-30</code> was the top hit, scored +Infinity, for 86 of 200 random queries (91 had a positive dot product with it); one <code class='nw'>Float.MIN_VALUE</code> document added to a 200-document segment cut exhaustive recall@10 from 1.0 to 0.7 (in a 3,000-document HNSW graph: 0.600 without, 0.603 with, no loss); one document with a single <code class='nw'>1e-25</code> component made all 2,001 quantized scores of its OSQ segment NaN (kNN returned 1 hit, scored NaN).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>336 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Every float32 COSINE field with the default codec (Lucene99 HNSW float), through the public <code>KnnFloatVectorField</code> constructor and default settings; fields that opt into the Lucene104 OSQ formats get the worse effects. Not exposed: byte vectors (integer arithmetic, so the exact-zero check is complete), FLOAT16 fields (the smallest float16 squared, 2^-48, is a normal float32), and DOT_PRODUCT, EUCLIDEAN or MAXIMUM_INNER_PRODUCT fields, which do not divide by the norm.</li><li><strong>The trigger.</strong> Every component at most about 2.6e-23 for +Infinity/NaN, or a norm below about 1e-19 for finite scores above 1. It is not expected from ordinary normalized embeddings (no survey of real models was done). Plausible sources: a buggy upstream pipeline, a computation meant to give zero that leaves rounding residue, an application that adds a tiny epsilon to get past the "zero vector not allowed" error, or input an untrusted user controls.</li><li><strong>Scale.</strong> One document is enough, at any index size. It scores +Infinity for every query whose dot product with it is positive and ranks first whenever the search reaches it: always in exhaustive search; for 86 of the 91 such queries (out of 200) in the verifier's 3,000-document HNSW graph. The NaN hiding affects the exhaustive search of small segments most (batches of 64, so up to 63 other documents); in a 3,000-document HNSW graph the verifier saw no recall loss (recall@10 0.600 without, 0.603 with).</li><li><strong>What you see.</strong> Nothing at index time and nothing at search time: wrong top hits (+Infinity or 1.1103 beat an exact 1.0), missing hits, and, at <code class='nw'>CheckIndex</code> level 2 or higher, a <code class='nw'>CheckIndex</code> error on an index built only from accepted input. On OSQ: a segment whose quantized scores are all NaN (no hits in the small repro), and an <code class='nw'>IndexWriter</code> that closes on the first merge that includes it (buffered uncommitted documents lost); a second writer failed the same way, and deleting the document unblocked the merge.</li><li><strong>Existing indexes.</strong> Validation cannot repair segments already on disk; deleting the document lets the OSQ merge succeed again.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test on the public API with 7 deterministic tests: one scoring check, three on the default codec, two on the OSQ format and one query-side test. On main all 7 fail, with assertions on and off. Put it in core's <code>org.apache.lucene.document</code> test package and run the command.</p><figure class='code'><figcaption><span class='fname'>TestCosineTinyNormValidation.java (7 tests)</span><span class='meta'>312 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.lucene104.Lucene104HnswScalarQuantizedVectorsFormat;
+import org.apache.lucene.index.CheckIndex;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.TieredMergePolicy;
+import org.apache.lucene.index.VectorSimilarityFunction;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.KnnFloatVectorQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.IOUtils;
+
+/**
+ * A COSINE float vector that is non-zero and finite is accepted by {@link KnnFloatVectorField} (the
+ * field only rejects vectors whose components are all exactly 0). If every component is at most
+ * about 2.6e-23 in magnitude, the float32 sum of squares that every codec computes for it is 0 (or
+ * subnormal), so the vector behaves like the zero vector the field is meant to reject.
+ *
+ * &lt;p&gt;Each index-side test passes if the field rejects the vector up front with an
+ * IllegalArgumentException, as it does for the all-zero vector. If the field accepts it, the test
+ * asserts the documented behaviour: COSINE scores are in [0, 1], kNN returns the nearest vectors,
+ * CheckIndex is clean, and merges succeed. Public API only.
+ */
+public class TestCosineTinyNormValidation extends LuceneTestCase {
+
+  private static final VectorSimilarityFunction COSINE = VectorSimilarityFunction.COSINE;
+
+  /** Non-zero and finite, but (1e-30)^2 = 1e-60 is below the smallest float, so it rounds to 0. */
+  private static final float[] TINY = {1e-30f, 0f};
+
+  private static final String FIELD = &quot;v&quot;;
+
+  /**
+   * COSINE.compare must return a score in [0, 1] (VectorSimilarityFunction.COSINE javadoc: &quot;The
+   * similarity score is normalised to assure it is positive&quot;; VectorUtil.normalizeToUnitInterval:
+   * &quot;a normalized score between 0 and 1&quot;) for vectors the field accepts.
+   */
+  public void testCosineScoreOfAcceptedVectorIsInUnitInterval() {
+    // x*x rounds down to the smallest subnormal float, so the norm is under-estimated
+    float subnormal = (float) Math.sqrt(1.49 * Math.scalb(1.0, -149));
+    float[][][] pairs = {
+      {{0.6f, 0.8f}, TINY}, // positive dot product
+      {{0f, 1f}, TINY}, // orthogonal: dot product 0
+      {{1f, 0f}, {subnormal, 0f}} // same direction, true cosine 1, subnormal squared norm
+    };
+    List&lt;String&gt; bad = new ArrayList&lt;&gt;();
+    for (float[][] p : pairs) {
+      if (accepted(p[1]) == false) {
+        continue; // rejected up front: fine
+      }
+      String what = &quot;compare(&quot; + Arrays.toString(p[0]) + &quot;, &quot; + Arrays.toString(p[1]) + &quot;)&quot;;
+      float s;
+      try {
+        s = COSINE.compare(p[0], p[1]);
+      } catch (AssertionError e) {
+        bad.add(what + &quot; tripped Lucene&#x27;s internal assertion (&quot; + e + &quot;)&quot;);
+        continue;
+      }
+      if ((s &gt;= 0f &amp;&amp; s &lt;= 1f) == false) {
+        bad.add(what + &quot; = &quot; + s);
+      }
+    }
+    assertTrue(&quot;COSINE scores outside [0, 1] for accepted vectors: &quot; + bad, bad.isEmpty());
+  }
+
+  /**
+   * Default codec: the kNN top hit for {0.6, 0.8} must be the identical vector, finitely scored.
+   */
+  public void testDefaultCodecTopHitIsIdenticalVector() throws Exception {
+    if (accepted(TINY) == false) {
+      return;
+    }
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
+        add(w, &quot;exact&quot;, new float[] {0.6f, 0.8f});
+        add(w, &quot;near&quot;, new float[] {0.8f, 0.6f});
+        add(w, &quot;tiny&quot;, TINY);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0.6f, 0.8f}, 3), 3);
+        String hits = describe(s, td);
+        assertTrue(&quot;no hits&quot;, td.scoreDocs.length &gt; 0);
+        assertEquals(&quot;top hit; hits=&quot; + hits, &quot;exact&quot;, id(s, td.scoreDocs[0]));
+        assertTrue(&quot;top score must be finite; hits=&quot; + hits, Float.isFinite(td.scoreDocs[0].score));
+      }
+    }
+  }
+
+  /**
+   * Default codec: a query orthogonal to the tiny doc must still find the identical vector. (The
+   * tiny doc scores NaN, and the NaN maximum of its 64-ordinal scoring batch hides the batch.)
+   */
+  public void testDefaultCodecOrthogonalQueryFindsIdenticalVector() throws Exception {
+    if (accepted(TINY) == false) {
+      return;
+    }
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
+        add(w, &quot;exact01&quot;, new float[] {0f, 1f});
+        add(w, &quot;tiny&quot;, TINY);
+        add(w, &quot;d10&quot;, new float[] {1f, 0f});
+        add(w, &quot;d0707&quot;, new float[] {0.7071f, 0.7071f});
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0f, 1f}, 4), 4);
+        assertTrue(&quot;kNN for {0, 1} returned no hits&quot;, td.scoreDocs.length &gt; 0);
+        assertEquals(&quot;top hit; hits=&quot; + describe(s, td), &quot;exact01&quot;, id(s, td.scoreDocs[0]));
+      }
+    }
+  }
+
+  /** Default codec: CheckIndex must report an index built only from accepted vectors as clean. */
+  public void testDefaultCodecCheckIndexIsClean() throws Exception {
+    Random rnd = new Random(5);
+    float[] minValue = new float[64];
+    Arrays.fill(minValue, Float.MIN_VALUE); // finite and non-zero
+    if (accepted(minValue) == false) {
+      return;
+    }
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
+        add(w, &quot;minValue&quot;, minValue);
+        for (int i = 0; i &lt; 49; i++) {
+          add(w, &quot;d&quot; + i, unitGaussian(rnd, 64));
+        }
+      }
+      try (CheckIndex ci = new CheckIndex(dir)) {
+        ci.setLevel(CheckIndex.Level.MIN_LEVEL_FOR_INTEGRITY_CHECKS);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ci.setInfoStream(new PrintStream(bos, true, StandardCharsets.UTF_8));
+        CheckIndex.Status st = ci.checkIndex();
+        String vectorsLine = &quot;&quot;;
+        for (String line : bos.toString(StandardCharsets.UTF_8).split(&quot;\n&quot;)) {
+          if (line.contains(&quot;test: vectors&quot;)) {
+            vectorsLine = line.trim();
+          }
+        }
+        assertTrue(&quot;CheckIndex must be clean: &quot; + vectorsLine, st.clean);
+      }
+    }
+  }
+
+  /** OSQ format: one tiny doc must not stop kNN from returning the segment&#x27;s other docs. */
+  public void testOsqSegmentWithTinyVectorReturnsHits() throws Exception {
+    if (accepted(TINY) == false) {
+      return;
+    }
+    Codec osq = TestUtil.alwaysKnnVectorsFormat(new Lucene104HnswScalarQuantizedVectorsFormat());
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config(osq))) {
+        add(w, &quot;d10&quot;, new float[] {1f, 0f});
+        add(w, &quot;d01&quot;, new float[] {0f, 1f});
+        add(w, &quot;tiny&quot;, TINY);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(1, r.leaves().size());
+        IndexSearcher s = new IndexSearcher(r);
+        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0.6f, 0.8f}, 3), 3);
+        assertEquals(&quot;kNN(k=3) hit count; hits=&quot; + describe(s, td), 3, td.scoreDocs.length);
+      }
+    }
+  }
+
+  /** OSQ format: merging a segment that holds an accepted tiny vector must not fail. */
+  public void testOsqMergeWithTinyVectorSucceeds() throws Exception {
+    if (accepted(TINY) == false) {
+      return;
+    }
+    Codec osq = TestUtil.alwaysKnnVectorsFormat(new Lucene104HnswScalarQuantizedVectorsFormat());
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig iwc =
+          config(osq)
+              .setMergePolicy(new TieredMergePolicy())
+              .setMergeScheduler(new SerialMergeScheduler());
+      IndexWriter w = new IndexWriter(dir, iwc);
+      Throwable thrown = null;
+      try {
+        add(w, &quot;d10&quot;, new float[] {1f, 0f});
+        add(w, &quot;d01&quot;, new float[] {0f, 1f});
+        w.commit();
+        add(w, &quot;tiny&quot;, TINY);
+        w.commit();
+        try {
+          w.forceMerge(1);
+        } catch (Throwable t) {
+          thrown = t;
+        }
+      } finally {
+        IOUtils.closeWhileHandlingException(w);
+      }
+      if (thrown != null) {
+        Throwable root = thrown;
+        while (root.getCause() != null) {
+          root = root.getCause();
+        }
+        throw new AssertionError(
+            &quot;forceMerge(1) failed (writer open after: &quot; + w.isOpen() + &quot;); root cause: &quot; + root,
+            thrown);
+      }
+    }
+  }
+
+  /**
+   * Query side (default codec): a tiny query vector pointing like {1, 0} must either be rejected
+   * with an IllegalArgumentException or return all 3 docs with finite scores.
+   */
+  public void testTinyQueryVectorReturnsNeighbours() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
+        add(w, &quot;d10&quot;, new float[] {1f, 0f});
+        add(w, &quot;d01&quot;, new float[] {0f, 1f});
+        add(w, &quot;d0608&quot;, new float[] {0.6f, 0.8f});
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        TopDocs td;
+        try {
+          td = s.search(new KnnFloatVectorQuery(FIELD, TINY, 3), 3);
+        } catch (IllegalArgumentException _) {
+          return; // rejecting the query vector up front is acceptable
+        }
+        String hits = describe(s, td);
+        assertEquals(&quot;kNN(k=3) hit count; hits=&quot; + hits, 3, td.scoreDocs.length);
+        for (ScoreDoc sd : td.scoreDocs) {
+          assertTrue(&quot;finite score; hits=&quot; + hits, Float.isFinite(sd.score));
+        }
+      }
+    }
+  }
+
+  /** True if KnnFloatVectorField accepts {@code v} for COSINE; false if it rejects it (IAE). */
+  private static boolean accepted(float[] v) {
+    try {
+      new KnnFloatVectorField(FIELD, v, COSINE);
+      return true;
+    } catch (IllegalArgumentException _) {
+      return false;
+    }
+  }
+
+  private static IndexWriterConfig config(Codec codec) {
+    return new IndexWriterConfig().setCodec(codec).setMergePolicy(NoMergePolicy.INSTANCE);
+  }
+
+  private static void add(IndexWriter w, String id, float[] v) throws Exception {
+    Document d = new Document();
+    d.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    d.add(new KnnFloatVectorField(FIELD, v, COSINE));
+    w.addDocument(d);
+  }
+
+  private static String id(IndexSearcher s, ScoreDoc sd) throws Exception {
+    return s.storedFields().document(sd.doc).get(&quot;id&quot;);
+  }
+
+  private static String describe(IndexSearcher s, TopDocs td) throws Exception {
+    StringBuilder sb = new StringBuilder(&quot;[&quot;);
+    for (ScoreDoc sd : td.scoreDocs) {
+      sb.append(&#x27; &#x27;).append(id(s, sd)).append(&#x27;=&#x27;).append(sd.score);
+    }
+    return sb.append(&quot; ]&quot;).toString();
+  }
+
+  private static float[] unitGaussian(Random rnd, int dim) {
+    float[] v = new float[dim];
+    double n = 0;
+    for (int i = 0; i &lt; dim; i++) {
+      v[i] = (float) rnd.nextGaussian();
+      n += (double) v[i] * v[i];
+    }
+    n = Math.sqrt(n);
+    for (int i = 0; i &lt; dim; i++) {
+      v[i] = (float) (v[i] / n);
+    }
+    return v;
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at ea57360912ed (or a later commit where these files are unchanged)
+cp $REPRO/TestCosineTinyNormValidation.java lucene/core/src/test/org/apache/lucene/document/
+./gradlew :lucene:core:test --tests org.apache.lucene.document.TestCosineTinyNormValidation -Ptests.seed=DEADBEEF
+# assertions off (as in production): add -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>{1e-30, 0}</code> is rejected like <code>{0, 0}</code>, or every COSINE score stays in [0, 1] and kNN, <code class='nw'>CheckIndex</code> and merges work.</dd></div><div class='got'><dt>Observed</dt><dd>accepted; scores +Infinity, NaN and 1.1103; tiny is the top hit; 0 hits for <code>{0, 1}</code>; <code class='nw'>CheckIndex</code> (level 2) fails; OSQ returns 0 hits and <code class='nw'>forceMerge</code> closes the writer.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-046/'>repro/LFV-046/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (436 lines) · 2,821 words</span></summary><div class='body'><p>The test uses fixed inputs, <code>java.util.Random(5)</code> for the 49 filler vectors, explicit codecs (<code>TestUtil.getDefaultCodec()</code> and <code>TestUtil.alwaysKnnVectorsFormat(new Lucene104HnswScalarQuantizedVectorsFormat())</code>) and <code>ByteBuffersDirectory</code>, so it does not depend on the seed. Each index-side test also passes if the field rejects the vector up front with an <code>IllegalArgumentException</code>, as it does for <code>{0, 0}</code>; the query-side test passes if the query is rejected. It is google-java-format and ecjLint clean. Its two <code>catch (IllegalArgumentException _)</code> clauses compile on main (minimum Java 25); for a 10.x backport (Java 21) name the variable.</p><p>The same 7 failures were seen on main through gradle and through a standalone JUnit harness, with assertions on and off and with the Panama and the scalar vector providers, and on the 10.5.2 and 10.4.0 release jars. With assertions on, five tests stop first at Lucene's own assertions (<code>VectorUtil.java:105</code>, <code>OptimizedScalarQuantizer.java:189-190</code>). A control with <code class='nw'>1e-10</code> in place of the tiny values passes 7 of 7.</p><p>The <code class='nw'>CheckIndex</code> test sets level 2 (<code>MIN_LEVEL_FOR_INTEGRITY_CHECKS</code>); at the command-line default, level 1, <code class='nw'>CheckIndex</code> runs no vector checks and reports the index clean. The query-side test is an add-on: an exact-zero query <code>{0, 0}</code> also returns 0 hits, so that part is not specific to underflow.</p><div class="hd hd-3"><h3 id='code-2-h'>The fix: cosine-tiny-norm-validation.diff</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The fix: cosine-tiny-norm-validation.diff</span><span class='meta'>97 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java b/lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java
+index 259b3576226..534c7d6110a 100644
+--- a/lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java
++++ b/lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java
+@@ -51,7 +51,7 @@ public class KnnFloatVectorField extends Field {
+       throw new IllegalArgumentException(&quot;similarity function must not be null&quot;);
+     }
+     if (similarityFunction == VectorSimilarityFunction.COSINE
+-        &amp;&amp; VectorUtil.isZeroVector(v) == true) {
++        &amp;&amp; VectorUtil.isZeroOrSubnormalNorm(v)) {
+       throw new IllegalArgumentException(&quot;zero vector not allowed with cosine similarity function&quot;);
+     }
+     FieldType type = new FieldType();
+@@ -144,7 +144,7 @@ public class KnnFloatVectorField extends Field {
+           &quot;The number of vector dimensions does not match the field type&quot;);
+     }
+     if (fieldType.vectorSimilarityFunction() == VectorSimilarityFunction.COSINE
+-        &amp;&amp; VectorUtil.isZeroVector(vector) == true) {
++        &amp;&amp; VectorUtil.isZeroOrSubnormalNorm(vector)) {
+       throw new IllegalArgumentException(
+           &quot;zero vector not allowed with cosine similarity configured in field type&quot;);
+     }
+@@ -170,7 +170,7 @@ public class KnnFloatVectorField extends Field {
+           &quot;value length &quot; + value.length + &quot; must match field dimension &quot; + type.vectorDimension());
+     }
+     if (type.vectorSimilarityFunction() == VectorSimilarityFunction.COSINE
+-        &amp;&amp; VectorUtil.isZeroVector(value)) {
++        &amp;&amp; VectorUtil.isZeroOrSubnormalNorm(value)) {
+       throw new IllegalArgumentException(&quot;zero vector not allowed with cosine similarity function&quot;);
+     }
+     fieldsData = VectorUtil.checkFinite(value);
+diff --git a/lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java b/lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java
+index 1d5973a2351..0582c5528e7 100644
+--- a/lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java
++++ b/lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java
+@@ -352,16 +352,16 @@ public final class ColumnValidation {
+   }
+ 
+   /**
+-   * Throws if a float vector has a non-finite component, or is a zero vector while {@code
+-   * similarityFunction} is {@link VectorSimilarityFunction#COSINE COSINE}. Mirrors the checks done
+-   * by {@link org.apache.lucene.document.KnnFloatVectorField}.
++   * Throws if a float vector has a non-finite component, or has a zero or subnormal squared norm
++   * (see {@link VectorUtil#isZeroOrSubnormalNorm(float[])}) while {@code similarityFunction} is
++   * {@link VectorSimilarityFunction#COSINE COSINE}. Mirrors the checks done by {@link
++   * org.apache.lucene.document.KnnFloatVectorField}.
+    */
+   public static void checkFloatVectorValue(
+       VectorColumn&lt;?&gt; column,
+       float[] vector,
+       VectorSimilarityFunction similarityFunction,
+       int batchDocID) {
+-    boolean isZero = true;
+     for (int i = 0; i &lt; vector.length; i++) {
+       if (Float.isFinite(vector[i]) == false) {
+         throw new IllegalArgumentException(
+@@ -374,9 +374,9 @@ public final class ColumnValidation {
+                 + &quot; at batch doc &quot;
+                 + batchDocID);
+       }
+-      isZero = isZero &amp; (vector[i] == 0);
+     }
+-    if (isZero &amp;&amp; similarityFunction == VectorSimilarityFunction.COSINE) {
++    if (similarityFunction == VectorSimilarityFunction.COSINE
++        &amp;&amp; VectorUtil.isZeroOrSubnormalNorm(vector)) {
+       throw zeroCosineVector(column, batchDocID);
+     }
+   }
+diff --git a/lucene/core/src/java/org/apache/lucene/util/VectorUtil.java b/lucene/core/src/java/org/apache/lucene/util/VectorUtil.java
+index 4d89ac68dcd..de900fd1dc4 100644
+--- a/lucene/core/src/java/org/apache/lucene/util/VectorUtil.java
++++ b/lucene/core/src/java/org/apache/lucene/util/VectorUtil.java
+@@ -522,6 +522,24 @@ public final class VectorUtil {
+     return true;
+   }
+ 
++  /**
++   * Returns true if the squared norm of the provided vector is zero or subnormal (below {@link
++   * Float#MIN_NORMAL}). {@link #cosine(float[], float[])} and the vector formats compute the norm
++   * in float32, so such a vector behaves like the zero vector even if some of its components are
++   * not zero, for example {@code {1e-30f, 0f}}. This requires every component to be smaller than
++   * 2^-63 in magnitude. Returns false if a component is not finite.
++   */
++  public static boolean isZeroOrSubnormalNorm(float[] v) {
++    double squaredNorm = 0;
++    for (float value : v) {
++      if (Math.abs(value) &gt;= 0x1p-63f) {
++        return false; // value * value &gt;= Float.MIN_NORMAL on its own
++      }
++      squaredNorm += (double) value * value;
++    }
++    return squaredNorm &lt; Float.MIN_NORMAL; // false for NaN
++  }
++
+   /**
+    * Returns true if all dimensions of provided float16 vector, encoded as {@code short[]}, are zero
+    * (either {@code +0} or {@code -0}), false otherwise.
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>test.diff: the test plus a columnar addBatch case</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Adds the test above and one case to <code>TestColumnBatchVectorColumn.testFloatVectorValueValidation</code>: <code class='nw'>addBatch</code> must reject a COSINE <code>{1e-30, 0}</code> like <code>{0, 0}</code>. On stock main it is accepted.</p><figure class='code'><figcaption><span class='fname'>test.diff: the test plus a columnar addBatch case</span><span class='meta'>339 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>diff --git a/lucene/core/src/test/org/apache/lucene/document/TestCosineTinyNormValidation.java b/lucene/core/src/test/org/apache/lucene/document/TestCosineTinyNormValidation.java
+new file mode 100644
+index 00000000000..9448d0c617a
+--- /dev/null
++++ b/lucene/core/src/test/org/apache/lucene/document/TestCosineTinyNormValidation.java
+@@ -0,0 +1,312 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the &quot;License&quot;); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.document;
++
++import java.io.ByteArrayOutputStream;
++import java.io.PrintStream;
++import java.nio.charset.StandardCharsets;
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.List;
++import java.util.Random;
++import org.apache.lucene.codecs.Codec;
++import org.apache.lucene.codecs.lucene104.Lucene104HnswScalarQuantizedVectorsFormat;
++import org.apache.lucene.index.CheckIndex;
++import org.apache.lucene.index.DirectoryReader;
++import org.apache.lucene.index.IndexWriter;
++import org.apache.lucene.index.IndexWriterConfig;
++import org.apache.lucene.index.NoMergePolicy;
++import org.apache.lucene.index.SerialMergeScheduler;
++import org.apache.lucene.index.TieredMergePolicy;
++import org.apache.lucene.index.VectorSimilarityFunction;
++import org.apache.lucene.search.IndexSearcher;
++import org.apache.lucene.search.KnnFloatVectorQuery;
++import org.apache.lucene.search.ScoreDoc;
++import org.apache.lucene.search.TopDocs;
++import org.apache.lucene.store.ByteBuffersDirectory;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.util.LuceneTestCase;
++import org.apache.lucene.tests.util.TestUtil;
++import org.apache.lucene.util.IOUtils;
++
++/**
++ * A COSINE float vector that is non-zero and finite is accepted by {@link KnnFloatVectorField} (the
++ * field only rejects vectors whose components are all exactly 0). If every component is at most
++ * about 2.6e-23 in magnitude, the float32 sum of squares that every codec computes for it is 0 (or
++ * subnormal), so the vector behaves like the zero vector the field is meant to reject.
++ *
++ * &lt;p&gt;Each index-side test passes if the field rejects the vector up front with an
++ * IllegalArgumentException, as it does for the all-zero vector. If the field accepts it, the test
++ * asserts the documented behaviour: COSINE scores are in [0, 1], kNN returns the nearest vectors,
++ * CheckIndex is clean, and merges succeed. Public API only.
++ */
++public class TestCosineTinyNormValidation extends LuceneTestCase {
++
++  private static final VectorSimilarityFunction COSINE = VectorSimilarityFunction.COSINE;
++
++  /** Non-zero and finite, but (1e-30)^2 = 1e-60 is below the smallest float, so it rounds to 0. */
++  private static final float[] TINY = {1e-30f, 0f};
++
++  private static final String FIELD = &quot;v&quot;;
++
++  /**
++   * COSINE.compare must return a score in [0, 1] (VectorSimilarityFunction.COSINE javadoc: &quot;The
++   * similarity score is normalised to assure it is positive&quot;; VectorUtil.normalizeToUnitInterval:
++   * &quot;a normalized score between 0 and 1&quot;) for vectors the field accepts.
++   */
++  public void testCosineScoreOfAcceptedVectorIsInUnitInterval() {
++    // x*x rounds down to the smallest subnormal float, so the norm is under-estimated
++    float subnormal = (float) Math.sqrt(1.49 * Math.scalb(1.0, -149));
++    float[][][] pairs = {
++      {{0.6f, 0.8f}, TINY}, // positive dot product
++      {{0f, 1f}, TINY}, // orthogonal: dot product 0
++      {{1f, 0f}, {subnormal, 0f}} // same direction, true cosine 1, subnormal squared norm
++    };
++    List&lt;String&gt; bad = new ArrayList&lt;&gt;();
++    for (float[][] p : pairs) {
++      if (accepted(p[1]) == false) {
++        continue; // rejected up front: fine
++      }
++      String what = &quot;compare(&quot; + Arrays.toString(p[0]) + &quot;, &quot; + Arrays.toString(p[1]) + &quot;)&quot;;
++      float s;
++      try {
++        s = COSINE.compare(p[0], p[1]);
++      } catch (AssertionError e) {
++        bad.add(what + &quot; tripped Lucene&#x27;s internal assertion (&quot; + e + &quot;)&quot;);
++        continue;
++      }
++      if ((s &gt;= 0f &amp;&amp; s &lt;= 1f) == false) {
++        bad.add(what + &quot; = &quot; + s);
++      }
++    }
++    assertTrue(&quot;COSINE scores outside [0, 1] for accepted vectors: &quot; + bad, bad.isEmpty());
++  }
++
++  /**
++   * Default codec: the kNN top hit for {0.6, 0.8} must be the identical vector, finitely scored.
++   */
++  public void testDefaultCodecTopHitIsIdenticalVector() throws Exception {
++    if (accepted(TINY) == false) {
++      return;
++    }
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
++        add(w, &quot;exact&quot;, new float[] {0.6f, 0.8f});
++        add(w, &quot;near&quot;, new float[] {0.8f, 0.6f});
++        add(w, &quot;tiny&quot;, TINY);
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        IndexSearcher s = new IndexSearcher(r);
++        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0.6f, 0.8f}, 3), 3);
++        String hits = describe(s, td);
++        assertTrue(&quot;no hits&quot;, td.scoreDocs.length &gt; 0);
++        assertEquals(&quot;top hit; hits=&quot; + hits, &quot;exact&quot;, id(s, td.scoreDocs[0]));
++        assertTrue(&quot;top score must be finite; hits=&quot; + hits, Float.isFinite(td.scoreDocs[0].score));
++      }
++    }
++  }
++
++  /**
++   * Default codec: a query orthogonal to the tiny doc must still find the identical vector. (The
++   * tiny doc scores NaN, and the NaN maximum of its 64-ordinal scoring batch hides the batch.)
++   */
++  public void testDefaultCodecOrthogonalQueryFindsIdenticalVector() throws Exception {
++    if (accepted(TINY) == false) {
++      return;
++    }
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
++        add(w, &quot;exact01&quot;, new float[] {0f, 1f});
++        add(w, &quot;tiny&quot;, TINY);
++        add(w, &quot;d10&quot;, new float[] {1f, 0f});
++        add(w, &quot;d0707&quot;, new float[] {0.7071f, 0.7071f});
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        IndexSearcher s = new IndexSearcher(r);
++        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0f, 1f}, 4), 4);
++        assertTrue(&quot;kNN for {0, 1} returned no hits&quot;, td.scoreDocs.length &gt; 0);
++        assertEquals(&quot;top hit; hits=&quot; + describe(s, td), &quot;exact01&quot;, id(s, td.scoreDocs[0]));
++      }
++    }
++  }
++
++  /** Default codec: CheckIndex must report an index built only from accepted vectors as clean. */
++  public void testDefaultCodecCheckIndexIsClean() throws Exception {
++    Random rnd = new Random(5);
++    float[] minValue = new float[64];
++    Arrays.fill(minValue, Float.MIN_VALUE); // finite and non-zero
++    if (accepted(minValue) == false) {
++      return;
++    }
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
++        add(w, &quot;minValue&quot;, minValue);
++        for (int i = 0; i &lt; 49; i++) {
++          add(w, &quot;d&quot; + i, unitGaussian(rnd, 64));
++        }
++      }
++      try (CheckIndex ci = new CheckIndex(dir)) {
++        ci.setLevel(CheckIndex.Level.MIN_LEVEL_FOR_INTEGRITY_CHECKS);
++        ByteArrayOutputStream bos = new ByteArrayOutputStream();
++        ci.setInfoStream(new PrintStream(bos, true, StandardCharsets.UTF_8));
++        CheckIndex.Status st = ci.checkIndex();
++        String vectorsLine = &quot;&quot;;
++        for (String line : bos.toString(StandardCharsets.UTF_8).split(&quot;\n&quot;)) {
++          if (line.contains(&quot;test: vectors&quot;)) {
++            vectorsLine = line.trim();
++          }
++        }
++        assertTrue(&quot;CheckIndex must be clean: &quot; + vectorsLine, st.clean);
++      }
++    }
++  }
++
++  /** OSQ format: one tiny doc must not stop kNN from returning the segment&#x27;s other docs. */
++  public void testOsqSegmentWithTinyVectorReturnsHits() throws Exception {
++    if (accepted(TINY) == false) {
++      return;
++    }
++    Codec osq = TestUtil.alwaysKnnVectorsFormat(new Lucene104HnswScalarQuantizedVectorsFormat());
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(osq))) {
++        add(w, &quot;d10&quot;, new float[] {1f, 0f});
++        add(w, &quot;d01&quot;, new float[] {0f, 1f});
++        add(w, &quot;tiny&quot;, TINY);
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        assertEquals(1, r.leaves().size());
++        IndexSearcher s = new IndexSearcher(r);
++        TopDocs td = s.search(new KnnFloatVectorQuery(FIELD, new float[] {0.6f, 0.8f}, 3), 3);
++        assertEquals(&quot;kNN(k=3) hit count; hits=&quot; + describe(s, td), 3, td.scoreDocs.length);
++      }
++    }
++  }
++
++  /** OSQ format: merging a segment that holds an accepted tiny vector must not fail. */
++  public void testOsqMergeWithTinyVectorSucceeds() throws Exception {
++    if (accepted(TINY) == false) {
++      return;
++    }
++    Codec osq = TestUtil.alwaysKnnVectorsFormat(new Lucene104HnswScalarQuantizedVectorsFormat());
++    try (Directory dir = new ByteBuffersDirectory()) {
++      IndexWriterConfig iwc =
++          config(osq)
++              .setMergePolicy(new TieredMergePolicy())
++              .setMergeScheduler(new SerialMergeScheduler());
++      IndexWriter w = new IndexWriter(dir, iwc);
++      Throwable thrown = null;
++      try {
++        add(w, &quot;d10&quot;, new float[] {1f, 0f});
++        add(w, &quot;d01&quot;, new float[] {0f, 1f});
++        w.commit();
++        add(w, &quot;tiny&quot;, TINY);
++        w.commit();
++        try {
++          w.forceMerge(1);
++        } catch (Throwable t) {
++          thrown = t;
++        }
++      } finally {
++        IOUtils.closeWhileHandlingException(w);
++      }
++      if (thrown != null) {
++        Throwable root = thrown;
++        while (root.getCause() != null) {
++          root = root.getCause();
++        }
++        throw new AssertionError(
++            &quot;forceMerge(1) failed (writer open after: &quot; + w.isOpen() + &quot;); root cause: &quot; + root,
++            thrown);
++      }
++    }
++  }
++
++  /**
++   * Query side (default codec): a tiny query vector pointing like {1, 0} must either be rejected
++   * with an IllegalArgumentException or return all 3 docs with finite scores.
++   */
++  public void testTinyQueryVectorReturnsNeighbours() throws Exception {
++    try (Directory dir = new ByteBuffersDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, config(TestUtil.getDefaultCodec()))) {
++        add(w, &quot;d10&quot;, new float[] {1f, 0f});
++        add(w, &quot;d01&quot;, new float[] {0f, 1f});
++        add(w, &quot;d0608&quot;, new float[] {0.6f, 0.8f});
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        IndexSearcher s = new IndexSearcher(r);
++        TopDocs td;
++        try {
++          td = s.search(new KnnFloatVectorQuery(FIELD, TINY, 3), 3);
++        } catch (IllegalArgumentException _) {
++          return; // rejecting the query vector up front is acceptable
++        }
++        String hits = describe(s, td);
++        assertEquals(&quot;kNN(k=3) hit count; hits=&quot; + hits, 3, td.scoreDocs.length);
++        for (ScoreDoc sd : td.scoreDocs) {
++          assertTrue(&quot;finite score; hits=&quot; + hits, Float.isFinite(sd.score));
++        }
++      }
++    }
++  }
++
++  /** True if KnnFloatVectorField accepts {@code v} for COSINE; false if it rejects it (IAE). */
++  private static boolean accepted(float[] v) {
++    try {
++      new KnnFloatVectorField(FIELD, v, COSINE);
++      return true;
++    } catch (IllegalArgumentException _) {
++      return false;
++    }
++  }
++
++  private static IndexWriterConfig config(Codec codec) {
++    return new IndexWriterConfig().setCodec(codec).setMergePolicy(NoMergePolicy.INSTANCE);
++  }
++
++  private static void add(IndexWriter w, String id, float[] v) throws Exception {
++    Document d = new Document();
++    d.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
++    d.add(new KnnFloatVectorField(FIELD, v, COSINE));
++    w.addDocument(d);
++  }
++
++  private static String id(IndexSearcher s, ScoreDoc sd) throws Exception {
++    return s.storedFields().document(sd.doc).get(&quot;id&quot;);
++  }
++
++  private static String describe(IndexSearcher s, TopDocs td) throws Exception {
++    StringBuilder sb = new StringBuilder(&quot;[&quot;);
++    for (ScoreDoc sd : td.scoreDocs) {
++      sb.append(&#x27; &#x27;).append(id(s, sd)).append(&#x27;=&#x27;).append(sd.score);
++    }
++    return sb.append(&quot; ]&quot;).toString();
++  }
++
++  private static float[] unitGaussian(Random rnd, int dim) {
++    float[] v = new float[dim];
++    double n = 0;
++    for (int i = 0; i &lt; dim; i++) {
++      v[i] = (float) rnd.nextGaussian();
++      n += (double) v[i] * v[i];
++    }
++    n = Math.sqrt(n);
++    for (int i = 0; i &lt; dim; i++) {
++      v[i] = (float) (v[i] / n);
++    }
++    return v;
++  }
++}
+diff --git a/lucene/core/src/test/org/apache/lucene/document/column/TestColumnBatchVectorColumn.java b/lucene/core/src/test/org/apache/lucene/document/column/TestColumnBatchVectorColumn.java
+index b6b39051d1d..d4ef0bc963c 100644
+--- a/lucene/core/src/test/org/apache/lucene/document/column/TestColumnBatchVectorColumn.java
++++ b/lucene/core/src/test/org/apache/lucene/document/column/TestColumnBatchVectorColumn.java
+@@ -240,6 +240,16 @@ public class TestColumnBatchVectorColumn extends LuceneTestCase {
+                     simpleBatch(2, new ArrayDenseFloatVectorColumn(&quot;cos&quot;, cosine, zeroVectors))));
+     assertTrue(e.getMessage(), e.getMessage().contains(&quot;zero vector at batch doc 1&quot;));
+ 
++    // non-zero components whose float32 squares underflow: the norm is zero, as for {0, 0}
++    float[][] tinyVectors = {{1f, 2f}, {1e-30f, 0f}};
++    e =
++        expectThrows(
++            IllegalArgumentException.class,
++            () -&gt;
++                w.addBatch(
++                    simpleBatch(2, new ArrayDenseFloatVectorColumn(&quot;cos&quot;, cosine, tinyVectors))));
++    assertTrue(e.getMessage(), e.getMessage().contains(&quot;zero vector at batch doc 1&quot;));
++
+     w.rollback();
+     dir.close();
+   }
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed: affected. Also affected: every release from 9.0.0 to 10.5.2 (10.5.2 and 10.4.0 run with this test; older releases with adapted copies). 8.11.4 has no vector API.</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock ea57360912ed, gradle, seed DEADBEEF, -Ptests.asserts=false
+TestCosineTinyNormValidation &gt; testOsqSegmentWithTinyVectorReturnsHits FAILED
+    java.lang.AssertionError: kNN(k=3) hit count; hits=[ ] expected:&lt;3&gt; but was:&lt;0&gt;
+TestCosineTinyNormValidation &gt; testDefaultCodecCheckIndexIsClean FAILED
+    java.lang.AssertionError: CheckIndex must be clean: test: vectors.............ERROR: org.apache.lucene.index.CheckIndex$CheckIndexException: Field &quot;v&quot; failed to search k nearest neighbors
+TestCosineTinyNormValidation &gt; testDefaultCodecTopHitIsIdenticalVector FAILED
+    org.junit.ComparisonFailure: top hit; hits=[ tiny=Infinity exact=1.0 near=0.98 ] expected:&lt;[exact]&gt; but was:&lt;[tiny]&gt;
+TestCosineTinyNormValidation &gt; testOsqMergeWithTinyVectorSucceeds FAILED
+    java.lang.AssertionError: forceMerge(1) failed (writer open after: false); root cause: java.lang.IllegalArgumentException: Cannot normalize a zero-length vector
+        Caused by: java.lang.IllegalArgumentException: Cannot normalize a zero-length vector
+            at org.apache.lucene.internal.vectorization.DefaultVectorUtilSupport.l2normalize(DefaultVectorUtilSupport.java:483)
+            at org.apache.lucene.codecs.lucene104.NormalizedFloatVectorValues.vectorValue(NormalizedFloatVectorValues.java:51)
+            ...
+TestCosineTinyNormValidation &gt; testCosineScoreOfAcceptedVectorIsInUnitInterval FAILED
+    java.lang.AssertionError: COSINE scores outside [0, 1] for accepted vectors: [compare([0.6, 0.8], [1.0E-30, 0.0]) = Infinity, compare([0.0, 1.0], [1.0E-30, 0.0]) = NaN, compare([1.0, 0.0], [4.5693925E-23, 0.0]) = 1.1103277]
+TestCosineTinyNormValidation &gt; testTinyQueryVectorReturnsNeighbours FAILED
+    java.lang.AssertionError: kNN(k=3) hit count; hits=[ ] expected:&lt;3&gt; but was:&lt;0&gt;
+TestCosineTinyNormValidation &gt; testDefaultCodecOrthogonalQueryFindsIdenticalVector FAILED
+    java.lang.AssertionError: kNN for {0, 1} returned no hits
+7 tests completed, 7 failed
+
+# with assertions on, the same 7 fail; e.g. testOsqSegmentWithTinyVectorReturnsHits:
+    java.lang.AssertionError
+        at org.apache.lucene.util.quantization.OptimizedScalarQuantizer.scalarQuantize(OptimizedScalarQuantizer.java:190)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>COSINE scores are documented to lie in [0, 1], and <code>VectorUtil.cosine</code> asserts finiteness; here they are +Infinity, NaN and 1.1103.</li><li>The field already rejects the zero vector for COSINE; <code>{1e-30, 0}</code> has the same computed norm, 0.</li><li>Committers asked to check that a COSINE vector's length is non-zero (#15540), by input validation (#16099).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>210 words</span></summary><div class='body'><ul><li><strong>The contracts.</strong> <code>VectorSimilarityFunction.COSINE</code> (<code>VectorSimilarityFunction.java:76-81</code>): "The similarity score is normalised to assure it is positive." <code>normalizeToUnitInterval</code> (<code>VectorUtil.java:452-459</code>): "Converts a dot product or cosine similarity value to a normalized score in the [0, 1] range ... @return a normalized score between 0 and 1". <code>VectorUtil.cosine</code> asserts <code>Float.isFinite(r)</code> (<code>VectorUtil.java:105</code>).</li><li><strong>The existing check exists for this reason.</strong> <code>KnnFloatVectorField</code> throws "zero vector not allowed with cosine similarity function" (<code class='nw'>:55</code>, <code class='nw'>:174</code>; <code class='nw'>:149</code> says "... cosine similarity configured in field type"); <code>TestField.testKnnFieldZeroVectors</code> and <code>testKnnFieldSetVectorValueZeroVectors</code> (<code>TestField.java:738-812</code>) assert it. No test covers a non-zero vector whose norm underflows, and no javadoc, <code class='nw'>CHANGES.txt</code> or <code class='nw'>MIGRATE.md</code> entry states a minimum magnitude.</li><li><strong>Upstream intent.</strong> On #15540 (open, type:bug) mikemccand asked: "Could we, if <code>VectorSimilarity.COSINE</code> vector distance is being used, validate that the vector's length is non-zero, and throw a clear exception up front, and prevent the vector from being indexed (so index does not become corrupt)?"; benwtrent: "I agree, cosine should be validated." The tiny vector's computed length is zero. On #16099 benwtrent requested changes: "this is a bad idea, adding unnecessary overhead to production paths for something that is data input validation and is obviously incorrect data."</li><li><strong>Precedent.</strong> #12700 / #12727 treated even slightly negative vector scores as a bug.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>293 words</span></summary><div class='body'><p>The strongest case for "intended" or "won't fix": the input is garbage that ordinary embedding models are not expected to produce; <code>KnnFloatVectorField</code> is marked <code>@lucene.experimental</code> (<code>KnnFloatVectorField.java:38</code>); Lucene's threat model leaves sanitizing input to the application (SECURITY.md line 28); the overflow mirror image, a 1e17 cap on float components (#12373), was closed for "no consensus to impose this limit"; COSINE is documented as the discouraged path ("the preferred way ... is to normalize all vectors to unit length, and instead use DOT_PRODUCT"); <code>normalizeToUnitInterval</code> calls its input "typically" in [-1, 1]; and a maintainer may object to rejecting mathematically non-zero vectors at a <code class='nw'>Float.MIN_NORMAL</code> threshold.</p><p>Why it fails: Lucene already chose to validate COSINE inputs that cannot be scored (#15751, #16098, #16708), and the committers on #15540 asked for exactly "the vector's length is non-zero"; the check implements "all components are 0" instead, which is not what the arithmetic needs. The damage is not confined to the bad document: it hides up to 63 others, makes every quantized score of an OSQ segment NaN, blocks merges and makes <code class='nw'>CheckIndex</code> (level 2 or higher) report corruption of an index built only from accepted input. #12373 was a fixed component cap for every similarity on the overflow side; this needs a COSINE-only check on the computed norm that costs one comparison for an ordinary vector, and rejecting only a computed norm of exactly 0 is a valid narrower choice. <code>@lucene.experimental</code> allows API changes; it does not set aside the documented score range. "Typically in [-1, 1]" does not cover +Infinity or NaN, and the code asserts finiteness itself. A cross-model refute review rated the intended-behaviour argument weak; the later cross-model fact check rated it moderate, not enough to make the behaviour correct. <strong>Verdict: a defect.</strong></p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Reject COSINE vectors whose float32 squared norm would be zero or subnormal (validated)</strong></p><p class='short'>Reject a COSINE vector whose squared norm is zero or subnormal, not only an all-zero one: a new <code>VectorUtil.isZeroOrSubnormalNorm</code>, used by <code>KnnFloatVectorField</code> and columnar <code class='nw'>addBatch</code> (+27/-9 lines). The 6 index-side tests pass; 985 nearby tests and the core static checks pass. It does not cover query vectors or repair existing segments.</p><pre class='snippet' tabindex='0'><code>  public static boolean isZeroOrSubnormalNorm(float[] v) {
+    double squaredNorm = 0;
+    for (float value : v) {
+      if (Math.abs(value) &gt;= 0x1p-63f) {
+        return false; // value * value &gt;= Float.MIN_NORMAL on its own
+      }
+      squaredNorm += (double) value * value;
+    }
+    return squaredNorm &lt; Float.MIN_NORMAL; // false for NaN
+  }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 836 words</span></summary><div class='body'><p>Validation is the layer upstream asked for (#15540, #16099). One option was built and validated in a scratch worktree at <code class='nw'>ea57360912ed</code> (removed afterwards); the others are untested here or were tested by the study as shadow patches.</p><div class="hd hd-3"><h3 id='fix-validate-norm'>Reject COSINE vectors whose float32 squared norm would be zero or subnormal (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-validate-norm" target="_self" aria-label="Link to this section" aria-describedby="fix-validate-norm"><span aria-hidden="true">#</span></a></div><p>+27/-9 lines in <code class='nw'>VectorUtil.java</code>, <code>KnnFloatVectorField.java</code> and <code>ColumnValidation.java</code>; <code>git apply --check</code> is clean at <code class='nw'>ea57360912ed</code>. The new public <code>VectorUtil.isZeroOrSubnormalNorm(float[])</code> replaces <code class='nw'>isZeroVector</code> in the three <code>KnnFloatVectorField</code> COSINE checks and the exact-zero test in <code>ColumnValidation.checkFloatVectorValue</code>. The error messages are unchanged; <code class='nw'>isZeroVector</code> is unchanged.</p><pre class='snippet' tabindex='0'><code>  public static boolean isZeroOrSubnormalNorm(float[] v) {
+    double squaredNorm = 0;
+    for (float value : v) {
+      if (Math.abs(value) &gt;= 0x1p-63f) {
+        return false; // value * value &gt;= Float.MIN_NORMAL on its own
+      }
+      squaredNorm += (double) value * value;
+    }
+    return squaredNorm &lt; Float.MIN_NORMAL; // false for NaN
+  }</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Threshold.</strong> Rejecting only a norm of exactly 0 removes +Infinity and NaN but keeps subnormal norms, which still score above 1 (<code>{4.57e-23, 0}</code> vs <code>{1, 0}</code>: 1.1103). <code>&lt; Float.MIN_NORMAL</code> on the double sum guarantees an exact squared norm of at least <code class='nw'>Float.MIN_NORMAL</code> for every accepted COSINE vector (not quite a normal float32 norm; see Precision). It rejects slightly more than OSQ needs (<code>{2^-74, 0}</code> works on OSQ today).</li><li><strong>Cost.</strong> The loop stops at the first component with <code>|x| &gt;= 2^-63</code>, usually the first one; only vectors that are zero or tiny in every leading component are summed. Off the search path. No benchmark was run.</li><li><strong>Precision.</strong> The sum is in double; the codecs' float32 <code class='nw'>fma</code> sum rounds each square to a multiple of 2^-149 below <code>2 * Float.MIN_NORMAL</code>, so it can be lower by up to about half a unit of 2^-149 per component. Executed counterexample: a 1,024-d vector the patch accepts (exact squared norm <code class='nw'>Float.MIN_NORMAL</code> + 0.0078 x 2^-149) has a float32 squared norm of <code class='nw'>Float.MIN_NORMAL</code> - 502 x 2^-149 and scores 1.000015 against a unit query in its direction. Small, but not zero; a margin such as <code>&lt; 2 * Float.MIN_NORMAL</code> would close it (not built or tested).</li><li><strong>API.</strong> Adds one public <code class='nw'>VectorUtil</code> method (<code class='nw'>ColumnValidation</code> is in another package). <code class='nw'>TestField</code> and <code>TestColumnBatchVectorColumn</code> check the substrings "zero vector not allowed" and "zero vector at batch doc N", so a rewording that keeps them ("... zero or near-zero vector not allowed ...") needs no test change.</li><li><strong>Scoring unchanged.</strong> <code>VectorUtil.cosine</code> and <code class='nw'>COSINE.compare</code> called directly with a tiny vector still return +Infinity, NaN or scores above 1; the patched scoring test passes because it skips inputs the field rejects.</li><li><strong>Limits.</strong> Does not repair segments already on disk (the argument of #16100), and does not cover query vectors (option B).</li></ul><p class='k'>What the checks validated</p><ul><li>Stock: the 7 repro tests and the new columnar case fail (28 tests with <code>TestColumnBatchVectorColumn</code>, 8 failed), assertions on and off.</li><li>Patched: 28 tests, 1 failed, assertions on and off; the failure is the query-side test, which this option does not address.</li><li>Patched, closest suites (<code>org.apache.lucene.document.*</code>, <code>codecs.lucene104.*</code>, <code>codecs.lucene99.*</code>, <code class='nw'>TestVectorUtil</code>, <code>TestKnnFloatVectorQuery</code>, <code>TestVectorSimilarityValuesSource</code>, <code class='nw'>TestKnnGraph</code>, <code class='nw'>TestCheckIndex</code>): 985 tests, 0 failures, 41 skipped, assertions on and off (78 test classes match these filters, counted in the source tree).</li><li>Patched, broader core suites <code class='nw'>*Knn*</code>, <code class='nw'>*Vector*</code>, <code class='nw'>*Hnsw*</code>, <code class='nw'>*Quantiz*</code>, assertions on: 1,508 tests, 0 failures, 55 skipped.</li><li><code>:lucene:core:check -x test</code> passes (google-java-format, ecjLint, forbiddenApis).</li><li>The study's variant of the same idea (float32 <code class='nw'>fma</code> sum, a helper inside <code>KnnFloatVectorField</code>) passed the 6 index-side tests through the harness, and an independent reviewer's own test and <code class='nw'>TestField</code>'s <code class='nw'>testKnnField*</code> tests.</li></ul><div class="hd hd-3"><h3 id='fix-query-side'>Also validate COSINE query vectors (untested)</h3><a class="hlink" href="#fix-query-side" target="_self" aria-label="Link to this section" aria-describedby="fix-query-side"><span aria-hidden="true">#</span></a></div><p>Reject a COSINE query target with a zero or subnormal norm (or return no hits on purpose). The query does not know the field's similarity when it is built, so the check has to run per segment where the <code class='nw'>FieldInfo</code> is known: in <code>KnnFloatVectorQuery.approximateSearch</code> and <code>createVectorScorer</code>, or once in <code>CodecReader.searchNearestVectors</code> (which misses exact search).</p><p class='k'>Trade-offs</p><p>Also changes today's answer for an exact-zero query <code>{0, 0}</code> (0 hits on the default codec; an <code>IllegalArgumentException</code> from the OSQ scorer). Query-time zero vectors were mentioned on #15540, so this part is partly known and needs a decision upstream.</p><div class="hd hd-3"><h3 id='fix-robust-scoring'>Make the scoring and quantization code robust instead (not recommended)</h3><a class="hlink" href="#fix-robust-scoring" target="_self" aria-label="Link to this section" aria-describedby="fix-robust-scoring"><span aria-hidden="true">#</span></a></div><p>Recompute in double when a float32 norm is below <code class='nw'>Float.MIN_NORMAL</code> in <code class='nw'>cosine</code>, guard the zero divisor in OSQ <code class='nw'>accumulate</code>, and normalize in double in <code class='nw'>l2normalize</code>.</p><p class='k'>Trade-offs</p><p>The study built this as three shadow patches: it fixed the default-provider runs but 0 of 5 index-side tests with the Panama provider, because every vector provider (default, Panama, off-heap bulk scorers, native) needs its own patch. It touches hot paths, which upstream rejected for the exact-zero case (#16099).</p><div class="hd hd-3"><h3 id='fix-nan-safe-max'>Make the batch maximum NaN-safe (hardening, untested)</h3><a class="hlink" href="#fix-nan-safe-max" target="_self" aria-label="Link to this section" aria-describedby="fix-nan-safe-max"><span aria-hidden="true">#</span></a></div><p>Ignore NaN when <code>RandomVectorScorer.bulkScore</code> and the bulk scorers compute the batch maximum, so one NaN cannot hide 63 other documents.</p><p class='k'>Trade-offs</p><p>Limits the blast radius on the default codec only: the bad document still scores +Infinity or NaN, and OSQ is unaffected.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>The only gates on vector values are the exact-zero check and <code class='nw'>checkFinite</code>, so an application that indexes caller-supplied embeddings in a COSINE field accepts such a vector today; in a test, one such document became the top hit of most queries whose dot product with it was positive.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Z3 floating-point queries on the COSINE and quantization code refuted the claim that every vector the field accepts has a positive float32 norm, with a witness in 10.7 s. Independent AI verifiers then reproduced it end to end, one on the default codec and one on OSQ.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>193 words</span></summary><div class='body'><p><strong>Method: SMT solving with Z3's floating-point theory</strong> (the study's "formal" tier). 2026-10-22 study, run 3, experiment "quantization-smt" (main <code class='nw'>7cecf79523</code>).</p><ul><li>The proof obligation "<code class='nw'>accumulate</code> divides by a positive divisor for every vector <code>KnnFloatVectorField</code> accepts" was refuted, with a witness in 10.7 s; "<code>VectorUtil.cosine</code> is finite for non-zero finite inputs" was refuted too; Z3 proved that no <code>x &gt; 2^-75</code> has <code>fl(x*x) == 0</code>, which gives the exact threshold.</li><li>The default-codec effect was found as a side effect of the OSQ probe; the OSQ case came from chaining preconditions (the field's checks, then <code class='nw'>accumulate</code>).</li><li>AI verifiers wrote their own JUnit repros without reading the finder's tests: one for the default codec (12 tests, including the top-hit rate and <code class='nw'>CheckIndex</code>), one for OSQ (10 tests, including the merge and a threshold scan over every float in [2^-80, 2^-60]). Both reproduced on main and 10.5.2. A follow-up merged the two into one root cause with a fix matrix and found the query side.</li><li>This hunt re-ran it on <code class='nw'>ea57360912ed</code>, ran a cross-model refute review (OpenAI GPT-5.6), traced its history across 33 releases, searched for prior reports and validated a fix.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>Not reported as such: 272 queries across GitHub, commits, mailing lists, the JIRA archive, downstream projects and the web (2026-10-26). Open #15540 covers the same family for exact-zero vectors, and its fix is the very check this input passes, so a follow-up there may fit better than a new issue.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No issue, PR, commit, mailing-list thread, JIRA entry or downstream report describes a non-zero COSINE vector whose float32 norm underflows, the +Infinity or above-1 scores it gets, the NaN batch maximum, or the OSQ NaN centroid it causes. The overlap is with exact-zero vectors: open #15540 and its fix #15751 (extended by #16098 and #16708), the closed OSQ zero-vector PR #16100, and query-time zero vectors mentioned on #15540. The mirror image, float32 overflow of the norm, was discussed and a component cap declined (#12281, #12373). The prior-report follow-up therefore rates it "partially known".</p><p>Downstream precedent: Elasticsearch's dense-vector mapper computes the squared magnitude in float32 and rejects COSINE when its square root is 0, so it rejects the underflow-to-zero case but not subnormal norms (read, not run).</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene, plus Elasticsearch, OpenSearch and Solr)</th><td class='when'>2026-10-26</td><td>117 GraphQL phrasings (titles, bodies, comments), e.g. cosine underflow, subnormal, denormal, tiny vector, near-zero, small norm, zero magnitude, cosine NaN/Infinity, isZeroVector, "Cannot normalize a zero-length vector", "failed to search k nearest neighbors", Float.MIN_VALUE, MIN_NORMAL; plus the scripted prior-report search's GitHub queries</td><td>no report of the underflow case; #15540, #15751, #16098, #16708/#16732, #16099, #16100, #15621, #12281, #12373 (exact zeros or overflow)</td></tr><tr><th scope='row'>Items read in full</th><td class='when'>2026-10-26</td><td>56 issues and PRs with comments and reviews</td><td>none of the 10 comments on #15540 mentions tiny or underflowing vectors; benwtrent on #16099: fix it by input validation</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 413 open apache/lucene PRs; the diffs of the 13 relevant ones</td><td>none changes the validation to a computed norm or guards the OSQ zero divisor</td></tr><tr><th scope='row'>Mailing lists and JIRA archive</th><td class='when'>2026-10-26</td><td>100 queries over dev@, java-user@, issues@ and commits@; 14 JIRA-archive queries; SOLR-17736 and SOLR-16977 read</td><td>no report; a 2023 dev@ thread on vector math precision (overflow only)</td></tr><tr><th scope='row'>Commits and web</th><td class='when'>2026-10-26</td><td>a commit-message grep of the full history; 14 web queries</td><td>no fix; a related report in another engine (Qdrant), different mechanism</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Latent since COSINE was added (#366, merged 2021-10-11), so not a regression: all 33 releases from 9.0.0 to 10.5.2 and main give the same wrong scores. The 0-hit searches and the <code class='nw'>CheckIndex</code> failure start in 10.4.0; the quantized merge failure in 10.2.0.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #366, "LUCENE-10146: Add VectorSimilarityFunction.COSINE" (jtibshirani), merged 2021-10-11 as <code class='nw'>f4861159c3c</code>: cosine with float32 squared norms, while the vector field checked no values at all. Later checks never covered this input: #1076 (9.4.0, encoding), #12281 (9.7.0, null, empty and non-finite), #15751 and #16098 (10.5.0, exact zeros), #16708 (exact zeros in <code class='nw'>addBatch</code>; unreleased: main, and branch_10x/branch_10_6 as backport #16732, listed under 10.6.0). 10.4.0, before the zero check, fails the same 7 tests.</p><p>The query-side symptoms changed over time: 9.0.0-9.2.0 and 9.9.0-10.0.0 returned a hit with doc ID 2147483647 in a 3- or 4-document index; 9.3.0-9.8.0 and 10.1.0 returned 2 of 3 documents scored +Infinity for the tiny query; 10.2.0-10.3.2 ranked the NaN-scored tiny document first; from 10.4.0 both queries return 0 hits and <code class='nw'>CheckIndex</code> fails, which fits #15021 (bulk scorers keep a batch only if its maximum beats the threshold; read, not isolated by a run).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>8.11.4</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no vector API</span></td><td>the repro does not compile</td></tr><tr><th scope='row'>9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first affected</span></td><td>scores +Infinity/NaN/1.1103 and the tiny top hit; the tiny and orthogonal queries return doc ID 2147483647</td></tr><tr><th scope='row'>9.1.0 to 9.8.0, 9.9.0 to 10.1.0 (22 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the same scores and top hit; query symptoms vary (invalid doc ID, or 2 of 3 hits scored +Infinity)</td></tr><tr><th scope='row'>10.2.0 to 10.3.2 (6 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>plus the merge failure with the binary-quantized format (its segment still returns its hits; their scores were not checked); the NaN-scored tiny doc ranks first</td></tr><tr><th scope='row'>10.4.0, 10.5.0, 10.5.1, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>all 7 tests fail: 0 hits, CheckIndex failure (level 2), OSQ 0 hits and merge failure</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>all 7 fail through gradle and the harness, assertions on and off, Panama and scalar providers</td></tr><tr><th scope='row'>main + the fix</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> fix A</span></td><td>the 6 index-side tests pass; the query-side test still fails (not covered)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Independent study verifiers and a cross-model refute review (OpenAI GPT-5.6) say real, each with its own test; the doc's test fails 7 of 7 on main with assertions on and off and with both vector providers, and a small-norm control passes 7 of 7.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>472 words</span></summary><div class='body'><p>The study's verifiers ran on main <code class='nw'>7cecf79523</code> and 10.5.2; the hunt's checks ran on <code class='nw'>ea57360912ed</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Study verifier, default codec</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new_bug, reproduced</span></td><td>Own 12-test JUnit, 6 configurations (assertions on and off, Panama and scalar, mmap): +Infinity top hit, 86 of 200 queries in a 3,000-doc graph, NaN orthogonal query with 0 hits, recall 1.0 to 0.7, CheckIndex failure, scores above 1.</td></tr><tr><th scope='row'>Study verifier, OSQ</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new_bug, reproduced</span></td><td>Own 10-test JUnit on main and 10.5.2: NaN centroid, all scores NaN, 0 hits, tragic merge; deleting the document unblocks the merge; threshold scan: NaN or Infinity exactly for x &lt;= 2^-75. Its "CheckIndex clean" result ran <code class='nw'>CheckIndex</code> with no level set, which skips the vector checks; at level 2 or higher the OSQ-HNSW segment fails ("failed to search k nearest neighbors") and only the flat OSQ format passes, as <code class='nw'>CheckIndex</code> does not search flat formats.</td></tr><tr><th scope='row'>Study follow-up: one root cause</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> merged #5 and #7; query side found</span></td><td>Fix matrix: validation removes every index-side symptom of both, in all modes; local robustness fixes need a patch per vector provider; a tiny query gives 0 hits (default) or an exception (OSQ).</td></tr><tr><th scope='row'>Candidate re-run on ea57360912ed</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>7 of 7 fail on main (assertions on and off, Panama and scalar), 10.5.2 and 10.4.0; the 1e-10 control passes 7 of 7; the study's validation fix passes the 6 index-side tests.</td></tr><tr><th scope='row'>Refute review (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high confidence</span></td><td>Its own contract test (2 tests: 1 fails with +Infinity, the other is its 1e-10 control and passes) gives the same result with assertions on and off and with the scalar provider; its reject-or-score test fails unpatched (assertions off) and passes with the validation fix, as do TestField's testKnnField* tests. Intended-behaviour argument: weak.</td></tr><tr><th scope='row'>History and fix validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> 33 releases affected; fix validated</span></td><td>37 history runs; this doc's test through gradle on stock and patched main, the closest suites (985 tests) and broader vector suites (1,508 tests) with the fix, and the core static checks.</td></tr><tr><th scope='row'>Fact check of this doc (independent AI tool)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; 7 text errors, fixed</span></td><td>Re-ran the gradle command (7 of 7 fail, assertions on and off), the fix (28 tests, 1 failure: the query side) and probes; found 7 text errors (CheckIndex level, history counts, overclaims), all fixed.</td></tr><tr><th scope='row'>Cross-model fact check (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; 9 text errors, fixed</span></td><td>Read-only review: the bug is real and well evidenced. Its main finding, a 1,024-d vector the patch accepts whose float32 norm is still subnormal, was executed (score 1.000015) and is now stated in the fix trade-offs.</td></tr><tr><th scope='row'>Diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> 2 label errors, fixed and re-rendered</span></td><td>Every on-screen value matched a probe re-run; the step-5 heading (when <code class='nw'>accumulate</code> runs) and one summary-card bullet (the 2^-63 bound holds for <code>{x, 0}</code> only) were corrected.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-046/bug.png' download='cosine-tiny-norm-validation-bug.png' target='_self'>PNG</a> <span class='n'>562 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>672 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-046, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>COSINE vectors whose float32 squared norm underflows pass validation and give Inf/NaN scores or poison OSQ segments</dd></div><div><dt>Area</dt><dd>codecs / vectors</dd></div><div><dt>Priority</dt><dd>Medium, rank 140: On the default HNSW COSINE path a vector whose squared norm underflows yields +Inf/NaN scores (a wrong top hit, dropped hits, CheckIndex false failures, failing OSQ merges), just below LFV-047 because real embeddings never produce such a vector.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Default codec (Lucene99 HNSW float) and the opt-in Lucene104 OSQ format with COSINE; needs a pathological vector (all components &lt;= about 2.6e-23), including tiny query vectors; released.</dd></div><div><dt>Summary</dt><dd>You index, or query with, a non-zero COSINE float vector whose float32 squared norm is 0 or subnormal. You expect it to be rejected like an all-zero vector or to score sensibly. Instead it is accepted: on the default codec it scores +Inf/NaN, a NaN batch maximum hides 64 neighbouring documents and CheckIndex falsely fails; on OSQ one such vector makes the segment centroid NaN, so kNN returns 0 hits and every merge fails.</dd></div><div><dt>Introduced</dt><dd>#366 (f4861159c3c), which added COSINE: latent, not a regression [exec] (2021-10-11)</dd></div><div><dt>First affected version</dt><dd>9.0.0 [exec]</dd></div><div><dt>Affected versions</dt><dd>9.0.0 to 10.5.2 (33 releases) and main [exec]; the 0-hit searches and the CheckIndex failure from 10.4.0, the quantized merge failure from 10.2.0</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; also a cross-model review that agreed; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>formal: Z3/cvc5</dd></div><div><dt>Upstream and prior reports</dt><dd>none found for the underflow variant (study searches 2026-10-22); same family as open #15540 (exact-zero vectors, fixed by #15751); the study's report §7 recommends a follow-up on #15540</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (commit of 2026-10-24, tested 2026-10-26) through gradle and through a standalone JUnit harness, assertions on and off, with the Panama and the scalar vector providers; the Maven Central jars of 10.5.2 and 10.4.0; all 33 releases from 9.0.0 to 10.5.2 with adapted copies of the test (8.11.4 has no vector API); a small-norm control on main; the fix in a scratch worktree at <code class='nw'>ea57360912ed</code> (the test, the closest suites with assertions on and off, broader vector suites and <code>:lucene:core:check -x test</code>), removed afterwards. The study's verifiers ran on main <code class='nw'>7cecf79523</code> and 10.5.2. Between <code class='nw'>7cecf79523</code> and <code class='nw'>ea57360912ed</code> the validation, cosine, OSQ writer, bulk-score, HNSW-search, <code class='nw'>CheckIndex</code> and <code class='nw'>IndexWriter</code> files are unchanged; the only change on the vector read path, #16883, adds <code class='nw'>DataAccessHint</code> overloads to the vector readers and does not touch scoring.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>SECURITY.md:28 (threat model)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java:53-56, 146-150, 172-175</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/VectorUtil.java:105, 206-207, 461-463, 515-523; lucene/core/src/java25/.../MemorySegmentBulkVectorOps.java:180-206; NativeVectorUtilSupport.java:403-407</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/document/column/ColumnValidation.java:364-381</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/KnnFloatVectorQuery.java:97</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/internal/vectorization/DefaultVectorUtilSupport.java:79-117, 479-498; lucene/core/src/java25/.../PanamaVectorUtilSupport.java:177-199, 1617-1621</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/VectorSimilarityFunction.java:76-86</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/hnsw/RandomVectorScorer.java:47-54; util/hnsw/HnswGraphSearcher.java:341-343</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/codecs/lucene99/Lucene99HnswVectorsReader.java:81, 385-412; index/CheckIndex.java:1114, 1141, 3106-3110, 3112-3137, 4742-4754, 4837</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/codecs/lucene104/Lucene104ScalarQuantizedVectorsWriter.java:146, 317-318, 767-798, 841-843; codecs/lucene104/NormalizedFloatVectorValues.java:49-53; index/IndexWriter.java:5030-5055, 5109-5113</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/VectorSimilarityFunction.java (DOT_PRODUCT, EUCLIDEAN, MAXIMUM_INNER_PRODUCT compare: no norm division)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/VectorSimilarityFunction.java:76-81; util/VectorUtil.java:105, 452-463</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/document/KnnFloatVectorField.java:38, 55, 149, 174; lucene/core/src/test/org/apache/lucene/document/TestField.java:738-812</code></li><li><code>Lucene main ea57360912ed: lucene/CHANGES.txt:881 (GITHUB#15751), :1192 (GITHUB#16098), :519-520 (GITHUB#16708)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/KnnFloatVectorQuery.java:97-120; index/CodecReader.java:276-288</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestCosineTinyNormValidation.java (7 tests): <a href='../repro/LFV-046/TestCosineTinyNormValidation.java'><code>repro/LFV-046/TestCosineTinyNormValidation.java</code></a> (312 lines)</li><li>The fix: cosine-tiny-norm-validation.diff: <a href='../repro/LFV-046/cosine-tiny-norm-validation.diff'><code>repro/LFV-046/cosine-tiny-norm-validation.diff</code></a> (97 lines)</li><li>test.diff: the test plus a columnar addBatch case: <a href='../repro/LFV-046/test.diff'><code>repro/LFV-046/test.diff</code></a> (339 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>The diagrams (<code class='nw'>bug.png</code>) were made separately for this doc from an executed probe on main <code class='nw'>ea57360912ed</code>, checked by an independent diagram check and re-rendered after its two label fixes. The alt text describes the bug at the level of the steps above.</p><ul class='paths'><li><a href='../assets/LFV-046/bug.png'><code>assets/LFV-046/bug.png</code></a> (562 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

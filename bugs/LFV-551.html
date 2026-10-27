@@ -1,0 +1,1802 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Geo3D distance sorts read a hit&#x27;s points twice when a segment has a multi-valued document, so hits get another document&#x27;s distance</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-551 &middot; geo3d-comparator-rereads-multivalued-docvalues</p><h1 id='top'>Geo3D distance sorts read a hit&#x27;s points twice when a segment has a multi-valued document, so hits get another document&#x27;s distance</h1><p class='tldr'>Geo3D distance sorts re-read a hit's points from a forward-only cursor that has moved past them, and get the following documents' points. Top 2 of 5 documents: doc 0 at 1°, doc 2 at 5°, not doc 2 at 0.5°, doc 0 at 1°; or the search throws <code class='nw'>EOFException</code>.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 203</span><span class='sub'>Geo3D distance sorts on multi-valued documents return wrong order and another document&#x27;s distance on ordinary top-N queries, but the API is little used, so it opens the spatial3d sort rows after LFV-209.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.0.0 (LUCENE-7407, 2016); 6.x correct<span class='sub'>introduced 2016-09-21 &middot; over 10 years</span></dd></div><div><dt>Affected</dt><dd>7.0.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading while writing a randomized paging harness, then a JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Geo3D doc-values sorts allow several points per document and promise the closest one. The comparator reads a document's points from a cursor that only moves forward, and Lucene's collector can ask it about the same hit two or three times.</p><figure class='visual' id='geo3d-comparator-rereads-multivalued-docvalues-short-visual'><div class='frame'><a class='still' href='../assets/LFV-551/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-551/bug.png' alt='Step-by-step diagram of the Geo3D sort re-read: five documents at latitudes 1, 2, (9 and 0.5), 5 and 6 degrees, top 2 by distance from (0, 0). compareBottom reads doc 2&#x27;s two points and finds it competitive at 0.5 degrees; copy then reads two more values from the same forward-only cursor, doc 3&#x27;s 5 degrees and doc 4&#x27;s 6 degrees, so doc 2 is stored at 5 degrees and the result is doc 0, doc 2 instead of doc 2, doc 0. With a per-document value cache the second read reuses doc 2&#x27;s own points.' width='1920' height='1080'></a></div><figcaption>The example's five documents and the two reads of doc 2: <code class='nw'>compareBottom</code> reads its two points, <code class='nw'>copy</code> reads two more, which belong to docs 3 and 4, so doc 2 is stored at 5° and drops behind doc 0. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index 5 documents with <code>Geo3DDocValuesField</code> at latitudes {1}, {2}, {9, 0.5}, {5}, {6} degrees along one meridian: doc 2 has two points. Default codec, one segment.</span></li><li><span>Ask for the top 2 by <code>Geo3DDocValuesField.newDistanceSort</code> from (0, 0). You expect doc 2 at 0.5° (its closest point, as the javadoc promises), then doc 0 at 1°.</span></li><li><span>Instead you get doc 0 at 1°, then doc 2 at 5°: doc 2 carries doc 3's point. With the two-point document last, or with <code class='nw'>searchAfter</code>, the search throws <code class='nw'>EOFException</code>.</span></li><li><span>Why: the collector can ask the comparator about the same document two or three times: <code class='nw'>compareBottom</code> (once the queue is full) and/or <code class='nw'>compareTop</code> (with <code class='nw'>searchAfter</code>), then <code class='nw'>copy</code>. Each call reads the points with <code class='nw'>nextValue()</code>, and nothing rewinds in between, so the later calls read the following documents' points.</span></li><li><span>One two-point document is enough: single-valued hits in that segment go wrong too, whenever a hit gets two or more of those calls. Segments where every document has one point, and searches that ask for every hit without <code class='nw'>searchAfter</code>, are correct.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that store several points per document in <code>Geo3DDocValuesField</code> (opt-in spatial3d module) and sort with any of its seven sort factories, with a normal top-N request or <code class='nw'>searchAfter</code> paging. Default codec and configuration; 3 documents are enough. The API is little used: no upstream test sorts with it.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>761 words</span></summary><div class='body'><p><code>Geo3DDocValuesField</code> allows several points per document and promises that its sorts use the closest one (<code>Geo3DDocValuesField.java:34-35</code>, <code class='nw'>:173-174</code>). <code>TopFieldCollector</code> can ask the comparator about the same hit two or three times: <code class='nw'>compareBottom</code> (once the queue is full) and/or <code class='nw'>compareTop</code> (with <code class='nw'>searchAfter</code>), then <code class='nw'>copy</code>. <code>Geo3DPointDistanceComparator</code> and <code>Geo3DPointOutsideDistanceComparator</code> read the document's values with <code>SortedNumericDocValues.nextValue()</code> in each call and never rewind, although <code class='nw'>nextValue()</code> must not be called more than <code class='nw'>docValueCount()</code> times per document. The default codec does not check, so a later call reads the next <code class='nw'>docValueCount()</code> values, which belong to the following documents; <code class='nw'>copy</code> stores that distance as the hit's sort value, and the order follows it; past the last value the search throws (<code>RuntimeException(EOFException)</code> on file directories on 9.12.3 and later, <code>IndexOutOfBoundsException</code> on 9.0.0 and on a plain heap directory; 7.x and 8.x return a wrong value). In the repro, top 2 of {1}, {2}, {9, 0.5}, {5}, {6} degrees returns doc 0 at 1° and doc 2 at 5° (doc 3's point) instead of doc 2 at 0.5° and doc 0 at 1°. It needs a segment with at least one multi-valued document and a hit that gets two or more of those calls, which a top-N smaller than the hit count or <code class='nw'>searchAfter</code> makes possible. LUCENE-7407 (<code class='nw'>f7aa200d406</code>, 7.0.0) introduced it when it moved doc values to iterators and, in the same commit, gave the 2D twin <code>LatLonPointDistanceComparator</code> a per-document value cache; the Geo3D comparators never got one. Adding the same cache fixes it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Geo3D doc-values sort</strong>: <code>Geo3DDocValuesField</code> stores each point as one encoded <code class='nw'>long</code> in a <code class='nw'>SORTED_NUMERIC</code> field; "Multiple values for the same field in one document is allowed" (<code>Geo3DDocValuesField.java:34-35</code>). Seven factories build a <code class='nw'>SortField</code> (<code class='nw'>newDistanceSort</code>, <code class='nw'>newPathSort</code>, <code>newOutsideDistanceSort</code>, <code>newOutsideBoxSort</code>, <code>newOutsidePolygonSort</code>, <code>newOutsideLargePolygonSort</code>, <code>newOutsidePathSort</code>), each promising "If a document contains multiple values for the field, the <em>closest</em> distance ... is used", with that distance returned in <code class='nw'>FieldDoc</code> (<code class='nw'>:167-174</code> and siblings). They use two comparators, <code>Geo3DPointDistanceComparator</code> and <code>Geo3DPointOutsideDistanceComparator</code>.</li><li><strong>The cursor</strong>: <code>SortedNumericDocValues.nextValue()</code> "Iterates to the next value in the current document. Do not call this more than <code class='nw'>docValueCount</code> times for the document" (<code>SortedNumericDocValues.java:28-32</code>). In the default codec it is <code>values.get(start++)</code> with no bound (<code>Lucene90DocValuesProducer.java:2069-2072</code>). If every document of a segment has at most one value, the codec returns a singleton wrapper whose <code class='nw'>nextValue()</code> returns the same value every time (<code class='nw'>:2002-2004</code>).</li><li><strong>The repeated question</strong>: once the queue is full, <code>TopFieldCollector</code> calls <code class='nw'>compareBottom</code> and then <code class='nw'>copy</code> for the same competitive document (<code>TopFieldCollector.java:92-93, 114-118, 203-213</code>); with <code class='nw'>searchAfter</code> it calls <code class='nw'>compareTop</code> and then, for a hit after the cursor, <code class='nw'>copy</code>, with <code class='nw'>compareBottom</code> first once the queue is full, so an accepted hit gets three calls (<code class='nw'>:268-291</code>). Only before the queue fills and without <code class='nw'>searchAfter</code> is a hit just copied, with one call.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>compareBottom</code> advances to the document if the cursor is behind and reads its <code class='nw'>docValueCount()</code> values (<code>Geo3DPointDistanceComparator.java:97-134</code>, read at <code class='nw'>:110</code>).</li><li><code class='nw'>copy</code> calls <code>computeMinimumDistance(doc)</code> (<code class='nw'>:137-139</code>). It advances only when <code>doc &gt; currentDocs.docID()</code>, which is false for the same document, and reads <code class='nw'>docValueCount()</code> more values (<code class='nw'>:163-182</code>, read at <code class='nw'>:171</code>). <code class='nw'>compareTop</code> goes through the same method (<code class='nw'>:159-161</code>).</li><li>Those extra reads return the next <code class='nw'>docValueCount()</code> values in storage order, which belong to the following document or documents that have the field; past the last value they throw: on main and 10.5.2, <code>RuntimeException(EOFException)</code> on file directories and on the test framework's heap directory (<code>MockDirectoryWrapper</code> over <code>ByteBuffersDirectory</code>), <code>IndexOutOfBoundsException</code> on a plain <code>ByteBuffersDirectory</code>.</li><li>The slot stores the minimum of those values; <code class='nw'>value(slot)</code> returns it as the hit's <code class='nw'>FieldDoc</code> distance (<code class='nw'>:152-156</code>), and the queue is ordered by it. <code>Geo3DPointOutsideDistanceComparator</code> has the same shape (<code class='nw'>:75-104</code>, <code class='nw'>:107-109</code>, <code class='nw'>:129-131</code>, <code class='nw'>:133-152</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Latitudes {1}, {2}, {9, 0.5}, {5}, {6} degrees at longitude 0, one segment, top 2 by distance from (0, 0). Docs 0 and 1 fill the queue (one read each), so the bottom is doc 1 at 2°. Doc 2: <code class='nw'>compareBottom</code> reads 9° and 0.5°, and 0.5° beats 2°. <code class='nw'>copy</code> reads two more values, doc 3's 5° and doc 4's 6°, and stores 5°. Docs 3 and 4 do not beat 5°. Result: doc 0 at 1.00°, doc 2 at 5.00°, instead of doc 2 at 0.50°, doc 0 at 1.00°. The same on the unit sphere and on WGS84 (111,194 m and 555,976 m), with assertions on and off. Lucene's <code>AssertingDirectoryReader</code> fails inside <code class='nw'>copy</code> with <code>valueUpto=2 in.docValueCount()=2</code>.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>373 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Users of the Geo3D doc-values sorts whose documents can hold several points, for example a store with several branches or a route with several stops, as the javadoc allows. A read-only code search found no use of this API in Elasticsearch, OpenSearch or Solr.</li><li><strong>What it takes.</strong> A segment with at least one document that has two or more points (then single-valued hits in that segment are re-read too), and either <code class='nw'>numHits</code> below the number of hits or <code class='nw'>searchAfter</code>. Those are necessary, not sufficient: a wrong read needs a hit that gets two or more value-reading calls, so a top-N search in which no hit after the first <code class='nw'>numHits</code> is competitive stays correct (read from the code, not executed). Default codec, <code>IndexWriterConfig</code>, directory and searcher; deterministic; assertions on or off make no difference.</li><li><strong>What you see.</strong> While the extra reads stay inside the field's values: wrong order and a wrong <code class='nw'>FieldDoc</code> distance, with no error. Only when they pass the end of the field's values does the request fail, on a healthy index: <code>IndexOutOfBoundsException</code> on 9.0.0; on 9.12.3 and later <code>RuntimeException(EOFException: read past EOF ...)</code> on file directories and <code>IndexOutOfBoundsException</code> on a plain heap directory (the versions in between were not run); 7.x and 8.x return a wrong value instead.</li><li><strong>Which value is wrong depends on storage order.</strong> The second read takes the next <code class='nw'>docValueCount()</code> values in storage order, from the following document or documents, whether or not they match: in an executed probe a permitted hit reported the exact distance of a document hidden by a <code class='nw'>FILTER</code> clause, by a live-docs reader wrapper or by a delete (0.2530 instead of 0.01745 on the unit sphere), and three searches with different sort origins recovered the hidden document's location to within 2.55e-05 degrees. This needs an application that returns <code class='nw'>FieldDoc</code> sort values; only the distance and outside-distance sorts, filters, hard deletes and a live-docs wrapper were executed. The hit set itself is not widened.</li><li><strong>How likely.</strong> Plausible: in a segment with a multi-valued document, a top-N request re-reads whenever a hit after the first <code class='nw'>numHits</code> is competitive, and a <code class='nw'>searchAfter</code> page re-reads every hit it accepts, deterministically; but the API is little used and no public report was found.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code class='nw'>lucene/spatial3d</code> on the public API: one default-codec segment of 3 or 5 documents along a meridian, one with two points. It asserts the top 2 and one <code class='nw'>searchAfter</code> page, each hit with its own distance. 6 of 7 tests fail on main and 10.5.2, assertions on and off; all 7 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGeo3DSortMultiValued.java (lucene/spatial3d, public API)</span><span class='meta'>186 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial3d;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Geo3DDocValuesField sorts on documents with several points. The javadoc allows several values per
+ * document and says that the closest one is used. Every document lies due north of the origin; each
+ * inner array lists one document&#x27;s latitudes in degrees. All documents go into one segment of the
+ * default codec, in this order, so doc ids are the array indexes.
+ */
+public class TestGeo3DSortMultiValued extends LuceneTestCase {
+
+  /** Doc 2 has two points; its closest is 0.5 degrees, so the full order is [2, 0, 1, 3, 4]. */
+  private static final double[][] MULTI_IN_MIDDLE = {{1}, {2}, {9, 0.5}, {5}, {6}};
+
+  /** Doc 2 has one point, but doc 4 has two, so the segment stores the field as multi-valued. */
+  private static final double[][] MULTI_ELSEWHERE = {{1}, {2}, {0.5}, {5}, {6, 7}};
+
+  /** The document with two points is the last document. */
+  private static final double[][] MULTI_LAST = {{1}, {2}, {9, 0.5}};
+
+  /** Control: every document has one point. */
+  private static final double[][] ALL_SINGLE = {{1}, {2}, {0.5}, {5}, {6}};
+
+  /** On the unit sphere a distance &quot;in meters&quot; is the arc in radians. */
+  private static final double DELTA = 1e-5;
+
+  private static SortField sphereDistanceSort() {
+    return Geo3DDocValuesField.newDistanceSort(&quot;p&quot;, 0, 0, 0.5, PlanetModel.SPHERE);
+  }
+
+  public void testTopTwoWithMultiValuedDocument() throws Exception {
+    assertTopTwo(MULTI_IN_MIDDLE, sphereDistanceSort(), 0.5, 1);
+  }
+
+  public void testTopTwoSingleValuedHitInMultiValuedSegment() throws Exception {
+    assertTopTwo(MULTI_ELSEWHERE, sphereDistanceSort(), 0.5, 1);
+  }
+
+  public void testTopTwoWhenMultiValuedDocumentIsLast() throws Exception {
+    assertTopTwo(MULTI_LAST, sphereDistanceSort(), 0.5, 1);
+  }
+
+  public void testOutsideDistanceSort() throws Exception {
+    // every point lies outside a circle of 0.1 degree, so the distances are 0.4 and 0.9 degrees
+    SortField sort =
+        Geo3DDocValuesField.newOutsideDistanceSort(
+            &quot;p&quot;, 0, 0, Math.toRadians(0.1), PlanetModel.SPHERE);
+    assertTopTwo(MULTI_IN_MIDDLE, sort, 0.4, 0.9);
+  }
+
+  public void testTopTwoWgs84() throws Exception {
+    SortField sortField =
+        Geo3DDocValuesField.newDistanceSort(&quot;p&quot;, 0, 0, 2_000_000, PlanetModel.WGS84);
+    try (Directory dir = index(MULTI_IN_MIDDLE, PlanetModel.WGS84);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      Sort sort = new Sort(sortField);
+      TopDocs all = searcher.search(MatchAllDocsQuery.INSTANCE, 5, sort);
+      assertEquals(List.of(2, 0, 1, 3, 4), docs(all));
+      TopDocs top2 = searcher.search(MatchAllDocsQuery.INSTANCE, 2, sort);
+      // the top 2 must be the head of the full order, with the same sort values (in meters)
+      String message = &quot;top 2 = &quot; + render(top2, PlanetModel.WGS84);
+      assertEquals(message, List.of(2, 0), docs(top2));
+      assertEquals(message, value(all, 0), value(top2, 0), 0.0);
+      assertEquals(message, value(all, 1), value(top2, 1), 0.0);
+    }
+  }
+
+  public void testSearchAfterWithMultiValuedDocument() throws Exception {
+    assertSearchAfter(MULTI_IN_MIDDLE);
+  }
+
+  /** Control: passes with and without the bug. */
+  public void testAllSingleValuedSegment() throws Exception {
+    assertTopTwo(ALL_SINGLE, sphereDistanceSort(), 0.5, 1);
+    assertSearchAfter(ALL_SINGLE);
+  }
+
+  /** After doc 2 (0.5 degrees) the next page of 2 is doc 0 (1 degree) and doc 1 (2 degrees). */
+  private void assertSearchAfter(double[][] lats) throws Exception {
+    try (Directory dir = index(lats, PlanetModel.SPHERE);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      Sort sort = new Sort(sphereDistanceSort());
+      // asking for every hit reads each document once, so this first page is right
+      TopDocs all = searcher.search(MatchAllDocsQuery.INSTANCE, lats.length, sort);
+      assertEquals(2, all.scoreDocs[0].doc);
+      FieldDoc after = (FieldDoc) all.scoreDocs[0];
+      TopDocs next = searcher.searchAfter(after, MatchAllDocsQuery.INSTANCE, 2, sort);
+      String message = &quot;page after doc 2 = &quot; + render(next, PlanetModel.SPHERE);
+      assertEquals(message, List.of(0, 1), docs(next));
+      assertEquals(message, Math.toRadians(1), value(next, 0), DELTA);
+      assertEquals(message, Math.toRadians(2), value(next, 1), DELTA);
+    }
+  }
+
+  /** The top 2 hits must be doc 2 then doc 0, each with its own distance in degrees. */
+  private void assertTopTwo(double[][] lats, SortField sortField, double deg2, double deg0)
+      throws Exception {
+    try (Directory dir = index(lats, PlanetModel.SPHERE);
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      TopDocs top2 = searcher.search(MatchAllDocsQuery.INSTANCE, 2, new Sort(sortField));
+      String message = &quot;top 2 = &quot; + render(top2, PlanetModel.SPHERE);
+      assertEquals(message, List.of(2, 0), docs(top2));
+      assertEquals(message, Math.toRadians(deg2), value(top2, 0), DELTA);
+      assertEquals(message, Math.toRadians(deg0), value(top2, 1), DELTA);
+    }
+  }
+
+  private static Directory index(double[][] lats, PlanetModel planet) throws Exception {
+    Directory dir = newDirectory();
+    IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (double[] docLats : lats) {
+        Document doc = new Document();
+        for (double lat : docLats) {
+          GeoPoint point = new GeoPoint(planet, Math.toRadians(lat), 0);
+          doc.add(new Geo3DDocValuesField(&quot;p&quot;, point, planet));
+        }
+        w.addDocument(doc);
+      }
+    }
+    try (DirectoryReader reader = DirectoryReader.open(dir)) {
+      assertEquals(&quot;one segment&quot;, 1, reader.leaves().size());
+    }
+    return dir;
+  }
+
+  private static List&lt;Integer&gt; docs(TopDocs topDocs) {
+    List&lt;Integer&gt; out = new ArrayList&lt;&gt;();
+    for (ScoreDoc sd : topDocs.scoreDocs) {
+      out.add(sd.doc);
+    }
+    return out;
+  }
+
+  private static double value(TopDocs topDocs, int i) {
+    return (Double) ((FieldDoc) topDocs.scoreDocs[i]).fields[0];
+  }
+
+  /** The hits as &quot;doc @ sort value as degrees of arc&quot;, for the assertion messages. */
+  private static String render(TopDocs topDocs, PlanetModel planet) {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (int i = 0; i &lt; topDocs.scoreDocs.length; i++) {
+      double degrees = Math.toDegrees(value(topDocs, i) / planet.getMeanRadius());
+      out.add(String.format(Locale.ROOT, &quot;%d @ %.2f deg&quot;, topDocs.scoreDocs[i].doc, degrees));
+    }
+    return out.toString();
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestGeo3DSortMultiValued.java $LUCENE/lucene/spatial3d/src/test/org/apache/lucene/spatial3d/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial3d:test --tests TestGeo3DSortMultiValued -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED0551)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Top 2 = doc 2 at 0.5°, then doc 0 at 1°; the page after doc 2 = doc 0 at 1°, doc 1 at 2°.</dd></div><div class='got'><dt>Observed</dt><dd>Top 2 = doc 0 at 1°, then doc 2 at 5° (doc 3's point); <code class='nw'>EOFException</code> with the two-point document last and on the <code class='nw'>searchAfter</code> page.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-551/'>repro/LFV-551/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>5 more files (1,262 lines) · 6,136 words</span></summary><div class='body'><p>Seven tests, all at longitude 0 north of (0, 0): the top 2 by <code class='nw'>newDistanceSort</code> on the unit sphere with the two-point document in the middle ({1}, {2}, {9, 0.5}, {5}, {6}), with a single-valued hit in a multi-valued segment ({1}, {2}, {0.5}, {5}, {6, 7}) and with the two-point document last ({1}, {2}, {9, 0.5}); <code>newOutsideDistanceSort</code> around a 0.1° circle; <code class='nw'>newDistanceSort</code> on WGS84 (top 2 must equal the head of the full order, values included); a <code class='nw'>searchAfter</code> page after doc 2 on the unit sphere (the first page is the full search, which is correct); and a control where every document has one point, which passes with and without the bug. Each index is built with a plain <code class='nw'>IndexWriter</code> and the default codec and is asserted to be one segment, so doc ids are fixed. The seed picks the test framework's directory for each test (and settings such as locale and time zone that the test does not depend on): the runs got <code class='nw'>NIOFSDirectory</code> or the test framework's heap directory, which changes only the message of the end-of-data exception, <code>RuntimeException(EOFException)</code> every time. All 5 seeds run gave the same 6 failures. The class passes <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLint</code> and <code class='nw'>forbiddenApis</code>.</p><p>The other files: the original 5-test JUnit; an independent reproducer's 10-test JUnit (outside the spatial3d package, MMap and heap directories, path and box sorts, an <code>AssertingDirectoryReader</code> probe) and its controls; the history probe that ran on 6.1.0 through main; and the hidden-document probe (a <code class='nw'>FILTER</code> clause, a live-docs wrapper and a delete).</p><div class="hd hd-3"><h3 id='code-2-h'>TestGeo3DSortMultiValued.java (the original 5-test repro)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Same layouts, order-only assertions, random codec. Fails 5 of 5 on main (assertions on and off), 10.5.2 and 9.12.3; passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGeo3DSortMultiValued.java (the original 5-test repro)</span><span class='meta'>137 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial3d;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Geo3DDocValuesField.newDistanceSort: &quot;If a document contains multiple values for the field, the
+ * closest distance from the circle center is used.&quot; Five documents north of the origin, one
+ * segment, at latitudes (degrees) {1}, {2}, {9, 0.5}, {5}, {6}. The two nearest are document 2 (0.5
+ * degrees) and document 0 (1 degree), whether we ask for the top 2 or for all 5 hits. A second
+ * layout puts the multi-valued document last: {1}, {2}, {9, 0.5}.
+ */
+public class TestGeo3DSortMultiValued extends LuceneTestCase {
+
+  // the constructor (deprecated on main in favour of INSTANCE) also compiles against 9.x releases
+  @SuppressWarnings(&quot;deprecation&quot;)
+  private static final Query MATCH_ALL = new MatchAllDocsQuery();
+
+  private static final double[][] LATS = {{1}, {2}, {9, 0.5}, {5}, {6}};
+
+  /**
+   * Only the last document is multi-valued, but that makes the segment store the field as
+   * multi-valued, so the re-read also hits the single-valued document 2 (0.5 degrees).
+   */
+  private static final double[][] LATS_SINGLE_IN_MIXED = {{1}, {2}, {0.5}, {5}, {6, 7}};
+
+  /** The multi-valued document is the last one: the re-read runs past the end of the values. */
+  private static final double[][] LATS_LAST = {{1}, {2}, {9, 0.5}};
+
+  private static List&lt;Integer&gt; docs(ScoreDoc[] hits) {
+    List&lt;Integer&gt; out = new ArrayList&lt;&gt;();
+    for (ScoreDoc sd : hits) {
+      out.add(sd.doc);
+    }
+    return out;
+  }
+
+  private void check(PlanetModel planet, SortField sortField) throws Exception {
+    check(planet, sortField, LATS, List.of(2, 0, 1, 3, 4));
+  }
+
+  private void check(PlanetModel planet, SortField sortField, double[][] lats, List&lt;Integer&gt; order)
+      throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (double[] docLats : lats) {
+          Document doc = new Document();
+          for (double lat : docLats) {
+            doc.add(
+                new Geo3DDocValuesField(&quot;p&quot;, new GeoPoint(planet, Math.toRadians(lat), 0), planet));
+          }
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Sort sort = new Sort(sortField);
+        TopDocs all = searcher.search(MATCH_ALL, lats.length, sort);
+        assertEquals(sortField + &quot;: all hits&quot;, order, docs(all.scoreDocs));
+        TopDocs top2 = searcher.search(MATCH_ALL, 2, sort);
+        assertEquals(
+            sortField + &quot;: top 2 must be the head of the full order, values &quot;
+                + ((FieldDoc) top2.scoreDocs[0]).fields[0] + &quot;, &quot;
+                + ((FieldDoc) top2.scoreDocs[1]).fields[0],
+            order.subList(0, 2),
+            docs(top2.scoreDocs));
+      }
+    }
+  }
+
+  public void testDistanceSortUnitSphere() throws Exception {
+    check(
+        PlanetModel.SPHERE, Geo3DDocValuesField.newDistanceSort(&quot;p&quot;, 0, 0, 0.5, PlanetModel.SPHERE));
+  }
+
+  public void testDistanceSortWgs84() throws Exception {
+    check(
+        PlanetModel.WGS84,
+        Geo3DDocValuesField.newDistanceSort(&quot;p&quot;, 0, 0, 2_000_000, PlanetModel.WGS84));
+  }
+
+  public void testLastDocumentMultiValuedUnitSphere() throws Exception {
+    check(
+        PlanetModel.SPHERE,
+        Geo3DDocValuesField.newDistanceSort(&quot;p&quot;, 0, 0, 0.5, PlanetModel.SPHERE),
+        LATS_LAST,
+        List.of(2, 0, 1));
+  }
+
+  public void testSingleValuedDocumentInMixedSegmentUnitSphere() throws Exception {
+    check(
+        PlanetModel.SPHERE,
+        Geo3DDocValuesField.newDistanceSort(&quot;p&quot;, 0, 0, 0.5, PlanetModel.SPHERE),
+        LATS_SINGLE_IN_MIXED,
+        List.of(2, 0, 1, 3, 4));
+  }
+
+  public void testOutsideDistanceSortUnitSphere() throws Exception {
+    // a circle of 0.1 degree around the origin: every value lies outside it
+    check(
+        PlanetModel.SPHERE,
+        Geo3DDocValuesField.newOutsideDistanceSort(
+            &quot;p&quot;, 0, 0, Math.toRadians(0.1), PlanetModel.SPHERE));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestGeo3DSortRereadV1.java (independent reproducer)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only, in a package outside spatial3d; distance, path, outside-distance and outside-box sorts, unit sphere and WGS84, MMap and heap directories, <code class='nw'>searchAfter</code>, and an <code>AssertingDirectoryReader</code> contract probe. Fails 10 of 10 on main (assertions on and off), 10.5.2 and 9.12.3; passes 10 of 10 with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGeo3DSortRereadV1.java (independent reproducer)</span><span class='meta'>252 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>package geo3dverify;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Comparator;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.spatial3d.Geo3DDocValuesField;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.MMapDirectory;
+import org.apache.lucene.tests.index.AssertingDirectoryReader;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Independent check of the Geo3D sort comparators on a segment whose Geo3DDocValuesField is
+ * multi-valued. Public API only (the test lives outside the Lucene packages).
+ *
+ * &lt;p&gt;All points lie on the meridian lon=0; the sort origin is (0,0). The arc distance from the
+ * origin is therefore monotonic in |lat|, so the correct order is &quot;ascending min |lat| per
+ * document&quot; and can be computed without Lucene. Documented contract
+ * (Geo3DDocValuesField#newDistanceSort and the other factories): &quot;If a document contains multiple
+ * values for the field, the closest distance ... is used&quot;.
+ */
+public class TestGeo3DSortRereadV1 extends LuceneTestCase {
+
+  private static final String F = &quot;loc&quot;;
+
+  /** one segment, default production codec, documents in docID order */
+  private static DirectoryReader index(Directory dir, PlanetModel pm, double[][] latsDeg)
+      throws IOException {
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setMergePolicy(NoMergePolicy.INSTANCE);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (double[] lats : latsDeg) {
+        Document d = new Document();
+        for (double lat : lats) {
+          d.add(new Geo3DDocValuesField(F, new GeoPoint(pm, Math.toRadians(lat), 0.0), pm));
+        }
+        w.addDocument(d);
+      }
+      w.commit();
+    }
+    DirectoryReader r = DirectoryReader.open(dir);
+    assertEquals(&quot;expected a single segment&quot;, 1, r.leaves().size());
+    return r;
+  }
+
+  private static double minAbsLat(double[] lats) {
+    double m = Double.POSITIVE_INFINITY;
+    for (double l : lats) {
+      m = Math.min(m, Math.abs(l));
+    }
+    return m;
+  }
+
+  /** the correct full order, computed without Lucene */
+  private static int[] expectedOrder(double[][] latsDeg) {
+    Integer[] ids = new Integer[latsDeg.length];
+    for (int i = 0; i &lt; ids.length; i++) {
+      ids[i] = i;
+    }
+    Arrays.sort(
+        ids,
+        Comparator.&lt;Integer&gt;comparingDouble(i -&gt; minAbsLat(latsDeg[i])).thenComparingInt(i -&gt; i));
+    return Arrays.stream(ids).mapToInt(Integer::intValue).toArray();
+  }
+
+  private static int[] docs(TopDocs td) {
+    return Arrays.stream(td.scoreDocs).mapToInt(sd -&gt; sd.doc).toArray();
+  }
+
+  /**
+   * Asserts the top-n order; if checkValues, also that each returned distance is the arc distance
+   * of the document&#x27;s closest value (meridian arc, so ~ toRadians(minLat) * meanRadius).
+   */
+  private static void checkTopN(
+      IndexSearcher s,
+      Sort sort,
+      double[][] latsDeg,
+      int n,
+      PlanetModel pm,
+      boolean checkValues,
+      double relTol)
+      throws IOException {
+    TopFieldDocs td = s.search(new MatchAllDocsQuery(), n, sort);
+    int[] exp = Arrays.copyOf(expectedOrder(latsDeg), n);
+    int[] act = docs(td);
+    StringBuilder vals = new StringBuilder();
+    for (int i = 0; i &lt; td.scoreDocs.length; i++) {
+      vals.append(&#x27; &#x27;).append(((FieldDoc) td.scoreDocs[i]).fields[0]);
+    }
+    assertArrayEquals(
+        sort + &quot; n=&quot; + n + &quot; expected order &quot; + Arrays.toString(exp) + &quot; got &quot; + Arrays.toString(act)
+            + &quot; values:&quot; + vals,
+        exp,
+        act);
+    if (checkValues) {
+      for (int i = 0; i &lt; n; i++) {
+        double got = (Double) ((FieldDoc) td.scoreDocs[i]).fields[0];
+        double want = Math.toRadians(minAbsLat(latsDeg[act[i]])) * pm.getMeanRadius();
+        assertEquals(&quot;distance of doc &quot; + act[i], want, got, relTol * want);
+      }
+    }
+  }
+
+  // Data: doc2 is the closest (min 1 deg) but is multi-valued {10, 1}; it is reached only after
+  // the top-2 queue is already full with doc0 (3 deg) and doc1 (4 deg).
+  private static final double[][] MID_MULTI = {{3}, {4}, {10, 1}, {6}, {7}};
+
+  public void testDistanceSortSphereTop2() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, MID_MULTI)) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 1.0, pm));
+      checkTopN(new IndexSearcher(r), sort, MID_MULTI, 2, pm, true, 1e-4);
+    }
+  }
+
+  public void testDistanceSortWgs84Top2() throws IOException {
+    PlanetModel pm = PlanetModel.WGS84;
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, MID_MULTI)) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 3_000_000, pm));
+      // ellipsoid: meridian arc differs from the mean-radius arc by &lt; 1%
+      checkTopN(new IndexSearcher(r), sort, MID_MULTI, 2, pm, true, 1e-2);
+    }
+  }
+
+  public void testPathSortSphereTop2() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, MID_MULTI)) {
+      // a short east-west path through the origin; distance along the path for points on lon=0
+      // is still monotonic in |lat| (path distance = distance to the path + along-path offset 0)
+      Sort sort =
+          new Sort(
+              Geo3DDocValuesField.newPathSort(
+                  F, new double[] {0, 0}, new double[] {-1, 1}, 1.0, pm));
+      checkTopN(new IndexSearcher(r), sort, MID_MULTI, 2, pm, false, 0);
+    }
+  }
+
+  public void testOutsideDistanceSortSphereTop2() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, MID_MULTI)) {
+      // tiny circle around the origin; every point is outside, outside distance grows with |lat|
+      Sort sort = new Sort(Geo3DDocValuesField.newOutsideDistanceSort(F, 0, 0, 1e-4, pm));
+      checkTopN(new IndexSearcher(r), sort, MID_MULTI, 2, pm, false, 0);
+    }
+  }
+
+  public void testOutsideBoxSortSphereTop2() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, MID_MULTI)) {
+      Sort sort =
+          new Sort(Geo3DDocValuesField.newOutsideBoxSort(F, -0.1, 0.1, -0.1, 0.1, pm));
+      checkTopN(new IndexSearcher(r), sort, MID_MULTI, 2, pm, false, 0);
+    }
+  }
+
+  /** the competitive document itself has ONE value; another document makes the field multi-valued */
+  public void testSingleValuedDocInMultiValuedSegment() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    double[][] lats = {{3}, {4}, {1}, {6}, {7, 8}};
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, lats)) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 1.0, pm));
+      checkTopN(new IndexSearcher(r), sort, lats, 2, pm, true, 1e-4);
+    }
+  }
+
+  /** the competitive multi-valued document is the last one with values */
+  public void testLastDocMultiValuedMMap() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    double[][] lats = {{3}, {4}, {10, 1}};
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, lats)) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 1.0, pm));
+      checkTopN(new IndexSearcher(r), sort, lats, 2, pm, true, 1e-4);
+    }
+  }
+
+  public void testLastDocMultiValuedByteBuffers() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    double[][] lats = {{3}, {4}, {10, 1}};
+    try (Directory dir = new ByteBuffersDirectory();
+        DirectoryReader r = index(dir, pm, lats)) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 1.0, pm));
+      checkTopN(new IndexSearcher(r), sort, lats, 2, pm, true, 1e-4);
+    }
+  }
+
+  /**
+   * searchAfter path (compareTop then copy, before the queue fills). SPHERE only: mean radius 1,
+   * so the FieldDoc value and the comparator&#x27;s internal unit coincide and a units issue in
+   * compareTop cannot interfere.
+   */
+  public void testSearchAfterSphere() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, MID_MULTI)) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 1.0, pm));
+      IndexSearcher s = new IndexSearcher(r);
+      // everything is after 0.5 deg: page must equal the head of the full order
+      FieldDoc after = new FieldDoc(0, Float.NaN, new Object[] {Math.toRadians(0.5)});
+      TopDocs td = s.searchAfter(after, new MatchAllDocsQuery(), 3, sort);
+      int[] exp = Arrays.copyOf(expectedOrder(MID_MULTI), 3);
+      StringBuilder vals = new StringBuilder();
+      for (int i = 0; i &lt; td.scoreDocs.length; i++) {
+        vals.append(&#x27; &#x27;).append(((FieldDoc) td.scoreDocs[i]).fields[0]);
+      }
+      assertArrayEquals(
+          &quot;searchAfter expected &quot; + Arrays.toString(exp) + &quot; got &quot; + Arrays.toString(docs(td))
+              + &quot; values:&quot; + vals,
+          exp,
+          docs(td));
+    }
+  }
+
+  /**
+   * Contract probe: the test framework&#x27;s AssertingLeafReader asserts the SortedNumericDocValues
+   * rule &quot;Do not call [nextValue] more than docValueCount times for the document&quot;. With -ea this
+   * shows the comparator itself violates the contract; with -da the wrapper is inert and the
+   * wrong order shows instead.
+   */
+  public void testContractProbeAssertingReader() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = new AssertingDirectoryReader(index(dir, pm, MID_MULTI))) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 1.0, pm));
+      checkTopN(new IndexSearcher(r), sort, MID_MULTI, 2, pm, true, 1e-4);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestGeo3DSortRereadV1Controls.java (controls)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>An all-single-valued segment, and the multi-valued data with numHits &gt;= hits: both correct on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestGeo3DSortRereadV1Controls.java (controls)</span><span class='meta'>80 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>package geo3dverify;
+
+import java.io.IOException;
+import java.util.Arrays;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.spatial3d.Geo3DDocValuesField;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.MMapDirectory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Controls for TestGeo3DSortRereadV1; all expected to PASS on main. They show the oracle and data
+ * set-up are sound and bound the trigger: (a) a segment whose docs all have one value, (b) the same
+ * multi-valued data when the queue never fills before the competitive doc (n &gt;= hits).
+ */
+public class TestGeo3DSortRereadV1Controls extends LuceneTestCase {
+
+  private static final String F = &quot;loc&quot;;
+
+  private static DirectoryReader index(Directory dir, PlanetModel pm, double[][] latsDeg)
+      throws IOException {
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setMergePolicy(NoMergePolicy.INSTANCE);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (double[] lats : latsDeg) {
+        Document d = new Document();
+        for (double lat : lats) {
+          d.add(new Geo3DDocValuesField(F, new GeoPoint(pm, Math.toRadians(lat), 0.0), pm));
+        }
+        w.addDocument(d);
+      }
+      w.commit();
+    }
+    DirectoryReader r = DirectoryReader.open(dir);
+    assertEquals(1, r.leaves().size());
+    return r;
+  }
+
+  private static int[] docs(TopFieldDocs td) {
+    return Arrays.stream(td.scoreDocs).mapToInt(sd -&gt; sd.doc).toArray();
+  }
+
+  public void testAllSingleValuedSegmentTop2() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    double[][] lats = {{3}, {4}, {1}, {6}, {7}};
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, lats)) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 1.0, pm));
+      TopFieldDocs td = new IndexSearcher(r).search(new MatchAllDocsQuery(), 2, sort);
+      assertArrayEquals(new int[] {2, 0}, docs(td));
+      assertEquals(Math.toRadians(1), (Double) ((FieldDoc) td.scoreDocs[0]).fields[0], 1e-6);
+    }
+  }
+
+  public void testMultiValuedSegmentQueueNeverFull() throws IOException {
+    PlanetModel pm = PlanetModel.SPHERE;
+    double[][] lats = {{3}, {4}, {10, 1}, {6}, {7}};
+    try (Directory dir = new MMapDirectory(createTempDir());
+        DirectoryReader r = index(dir, pm, lats)) {
+      Sort sort = new Sort(Geo3DDocValuesField.newDistanceSort(F, 0, 0, 1.0, pm));
+      TopFieldDocs td = new IndexSearcher(r).search(new MatchAllDocsQuery(), 5, sort);
+      assertArrayEquals(new int[] {2, 0, 1, 3, 4}, docs(td));
+      assertEquals(Math.toRadians(1), (Double) ((FieldDoc) td.scoreDocs[0]).fields[0], 1e-6);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>Geo3DSortRereadHistoryProbe.java (history probe, main())</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>Public API only, runs unchanged on 6.1.0 through main (newer factories picked by reflection); WGS84, distance and outside-distance sorts, file and heap directories.</p><figure class='code'><figcaption><span class='fname'>Geo3DSortRereadHistoryProbe.java (history probe, main())</span><span class='meta'>278 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.spatial3d.Geo3DDocValuesField;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.NIOFSDirectory;
+
+/**
+ * History probe (main(), no test framework) for: Geo3D distance sorts read a document&#x27;s
+ * SortedNumericDocValues twice (compareBottom, then copy) once the top-N queue is full.
+ *
+ * &lt;p&gt;Runs unchanged against every release that has Geo3DDocValuesField sorts (6.1.0 and later):
+ * the PlanetModel-taking constructor and sort factories (8.5.0 and later) are looked up by
+ * reflection on public API, falling back to the older WGS84-only signatures.
+ *
+ * &lt;p&gt;Oracle (metamorphic, plus a fixed expected order): the javadoc promises that &quot;if a document
+ * contains multiple values for the field, the closest distance ... is used&quot;. Documents lie due
+ * north of the centre (lat 0, lon 0) at the listed latitudes (degrees), one segment. The full
+ * sort (numHits = number of documents) must be the expected order, and the top-2 search must be
+ * its head. A control layout with only single-valued documents must pass on every version.
+ *
+ * &lt;p&gt;Exit 0: not affected (all cases and the control pass). Exit 1: affected (some bug case fails,
+ * the control passes). Exit 2: inconclusive (the control fails).
+ */
+public class Geo3DSortRereadHistoryProbe {
+
+  static final PlanetModel PM = PlanetModel.WGS84;
+
+  /** Multi-valued document 2 is the nearest (0.5 degrees). */
+  static final double[][] MULTI = {{1}, {2}, {9, 0.5}, {5}, {6}};
+
+  static final int[] MULTI_ORDER = {2, 0, 1, 3, 4};
+
+  /** Single-valued document 2 in a segment where document 4 has two values. */
+  static final double[][] MIXED = {{1}, {2}, {0.5}, {5}, {6, 7}};
+
+  static final int[] MIXED_ORDER = {2, 0, 1, 3, 4};
+
+  /** The multi-valued document is the last one with values. */
+  static final double[][] LAST = {{1}, {2}, {9, 0.5}};
+
+  static final int[] LAST_ORDER = {2, 0, 1};
+
+  /** Control: every document has one value. */
+  static final double[][] SINGLE = {{1}, {2}, {0.5}, {5}, {6}};
+
+  static final int[] SINGLE_ORDER = {2, 0, 1, 3, 4};
+
+  static final Analyzer NO_TEXT =
+      new Analyzer() {
+        @Override
+        protected TokenStreamComponents createComponents(String fieldName) {
+          throw new UnsupportedOperationException(&quot;no text fields in this probe&quot;);
+        }
+      };
+
+  static IndexableField point(double latDegrees) throws Exception {
+    GeoPoint p = new GeoPoint(PM, Math.toRadians(latDegrees), 0);
+    try {
+      return Geo3DDocValuesField.class
+          .getConstructor(String.class, GeoPoint.class, PlanetModel.class)
+          .newInstance(&quot;p&quot;, p, PM);
+    } catch (NoSuchMethodException e) {
+      return Geo3DDocValuesField.class
+          .getConstructor(String.class, GeoPoint.class)
+          .newInstance(&quot;p&quot;, p);
+    }
+  }
+
+  static SortField sort(String factory, double radiusMeters) throws Exception {
+    Method m;
+    Object[] args;
+    try {
+      m =
+          Geo3DDocValuesField.class.getMethod(
+              factory, String.class, double.class, double.class, double.class, PlanetModel.class);
+      args = new Object[] {&quot;p&quot;, 0d, 0d, radiusMeters, PM};
+    } catch (NoSuchMethodException e) {
+      m =
+          Geo3DDocValuesField.class.getMethod(
+              factory, String.class, double.class, double.class, double.class);
+      args = new Object[] {&quot;p&quot;, 0d, 0d, radiusMeters};
+    }
+    return (SortField) m.invoke(null, args);
+  }
+
+  static Directory newDirectory(String kind, Path base) throws Exception {
+    if (kind.equals(&quot;fs&quot;)) {
+      Path p = Files.createTempDirectory(base, &quot;idx&quot;);
+      try {
+        return FSDirectory.open(p);
+      } catch (LinkageError e) {
+        // 6.1/6.2 MMapDirectory cannot initialise its unmap hack on a modern JDK: use NIOFSDirectory
+        return new NIOFSDirectory(p);
+      }
+    }
+    for (String cn :
+        new String[] {
+          &quot;org.apache.lucene.store.ByteBuffersDirectory&quot;, &quot;org.apache.lucene.store.RAMDirectory&quot;
+        }) {
+      try {
+        return (Directory) Class.forName(cn).getConstructor().newInstance();
+      } catch (ClassNotFoundException e) {
+        // try the next one
+      }
+    }
+    throw new IllegalStateException(&quot;no heap directory&quot;);
+  }
+
+  static String docs(ScoreDoc[] hits) {
+    int[] out = new int[hits.length];
+    for (int i = 0; i &lt; hits.length; i++) {
+      out[i] = hits[i].doc;
+    }
+    return Arrays.toString(out);
+  }
+
+  static String run(String dirKind, Path base, SortField sf, double[][] lats, int[] order)
+      throws Exception {
+    try (Directory dir = newDirectory(dirKind, base)) {
+      String dirName = &quot; dir=&quot; + dir.getClass().getSimpleName();
+      IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(NO_TEXT));
+      for (double[] docLats : lats) {
+        Document doc = new Document();
+        for (double lat : docLats) {
+          doc.add(point(lat));
+        }
+        w.addDocument(doc);
+      }
+      w.close();
+      DirectoryReader r = DirectoryReader.open(dir);
+      try {
+        IndexSearcher s = new IndexSearcher(r);
+        Sort sort = new Sort(sf);
+        Query q = new MatchAllDocsQuery();
+        String expFull = Arrays.toString(order);
+        String expTop2 = Arrays.toString(Arrays.copyOf(order, 2));
+        String full;
+        try {
+          full = docs(s.search(q, lats.length, sort).scoreDocs);
+        } catch (Exception e) {
+          return &quot;EXC(full) &quot; + describe(e) + dirName;
+        }
+        TopDocs top2;
+        try {
+          top2 = s.search(q, 2, sort);
+        } catch (Exception e) {
+          return &quot;EXC(top2) &quot; + describe(e) + dirName;
+        }
+        String t2 = docs(top2.scoreDocs);
+        String vals =
+            ((FieldDoc) top2.scoreDocs[0]).fields[0] + &quot;,&quot; + ((FieldDoc) top2.scoreDocs[1]).fields[0];
+        if (full.equals(expFull) &amp;&amp; t2.equals(expTop2)) {
+          return &quot;ok top2=&quot; + t2 + &quot; values=&quot; + vals + &quot; segments=&quot; + r.leaves().size() + dirName;
+        }
+        return &quot;WRONG full=&quot; + full + &quot; (expected &quot; + expFull + &quot;) top2=&quot; + t2 + &quot; (expected &quot;
+            + expTop2 + &quot;) values=&quot; + vals + &quot; segments=&quot; + r.leaves().size() + dirName;
+      } finally {
+        r.close();
+      }
+    }
+  }
+
+  static String describe(Throwable e) {
+    StringBuilder sb = new StringBuilder(e.getClass().getSimpleName() + &quot;: &quot; + redact(e.getMessage()));
+    for (Throwable c = e.getCause(); c != null; c = c.getCause()) {
+      sb.append(&quot; &lt;- &quot;).append(c.getClass().getSimpleName()).append(&quot;: &quot;).append(redact(c.getMessage()));
+    }
+    return sb.toString();
+  }
+
+  /** Drops the temporary index path from exception messages. */
+  static String redact(String msg) {
+    return msg == null ? null : msg.replaceAll(&quot;path=\&quot;[^\&quot;]*[/\\\\]&quot;, &quot;path=\&quot;&lt;tmp&gt;/&quot;);
+  }
+
+  public static void main(String[] args) throws Exception {
+    Path base = Files.createTempDirectory(&quot;geo3dhist&quot;);
+    String version = org.apache.lucene.util.Version.LATEST.toString();
+    System.out.println(&quot;lucene Version.LATEST=&quot; + version);
+    boolean newApi;
+    try {
+      Geo3DDocValuesField.class.getConstructor(String.class, GeoPoint.class, PlanetModel.class);
+      newApi = true;
+    } catch (NoSuchMethodException e) {
+      newApi = false;
+    }
+    System.out.println(&quot;api=&quot; + (newApi ? &quot;planet-model-arg (8.5+)&quot; : &quot;wgs84-only (&lt;8.5)&quot;));
+
+    String[][] sorts = {
+      {&quot;newDistanceSort&quot;, &quot;2000000&quot;}, // about 18 degrees: every point is inside the circle
+      {&quot;newOutsideDistanceSort&quot;, &quot;20000&quot;} // about 0.18 degrees: every point is outside the circle
+    };
+    List&lt;String&gt; bugLines = new ArrayList&lt;&gt;();
+    List&lt;String&gt; ctrlLines = new ArrayList&lt;&gt;();
+    boolean affected = false;
+    boolean controlOk = true;
+    for (String[] so : sorts) {
+      for (String dirKind : new String[] {&quot;fs&quot;, &quot;heap&quot;}) {
+        SortField sf;
+        try {
+          sf = sort(so[0], Double.parseDouble(so[1]));
+        } catch (InvocationTargetException e) {
+          throw new RuntimeException(e.getCause());
+        }
+        String tag = so[0] + &quot;/&quot; + dirKind;
+        String c = run(dirKind, base, sf, SINGLE, SINGLE_ORDER);
+        ctrlLines.add(&quot;CTRL single-valued &quot; + tag + &quot;: &quot; + c);
+        if (!c.startsWith(&quot;ok&quot;)) {
+          controlOk = false;
+        }
+        String[] names = {&quot;A multi-valued-nearest&quot;, &quot;C single-in-mixed-segment&quot;, &quot;D last-doc-multi&quot;};
+        double[][][] layouts = {MULTI, MIXED, LAST};
+        int[][] orders = {MULTI_ORDER, MIXED_ORDER, LAST_ORDER};
+        for (int i = 0; i &lt; names.length; i++) {
+          String res = run(dirKind, base, sf, layouts[i], orders[i]);
+          bugLines.add(names[i] + &quot; &quot; + tag + &quot;: &quot; + res);
+          if (!res.startsWith(&quot;ok&quot;)) {
+            affected = true;
+          }
+        }
+      }
+    }
+    for (String l : ctrlLines) {
+      System.out.println(l);
+    }
+    for (String l : bugLines) {
+      System.out.println(l);
+    }
+    if (!controlOk) {
+      System.out.println(&quot;VERDICT: inconclusive (control failed)&quot;);
+      System.exit(2);
+    }
+    if (affected) {
+      System.out.println(&quot;VERDICT: affected&quot;);
+      System.exit(1);
+    }
+    System.out.println(&quot;VERDICT: not affected&quot;);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-6-h'>TestGeo3DSortHiddenDocumentLeak.java (hidden-document probe)</h3><a class="hlink" href="#code-6-h" target="_self" aria-label="Link to this section" aria-describedby="code-6-h"><span aria-hidden="true">#</span></a></div><p>A permitted hit's sort value equals the distance of a document hidden by a <code class='nw'>FILTER</code> clause, a live-docs reader wrapper or a delete. Fails 7 of 7 on main, 10.5.2 and 9.12.3; passes 7 of 7 with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGeo3DSortHiddenDocumentLeak.java (hidden-document probe)</span><span class='meta'>515 lines</span><button type='button' class='copy' data-copy='code-6' data-status='code-6-st'>Copy</button><span class='copy-st' id='code-6-st' role='status' aria-live='polite'></span></figcaption><pre id='code-6' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package geo3dsecprobe;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Locale;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FilterDirectoryReader;
+import org.apache.lucene.index.FilterLeafReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.PostingsEnum;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.spatial3d.Geo3DDocValuesField;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.FixedBitSet;
+
+/**
+ * Security reach of the Geo3D comparator re-read: can a search that is restricted to some documents
+ * get back a value computed from a document it must not see?
+ *
+ * &lt;p&gt;Public API only (separate package), default codec pinned, one segment, plain IndexSearcher.
+ * Every test asserts the documented behaviour (Geo3DDocValuesField javadoc: &quot;The value returned in
+ * FieldDoc for the hits contains a Double instance with the distance in meters&quot;, and the closest of
+ * the hit&#x27;s own values is used), so a failure means the bug. The reference distance of a document is
+ * the sort value Lucene returns for that document when it is the only document of a separate index.
+ *
+ * &lt;p&gt;Layout (docID order, one segment): tenant A&#x27;s own documents, each followed by a tenant B
+ * document that A must not see. Tenant A&#x27;s first document has two values, which makes the field
+ * multi-valued in the segment (any multi-valued document in the segment has the same effect).
+ */
+@LuceneTestCase.SuppressSysoutChecks(bugUrl = &quot;probe prints its measurements&quot;)
+public class TestGeo3DSortHiddenDocumentLeak extends LuceneTestCase {
+
+  private static final String F = &quot;p&quot;;
+
+  // the constructor (deprecated on main in favour of INSTANCE) also compiles against 9.x releases
+  @SuppressWarnings(&quot;deprecation&quot;)
+  private static final Query MATCH_ALL = new MatchAllDocsQuery();
+
+  /** Tenant A, two values far in the south-west: makes the field multi-valued in the segment. */
+  private static final double[][] A_MULTI = {{-50, -100}, {-51, -100}};
+
+  /** Tenant A, one value near the query centres. */
+  private static final double[][] A_NEAR = {{1, 0}};
+
+  /** Tenant B (hidden from A): the location an attacker in tenant A tries to learn. */
+  private static final double[][] B_SECRET = {{12.3456, 7.6543}};
+
+  /** Tenant B filler at the end, so no read runs past the last value of the segment. */
+  private static final double[][] B_FILLER = {{20, 20}};
+
+  /** Radius of the sort circle on the unit sphere (radians): every document above is inside it. */
+  private static final double R_SPHERE = 2.5;
+
+  private static Document doc(PlanetModel pm, String id, String tenant, double[][] latlons) {
+    Document d = new Document();
+    d.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    d.add(new StringField(&quot;tenant&quot;, tenant, Field.Store.YES));
+    for (double[] ll : latlons) {
+      d.add(
+          new Geo3DDocValuesField(
+              F, new GeoPoint(pm, Math.toRadians(ll[0]), Math.toRadians(ll[1])), pm));
+    }
+    return d;
+  }
+
+  private static IndexWriterConfig iwc() {
+    IndexWriterConfig c = new IndexWriterConfig();
+    c.setCodec(TestUtil.getDefaultCodec());
+    c.setMergePolicy(NoMergePolicy.INSTANCE);
+    return c;
+  }
+
+  /** One segment holding A_MULTI, A_NEAR, B_SECRET, B_FILLER in this docID order. */
+  private static Directory standardIndex(PlanetModel pm) throws IOException {
+    Directory dir = new ByteBuffersDirectory();
+    try (IndexWriter w = new IndexWriter(dir, iwc())) {
+      w.addDocument(doc(pm, &quot;a-multi&quot;, &quot;A&quot;, A_MULTI));
+      w.addDocument(doc(pm, &quot;a-near&quot;, &quot;A&quot;, A_NEAR));
+      w.addDocument(doc(pm, &quot;b-secret&quot;, &quot;B&quot;, B_SECRET));
+      w.addDocument(doc(pm, &quot;b-filler&quot;, &quot;B&quot;, B_FILLER));
+    }
+    return dir;
+  }
+
+  /** Sort value Lucene returns for a document holding these points when it is alone in an index. */
+  private static double reference(PlanetModel pm, double[][] latlons, SortField sf)
+      throws IOException {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, iwc())) {
+        w.addDocument(doc(pm, &quot;ref&quot;, &quot;R&quot;, latlons));
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        TopDocs td = new IndexSearcher(r).search(MATCH_ALL, 1, new Sort(sf));
+        return (Double) ((FieldDoc) td.scoreDocs[0]).fields[0];
+      }
+    }
+  }
+
+  private static Query tenantFilter(String tenant) {
+    return new BooleanQuery.Builder()
+        .add(new TermQuery(new Term(&quot;tenant&quot;, tenant)), BooleanClause.Occur.FILTER)
+        .build();
+  }
+
+  private static String id(IndexSearcher s, ScoreDoc sd) throws IOException {
+    return s.storedFields().document(sd.doc).get(&quot;id&quot;);
+  }
+
+  private static SortField sphereSort(double latDeg, double lonDeg) {
+    return Geo3DDocValuesField.newDistanceSort(F, latDeg, lonDeg, R_SPHERE, PlanetModel.SPHERE);
+  }
+
+  /** Top-1 hit for tenant A; returns {reported, ownReference, hiddenReference}. */
+  private double[] topHitForTenantA(IndexSearcher s, PlanetModel pm, SortField sf, String label)
+      throws IOException {
+    TopDocs td = s.search(tenantFilter(&quot;A&quot;), 1, new Sort(sf));
+    ScoreDoc hit = td.scoreDocs[0];
+    String hitId = id(s, hit);
+    double reported = (Double) ((FieldDoc) hit).fields[0];
+    double own = reference(pm, &quot;a-near&quot;.equals(hitId) ? A_NEAR : A_MULTI, sf);
+    double hidden = reference(pm, B_SECRET, sf);
+    System.out.println(
+        String.format(
+            Locale.ROOT,
+            &quot;%s: hit=%s reported=%.17g own=%.17g hidden(b-secret)=%.17g reported==hidden:%s&quot;,
+            label,
+            hitId,
+            reported,
+            own,
+            hidden,
+            Double.compare(reported, hidden) == 0));
+    assertEquals(&quot;tenant A sees only tenant A documents&quot;, &quot;A&quot;, s.storedFields().document(hit.doc).get(&quot;tenant&quot;));
+    return new double[] {reported, own, hidden};
+  }
+
+  /** Filter-based restriction (a FILTER clause on tenant): the hidden document&#x27;s distance leaks. */
+  public void testFilteredOutDocumentDistanceIsReturnedAsHitSortValue() throws Exception {
+    try (Directory dir = standardIndex(PlanetModel.SPHERE);
+        DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      double[] v = topHitForTenantA(s, PlanetModel.SPHERE, sphereSort(0, 0), &quot;filter/SPHERE&quot;);
+      assertEquals(
+          &quot;sort value of tenant A&#x27;s hit must be its own distance, not tenant B&#x27;s &quot;
+              + v[2],
+          v[1],
+          v[0],
+          1e-12);
+    }
+  }
+
+  /**
+   * Three centres chosen by the searcher: the three returned sort values are arc distances on the
+   * unit sphere, so the hidden point p solves c_i . p = cos(d_i). The hidden location must not be
+   * recoverable from tenant A&#x27;s results.
+   */
+  public void testHiddenLocationRecoveredFromThreeSearches() throws Exception {
+    double[][] centres = {{0, 0}, {0, 30}, {30, 0}};
+    double[][] m = new double[3][];
+    double[] rhs = new double[3];
+    try (Directory dir = standardIndex(PlanetModel.SPHERE);
+        DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      for (int i = 0; i &lt; 3; i++) {
+        double[] v =
+            topHitForTenantA(
+                s,
+                PlanetModel.SPHERE,
+                sphereSort(centres[i][0], centres[i][1]),
+                &quot;trilateration centre &quot; + i);
+        double lat = Math.toRadians(centres[i][0]);
+        double lon = Math.toRadians(centres[i][1]);
+        m[i] =
+            new double[] {Math.cos(lat) * Math.cos(lon), Math.cos(lat) * Math.sin(lon), Math.sin(lat)};
+        rhs[i] = Math.cos(v[0]); // SPHERE mean radius is 1: the value is the arc in radians
+      }
+    }
+    double[] p = solve3(m, rhs);
+    double norm = Math.sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
+    double latDeg = Math.toDegrees(Math.asin(p[2] / norm));
+    double lonDeg = Math.toDegrees(Math.atan2(p[1], p[0]));
+    double errDeg =
+        Math.max(Math.abs(latDeg - B_SECRET[0][0]), Math.abs(lonDeg - B_SECRET[0][1]));
+    System.out.println(
+        String.format(
+            Locale.ROOT,
+            &quot;recovered from tenant A&#x27;s sort values: lat=%.6f lon=%.6f; b-secret is at lat=%.6f&quot;
+                + &quot; lon=%.6f; max error %.2e degrees&quot;,
+            latDeg,
+            lonDeg,
+            B_SECRET[0][0],
+            B_SECRET[0][1],
+            errDeg));
+    assertTrue(
+        String.format(
+            Locale.ROOT,
+            &quot;tenant B&#x27;s hidden location (%.4f, %.4f) was recovered from tenant A&#x27;s results as&quot;
+                + &quot; (%.6f, %.6f)&quot;,
+            B_SECRET[0][0],
+            B_SECRET[0][1],
+            latDeg,
+            lonDeg),
+        errDeg &gt; 1e-3);
+  }
+
+  /** A deleted document&#x27;s distance is returned as the sort value of a live hit. */
+  public void testDeletedDocumentDistanceIsReturnedAsHitSortValue() throws Exception {
+    PlanetModel pm = PlanetModel.SPHERE;
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, iwc())) {
+        w.addDocument(doc(pm, &quot;a-multi&quot;, &quot;A&quot;, A_MULTI));
+        w.addDocument(doc(pm, &quot;a-near&quot;, &quot;A&quot;, A_NEAR));
+        w.addDocument(doc(pm, &quot;b-secret&quot;, &quot;A&quot;, B_SECRET)); // same tenant, then deleted
+        w.addDocument(doc(pm, &quot;b-filler&quot;, &quot;A&quot;, B_FILLER));
+        w.commit();
+        w.deleteDocuments(new Term(&quot;id&quot;, &quot;b-secret&quot;));
+        w.commit();
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(&quot;one segment&quot;, 1, r.leaves().size());
+        assertEquals(&quot;b-secret is deleted&quot;, 1, r.numDeletedDocs());
+        IndexSearcher s = new IndexSearcher(r);
+        SortField sf = sphereSort(0, 0);
+        TopDocs td = s.search(MATCH_ALL, 1, new Sort(sf));
+        String hitId = id(s, td.scoreDocs[0]);
+        double reported = (Double) ((FieldDoc) td.scoreDocs[0]).fields[0];
+        double own = reference(pm, A_NEAR, sf);
+        double deleted = reference(pm, B_SECRET, sf);
+        System.out.println(
+            String.format(
+                Locale.ROOT,
+                &quot;deleted/SPHERE: hit=%s reported=%.17g own=%.17g deleted(b-secret)=%.17g&quot;
+                    + &quot; reported==deleted:%s&quot;,
+                hitId,
+                reported,
+                own,
+                deleted,
+                Double.compare(reported, deleted) == 0));
+        assertEquals(&quot;a-near&quot;, hitId);
+        assertEquals(&quot;live hit must report its own distance, not the deleted document&#x27;s &quot; + deleted, own, reported, 1e-12);
+      }
+    }
+  }
+
+  /**
+   * Reader-wrapper restriction: a FilterDirectoryReader hides tenant B through getLiveDocs, the
+   * usual shape of a document-level security layer. Doc values of hidden documents stay readable
+   * through the wrapped reader, and the comparator reads them.
+   */
+  public void testLiveDocsHidingReaderWrapperLeaksHiddenDistance() throws Exception {
+    try (Directory dir = standardIndex(PlanetModel.SPHERE);
+        DirectoryReader raw = DirectoryReader.open(dir);
+        DirectoryReader r = new HideTenantReader(raw, &quot;B&quot;)) {
+      assertEquals(&quot;tenant B hidden&quot;, 2, r.numDocs());
+      IndexSearcher s = new IndexSearcher(r);
+      SortField sf = sphereSort(0, 0);
+      TopDocs td = s.search(MATCH_ALL, 1, new Sort(sf));
+      String hitId = id(s, td.scoreDocs[0]);
+      double reported = (Double) ((FieldDoc) td.scoreDocs[0]).fields[0];
+      double own = reference(PlanetModel.SPHERE, A_NEAR, sf);
+      double hidden = reference(PlanetModel.SPHERE, B_SECRET, sf);
+      System.out.println(
+          String.format(
+              Locale.ROOT,
+              &quot;liveDocs-wrapper/SPHERE: hit=%s reported=%.17g own=%.17g hidden(b-secret)=%.17g&quot;
+                  + &quot; reported==hidden:%s&quot;,
+              hitId,
+              reported,
+              own,
+              hidden,
+              Double.compare(reported, hidden) == 0));
+      assertEquals(&quot;a-near&quot;, hitId);
+      assertEquals(&quot;hit must report its own distance, not the hidden document&#x27;s &quot; + hidden, own, reported, 1e-12);
+    }
+  }
+
+  /**
+   * searchAfter (PagingFieldCollector calls compareTop and then copy for every hit): with a page
+   * larger than the hit count, every one of tenant A&#x27;s single-valued hits reports the distance of
+   * the tenant B document stored right after it. No full queue is needed.
+   */
+  public void testSearchAfterEveryHitReportsTheNextHiddenDocument() throws Exception {
+    PlanetModel pm = PlanetModel.SPHERE;
+    double[][][] aDocs = {{{1, 0}}, {{2, 0}}, {{3, 0}}};
+    double[][][] bDocs = {{{12.3456, 7.6543}}, {{-8.5, 33.25}}, {{40.125, -21.5}}};
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, iwc())) {
+        w.addDocument(doc(pm, &quot;a-multi&quot;, &quot;A&quot;, A_MULTI));
+        for (int i = 0; i &lt; 3; i++) {
+          w.addDocument(doc(pm, &quot;a&quot; + i, &quot;A&quot;, aDocs[i]));
+          w.addDocument(doc(pm, &quot;b&quot; + i, &quot;B&quot;, bDocs[i]));
+        }
+        w.addDocument(doc(pm, &quot;b-filler&quot;, &quot;B&quot;, B_FILLER));
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        SortField sf = sphereSort(0, 0);
+        // a client-supplied cursor: &quot;after distance 0&quot; (SPHERE, so no unit mismatch in compareTop)
+        FieldDoc after = new FieldDoc(0, Float.NaN, new Object[] {0.0});
+        TopDocs td = s.searchAfter(after, tenantFilter(&quot;A&quot;), 10, new Sort(sf));
+        int leaked = 0;
+        StringBuilder sb = new StringBuilder();
+        for (ScoreDoc sd : td.scoreDocs) {
+          String hitId = id(s, sd);
+          if (hitId.equals(&quot;a-multi&quot;)) {
+            continue;
+          }
+          int i = hitId.charAt(1) - &#x27;0&#x27;;
+          double reported = (Double) ((FieldDoc) sd).fields[0];
+          double own = reference(pm, aDocs[i], sf);
+          double next = reference(pm, bDocs[i], sf);
+          boolean isNext = Double.compare(reported, next) == 0;
+          if (isNext) {
+            leaked++;
+          }
+          sb.append(
+              String.format(
+                  Locale.ROOT,
+                  &quot;%n  %s reported=%.17g own=%.17g hidden b%d=%.17g reported==hidden:%s&quot;,
+                  hitId,
+                  reported,
+                  own,
+                  i,
+                  next,
+                  isNext));
+        }
+        System.out.println(&quot;searchAfter/SPHERE:&quot; + sb);
+        assertEquals(&quot;hits reporting a hidden document&#x27;s distance:&quot; + sb, 0, leaked);
+      }
+    }
+  }
+
+  /** Same as the filter test on WGS84: the leaked value is the hidden document&#x27;s distance in m. */
+  public void testFilteredOutDocumentDistanceWgs84Meters() throws Exception {
+    try (Directory dir = standardIndex(PlanetModel.WGS84);
+        DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      SortField sf =
+          Geo3DDocValuesField.newDistanceSort(F, 0, 0, 15_000_000, PlanetModel.WGS84);
+      double[] v = topHitForTenantA(s, PlanetModel.WGS84, sf, &quot;filter/WGS84&quot;);
+      assertEquals(
+          &quot;sort value (m) of tenant A&#x27;s hit must be its own distance, not tenant B&#x27;s &quot; + v[2],
+          v[1],
+          v[0],
+          1e-6);
+    }
+  }
+
+  /** The outside-distance comparator has the same re-read. */
+  public void testOutsideDistanceSortLeaksHiddenDistance() throws Exception {
+    try (Directory dir = standardIndex(PlanetModel.SPHERE);
+        DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      SortField sf =
+          Geo3DDocValuesField.newOutsideDistanceSort(
+              F, 0, 0, Math.toRadians(0.1), PlanetModel.SPHERE);
+      double[] v = topHitForTenantA(s, PlanetModel.SPHERE, sf, &quot;outside-filter/SPHERE&quot;);
+      assertEquals(
+          &quot;outside distance of tenant A&#x27;s hit must be its own, not tenant B&#x27;s &quot; + v[2],
+          v[1],
+          v[0],
+          1e-12);
+    }
+  }
+
+  /** Gaussian elimination with partial pivoting, 3x3. */
+  private static double[] solve3(double[][] a0, double[] b0) {
+    double[][] a = new double[3][4];
+    for (int i = 0; i &lt; 3; i++) {
+      System.arraycopy(a0[i], 0, a[i], 0, 3);
+      a[i][3] = b0[i];
+    }
+    for (int c = 0; c &lt; 3; c++) {
+      int piv = c;
+      for (int i = c + 1; i &lt; 3; i++) {
+        if (Math.abs(a[i][c]) &gt; Math.abs(a[piv][c])) {
+          piv = i;
+        }
+      }
+      double[] t = a[c];
+      a[c] = a[piv];
+      a[piv] = t;
+      for (int i = 0; i &lt; 3; i++) {
+        if (i != c) {
+          double f = a[i][c] / a[c][c];
+          for (int k = c; k &lt; 4; k++) {
+            a[i][k] -= f * a[c][k];
+          }
+        }
+      }
+    }
+    return new double[] {a[0][3] / a[0][0], a[1][3] / a[1][1], a[2][3] / a[2][2]};
+  }
+
+  /** Hides every document of one tenant through getLiveDocs (document-level-security shape). */
+  static final class HideTenantReader extends FilterDirectoryReader {
+    private final String hidden;
+
+    HideTenantReader(DirectoryReader in, String hidden) throws IOException {
+      super(in, new HideTenantWrapper(hidden));
+      this.hidden = hidden;
+    }
+
+    @Override
+    protected DirectoryReader doWrapDirectoryReader(DirectoryReader in) throws IOException {
+      return new HideTenantReader(in, hidden);
+    }
+
+    @Override
+    public CacheHelper getReaderCacheHelper() {
+      return null;
+    }
+  }
+
+  static final class HideTenantWrapper extends FilterDirectoryReader.SubReaderWrapper {
+    private final String hidden;
+
+    HideTenantWrapper(String hidden) {
+      this.hidden = hidden;
+    }
+
+    @Override
+    public LeafReader wrap(LeafReader reader) {
+      try {
+        return new HideTenantLeaf(reader, hidden);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+  }
+
+  static final class HideTenantLeaf extends FilterLeafReader {
+    private final FixedBitSet live;
+    private final int numDocs;
+
+    HideTenantLeaf(LeafReader in, String hidden) throws IOException {
+      super(in);
+      live = new FixedBitSet(in.maxDoc());
+      live.set(0, in.maxDoc());
+      Bits inLive = in.getLiveDocs();
+      if (inLive != null) {
+        for (int d = 0; d &lt; in.maxDoc(); d++) {
+          if (inLive.get(d) == false) {
+            live.clear(d);
+          }
+        }
+      }
+      PostingsEnum pe = in.postings(new Term(&quot;tenant&quot;, hidden));
+      if (pe != null) {
+        for (int d = pe.nextDoc(); d != PostingsEnum.NO_MORE_DOCS; d = pe.nextDoc()) {
+          live.clear(d);
+        }
+      }
+      numDocs = live.cardinality();
+    }
+
+    @Override
+    public Bits getLiveDocs() {
+      return live;
+    }
+
+    @Override
+    public int numDocs() {
+      return numDocs;
+    }
+
+    @Override
+    public CacheHelper getCoreCacheHelper() {
+      return null;
+    }
+
+    @Override
+    public CacheHelper getReaderCacheHelper() {
+      return null;
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also the 10.5.2 release jars</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (the only platform run; pure Java code path)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestGeo3DSortMultiValued.java $LUCENE/lucene/spatial3d/src/test/org/apache/lucene/spatial3d/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial3d:test --tests TestGeo3DSortMultiValued -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestGeo3DSortMultiValued &gt; testTopTwoWhenMultiValuedDocumentIsLast FAILED
+    java.lang.RuntimeException: java.io.EOFException: read past EOF: NIOFSIndexInput(...) [slice=_0_Lucene90_0.dvd] [slice=randomaccess]
+TestGeo3DSortMultiValued &gt; testOutsideDistanceSort FAILED
+    java.lang.AssertionError: top 2 = [0 @ 0.90 deg, 2 @ 4.90 deg] expected:&lt;[2, 0]&gt; but was:&lt;[0, 2]&gt;
+TestGeo3DSortMultiValued &gt; testTopTwoSingleValuedHitInMultiValuedSegment FAILED
+    java.lang.AssertionError: top 2 = [0 @ 1.00 deg, 2 @ 5.00 deg] expected:&lt;[2, 0]&gt; but was:&lt;[0, 2]&gt;
+TestGeo3DSortMultiValued &gt; testTopTwoWgs84 FAILED
+    java.lang.AssertionError: top 2 = [0 @ 1.00 deg, 2 @ 5.00 deg] expected:&lt;[2, 0]&gt; but was:&lt;[0, 2]&gt;
+TestGeo3DSortMultiValued &gt; testTopTwoWithMultiValuedDocument FAILED
+    java.lang.AssertionError: top 2 = [0 @ 1.00 deg, 2 @ 5.00 deg] expected:&lt;[2, 0]&gt; but was:&lt;[0, 2]&gt;
+TestGeo3DSortMultiValued &gt; testSearchAfterWithMultiValuedDocument FAILED
+    java.lang.RuntimeException: java.io.EOFException
+7 tests completed, 6 failed
+
+# the end-of-data stack
+    at Lucene90DocValuesProducer$23.nextValue(Lucene90DocValuesProducer.java:2071)
+    at Geo3DPointDistanceComparator.computeMinimumDistance(Geo3DPointDistanceComparator.java:171)
+
+# with the fix: 7 tests completed, 0 failed</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc allows several points per document and promises the closest one (<code>Geo3DDocValuesField.java:34-35</code>, <code class='nw'>:173-174</code>).</li><li><code class='nw'>nextValue()</code>: "Do not call this more than docValueCount times for the document"; Lucene's own <code>AssertingLeafReader</code> fails inside <code class='nw'>copy</code>.</li><li>LUCENE-7407 gave the 2D twin <code>LatLonPointDistanceComparator</code> a per-document value cache in the commit that broke the Geo3D comparators; 6.x was correct.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>294 words</span></summary><div class='body'><ul><li><strong>The javadoc promises it.</strong> "Multiple values for the same field in one document is allowed" (<code>Geo3DDocValuesField.java:34-35</code>); every factory says the closest value is used and that <code class='nw'>FieldDoc</code> holds the distance (<code class='nw'>:167-174</code> and siblings). The returned distance belongs to another document. Neither the field nor the comparators are <code>@lucene.experimental</code>; <code class='nw'>PlanetModel</code>, a parameter of every sort factory, is (<code>PlanetModel.java:23-27</code>), which bears on API stability and priority, not on whether a wrong documented result is intended.</li><li><strong>The read rule is explicit</strong> (<code>SortedNumericDocValues.java:28-31</code>), and the test framework enforces it: <code>AssertingDirectoryReader</code> fails with <code>valueUpto=2 in.docValueCount()=2</code> at <code>computeMinimumDistance:171</code> &lt;- <code class='nw'>copy:138</code> &lt;- <code>TopFieldCollector...collectCompetitiveHit:116</code> (executed).</li><li><strong>The double question is Lucene's own and documented.</strong> <code>LeafFieldComparator</code>: <code class='nw'>compareBottom</code> "Compare a new hit (docID) against the 'weakest' (bottom) entry", <code class='nw'>copy</code> "Installs a new hit into the priority queue ... when a new hit is competitive" (<code>LeafFieldComparator.java:32-37</code>); <code>TopFieldCollector</code> does exactly that.</li><li><strong>The twins handle the same pattern.</strong> <code>LatLonPointDistanceComparator</code> (<code class='nw'>:68-69</code>, <code class='nw'>:120-133</code>, <code class='nw'>:192</code>) and <code>XYPointDistanceComparator</code> (<code class='nw'>:63-64</code>, <code class='nw'>:106-119</code>, <code class='nw'>:176</code>) read each document's values once into <code class='nw'>currentValues</code> and reset per leaf.</li><li><strong>History shows an oversight.</strong> 6.x read with <code class='nw'>setDocument(doc)</code> + <code class='nw'>valueAt(i)</code>, which can be repeated; 6.1.0-6.6.6 are correct (executed). LUCENE-7407 (<code class='nw'>f7aa200d406</code>) replaced it with <code class='nw'>nextValue()</code> in both Geo3D comparators and added the cache to the LatLon twin only; adding just that cache to 7.0.0 and 7.7.3 makes them correct (executed).</li><li><strong>Known pattern.</strong> When the iterator API was designed, LUCENE-7462 (#8514) made <code class='nw'>advanceExact</code> accept the current document because a strict version "caused issues with comparators that may need to get the value multiple times".</li><li><strong>No statement of intent.</strong> No javadoc, CHANGES, MIGRATE, test or issue limits Geo3D sorts to single-valued fields; upstream has no Geo3D sort test at all.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>203 words</span></summary><div class='body'><p>The intended-behaviour checker built the strongest case: (a) <code class='nw'>FieldComparator</code> and <code>LeafFieldComparator</code> are Expert and <code>@lucene.experimental</code> (so is <code class='nw'>PlanetModel</code>, a parameter of every Geo3D sort factory), and nothing says in so many words that <code class='nw'>copy</code> follows <code class='nw'>compareBottom</code> for the same document, so a comparator could read once per call; (b) the feature looks unfinished: LUCENE-7212 (#8267) is still open with "tests" listed as missing, no upstream test sorts with Geo3D, the class javadoc still has a "TBD" list, and during design a committer asked how necessary multi-valued support really is; (c) <code class='nw'>nextValue()</code> puts the burden on the caller, and the codec is deliberately unchecked, so a wrong value or an <code class='nw'>EOFException</code> is the allowed outcome of breaking the rule.</p><p>Why it fails: the caller that breaks the rule is Lucene's own comparator, driven by Lucene's own collector in the order the <code>LeafFieldComparator</code> javadoc describes, and the two core twins cache values for exactly that order; missing tests do not make wrong results intended, multi-valued support is documented on a public field, and 6.x implemented it correctly; the codec skips the check because callers must respect <code class='nw'>docValueCount</code>. <strong>Verdict: a defect</strong> (the adjudication: confirmed, high). Expect "low-traffic module" pushback on priority, not on validity.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Cache the current document's values once per document (validated)</strong></p><p class='short'>Read each document's points once into a small array and reuse them in <code class='nw'>compareBottom</code>, <code class='nw'>compareTop</code> and <code class='nw'>copy</code>, exactly as <code>LatLonPointDistanceComparator</code> does (+54/-4 in the two Geo3D comparators). The new test passes 7 of 7, and the whole spatial3d module (188 tests) passes with assertions on and off.</p><pre class='snippet' tabindex='0'><code>private long[] currentValues = new long[4];
+private int valuesDocID = -1;
+
+private void setValues() throws IOException {
+  if (valuesDocID != currentDocs.docID()) {
+    valuesDocID = currentDocs.docID();
+    int count = currentDocs.docValueCount();
+    if (count &gt; currentValues.length) {
+      currentValues = new long[ArrayUtil.oversize(count, Long.BYTES)];
+    }
+    for (int i = 0; i &lt; count; i++) currentValues[i] = currentDocs.nextValue();
+  }
+}
+// compareBottom, computeMinimumDistance: setValues(); read currentValues[i]; getLeafComparator: valuesDocID = -1;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 495 words</span></summary><div class='body'><p>One fix was built and validated: the per-document value cache of the 2D twins. Two alternatives were not built.</p><div class="hd hd-3"><h3 id='fix-value-cache'>Cache the current document's values once per document (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-value-cache" target="_self" aria-label="Link to this section" aria-describedby="fix-value-cache"><span aria-hidden="true">#</span></a></div><p>In <code>Geo3DPointDistanceComparator</code> and <code>Geo3DPointOutsideDistanceComparator</code>: add <code class='nw'>currentValues</code>/<code class='nw'>valuesDocID</code> and a <code class='nw'>setValues()</code> that reads the current document's values once; call it in <code class='nw'>compareBottom</code> and <code>computeMinimumDistance</code> and read from the array; reset <code>valuesDocID = -1</code> in <code>getLeafComparator</code>. A copy of <code>LatLonPointDistanceComparator.java:68-69, :120-133, :192</code>, including its ordering assert (left out of the snippet). 2 files, +54/-4.</p><pre class='snippet' tabindex='0'><code>private long[] currentValues = new long[4];
+private int valuesDocID = -1;
+
+private void setValues() throws IOException {
+  if (valuesDocID != currentDocs.docID()) {
+    valuesDocID = currentDocs.docID();
+    int count = currentDocs.docValueCount();
+    if (count &gt; currentValues.length) {
+      currentValues = new long[ArrayUtil.oversize(count, Long.BYTES)];
+    }
+    for (int i = 0; i &lt; count; i++) currentValues[i] = currentDocs.nextValue();
+  }
+}
+// compareBottom, computeMinimumDistance: setValues(); read currentValues[i]; getLeafComparator: valuesDocID = -1;</code></pre><p class='k'>Trade-offs</p><p>One <code class='nw'>long[]</code> per comparator (4 longs at first; it grows to the largest value count seen and is kept for the comparator's life, across segments) and a doc-id check per call. Doc values are read once per document instead of two or three times, but <code class='nw'>compareBottom</code>, <code class='nw'>compareTop</code> and <code class='nw'>copy</code> still each decode the points and compute distances. Same design as the core twins, so easy to review (in 2016 the LatLon comparator lived in <code class='nw'>lucene/sandbox</code>). A helper shared by both comparators, or caching each document's minimum distance (keeping <code class='nw'>compareBottom</code>'s bounding-box shortcut), are alternatives. No benchmark was run.</p><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: stock + the new test fails 6 of 7 with assertions on and off; + fix the new test passes 7 of 7 with assertions on and off.</li><li>The whole <code class='nw'>lucene/spatial3d</code> module: 20 suites, 188 tests, 3 skipped, 0 failures, with assertions on and off; <code>:lucene:spatial3d:check -x test</code> (ecjLint, forbiddenApis, checkGoogleJavaFormat) passes.</li><li>Standalone runner with the fix: the independent reproducer's 10 tests (including the <code>AssertingDirectoryReader</code> probe), the original 5 tests and the hidden-document probe's 7 tests all pass.</li><li>The fix's code comment was reworded after the fact checks (code unchanged); every run above was repeated with the reworded fix.</li><li>Earlier: the same cache added to 7.0.0 and 7.7.3 fixed the history probe there.</li></ul><div class="hd hd-3"><h3 id='fix-reposition'>Re-position with advanceExact(doc) before the second read (not built)</h3><a class="hlink" href="#fix-reposition" target="_self" aria-label="Link to this section" aria-describedby="fix-reposition"><span aria-hidden="true">#</span></a></div><p>In <code>computeMinimumDistance</code>, used by <code class='nw'>copy</code> and <code class='nw'>compareTop</code>, call <code>currentDocs.advanceExact(doc)</code> instead of advancing only when the cursor is behind; <code>DocValuesIterator</code> allows the current document as the target (<code>DocValuesIterator.java:25-28</code>).</p><p class='k'>Trade-offs</p><p>Smaller diff, but it relies on <code class='nw'>advanceExact</code> of the same document resetting the value cursor: the Lucene90 iterators and <code>AssertingLeafReader</code> do, no javadoc says so. It decodes and computes distances two or three times per competitive hit.</p><div class="hd hd-3"><h3 id='fix-document'>Document Geo3D sorts as single-valued only (rejected)</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>Say in the javadoc that only one point per document is supported.</p><p class='k'>Trade-offs</p><p>Contradicts the field's own javadoc, 6.x behaviour and the 2D twins, and leaves the exception path in place.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Because the second read lands on the documents stored next, a hit can carry the distance of a document that a filter, a live-docs wrapper or a delete hides from the search; in one probe three searches recovered a hidden document's location to within 2.55e-05 degrees. It matters only to applications that return sort values and hide documents that way.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code reading: while writing the reference comparator of a randomized harness that compares paged and unpaged sorted searches, the finder noticed that <code class='nw'>compareBottom</code> and <code class='nw'>copy</code> drain the same doc-values cursor. The harness then showed it on random tiny indexes, and a minimal JUnit confirmed it on the stock jars.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>149 words</span></summary><div class='body'><p><strong>Method: code reading, witnessed by a randomized metamorphic harness and a JUnit</strong> (the hunt's non-formal tier).</p><ul><li>The hunt unit checked metamorphic relations of <code class='nw'>SortField</code> paging across modules: the top N must be the head of the full order, and <code class='nw'>searchAfter</code> pages must concatenate to it.</li><li>While writing the harness's reference for the Geo3D comparators, the finder saw that <code class='nw'>compareBottom</code> and <code class='nw'>copy</code> both loop over <code class='nw'>nextValue()</code> for the same document.</li><li>On the stock main jar the harness's Geo3D family gave 2,811 paging mismatches and 2,267 <code>IndexOutOfBoundsException</code>s in 3,000 random trials, counted together with a separate Geo3D <code class='nw'>searchAfter</code> units bug (LFV-544); 0 with both fixes, while with only LFV-544's fix 1,070 mismatches and 853 exceptions remained.</li><li>The finder reduced it to a 5-test public-API JUnit. A review by another model family (OpenAI GPT-5.6, read-only) widened the trigger to single-valued hits in a multi-valued segment, which a new executed test confirmed.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-26): about 205 queries (280 with two earlier re-read runs) over GitHub issues, PRs and commits of Lucene, Solr, Elasticsearch and OpenSearch, the JIRA archive, the mailing lists and the web, plus the changed files of all 407 open Lucene PRs. The nearest items are the feature issue #8267 and LUCENE-7407, which introduced it.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>No issue, PR, JIRA ticket, list thread, downstream report or web page describes the Geo3D comparators reading doc values twice, wrong Geo3D sort order or values on multi-valued points, or <code class='nw'>EOFException</code> from Geo3D sorts. Neither comparator has changed on upstream main (<code class='nw'>ffa9d816eeb</code>, 2026-10-26) or branch_10x since 2021, and no open PR touches them.</p><p><strong>Closest, not this bug:</strong> #8267 (LUCENE-7212, the open feature issue; all comments predate the bug), LUCENE-7407 / #8460 (the introducing change; its comments never mention spatial3d), #8514 (LUCENE-7462: comparators "may need to get the value multiple times"), a 2018 java-user@ thread "Read DocValue twice" (the same exception class in user code), open PR #14775 (inverse sort on the Geo3D sort fields; leaves the comparators alone) and #16847 (other spatial3d files).</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub, commits, downstream repositories, mailing lists, JIRA archive, web</th><td class='when'>2026-10-26</td><td>two scripted prior-report search runs: 51 queries on the Geo3D sort classes, factories and symptoms, 24 on the generic nextValue/docValueCount/comparator contract; the finder's 51-query run and the devil's advocate's run</td><td>only #8267, LUCENE-7407 and unrelated items</td></tr><tr><th scope='row'>GitHub (apache/lucene, apache/lucene-solr, apache/lucenenet, elastic/elasticsearch, opensearch-project/OpenSearch, apache/solr)</th><td class='when'>2026-10-26</td><td>53 manual searches, open and closed, by class, factory, symptom and JIRA key (read-only GraphQL)</td><td>no report</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 407 open apache/lucene PRs</td><td>none touches either comparator or Geo3DDocValuesField.java; #14775 and #16847 touch other Geo3D files</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>2026-10-26</td><td>18 JQL searches over LUCENE and SOLR; LUCENE-7407, 7460, 7462, 8482, 8834, 9150 and 9263 read</td><td>no report</td></tr><tr><th scope='row'>Mailing lists</th><td class='when'>2026-10-26</td><td>49 searches over dev@, java-user@, issues@, commits@ lucene and the Solr lists</td><td>one 2018 java-user@ thread about re-reading doc values in user code</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>10 queries</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 7.0.0 by LUCENE-7407 (<code class='nw'>f7aa200d406</code>, 2016-09-21), which switched doc values to iterators. Executed: 6.1.0, 6.2.1 and 6.6.6 are correct; every executed release from 7.0.0 to 10.5.2 and main is wrong, and from 9.0.0 the end-of-data case throws instead of returning a wrong value.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-7407 "switch doc values usage to an iterator API" (@mikemccand, <code class='nw'>f7aa200d406</code>, 2016-09-21; a JIRA patch committed directly, migrated issue #8460). It converted both Geo3D comparators from <code class='nw'>setDocument(doc)</code> + <code class='nw'>valueAt(i)</code> to <code class='nw'>docValueCount()</code> + <code class='nw'>nextValue()</code> without a cache and, in the same commit, added the <code class='nw'>currentValues</code>/<code class='nw'>valuesDocID</code> cache to <code>LatLonPointDistanceComparator</code>. The read loops are unchanged since (only reformatting and the LUCENE-9150 decode change touched those methods). The sort API itself came with LUCENE-7212 (#8267, still open; May 2016) and first shipped, correct, in 6.1.0. 65 release tags contain the commit, plus 8.8.2-8.11.4 cut from the old combined repository. Not fixed upstream; the unreleased <code class='nw'>branch_10_6</code> and <code class='nw'>branch_10x</code> (2026-10-24) have the same comparators.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 6 of 7 fail (gradle and the standalone runner, assertions on and off, 5 seeds)</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 6 of 7 fail (assertions on and off); the independent reproducer 10 of 10</td></tr><tr><th scope='row'>9.12.3, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>history probe: wrong top 2; last-document case <code>RuntimeException(EOFException)</code> on file directories, <code>IndexOutOfBoundsException</code> on a plain <code>ByteBuffersDirectory</code></td></tr><tr><th scope='row'>9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>history probe: wrong top 2; last-document case <code>IndexOutOfBoundsException</code> on both the file (MMap) and the plain heap directory</td></tr><tr><th scope='row'>7.0.0, 7.7.3, 8.0.0, 8.4.1, 8.5.0, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>history probe: wrong top 2; last-document case a wrong distance (about 9° instead of 0.5°), no exception</td></tr><tr><th scope='row'>6.1.0, 6.2.1, 6.6.6</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>history probe correct (random-access doc values)</td></tr><tr><th scope='row'>7.0.0 and 7.7.3 + only the value cache</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> commit isolation</span></td><td>correct; the unmodified 7.0.0 sources shadowed in still fail</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the brief's test 7 of 7; the whole <code class='nw'>lucene/spatial3d</code> module, 188 tests, 0 failed</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, an intended-behaviour devil's advocate and a review by another model family (OpenAI GPT-5.6) call it real; the adjudication re-ran the reproducer's tests (10 of 10 fail, all pass with the fix) and confirmed it. A registry re-run and an audit reproduced it on main and 10.5.2.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>462 words</span></summary><div class='body'><p>The independent reproducer, the devil's advocate, the adjudication and the registry re-run ran tests on the stock jars with assertions on and off, on main <code class='nw'>ea57360912ed</code> (the cited files are identical on <code class='nw'>a9779ef3c193</code>). The cross-model reviews were read-only and ran no tests of their own: only the second review's driver re-ran a repro (the original JUnit, 5 of 5 fail), and the review was given the original repro's results file. Three checks of this doc followed: an independent fact check that re-ran the test, a read-only fact check by another model family and a diagram check; their corrections are in this version.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Randomized paging harness on the stock jar, then a 5-test public-API JUnit that fails 5 of 5 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3 and passes with the fix.</td></tr><tr><th scope='row'>cross-model review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>OpenAI GPT-5.6, read-only: root cause and fix agree, inputs in contract; its correction (single-valued hits in a multi-valued segment are hit too) was adopted and verified.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 10-test JUnit, oracle computed without Lucene, fails 10 of 10 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3; controls pass; the <code>AssertingDirectoryReader</code> probe fires in <code class='nw'>copy</code>; its own cache fix passes.</td></tr><tr><th scope='row'>Cross-model review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high); refute lens: no verdict</span></td><td>OpenAI GPT-5.6, intended lens: the "expert, experimental comparator API" defence is weak because Lucene's own collector makes the calls and the twins cache. The refute lens returned no verdict twice (reviewer infrastructure failure).</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Production-like <code class='nw'>main()</code> (file directory, <code class='nw'>forceMerge(1)</code>) fails identically on main and 10.5.2, including a <code class='nw'>searchAfter</code> <code class='nw'>EOFException</code> on all 7 factories; no won't-fix or by-design statement found.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's JUnit (10 of 10 fail, <code class='nw'>-ea</code> and <code class='nw'>-da</code>), its controls (pass) and the independent reproduction's JUnit with the finder's fix (10 of 10 pass). Duplicate of none.</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>The finder's JUnit fails 5 of 5 with fresh seeds (<code class='nw'>-ea</code>, <code class='nw'>-da</code>, 10.5.2) and passes with the fix; an independent <code class='nw'>main()</code> probe with a file directory and the default configuration fails on main and 10.5.2 and passes with the fix.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, fix validated</span></td><td>The new 7-test JUnit on <code class='nw'>a9779ef3c193</code> and 10.5.2, and the fix through gradle with the whole spatial3d module.</td></tr><tr><th scope='row'>fact checks of this doc</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> bug confirmed; wording corrected</span></td><td>An independent fact check re-ran the test (main, assertions on and off, 10.5.2, the fix: 6 of 7 fail, 7 of 7 with the fix); a read-only fact check by another model family (OpenAI GPT-5.6) and a diagram check. None changed the bug, its root cause or its classification.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-551/bug.png' download='geo3d-comparator-rereads-multivalued-docvalues-bug.png' target='_self'>PNG</a> <span class='n'>429 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,637 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-551, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>Geo3D distance sorts read a document's doc values twice in any segment where some document has two or more points, so top-N and searchAfter results come back in the wrong order with another document's distance as the sort value (even a filtered-out or deleted document's), or the search throws EOFException (every release since 7.0.0)</dd></div><div><dt>Area</dt><dd>spatial3d / Geo3DDocValuesField sort comparators (Geo3DPointDistanceComparator, Geo3DPointOutsideDistanceComparator; all seven Geo3D sort factories)</dd></div><div><dt>Priority</dt><dd>Medium, rank 203: Geo3D distance sorts on multi-valued documents return wrong order and another document&#x27;s distance on ordinary top-N queries, but the API is little used, so it opens the spatial3d sort rows after LFV-209.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that store two or more points per document in Geo3DDocValuesField (explicitly allowed by its javadoc; spatial3d module, a little-used API: no upstream test sorts with it and a read-only code search found no use in Elasticsearch, OpenSearch or Solr) and sort with any of the seven Geo3D sort factories get, whenever the top-N queue fills (numHits below the hit count, the normal case) or when they page with searchAfter, a wrong order and FieldDoc distances that belong to the next document with values, also for single-valued hits in such a segment, or a RuntimeException(EOFException) / IndexOutOfBoundsException when the extra reads pass the end of the field's values (9.0.0 and later; 7.x and 8.x return a wrong distance there instead), with the default codec, IndexWriterConfig, directory and searcher, -ea and -da, on indexes of three to five documents, in every release from 7.0.0 to 10.5.2 and on main; segments in which every document has at most one value, and searches with numHits &gt;= hits and no searchAfter, are correct.</dd></div><div><dt>Summary</dt><dd>You index documents with Geo3DDocValuesField, at least one of them with two or more points (the javadoc allows this and says the closest one is used), and ask for the top 2 hits sorted by Geo3DDocValuesField.newDistanceSort; you expect the head of the full sorted order, each hit carrying its own closest distance. Instead the top 2 come back in the wrong order and a hit reports the distance of the next document, because the comparator reads the document's values once in compareBottom (or compareTop) and again in copy without re-positioning the SortedNumericDocValues iterator, which its javadoc forbids ('Do not call this more than docValueCount times'), so the second read takes the following document's values or runs past the end of the data and throws EOFException. The same happens with searchAfter paging and all seven Geo3D sort factories, and because document order decides which value is read, a hit can report the distance of a document that a filter, a live-docs wrapper or a delete hides from the search.</dd></div><div><dt>Introduced</dt><dd>f7aa200d406dbd05a35d6116198302d90b92cb29 (LUCENE-7407 'Explore switching doc values to an iterator API', migrated GitHub issue #8460, committed by mikemccand from a patch attached to the JIRA issue; no pull request) [read: git show f7aa200d406, git log -S 'currentDocs.nextValue()' and git log -L of compareBottom and computeMinimumDistance in the history clone; commit isolation executed: 7.0.0 and 7.7.3 pass with only a per-document value cache added to both Geo3D comparators, and still fail with the unmodified 7.0.0 sources shadowed in]. It converted Geo3DPointDistanceComparator and Geo3DPointOutsideDistanceComparator from setDocument(doc)/valueAt(i) (idempotent random access) to advance(doc)/docValueCount()/nextValue() (a forward-only cursor) with no per-document cache, while the same commit added the valuesDocID/currentValues cache to LatLonPointDistanceComparator. The sort API itself came earlier with LUCENE-7212 (07af00d8e7b and cc263413457 on master, 8a407f0399c and aa339a2f075 on branch_6x, 2016-05-17/18) and was correct then. (2016-09-21 (f7aa200d406, LUCENE-7407); the sort API dates from 2016-05-17/18 (LUCENE-7212))</dd></div><div><dt>First affected version</dt><dd>7.0.0 [exec] (the first release containing f7aa200d406); not affected: 6.1.0, 6.2.1 and 6.6.6 [exec] (random-access doc values API; the Geo3D sort API first shipped in 6.1.0), and no 6.x release contains the commit [read]</dd></div><div><dt>Affected versions</dt><dd>every release from 7.0.0 to 10.5.2 plus main ea57360912ed; never fixed. [exec] the follow-up's history probe (main(), public API, WGS84, newDistanceSort and newOutsideDistanceSort, FS and heap directories) fails on 7.0.0, 7.7.3, 8.0.0, 8.4.1, 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da) and passes on 6.1.0, 6.2.1 and 6.6.6; the finder's JUnit fails 5 of 5 on main (-ea, -da), 10.5.2 and 9.12.3; the independent reproduction's JUnit fails 10 of 10 on main (-ea, -da), 10.5.2 and 9.12.3; the intended-behaviour check's probe fails on main and 10.5.2; the security probe fails 7 of 7 on main (-ea, -da), 10.5.2 and 9.12.3. The last-document layout returns a silently wrong distance on 7.x and 8.x and throws (IndexOutOfBoundsException or RuntimeException(EOFException)) from 9.0.0, a change attributed to the Lucene90 doc-values codec by observation, not bisected. [read] 65 release tags contain f7aa200d406, plus 8.8.2-8.11.4 cut from the old combined repository's branch_8x (8.11.4 executed); the read loops are unchanged since f7aa200d406; upstream main (ffa9d816eeb, 2026-10-26) and branch_10x have not touched either comparator since 2021. Not executed: the releases between the executed points and the 10.6.x/10.7.x branches</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, the intended-behaviour check's run, read-only; the prior-report record, verdict new): two follow-up scripted prior-report searches (51 queries on the Geo3D sort classes, factories and symptoms over GitHub, commits, downstream repos, the mailing lists, the JIRA archive and the web; 24 queries on the generic nextValue/docValueCount/comparator contract over the lists and JIRA), the finder's 51-query run, the intended-behaviour check's 24-query run, 53 manual GitHub searches (apache/lucene open and closed, apache/lucene-solr, apache/lucenenet, elastic/elasticsearch, opensearch-project/OpenSearch, apache/solr), 18 JIRA JQL searches (LUCENE and SOLR), 49 mailing-list searches, 10 web searches, the changed files of all 407 open apache/lucene PRs and the upstream history of the five Geo3D sort files. Related, not this bug: #8267 (LUCENE-7212, open feature issue under which the comparators were added; all comments predate the bug); LUCENE-7407 / #8460 (introducing change; its comments never mention spatial3d); #8514 (LUCENE-7462: advanceExact accepts target == current doc because 'comparators may need to get the value multiple times'; no mention of Geo3D or multi-valued re-reads); java-user@ 2018-02 'Read DocValue twice' (the same exception class in user code, answered with 're-position with advanceExact'); #8512 (LUCENE-7460), LUCENE-8834, #9528 (LUCENE-8482), LUCENE-9150, LUCENE-9263, #12082, #7757 (API discussions or unrelated fixes); open PR #14775 (inverseSort on the Geo3D sort fields, does not touch the comparators) and #16847 (touches other spatial3d files). No open PR changes either comparator. Not fixed upstream. Not filed by the owner</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off and 5 seeds; the 10.5.2 release jars (assertions on and off). The earlier checks ran on main <code class='nw'>ea57360912ed</code>, whose cited files are identical, and on 9.12.3; a history probe ran on 6.1.0, 6.2.1, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.4.1, 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main. The fix was validated in the scratch worktree: the new test with assertions on and off, the whole <code class='nw'>lucene/spatial3d</code> module (188 tests) with assertions on and off, and <code>:lucene:spatial3d:check -x test</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointDistanceComparator.java:97-134 (at ea57360912ed) (compareBottom: advance only when doc &gt; docID, then nextValue() docValueCount() times at :110), :137-139 (copy -&gt; computeMinimumDistance), :142-150 (getLeafComparator, no cache reset), :153-156 (value(slot): the sort value returned in FieldDoc), :159-161 (compareTop -&gt; computeMinimumDistance), :163-182 (computeMinimumDistance: no re-positioning when doc == docID, nextValue() docValueCount() more times at :171)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointOutsideDistanceComparator.java:75-104 (at ea57360912ed) (compareBottom, nextValue at :88), :107-109 (copy), :129-131 (compareTop), :133-152 (computeMinimumDistance, nextValue at :141)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DDocValuesField.java:34-35 (at ea57360912ed) (&#x27;Multiple values for the same field in one document is allowed&#x27;), :167-168 (the FieldDoc value is the distance in meters), :173-174 (&#x27;If a document contains multiple values for the field, the closest distance from the circle center is used&#x27;, and the same sentence for the other factories), :183, 216, 249, 281, 311, 337, 365 (the seven sort factories)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SortedNumericDocValues.java:28-32 (at ea57360912ed) (nextValue: &#x27;Do not call this more than docValueCount times for the document&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene90/Lucene90DocValuesProducer.java:2070-2072 (at ea57360912ed) (multi-valued nextValue = values.get(start++), no bound)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/TopFieldCollector.java:92-93 (at ea57360912ed) (thresholdCheck -&gt; compareBottom), :114-118 (collectCompetitiveHit -&gt; copy), :203-212 (SimpleFieldCollector: compareBottom then copy for the same doc), :270-290 (PagingFieldCollector: compareTop then copy)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonPointDistanceComparator.java:68-69, (at ea57360912ed) :120-133, :192 (the core twin&#x27;s per-document value cache and its reset per leaf); lucene/core/src/java/org/apache/lucene/document/XYPointDistanceComparator.java:63-64 (same cache)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DDocValuesField.java:34-35, (at a9779ef3c193) :167-174 and the six sibling factory javadocs (:197-205, :233-240, :264-271, :297-304, :323-330, :347-354)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointDistanceComparator.java:97-134, (at a9779ef3c193) :137-139, :152-156, :159-161, :163-182; lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointOutsideDistanceComparator.java:75-104, :107-109, :129-131, :133-152</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SortedNumericDocValues.java:28-32; (at a9779ef3c193) lucene/core/src/java/org/apache/lucene/codecs/lucene90/Lucene90DocValuesProducer.java:2002-2004, :2069-2072</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/TopFieldCollector.java:92-93, (at a9779ef3c193) :114-118, :203-213, :268-291</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/TopFieldCollector.java:203-213, (at a9779ef3c193) :268-291 (which hits get two or more calls)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DDocValuesField.java:34-35, (at a9779ef3c193) :37-40 (TBD list), :167-174</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SortedNumericDocValues.java:28-31; (at a9779ef3c193) lucene/core/src/java/org/apache/lucene/search/LeafFieldComparator.java:32-37, :41</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonPointDistanceComparator.java:68-69, (at a9779ef3c193) :120-133, :192; lucene/core/src/java/org/apache/lucene/document/XYPointDistanceComparator.java:63-64, :106-119, :176</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/PlanetModel.java:23-27 (at a9779ef3c193) (@lucene.experimental)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonPointDistanceComparator.java:68-69, (at a9779ef3c193) :120-133, :192</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/DocValuesIterator.java:25-28; (at a9779ef3c193) lucene/core/src/java/org/apache/lucene/codecs/lucene90/Lucene90DocValuesProducer.java:2061-2066; lucene/test-framework/src/java/org/apache/lucene/tests/index/AssertingLeafReader.java:1177-1185</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone: git show origin/branch_10_6 and origin/branch_10x of both comparators and Geo3DDocValuesField.java, compared with a9779ef3c193 (identical)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestGeo3DSortMultiValued.java (lucene/spatial3d, public API): <a href='../repro/LFV-551/TestGeo3DSortMultiValued.java'><code>repro/LFV-551/TestGeo3DSortMultiValued.java</code></a> (186 lines)</li><li>TestGeo3DSortMultiValued.java (the original 5-test repro): <a href='../repro/LFV-551/2-TestGeo3DSortMultiValued.java'><code>repro/LFV-551/2-TestGeo3DSortMultiValued.java</code></a> (137 lines)</li><li>TestGeo3DSortRereadV1.java (independent reproducer): <a href='../repro/LFV-551/TestGeo3DSortRereadV1.java'><code>repro/LFV-551/TestGeo3DSortRereadV1.java</code></a> (252 lines)</li><li>TestGeo3DSortRereadV1Controls.java (controls): <a href='../repro/LFV-551/TestGeo3DSortRereadV1Controls.java'><code>repro/LFV-551/TestGeo3DSortRereadV1Controls.java</code></a> (80 lines)</li><li>Geo3DSortRereadHistoryProbe.java (history probe, main()): <a href='../repro/LFV-551/Geo3DSortRereadHistoryProbe.java'><code>repro/LFV-551/Geo3DSortRereadHistoryProbe.java</code></a> (278 lines)</li><li>TestGeo3DSortHiddenDocumentLeak.java (hidden-document probe): <a href='../repro/LFV-551/TestGeo3DSortHiddenDocumentLeak.java'><code>repro/LFV-551/TestGeo3DSortHiddenDocumentLeak.java</code></a> (515 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the repro's main example, made in parallel with this doc from an executed probe on main <code class='nw'>a9779ef3c193</code> and the code; the PNG is the final summary card. The alt text describes the intended content.</p><ul class='paths'><li><a href='../assets/LFV-551/bug.png'><code>assets/LFV-551/bug.png</code></a> (429 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

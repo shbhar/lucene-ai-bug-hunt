@@ -1,0 +1,993 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>A text value that ends in half an emoji loses its tokens (all of them in a short value) in StandardAnalyzer and the other JFlex scanners</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-158 &middot; jflex-refill-trailing-high-surrogate-drops-tokens</p><h1 id='top'>A text value that ends in half an emoji loses its tokens (all of them in a short value) in StandardAnalyzer and the other JFlex scanners</h1><p class='tldr'>Text that ends in half an emoji (an unpaired high surrogate, as when a String is cut inside 😀) loses its tokens in <code class='nw'>StandardAnalyzer</code>: all of them for <code>"hello world"</code> + U+D83D, so <code class='nw'>title:hello</code> misses it. Four other JFlex scanners share this one-line refill bug, released since 7.7.0 or 9.1.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 9</span><span class='sub'></span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.7.0 (LUCENE-8527, 2019) for StandardTokenizer and UAX29URLEmailTokenizer; 9.1.0 (LUCENE-10239) for the other three<span class='sub'>introduced 2019-01-08 &middot; about 7 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>7.7.0 to 10.5.2 and main (Standard, UAX29URLEmail); 9.1.0 to 10.5.2 and main (Classic, Wikipedia, HTMLStrip); 7.6.0 correct (run)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>Bounded-exhaustive check of the real jar (all 7,380 inputs of 1-4 symbols)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Lucene's JFlex scanners read text into a buffer through <code class='nw'>zzRefill()</code>, whose javadoc says it returns <code class='nw'>false</code> iff there was new input. When the text's very last char is a lone high surrogate, it returns <code class='nw'>true</code> right after reading the text, and the scanner stops.</p><figure class='visual' id='jflex-refill-trailing-high-surrogate-drops-tokens-short-visual'><div class='frame'><a class='still' href='../assets/LFV-158/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-158/bug.png' alt='Summary card titled &#x27;Half an emoji at the end of a text value: StandardAnalyzer indexes no tokens&#x27;. Panel 1: a title cut by substring(0, 12) inside the emoji U+1F600, shown as 12 char cells ending in D83D, indexed with StandardAnalyzer; expected tokens hello and world and final offset 12. Panel 2: what zzRefill() does in StandardTokenizerImpl.java: line 773 reads 12 chars, 782 finds the high surrogate, 790 reads one more char and gets -1, 792 returns true although the javadoc at 750 says false iff there was new input, and at 1034 getNextToken ends the stream, so the 12 chars are never scanned. Panel 3, executed on main with -ea and -da: tokens [hello, world] expected, [] actual; final offset 12 versus 0; documents found for title:hello 2 versus 1; the stored value &#x27;hello world&#x27; + U+FFFD is kept. Right: longer values lose the tail or split a word; the same branch is in five scanners, which lose whole values of up to 254 chars (StandardTokenizer, UAX29URLEmailTokenizer, since 7.7.0), 4,095 (ClassicTokenizer, WikipediaTokenizer, since 9.1.0) and 16,383 (HTMLStripCharFilter, since 9.1.0). Footer: the fix sketch, return false at line 792 of panel 2 and in both JFlex skeletons, then regenerate.' width='1920' height='1080'></a></div><figcaption>The repro on one card: the title cut inside 😀 as 12 char cells, the <code class='nw'>zzRefill()</code> and <code class='nw'>getNextToken()</code> lines that lose it, expected versus actual (tokens, final offset, hits), then longer values and the other four scanners. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index the title <code>"hello world😀".substring(0, 12)</code> with <code class='nw'>StandardAnalyzer</code>. The cut keeps <code>"hello world"</code> plus U+D83D, the first half of 😀 (U+1F600 is <code class='nw'>\uD83D\uDE00</code> in UTF-16). A JSON string ending in <code class='nw'>\ud83d</code> decodes to the same kind of value.</span></li><li><span>You expect the tokens <code>[hello, world]</code> and final offset 12, as without the half emoji, as with the same char in mid-text, and as Lucene 7.6.0 gives.</span></li><li><span>You get <code class='nw'>[]</code> and final offset 0. With two titles, <code>"hello world"</code> and this one, <code class='nw'>title:hello</code> finds 1 document instead of 2. No error, and the stored value keeps its words (the lone surrogate becomes U+FFFD).</span></li><li><span>Why: the scanner fills its 255-char buffer and reads all 12 chars. The last one is a high surrogate, so it reads one more char for the low half, hits the end of the text and returns <code class='nw'>true</code>, which means "no new input". The scanner takes that as the end of the stream and never scans the 12 chars.</span></li><li><span>Longer values lose or split only their last 255-char window. <code class='nw'>ClassicTokenizer</code>, <code>UAX29URLEmailTokenizer</code>, <code>WikipediaTokenizer</code> and <code>HTMLStripCharFilter</code> have the same line, and lose whole values of up to 4,095, 254, 4,095 and 16,383 chars.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone who analyzes text with <code class='nw'>StandardAnalyzer</code> or <code>StandardTokenizer</code> at default settings, or with UAX29URLEmailTokenizer, ClassicTokenizer, WikipediaTokenizer or HTMLStripCharFilter, and has values that end in an unpaired high surrogate: strings cut by UTF-16 length inside an emoji, or JSON ending in <code class='nw'>\ud83d</code>. Rare input, but the loss is silent.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>1,031 words</span></summary><div class='body'><p>When a text value ends in an unpaired high surrogate (U+D800..U+DBFF), which is what you get when a Java <code class='nw'>String</code> is cut by length in the middle of an emoji, or when a JSON string ends in the escape <code class='nw'>\ud83d</code>, <code class='nw'>StandardAnalyzer</code> and <code>StandardTokenizer</code> at default settings emit no tokens for a value shorter than their 255-char buffer and report final offset 0: <code>"hello world"</code> + U+D83D (12 chars) gives <code class='nw'>[]</code> instead of <code>[hello, world]</code>, and the document is not found by <code class='nw'>title:hello</code>. No error is raised and the stored value keeps its words (<code class='nw'>IndexWriter</code> replaces the lone surrogate with U+FFFD), so the loss is silent. Longer values lose or split only their last buffer window; the other scanners have larger buffers (4,096 chars for Classic and Wikipedia, 16,384 for HTMLStrip). The cause is one line in the refill method of both Lucene JFlex skeletons: after reading new chars that end in a high surrogate, it reads one more char for the low half, hits end of input and returns <code class='nw'>true</code>, which its own javadoc defines as "no new input"; the scanner then ends the stream without scanning the chars it just read. The same line is generated into <code>StandardTokenizerImpl</code> and <code>UAX29URLEmailTokenizerImpl</code> (since 7.7.0, LUCENE-8527) and <code>ClassicTokenizerImpl</code>, <code>WikipediaTokenizerImpl</code> and <code>HTMLStripCharFilter</code> (since 9.1.0, LUCENE-10239); 7.6.0 handles the same input correctly. Returning <code class='nw'>false</code> there (one line in each skeleton, then regenerate) fixes this branch in all five; the regenerated fix passes the core analysis tests and the whole analysis-common test suite. No earlier report was found.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Surrogate pair</strong>: Java strings are UTF-16. A character above U+FFFF, such as most emoji, takes two chars: a <strong>high surrogate</strong> (U+D800..U+DBFF) then a <strong>low surrogate</strong> (U+DC00..U+DFFF). 😀 (U+1F600) is <code class='nw'>\uD83D\uDE00</code>. Cutting a string between the two leaves an <strong>unpaired</strong> (lone) high surrogate at the end.</li><li><strong>JFlex scanner</strong>: <code>StandardTokenizer</code>'s engine, <code>StandardTokenizerImpl</code>, is generated by JFlex from a grammar (<code>StandardTokenizerImpl.jflex</code>) and a <strong>skeleton</strong>, Lucene's template for the buffer code (<code>gradle/regenerate/jflex/</code>). <code>UAX29URLEmailTokenizer</code>, <code class='nw'>ClassicTokenizer</code>, <code>WikipediaTokenizer</code> and <code>HTMLStripCharFilter</code> are generated the same way.</li><li><strong>Buffer and refill</strong>: the scanner reads the text in windows of its buffer size (255 chars for <code>StandardTokenizer</code>, <code class='nw'>ZZ_BUFFERSIZE</code>); <code class='nw'>zzRefill()</code> fetches the next window from the Reader.</li><li><strong>Final offset</strong>: after the last token, <code class='nw'>end()</code> must report the total number of chars processed.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-line-by-line-standardtokenizerimpl-java-at-ea5736091'>The bug, line by line (<code>StandardTokenizerImpl.java</code> at <code class='nw'>ea57360912ed</code>)</h3><a class="hlink" href="#what-the-bug-is-the-bug-line-by-line-standardtokenizerimpl-java-at-ea5736091" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-line-by-line-standardtokenizerimpl-java-at-ea5736091"><span aria-hidden="true">#</span></a></div><ol><li>The contract, <code class='nw'>:750</code>: "@return <code class='nw'>false</code> iff there was new input."</li><li><code class='nw'>:769-773</code>: the refill asks the Reader for the free part of the 255-char buffer. For <code>"hello world"</code> + U+D83D the Reader returns all 12 chars, fewer than requested.</li><li><code class='nw'>:780-781</code>: <code>if (numRead &gt; 0) { zzEndRead += numRead;</code> The 12 chars are now in the buffer.</li><li><code class='nw'>:782</code>, <code class='nw'>:789-790</code>: the last char is a high surrogate and there is room, so it calls <code class='nw'>zzReader.read()</code> "Expecting to read a paired low surrogate char".</li><li><code class='nw'>:791-792</code>: the text has ended, <code class='nw'>read()</code> returns -1, and the code does <code>if (c == -1) { return true; }</code>: "no new input", although 12 chars were just added.</li><li><code class='nw'>:1004</code>, <code class='nw'>:1010-1012</code>: <code class='nw'>getNextToken()</code> takes <code class='nw'>true</code> as end of input without decoding the buffered chars. At a token start (<code class='nw'>:1034-1037</code>) it sets <code class='nw'>zzAtEOF</code> and returns <code class='nw'>YYEOF</code>, so <code>StandardTokenizer</code> returns no token (<code>StandardTokenizer.java:159</code>) and <code class='nw'>end()</code> reports <code>yychar() + yylength()</code> = 0 (<code class='nw'>:181</code>). Inside a token, the token is closed at the old buffer end, so a word that crosses the refill boundary is split in two.</li><li>Without the bug, the lone U+D83D would be decoded and matched by the grammar's catch-all rule <code class='nw'>[^]</code>, whose action is "ignore it" (<code>StandardTokenizerImpl.jflex:286</code>), as happens when the same char is in mid-text.</li></ol><p>The branch comes from the skeletons (<code>skeleton.disable.buffer.expansion.txt:120-121</code>, <code>skeleton.default.txt:124-125</code>) and is in all five generated scanners: <code>UAX29URLEmailTokenizerImpl.java:33667</code>, <code>ClassicTokenizerImpl.java:505</code>, <code>WikipediaTokenizerImpl.java:658</code>, <code>HTMLStripCharFilter.java:5953</code>.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>value</th><th>tokens</th><th>final offset</th></tr></thead><tbody><tr><td><code>"hello world"</code> (11 chars), control</td><td><code>[hello, world]</code></td><td>11</td></tr><tr><td><code>"hello world"</code> + U+D83D (12 chars)</td><td><code class='nw'>[]</code></td><td>0</td></tr><tr><td><code>"hello world 😀 more words".substring(0, 13)</code></td><td><code class='nw'>[]</code></td><td>0</td></tr><tr><td><code>"abcd ".repeat(51) + "tail"</code> + U+D83D</td><td>51 x <code class='nw'>abcd</code>, <code class='nw'>tail</code> lost</td><td>not measured</td></tr><tr><td><code>"abcd ".repeat(50) + "helloworld"</code> + U+D83D</td><td>..., <code class='nw'>hello</code>, <code class='nw'>world</code> (split)</td><td>not measured</td></tr></tbody></table></div><p>Two documents titled <code>"hello world"</code> and <code>"hello world"</code> + U+D83D: <code class='nw'>title:hello</code> matches 1. A whole value is lost when it is one char shorter than the scanner's buffer, counting the surrogate:</p><div class="tbl"><table><thead><tr><th>scanner</th><th>buffer</th><th>whole value lost at</th><th>control without the surrogate</th></tr></thead><tbody><tr><td>StandardTokenizer, UAX29URLEmailTokenizer</td><td>255</td><td>254 chars: 0 tokens</td><td>53 tokens</td></tr><tr><td>ClassicTokenizer, WikipediaTokenizer</td><td>4,096</td><td>4,095 chars: 0 tokens</td><td>701 tokens</td></tr><tr><td>HTMLStripCharFilter (+ any tokenizer)</td><td>16,384</td><td>16,383 chars: 0 tokens</td><td>2,499 tokens</td></tr></tbody></table></div><p>A value of exactly the buffer size takes a different branch (<code>numRead == requested</code>, which holds the high surrogate back for the next read): the four tokenizers keep every token and report the full final offset (255 / 4,096). <code>HTMLStripCharFilter</code> keeps every token too but drops the trailing lone surrogate itself: a 16,384-char value comes out 16,383 chars long, final offset 16,383. That one-char loss is a different branch, which the fix below does not change (a possible sibling, not yet triaged).</p><p>In a seeded sweep over random word texts (2,000 per length), every text of 10..200 chars before the surrogate lost all tokens, 254 and 255 were unaffected, and at 256..5,000 about 1/6 lost the tail, 2/3 had one word split and 1/6 were unaffected; the fractions depend on the text shape.</p><p>Two conditions shape these numbers. <strong>The Reader:</strong> they are for a Reader that returns as many chars as asked, which is what a <code class='nw'>String</code> field value gets (<code class='nw'>Field.java:498</code> calls <code>Analyzer.tokenStream(String, String)</code>, which uses a <code>ReusableStringReader</code>, <code>Analyzer.java:183-190</code>). A Reader that returns fewer chars per call lets earlier tokens through; the branch still fires at the end (in the bounded check, a 1-char Reader gave 262 violations where a whole-string Reader gave 820). <strong>Buffer growth:</strong> Classic, Wikipedia and HTMLStrip come from the default skeleton, which doubles the buffer when a token outgrows it (<code>skeleton.default.txt:97-104</code>), so their "last window" is the current buffer, which starts at 4,096 or 16,384 chars.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>354 words</span></summary><div class='body'><ul><li><strong>Default configuration.</strong> <code class='nw'>StandardAnalyzer</code> with nothing changed, which is also what <code>new IndexWriterConfig()</code> uses when no analyzer is given (<code>IndexWriterConfig.java:136-142</code>). By code reading (not executed), it is also what Elasticsearch and OpenSearch build for an index's <code class='nw'>default</code> analyzer; Elasticsearch's <code class='nw'>html_strip</code>, <code class='nw'>classic</code> and <code class='nw'>uax_url_email</code> wrap the other scanners; Solr's <code class='nw'>_default</code> configset uses the standard tokenizer for <code class='nw'>text_general</code>.</li><li><strong>Silent.</strong> No exception with <code class='nw'>-ea</code> or <code class='nw'>-da</code>. <code class='nw'>IndexWriter</code> stores the value (the lone surrogate becomes U+FFFD, as its javadoc documents; the words are kept), so the document displays normally but its words cannot be searched. CheckIndex is clean.</li><li><strong>Contained.</strong> Only the value that ends in the surrogate loses text. Other values of the same field, other fields and other documents are indexed normally. Inside the same document, a later value of the same multi-valued field gets a shifted term-vector position and offsets (position 0 and [1,6) where 2 and [12,17) are right), so offset-based highlighting can mark the wrong place there.</li><li><strong>How much.</strong> A whole value of up to 254 chars (StandardTokenizer, UAX29URLEmailTokenizer), 4,095 (Classic, Wikipedia) or 16,383 (behind HTMLStripCharFilter, whatever tokenizer follows); longer values lose or split their last window (for Classic, Wikipedia and HTMLStrip the current buffer, which can grow). With a larger <code class='nw'>maxTokenLength</code>, the StandardTokenizer window grows to about that length (read, not run).</li><li><strong>No resource cost.</strong> On 1,000,000-char values each scanner reads the same chars with the same number of Reader calls as the control.</li><li><strong>How likely.</strong> The value's very last char must be the first half of a supplementary character, with nothing appended after the cut: a length-limited title, snippet or column cut by <code class='nw'>substring</code>, or a client that sends such a string as a JSON escape. A committer wrote in #15899 / #15900 that half surrogates from UTF-16 truncation are to be expected and code must be prepared for them. No report since 2019, but the loss is silent, and the random text behind the analysis tests' <code class='nw'>checkRandomData</code> (<code>TestUtil.randomAnalysisString</code>) keeps surrogate pairs whole and trims a high surrogate left by a cut, so those tests do not produce this input. It may be under-reported.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A plain Java program on the public API, lucene-core only: it tokenizes <code>"hello world"</code> with and without a trailing U+D83D and the <code>substring(0, 13)</code> cut, then counts <code class='nw'>title:hello</code> over two documents. It exits 1 when the words are lost. Two JUnit drop-ins, for core and analysis-common, are in the collapsed block.</p><figure class='code'><figcaption><span class='fname'>TrailingHighSurrogate.java (plain main, public API, lucene-core only)</span><span class='meta'>100 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+
+/**
+ * StandardAnalyzer (default settings) on a text value that ends with an unpaired high surrogate,
+ * the first half of an emoji. Public API, lucene-core only. Exits 1 if the words are lost.
+ */
+public class TrailingHighSurrogate {
+
+  static final String HALF_EMOJI = &quot;\uD83D&quot;; // first half of U+1F600, which is &quot;😀&quot;
+
+  public static void main(String[] args) throws Exception {
+    boolean ok = true;
+    try (Analyzer a = new StandardAnalyzer()) {
+      ok &amp;= check(a, &quot;hello world&quot;); // control
+      ok &amp;= check(a, &quot;hello world&quot; + HALF_EMOJI);
+      ok &amp;= check(a, &quot;hello world 😀 more words&quot;.substring(0, 13)); // cut inside the emoji
+      try (Directory dir = new ByteBuffersDirectory()) {
+        try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+          for (String title : new String[] {&quot;hello world&quot;, &quot;hello world&quot; + HALF_EMOJI}) {
+            Document doc = new Document();
+            doc.add(new TextField(&quot;title&quot;, title, Field.Store.YES));
+            w.addDocument(doc);
+          }
+        }
+        try (DirectoryReader r = DirectoryReader.open(dir)) {
+          int hits = new IndexSearcher(r).count(new TermQuery(new Term(&quot;title&quot;, &quot;hello&quot;)));
+          System.out.println(&quot;2 documents, both titles start with &#x27;hello&#x27;; title:hello matches &quot; + hits);
+          ok &amp;= hits == 2;
+        }
+      }
+    }
+    System.out.println(ok ? &quot;OK&quot; : &quot;BUG: words lost&quot;);
+    System.exit(ok ? 0 : 1);
+  }
+
+  static boolean check(Analyzer a, String text) throws Exception {
+    List&lt;String&gt; terms = new ArrayList&lt;&gt;();
+    int finalOffset;
+    try (TokenStream ts = a.tokenStream(&quot;title&quot;, text)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      OffsetAttribute offset = ts.addAttribute(OffsetAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        terms.add(term.toString());
+      }
+      ts.end();
+      finalOffset = offset.endOffset();
+    }
+    System.out.println(show(text) + &quot; (&quot; + text.length() + &quot; chars) -&gt; &quot; + terms + &quot;, final offset &quot; + finalOffset);
+    return terms.equals(List.of(&quot;hello&quot;, &quot;world&quot;)) &amp;&amp; finalOffset == text.length();
+  }
+
+  /** Prints unpaired surrogates as &lt;U+XXXX&gt;. */
+  static String show(String s) {
+    StringBuilder b = new StringBuilder(&quot;\&quot;&quot;);
+    for (int i = 0; i &lt; s.length(); i++) {
+      char c = s.charAt(i);
+      if (Character.isSurrogate(c)) {
+        b.append(String.format(&quot;&lt;U+%04X&gt;&quot;, (int) c));
+      } else {
+        b.append(c);
+      }
+    }
+    return b.append(&#x27;&quot;&#x27;).toString();
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>javac -cp lucene-core.jar -d out TrailingHighSurrogate.java &amp;&amp; java -cp lucene-core.jar:out TrailingHighSurrogate
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>[hello, world]</code> with final offsets 12 and 13, and <code class='nw'>title:hello</code> matches 2 documents, as on 7.6.0.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>[]</code> with final offset 0 for both values, and <code class='nw'>title:hello</code> matches 1 document (main with -ea and -da, 10.5.2, 7.7.0).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-158/'>repro/LFV-158/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (531 lines) · 3,088 words</span></summary><div class='body'><p>The plain program compiles against 7.6.0 and later and was run on main (<code class='nw'>-ea</code> and <code class='nw'>-da</code>), 10.5.2, 7.7.0 and 7.6.0. It prints lone surrogates as <code class='nw'>&lt;U+XXXX&gt;</code>.</p><p>The core JUnit test (5 tests) drops into <code>lucene/core/src/test/org/apache/lucene/analysis/standard/</code>: the short value with a control, the <code class='nw'>substring</code> cut, the two-document search, the lost last word and the split word, all through <code class='nw'>assertAnalyzesTo</code>, which also checks the final offset and replays the text through a consistency check (now and then with a spoon-feeding Reader). The analysis-common test (4 tests) drops into <code>lucene/analysis/common/src/test/org/apache/lucene/analysis/classic/</code>: <code class='nw'>ClassicTokenizer</code>, <code>UAX29URLEmailTokenizer</code> and <code>WikipediaTokenizer</code> on the short value and on a value one char shorter than their buffer, and <code>HTMLStripCharFilter</code> passing 12 and 16,383 chars of plain text through unchanged. Both pass <code>checkGoogleJavaFormat</code> and <code class='nw'>ecjLintTest</code>, fail on stock code (5/5, 4/4) and pass with the fix.</p><p>The diff is the recommended fix: both skeletons, the five regenerated scanners, their checksum files and the two tests (14 files). It applies to <code class='nw'>ea57360912ed</code> with <code>git apply</code>.</p><div class="hd hd-3"><h3 id='code-2-h'>TestStandardAnalyzerTrailingHighSurrogate.java (JUnit, lucene/core)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestStandardAnalyzerTrailingHighSurrogate.java (JUnit, lucene/core)</span><span class='meta'>92 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.standard;
+
+import java.util.Arrays;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * A text value that ends with an unpaired high surrogate, for example a String cut in the middle of
+ * an emoji, must keep its tokens and report its full length as the final offset.
+ */
+public class TestStandardAnalyzerTrailingHighSurrogate extends BaseTokenStreamTestCase {
+
+  /** The first half of U+1F600 (GRINNING FACE), which is &quot;😀&quot; in UTF-16. */
+  private static final String HALF_EMOJI = &quot;\uD83D&quot;;
+
+  public void testShortValue() throws Exception {
+    try (Analyzer a = new StandardAnalyzer()) {
+      assertAnalyzesTo(a, &quot;hello world&quot;, new String[] {&quot;hello&quot;, &quot;world&quot;}); // control
+      assertAnalyzesTo(a, &quot;hello world&quot; + HALF_EMOJI, new String[] {&quot;hello&quot;, &quot;world&quot;});
+    }
+  }
+
+  public void testStringCutInsideAnEmoji() throws Exception {
+    String text = &quot;hello world 😀 more words&quot;.substring(0, 13);
+    assertEquals(&quot;hello world &quot; + HALF_EMOJI, text);
+    try (Analyzer a = new StandardAnalyzer()) {
+      assertAnalyzesTo(a, text, new String[] {&quot;hello&quot;, &quot;world&quot;});
+    }
+  }
+
+  public void testDocumentIsFound() throws Exception {
+    try (Directory dir = newDirectory();
+        Analyzer a = new StandardAnalyzer()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(a))) {
+        for (String title : new String[] {&quot;hello world&quot;, &quot;hello world&quot; + HALF_EMOJI}) {
+          Document doc = new Document();
+          doc.add(new TextField(&quot;title&quot;, title, Field.Store.YES));
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(2, newSearcher(r).count(new TermQuery(new Term(&quot;title&quot;, &quot;hello&quot;))));
+      }
+    }
+  }
+
+  /**
+   * 51 x &quot;abcd &quot; is 255 chars, the scanner&#x27;s buffer size, so &quot;tail&quot; is in the last buffer window.
+   */
+  public void testLongValueKeepsItsLastWord() throws Exception {
+    String[] expected = new String[52];
+    Arrays.fill(expected, &quot;abcd&quot;);
+    expected[51] = &quot;tail&quot;;
+    try (Analyzer a = new StandardAnalyzer()) {
+      assertAnalyzesTo(a, &quot;abcd &quot;.repeat(51) + &quot;tail&quot; + HALF_EMOJI, expected);
+    }
+  }
+
+  /** &quot;helloworld&quot; starts at char 250, so it crosses the 255-char buffer boundary. */
+  public void testLongValueDoesNotSplitAWord() throws Exception {
+    String[] expected = new String[51];
+    Arrays.fill(expected, &quot;abcd&quot;);
+    expected[50] = &quot;helloworld&quot;;
+    try (Analyzer a = new StandardAnalyzer()) {
+      assertAnalyzesTo(a, &quot;abcd &quot;.repeat(50) + &quot;helloworld&quot; + HALF_EMOJI, expected);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.analysis.standard.TestStandardAnalyzerTrailingHighSurrogate -Ptests.seed=B21EF158
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestTrailingHighSurrogateJFlexScanners.java (JUnit, lucene/analysis/common)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestTrailingHighSurrogateJFlexScanners.java (JUnit, lucene/analysis/common)</span><span class='meta'>91 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.classic;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.Arrays;
+import java.util.function.Supplier;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.charfilter.HTMLStripCharFilter;
+import org.apache.lucene.analysis.email.UAX29URLEmailTokenizer;
+import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * The other JFlex-generated scanners share the refill code: a value that ends with an unpaired high
+ * surrogate keeps its tokens, also when it is one char shorter than the scanner&#x27;s buffer.
+ */
+public class TestTrailingHighSurrogateJFlexScanners extends BaseTokenStreamTestCase {
+
+  /** The first half of U+1F600 (GRINNING FACE), which is &quot;😀&quot; in UTF-16. */
+  private static final String HALF_EMOJI = &quot;\uD83D&quot;;
+
+  private static Analyzer analyzer(Supplier&lt;Tokenizer&gt; tokenizer) {
+    return new Analyzer() {
+      @Override
+      protected TokenStreamComponents createComponents(String fieldName) {
+        return new TokenStreamComponents(tokenizer.get());
+      }
+    };
+  }
+
+  /** &quot;abcd abcd ... &quot; padded with spaces to length - 1 chars, then HALF_EMOJI: length chars. */
+  private static String value(int length) {
+    int words = (length - 1) / 5;
+    return &quot;abcd &quot;.repeat(words) + &quot; &quot;.repeat((length - 1) % 5) + HALF_EMOJI;
+  }
+
+  private static void assertKeepsWords(Supplier&lt;Tokenizer&gt; tokenizer, int bufferSize)
+      throws IOException {
+    try (Analyzer a = analyzer(tokenizer)) {
+      assertAnalyzesTo(a, &quot;hello world&quot; + HALF_EMOJI, new String[] {&quot;hello&quot;, &quot;world&quot;});
+      String text = value(bufferSize - 1);
+      String[] expected = new String[(bufferSize - 2) / 5];
+      Arrays.fill(expected, &quot;abcd&quot;);
+      assertAnalyzesTo(a, text, expected);
+    }
+  }
+
+  public void testClassicTokenizer() throws IOException {
+    assertKeepsWords(ClassicTokenizer::new, 4096);
+  }
+
+  public void testUAX29URLEmailTokenizer() throws IOException {
+    assertKeepsWords(UAX29URLEmailTokenizer::new, 255);
+  }
+
+  public void testWikipediaTokenizer() throws IOException {
+    assertKeepsWords(WikipediaTokenizer::new, 4096);
+  }
+
+  /** Text without markup passes through the char filter unchanged. */
+  public void testHTMLStripCharFilter() throws IOException {
+    for (String text : new String[] {&quot;hello world&quot; + HALF_EMOJI, value(16384 - 1)}) {
+      StringBuilder out = new StringBuilder();
+      try (Reader r = new HTMLStripCharFilter(new StringReader(text))) {
+        for (int c = r.read(); c != -1; c = r.read()) {
+          out.append((char) c);
+        }
+      }
+      assertEquals(&quot;chars out of &quot; + text.length(), text.length(), out.length());
+      assertEquals(text, out.toString());
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.classic.TestTrailingHighSurrogateJFlexScanners -Ptests.seed=B21EF158
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>fix-with-tests.diff (the fix, regenerated scanners, checksums and both tests; 14 files, +200/-17)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Applies to main <code class='nw'>ea57360912ed</code> with <code>git apply</code>. Add a CHANGES entry.</p><figure class='code'><figcaption><span class='fname'>fix-with-tests.diff (the fix, regenerated scanners, checksums and both tests; 14 files, +200/-17)</span><span class='meta'>348 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>diff --git a/gradle/regenerate/jflex/skeleton.default.txt b/gradle/regenerate/jflex/skeleton.default.txt
+index da3c2202e6b..e32d2aaebdb 100644
+--- a/gradle/regenerate/jflex/skeleton.default.txt
++++ b/gradle/regenerate/jflex/skeleton.default.txt
+@@ -122,7 +122,7 @@
+         } else {                    // There is room in the buffer for at least one more char
+           int c = zzReader.read();  // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false;           // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char)c;
+           }
+diff --git a/gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt b/gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt
+index e011b722972..c1b47a32b86 100644
+--- a/gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt
++++ b/gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt
+@@ -118,7 +118,7 @@
+         } else {                    // There is room in the buffer for at least one more char
+           int c = zzReader.read();  // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false;           // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char)c;
+           }
+diff --git a/lucene/analysis/common/src/generated/checksums/regenerateClassicTokenizer.json b/lucene/analysis/common/src/generated/checksums/regenerateClassicTokenizer.json
+index 6e10924b54a..4d009e6741a 100644
+--- a/lucene/analysis/common/src/generated/checksums/regenerateClassicTokenizer.json
++++ b/lucene/analysis/common/src/generated/checksums/regenerateClassicTokenizer.json
+@@ -1,5 +1,5 @@
+ {
+-    &quot;gradle/regenerate/jflex/skeleton.default.txt&quot;: &quot;58944f66c9113a940dfaf6a17210ec8219024390&quot;,
+-    &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/classic/ClassicTokenizerImpl.java&quot;: &quot;edf60483d07543dad3167dab6dd6f000980c13d8&quot;,
++    &quot;gradle/regenerate/jflex/skeleton.default.txt&quot;: &quot;fb86d06b0d36581a698a26f0f5163f9a277de3e7&quot;,
++    &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/classic/ClassicTokenizerImpl.java&quot;: &quot;fc856ad72393b39d4e023ef22e19aca8bad3509b&quot;,
+     &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/classic/ClassicTokenizerImpl.jflex&quot;: &quot;db33fb08d340110cfa1d71299898b8082a0091d8&quot;
+ }
+diff --git a/lucene/analysis/common/src/generated/checksums/regenerateHTMLStripCharFilter.json b/lucene/analysis/common/src/generated/checksums/regenerateHTMLStripCharFilter.json
+index dbd4909fd84..2628578c427 100644
+--- a/lucene/analysis/common/src/generated/checksums/regenerateHTMLStripCharFilter.json
++++ b/lucene/analysis/common/src/generated/checksums/regenerateHTMLStripCharFilter.json
+@@ -1,6 +1,6 @@
+ {
+-    &quot;gradle/regenerate/jflex/skeleton.default.txt&quot;: &quot;58944f66c9113a940dfaf6a17210ec8219024390&quot;,
++    &quot;gradle/regenerate/jflex/skeleton.default.txt&quot;: &quot;fb86d06b0d36581a698a26f0f5163f9a277de3e7&quot;,
+     &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/charfilter/HTMLCharacterEntities.jflex&quot;: &quot;d1aa75b9b37646efe31731394f84a063eb7eed9d&quot;,
+-    &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/charfilter/HTMLStripCharFilter.java&quot;: &quot;b3a2c0f9dbb963b49d8adeaca99ec6c06b76d90f&quot;,
++    &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/charfilter/HTMLStripCharFilter.java&quot;: &quot;0be3028dbf599c8fc4437dd35e39423213fbd483&quot;,
+     &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/charfilter/HTMLStripCharFilter.jflex&quot;: &quot;b2ae7bec8b6e3fe5a4820d45d0cff99a7c7e6d36&quot;
+ }
+diff --git a/lucene/analysis/common/src/generated/checksums/regenerateUAX29URLEmailTokenizer.json b/lucene/analysis/common/src/generated/checksums/regenerateUAX29URLEmailTokenizer.json
+index d7405eb6c15..7c71e4d446b 100644
+--- a/lucene/analysis/common/src/generated/checksums/regenerateUAX29URLEmailTokenizer.json
++++ b/lucene/analysis/common/src/generated/checksums/regenerateUAX29URLEmailTokenizer.json
+@@ -1,6 +1,6 @@
+ {
+-    &quot;gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt&quot;: &quot;6e43a3a64a9b5eb82ec5b4bc21f95aff5a2a061e&quot;,
++    &quot;gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt&quot;: &quot;7a7abb5617d185ca09099d50a6ada1342ac2e9ce&quot;,
+     &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/email/ASCIITLD.jflex&quot;: &quot;0fb14889412bdcbba0faba007391074f808b170b&quot;,
+-    &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/email/UAX29URLEmailTokenizerImpl.java&quot;: &quot;816886806a9659a882b887eb3ff5248ca0595aa7&quot;,
++    &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/email/UAX29URLEmailTokenizerImpl.java&quot;: &quot;793aecb70ce0992379368c2e11c424453cb21cb6&quot;,
+     &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/email/UAX29URLEmailTokenizerImpl.jflex&quot;: &quot;a15828655aac5db248eb50a4144ade0c0736c39e&quot;
+ }
+diff --git a/lucene/analysis/common/src/generated/checksums/regenerateWikipediaTokenizer.json b/lucene/analysis/common/src/generated/checksums/regenerateWikipediaTokenizer.json
+index d1148adba68..b1902ccf8b5 100644
+--- a/lucene/analysis/common/src/generated/checksums/regenerateWikipediaTokenizer.json
++++ b/lucene/analysis/common/src/generated/checksums/regenerateWikipediaTokenizer.json
+@@ -1,5 +1,5 @@
+ {
+-    &quot;gradle/regenerate/jflex/skeleton.default.txt&quot;: &quot;58944f66c9113a940dfaf6a17210ec8219024390&quot;,
+-    &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/wikipedia/WikipediaTokenizerImpl.java&quot;: &quot;8288c966869ed17b7f1cc271513012b7fef707fb&quot;,
++    &quot;gradle/regenerate/jflex/skeleton.default.txt&quot;: &quot;fb86d06b0d36581a698a26f0f5163f9a277de3e7&quot;,
++    &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/wikipedia/WikipediaTokenizerImpl.java&quot;: &quot;a87f3ae24fe892c793f9278408a5167aab2ac616&quot;,
+     &quot;lucene/analysis/common/src/java/org/apache/lucene/analysis/wikipedia/WikipediaTokenizerImpl.jflex&quot;: &quot;0b8c7774b98e8237702013e82c352d4711509bd0&quot;
+ }
+diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/charfilter/HTMLStripCharFilter.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/charfilter/HTMLStripCharFilter.java
+index d05af839b45..d1728e8e42c 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/charfilter/HTMLStripCharFilter.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/charfilter/HTMLStripCharFilter.java
+@@ -5951,7 +5951,7 @@ public final class HTMLStripCharFilter extends BaseCharFilter {
+         } else {                    // There is room in the buffer for at least one more char
+           int c = zzReader.read();  // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false;           // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char)c;
+           }
+diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/classic/ClassicTokenizerImpl.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/classic/ClassicTokenizerImpl.java
+index a67e6a120f0..9987e9985ea 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/classic/ClassicTokenizerImpl.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/classic/ClassicTokenizerImpl.java
+@@ -503,7 +503,7 @@ class ClassicTokenizerImpl {
+         } else { // There is room in the buffer for at least one more char
+           int c = zzReader.read(); // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false; // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char) c;
+           }
+diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/email/UAX29URLEmailTokenizerImpl.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/email/UAX29URLEmailTokenizerImpl.java
+index a46ecd63ce6..2704b697fa5 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/email/UAX29URLEmailTokenizerImpl.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/email/UAX29URLEmailTokenizerImpl.java
+@@ -33665,7 +33665,7 @@ public final class UAX29URLEmailTokenizerImpl {
+         } else {                    // There is room in the buffer for at least one more char
+           int c = zzReader.read();  // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false;           // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char)c;
+           }
+diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/wikipedia/WikipediaTokenizerImpl.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/wikipedia/WikipediaTokenizerImpl.java
+index f3d85558d60..44da5f9e1ae 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/wikipedia/WikipediaTokenizerImpl.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/wikipedia/WikipediaTokenizerImpl.java
+@@ -656,7 +656,7 @@ class WikipediaTokenizerImpl {
+         } else { // There is room in the buffer for at least one more char
+           int c = zzReader.read(); // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false; // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char) c;
+           }
+diff --git a/lucene/analysis/common/src/test/org/apache/lucene/analysis/classic/TestTrailingHighSurrogateJFlexScanners.java b/lucene/analysis/common/src/test/org/apache/lucene/analysis/classic/TestTrailingHighSurrogateJFlexScanners.java
+new file mode 100644
+index 00000000000..3ca67639cae
+--- /dev/null
++++ b/lucene/analysis/common/src/test/org/apache/lucene/analysis/classic/TestTrailingHighSurrogateJFlexScanners.java
+@@ -0,0 +1,91 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the &quot;License&quot;); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.analysis.classic;
++
++import java.io.IOException;
++import java.io.Reader;
++import java.io.StringReader;
++import java.util.Arrays;
++import java.util.function.Supplier;
++import org.apache.lucene.analysis.Analyzer;
++import org.apache.lucene.analysis.Tokenizer;
++import org.apache.lucene.analysis.charfilter.HTMLStripCharFilter;
++import org.apache.lucene.analysis.email.UAX29URLEmailTokenizer;
++import org.apache.lucene.analysis.wikipedia.WikipediaTokenizer;
++import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
++
++/**
++ * The other JFlex-generated scanners share the refill code: a value that ends with an unpaired high
++ * surrogate keeps its tokens, also when it is one char shorter than the scanner&#x27;s buffer.
++ */
++public class TestTrailingHighSurrogateJFlexScanners extends BaseTokenStreamTestCase {
++
++  /** The first half of U+1F600 (GRINNING FACE), which is &quot;😀&quot; in UTF-16. */
++  private static final String HALF_EMOJI = &quot;\uD83D&quot;;
++
++  private static Analyzer analyzer(Supplier&lt;Tokenizer&gt; tokenizer) {
++    return new Analyzer() {
++      @Override
++      protected TokenStreamComponents createComponents(String fieldName) {
++        return new TokenStreamComponents(tokenizer.get());
++      }
++    };
++  }
++
++  /** &quot;abcd abcd ... &quot; padded with spaces to length - 1 chars, then HALF_EMOJI: length chars. */
++  private static String value(int length) {
++    int words = (length - 1) / 5;
++    return &quot;abcd &quot;.repeat(words) + &quot; &quot;.repeat((length - 1) % 5) + HALF_EMOJI;
++  }
++
++  private static void assertKeepsWords(Supplier&lt;Tokenizer&gt; tokenizer, int bufferSize)
++      throws IOException {
++    try (Analyzer a = analyzer(tokenizer)) {
++      assertAnalyzesTo(a, &quot;hello world&quot; + HALF_EMOJI, new String[] {&quot;hello&quot;, &quot;world&quot;});
++      String text = value(bufferSize - 1);
++      String[] expected = new String[(bufferSize - 2) / 5];
++      Arrays.fill(expected, &quot;abcd&quot;);
++      assertAnalyzesTo(a, text, expected);
++    }
++  }
++
++  public void testClassicTokenizer() throws IOException {
++    assertKeepsWords(ClassicTokenizer::new, 4096);
++  }
++
++  public void testUAX29URLEmailTokenizer() throws IOException {
++    assertKeepsWords(UAX29URLEmailTokenizer::new, 255);
++  }
++
++  public void testWikipediaTokenizer() throws IOException {
++    assertKeepsWords(WikipediaTokenizer::new, 4096);
++  }
++
++  /** Text without markup passes through the char filter unchanged. */
++  public void testHTMLStripCharFilter() throws IOException {
++    for (String text : new String[] {&quot;hello world&quot; + HALF_EMOJI, value(16384 - 1)}) {
++      StringBuilder out = new StringBuilder();
++      try (Reader r = new HTMLStripCharFilter(new StringReader(text))) {
++        for (int c = r.read(); c != -1; c = r.read()) {
++          out.append((char) c);
++        }
++      }
++      assertEquals(&quot;chars out of &quot; + text.length(), text.length(), out.length());
++      assertEquals(text, out.toString());
++    }
++  }
++}
+diff --git a/lucene/core/src/generated/checksums/regenerateStandardTokenizer.json b/lucene/core/src/generated/checksums/regenerateStandardTokenizer.json
+index a9d3fb208b5..3bfd36c6c48 100644
+--- a/lucene/core/src/generated/checksums/regenerateStandardTokenizer.json
++++ b/lucene/core/src/generated/checksums/regenerateStandardTokenizer.json
+@@ -1,5 +1,5 @@
+ {
+-    &quot;gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt&quot;: &quot;6e43a3a64a9b5eb82ec5b4bc21f95aff5a2a061e&quot;,
+-    &quot;lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.java&quot;: &quot;fc9832cd753927f00fdc1abb1639654cd049e9ff&quot;,
++    &quot;gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt&quot;: &quot;7a7abb5617d185ca09099d50a6ada1342ac2e9ce&quot;,
++    &quot;lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.java&quot;: &quot;7560f15bbcbf9644582997cc0c0acbc4d7e2c521&quot;,
+     &quot;lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.jflex&quot;: &quot;6dd5ea9741b13281378be5680fdcc2bc2aef3aec&quot;
+ }
+diff --git a/lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.java b/lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.java
+index 9a93568061f..d01bf4b7b30 100644
+--- a/lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.java
++++ b/lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.java
+@@ -789,7 +789,7 @@ public final class StandardTokenizerImpl {
+         } else { // There is room in the buffer for at least one more char
+           int c = zzReader.read(); // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false; // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char) c;
+           }
+diff --git a/lucene/core/src/test/org/apache/lucene/analysis/standard/TestStandardAnalyzerTrailingHighSurrogate.java b/lucene/core/src/test/org/apache/lucene/analysis/standard/TestStandardAnalyzerTrailingHighSurrogate.java
+new file mode 100644
+index 00000000000..5cdfe6ec0d2
+--- /dev/null
++++ b/lucene/core/src/test/org/apache/lucene/analysis/standard/TestStandardAnalyzerTrailingHighSurrogate.java
+@@ -0,0 +1,92 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the &quot;License&quot;); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.analysis.standard;
++
++import java.util.Arrays;
++import org.apache.lucene.analysis.Analyzer;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.Field;
++import org.apache.lucene.document.TextField;
++import org.apache.lucene.index.DirectoryReader;
++import org.apache.lucene.index.IndexWriter;
++import org.apache.lucene.index.Term;
++import org.apache.lucene.search.TermQuery;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
++
++/**
++ * A text value that ends with an unpaired high surrogate, for example a String cut in the middle of
++ * an emoji, must keep its tokens and report its full length as the final offset.
++ */
++public class TestStandardAnalyzerTrailingHighSurrogate extends BaseTokenStreamTestCase {
++
++  /** The first half of U+1F600 (GRINNING FACE), which is &quot;😀&quot; in UTF-16. */
++  private static final String HALF_EMOJI = &quot;\uD83D&quot;;
++
++  public void testShortValue() throws Exception {
++    try (Analyzer a = new StandardAnalyzer()) {
++      assertAnalyzesTo(a, &quot;hello world&quot;, new String[] {&quot;hello&quot;, &quot;world&quot;}); // control
++      assertAnalyzesTo(a, &quot;hello world&quot; + HALF_EMOJI, new String[] {&quot;hello&quot;, &quot;world&quot;});
++    }
++  }
++
++  public void testStringCutInsideAnEmoji() throws Exception {
++    String text = &quot;hello world 😀 more words&quot;.substring(0, 13);
++    assertEquals(&quot;hello world &quot; + HALF_EMOJI, text);
++    try (Analyzer a = new StandardAnalyzer()) {
++      assertAnalyzesTo(a, text, new String[] {&quot;hello&quot;, &quot;world&quot;});
++    }
++  }
++
++  public void testDocumentIsFound() throws Exception {
++    try (Directory dir = newDirectory();
++        Analyzer a = new StandardAnalyzer()) {
++      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(a))) {
++        for (String title : new String[] {&quot;hello world&quot;, &quot;hello world&quot; + HALF_EMOJI}) {
++          Document doc = new Document();
++          doc.add(new TextField(&quot;title&quot;, title, Field.Store.YES));
++          w.addDocument(doc);
++        }
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        assertEquals(2, newSearcher(r).count(new TermQuery(new Term(&quot;title&quot;, &quot;hello&quot;))));
++      }
++    }
++  }
++
++  /**
++   * 51 x &quot;abcd &quot; is 255 chars, the scanner&#x27;s buffer size, so &quot;tail&quot; is in the last buffer window.
++   */
++  public void testLongValueKeepsItsLastWord() throws Exception {
++    String[] expected = new String[52];
++    Arrays.fill(expected, &quot;abcd&quot;);
++    expected[51] = &quot;tail&quot;;
++    try (Analyzer a = new StandardAnalyzer()) {
++      assertAnalyzesTo(a, &quot;abcd &quot;.repeat(51) + &quot;tail&quot; + HALF_EMOJI, expected);
++    }
++  }
++
++  /** &quot;helloworld&quot; starts at char 250, so it crosses the 255-char buffer boundary. */
++  public void testLongValueDoesNotSplitAWord() throws Exception {
++    String[] expected = new String[51];
++    Arrays.fill(expected, &quot;abcd&quot;);
++    expected[50] = &quot;helloworld&quot;;
++    try (Analyzer a = new StandardAnalyzer()) {
++      assertAnalyzesTo(a, &quot;abcd &quot;.repeat(50) + &quot;helloworld&quot; + HALF_EMOJI, expected);
++    }
++  }
++}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed (11.0.0-SNAPSHOT): reproduced with -ea and -da; 10.5.2 and 7.7.0: reproduced; 7.6.0: correct (Maven Central jars, SHA-1 checked)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>javac -cp lucene-core-&lt;version&gt;.jar -d out TrailingHighSurrogate.java
+java -cp lucene-core-&lt;version&gt;.jar:out TrailingHighSurrogate      # exit 1 = words lost
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># plain program: main -ea and -da, 10.5.2, 7.7.0 (identical)
+&quot;hello world&quot; (11 chars) -&gt; [hello, world], final offset 11
+&quot;hello world&lt;U+D83D&gt;&quot; (12 chars) -&gt; [], final offset 0
+&quot;hello world &lt;U+D83D&gt;&quot; (13 chars) -&gt; [], final offset 0
+2 documents, both titles start with &#x27;hello&#x27;; title:hello matches 1
+BUG: words lost
+
+# plain program: 7.6.0, and main with the fix
+&quot;hello world&quot; (11 chars) -&gt; [hello, world], final offset 11
+&quot;hello world&lt;U+D83D&gt;&quot; (12 chars) -&gt; [hello, world], final offset 12
+&quot;hello world &lt;U+D83D&gt;&quot; (13 chars) -&gt; [hello, world], final offset 13
+2 documents, both titles start with &#x27;hello&#x27;; title:hello matches 2
+OK
+
+# core JUnit, stock main through gradle, seed B21EF158 (also -da and 10.5.2 through the repro runner)
+TestStandardAnalyzerTrailingHighSurrogate &gt; testShortValue FAILED
+    java.lang.AssertionError: token 0 does not exist        (the control line before it passes)
+TestStandardAnalyzerTrailingHighSurrogate &gt; testStringCutInsideAnEmoji FAILED
+    java.lang.AssertionError: token 0 does not exist
+TestStandardAnalyzerTrailingHighSurrogate &gt; testDocumentIsFound FAILED
+    java.lang.AssertionError: expected:&lt;2&gt; but was:&lt;1&gt;
+TestStandardAnalyzerTrailingHighSurrogate &gt; testLongValueKeepsItsLastWord FAILED
+    java.lang.AssertionError: token 51 does not exist
+TestStandardAnalyzerTrailingHighSurrogate &gt; testLongValueDoesNotSplitAWord FAILED
+    org.junit.ComparisonFailure: term 50 expected:&lt;hello[world]&gt; but was:&lt;hello[]&gt;
+5 tests completed, 5 failed
+
+# analysis-common JUnit, stock main
+TestTrailingHighSurrogateJFlexScanners &gt; testClassicTokenizer FAILED        token 0 does not exist
+TestTrailingHighSurrogateJFlexScanners &gt; testUAX29URLEmailTokenizer FAILED  token 0 does not exist
+TestTrailingHighSurrogateJFlexScanners &gt; testWikipediaTokenizer FAILED      token 0 does not exist
+TestTrailingHighSurrogateJFlexScanners &gt; testHTMLStripCharFilter FAILED     chars out of 12 expected:&lt;12&gt; but was:&lt;0&gt;
+4 tests completed, 4 failed</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>zzRefill()</code>'s javadoc: "@return <code class='nw'>false</code> iff there was new input"; the branch returns <code class='nw'>true</code> right after reading the text.</li><li>The grammar's <code class='nw'>[^]</code> rule accepts lone surrogates, and does in mid-text; <code class='nw'>IndexWriter</code> documents that it accepts such strings.</li><li>A silent regression: 7.6.0 keeps the words, and LUCENE-10239 says it changes no analyzer's behaviour.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>298 words</span></summary><div class='body'><ul><li><strong>The method's contract.</strong> "@return <code class='nw'>false</code> iff there was new input" (<code>StandardTokenizerImpl.java:750</code>, both skeletons <code class='nw'>:77</code>). The branch returns <code class='nw'>true</code> right after <code>zzEndRead += numRead</code> with <code>numRead &gt; 0</code>.</li><li><strong>The analysis contract.</strong> At the end of each field "The Offset attribute must contain the final offset (the total number of characters processed)" (<code>analysis/package-info.java:276-281</code>); <code>BaseTokenStreamTestCase</code> checks <code class='nw'>text.length()</code> (<code class='nw'>:1423</code>, and <code class='nw'>assertAnalyzesTo</code>). Here it is 0 for a 12-char value.</li><li><strong>The scanner accepts lone surrogates by design.</strong> <code>[^] { ... ignore it. }</code> (<code>StandardTokenizerImpl.jflex:286</code>); the JFlex manual says <code class='nw'>[^]</code> matches "any character of the input character set, including unpaired Unicode surrogate characters". Executed controls: a lone high surrogate in mid-text, a trailing lone low surrogate, "high surrogate + space" and a trailing valid pair all keep <code>[hello, world]</code>.</li><li><strong>Lucene accepts this input elsewhere.</strong> <code class='nw'>IndexWriter</code> documents the U+FFFD replacement (<code>IndexWriter.java:1483-1485</code>); that shows the input is accepted, not how an analyzer must tokenize it. <code>TestAnalyzers.testLowerCaseFilterLowSurrogateLeftover</code> feeds <code>"BogustermBoguster\ud801"</code> to <code>WhitespaceTokenizer</code> and expects it as a token; <code>TestCharacterUtils.testFill</code> and <code>TestCharArraySet.testSingleHighSurrogate</code> use raw lone high surrogates, including at the end of input. (Not <code>TestHTMLStripCharFilter.testUTF16Surrogates</code>: it uses numeric character references.)</li><li><strong>History.</strong> LUCENE-8527 (2019) added the look-ahead for a different problem, well-formed pairs split by Readers that return short reads (jflex-de/jflex#538 / #543); an unpaired surrogate at the true end of input is never discussed, and its CHANGES entries mention only the JFlex 1.7.0 upgrade, Unicode 9.0 and emoji support. LUCENE-10239 (#452, 2021) copied the branch from JFlex's skeleton with the message "Change doesn't alter the behavior of any of the analyzers". 7.6.0 and, for Classic, Wikipedia and HTMLStrip, 9.0.0 keep both words with final offset 12 (<code>[hello, world]</code>; <code>HTMLStripCharFilter</code> + <code>WhitespaceTokenizer</code> gives <code>[hello, world\uD83D]</code>, keeping the surrogate in its last token).</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>300 words</span></summary><div class='body'><p>The strongest case for "works as designed": an unpaired surrogate is ill-formed UTF-16 (Unicode conformance C10), so garbage in, garbage out. The test framework seems to agree: <code class='nw'>MockTokenizer</code> fails with "stream ends with unpaired high surrogate" (<code>MockTokenizer.java:271</code>), <code>TestUtil.randomSubString</code>, which <code>randomAnalysisString</code> calls for its text (<code>TestUtil.java:1686</code>, <code class='nw'>:1703</code>), trims a high surrogate left at the end of a cut (<code class='nw'>:1740-1744</code>, LUCENE-3911), and in jflex#538 the author of the branch wrote that surrogates "should not be present unpaired in a well-formed UTF-16 sequence". A maintainer could reasonably say that ill-formed UTF-16 has no defined tokenization.</p><p>Why it is plausible but outweighed for this result: no javadoc of <code class='nw'>Analyzer</code>, <code class='nw'>Tokenizer</code>, <code>StandardTokenizer</code>, <code class='nw'>StandardAnalyzer</code> or the analysis package sets that precondition, and <code class='nw'>IndexWriter</code> documents that it accepts such strings (acceptance, not tokenization semantics); the grammar and JFlex's <code class='nw'>[^]</code> accept them everywhere except at the very end; the output is not "garbage" for the bad char but the loss of every good word before it (one char erases up to 253 good chars, 16,382 behind <code>HTMLStripCharFilter</code>, while the same char one position earlier erases nothing); Lucene's own tests feed raw lone surrogates to other analysis components; and the behaviour arrived in toolchain upgrades meant to change nothing else. <code class='nw'>MockTokenizer</code> and <code class='nw'>TestUtil</code> show that Lucene's own tests keep random input well-formed (the code does not say why, and neither is a documented precondition for users), and they are why randomized tests never reached this branch. The cross-model reviews and the intended-behaviour verifier rated the case weak; this doc's OpenAI GPT-5.6 fact check rated it moderate for "ill-formed input is unsupported" in general and weak for this silent loss of the words in front. <strong>Verdict: not intended, a defect.</strong> The issue should discuss <code class='nw'>MockTokenizer</code> and <code class='nw'>TestUtil</code> head-on.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Return false in the look-ahead branch of both skeletons, then regenerate</strong></p><p class='short'>Return <code class='nw'>false</code> instead of <code class='nw'>true</code> when the low-surrogate look-ahead hits end of input, in both <code>gradle/regenerate/jflex</code> skeletons, then regenerate: each of the five scanners changes by that one line. With it, the core analysis tests (186) and the whole analysis-common suite (1,929) pass, and the two new tests go from 9 failures to 0.</p><pre class='snippet' tabindex='0'><code>--- a/gradle/regenerate/jflex/skeleton.default.txt   (same change in skeleton.disable.buffer.expansion.txt)
++++ b/gradle/regenerate/jflex/skeleton.default.txt
+@@ -122,7 +122,7 @@
+         } else {                    // There is room in the buffer for at least one more char
+           int c = zzReader.read();  // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false;           // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char)c;
+           }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 827 words</span></summary><div class='body'><p>One fix was regenerated into all five scanners and tested with gradle. The others are options for JFlex itself, a more invasive variant, and a workaround for applications.</p><div class="hd hd-3"><h3 id='fix-skeleton-return-false'>Return false in the look-ahead branch of both skeletons, then regenerate <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-skeleton-return-false" target="_self" aria-label="Link to this section" aria-describedby="fix-skeleton-return-false"><span aria-hidden="true">#</span></a></div><p><code>numRead &gt; 0</code> chars were just added, so by the javadoc the answer is <code class='nw'>false</code>. The scanner then scans the buffered chars; the lone surrogate at the end is decoded and matched by <code class='nw'>[^]</code> (ignored by the tokenizers, passed through by <code>HTMLStripCharFilter</code>), exactly as in mid-text. The next refill calls <code class='nw'>read()</code> again, gets -1 and returns <code class='nw'>true</code> from the existing <code>numRead &lt; 0</code> path (<code>StandardTokenizerImpl.java:802-803</code>). Scope: every value that takes this branch (the read left room in the buffer). It does not touch the <code>numRead == requested</code> branch, so a value of exactly 16,384 chars still comes out of <code>HTMLStripCharFilter</code> one char short (executed: with the fix, 12, 16,383 and 16,385 chars pass through unchanged, 16,384 does not).</p><pre class='snippet' tabindex='0'><code>--- a/gradle/regenerate/jflex/skeleton.default.txt   (same change in skeleton.disable.buffer.expansion.txt)
++++ b/gradle/regenerate/jflex/skeleton.default.txt
+@@ -122,7 +122,7 @@
+         } else {                    // There is room in the buffer for at least one more char
+           int c = zzReader.read();  // Expecting to read a paired low surrogate char
+           if (c == -1) {
+-            return true;
++            return false;           // new chars were read; the next call reports EOF
+           } else {
+             zzBuffer[zzEndRead++] = (char)c;
+           }</code></pre><p class='k'>Trade-offs</p><ul><li>Negligible cost: the branch runs at most once per value. With the fix a trigger value makes one more <code class='nw'>read()</code> call, which returns -1: 3 Reader calls instead of 2 for <code>"hello world"</code> + U+D83D, the same 3 as for <code>"hello world"</code> without it (executed).</li><li>Calling <code class='nw'>read()</code> again after -1 is not new: the stock scanner already does it for a value that ends inside a word, such as <code>"hello world"</code> (2 of its 3 calls return -1, executed). Only <code class='nw'>StringReader</code> and <code>ReusableStringReader</code> were tried; a custom Reader that misbehaves after -1 was not tested.</li><li>JFlex's own skeleton keeps the branch, so a Lucene-only fix would come back if open issue #14645 replaces Lucene's skeletons with JFlex's built-in buffer features (option B).</li><li>It does not fix the sibling LFV-132 (other branches of the same method, <code>maxTokenLength = 1</code>), nor the unverified "H H L" short-read observation in the same block, nor the <code>HTMLStripCharFilter</code> exact-buffer-size case above.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>ea57360912ed</code>, JFlex 1.9.1 from the build: <code>regenerateStandardTokenizer</code>, <code>regenerateClassicTokenizer</code>, <code>regenerateWikipediaTokenizer</code>, <code>regenerateHTMLStripCharFilter</code> and <code>regenerateUAX29URLEmailTokenizer</code> (with <code>-x regenerateTlds</code>, which would download a new TLD list) change exactly that line in each generated file plus five checksum files (12 files, +17/-17).</li><li>With the fix, seed B21EF158: <code>:lucene:core:test --tests 'org.apache.lucene.analysis.*'</code> 24 classes, 186 tests, 0 failures (<code>TestStandardAnalyzer</code> 45/45); the whole <code>:lucene:analysis:common:test</code> 343 classes, 1,929 tests, 0 failures, 18 skipped (<code>TestUAX29URLEmailTokenizer</code> 46, <code>TestClassicAnalyzer</code> 29, <code>TestWikipediaTokenizer</code> 8, <code>TestHTMLStripCharFilter</code> 36).</li><li>The two new tests (9) and the finder's, the first verifier's and the devil's-advocate verifier's tests pass; all seven trailing-surrogate test classes pass 20 iterations with seed 5EED158B (760 runs, 0 failures). <code>checkGoogleJavaFormat</code> and <code class='nw'>ecjLintTest</code> pass for both modules.</li><li>Without the fix the same gradle run of the two new tests fails 5/5 and 4/4. Earlier, the hunt's shadow of <code>StandardTokenizerImpl</code> passed every reviewer's test. With such a shadow, the bounded-exhaustive checker's final-offset violations for <code>StandardTokenizer</code> at maxTokenLength 255 go from 820 to 0 with a whole-string Reader and from 262 to 0 with a 1-char Reader (re-run by this doc's fact check); the separate "H H L" count with a 1-char Reader stays (465 before, 502 after).</li></ul><div class="hd hd-3"><h3 id='fix-jflex-upstream'>Make the same change in JFlex's own skeleton</h3><a class="hlink" href="#fix-jflex-upstream" target="_self" aria-label="Link to this section" aria-describedby="fix-jflex-upstream"><span aria-hidden="true">#</span></a></div><p>JFlex's <code class='nw'>skeleton.default</code> (master) has the same branch, so other scanners generated from it may have the same return path and could be checked (for example a copy in a TOML parser of a JSON library's text-format module; whether users see lost text depends on the grammar and the Reader; not tested). A maintainer may prefer this route: fix it in JFlex and carry the Lucene skeleton patch until a JFlex release is picked up. The owner may tell the JFlex project.</p><p class='k'>Trade-offs</p><p>Needed for a durable fix if Lucene moves to JFlex's built-in buffer features (#14645); Lucene's own no-buffer-expansion skeleton needs the change either way; on its own it does not help Lucene until a JFlex release is picked up. Not tried.</p><div class="hd hd-3"><h3 id='fix-hold-back'>Hold the trailing high surrogate back instead of reading ahead</h3><a class="hlink" href="#fix-hold-back" target="_self" aria-label="Link to this section" aria-describedby="fix-hold-back"><span aria-hidden="true">#</span></a></div><p>Keep the high surrogate out of the buffer and decide on the next refill, as the <code>numRead == requested</code> branch does.</p><p class='k'>Trade-offs</p><p>More state and code than the one-line fix, in the branch where the sibling LFV-132 and jflex-de/jflex#1090 live. Not tried.</p><div class="hd hd-3"><h3 id='fix-app-workaround'>Workaround for applications today</h3><a class="hlink" href="#fix-app-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-app-workaround"><span aria-hidden="true">#</span></a></div><p>Replace unpaired surrogates with U+FFFD, or cut strings by code point, or append a separator, before analysis.</p><p class='k'>Trade-offs</p><p>Not a Lucene fix. Reasoned from the verifiers' controls (a lone high surrogate followed by a space keeps the words), not run as a mitigation test.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream: whoever writes the end of a value can hide it, with one char (a JSON <code class='nw'>\ud83d</code> escape), from searches on the terms these scanners produce, while it still displays. It stays inside that value and breaks no documented guarantee (SECURITY.md lines 28, 38 and 50 put analyzer input out of scope), so it is an ordinary public bug.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive check of the real jar fed <code>StandardTokenizer</code> and <code>UAX29URLEmailTokenizer</code> all 7,380 sequences of 1 to 4 symbols from a 9-symbol alphabet with lone surrogates (177,120 runs), and checked that the final offset equals the input length. It flagged 820 inputs per tokenizer, the shortest a lone U+D801; a case analysis of <code class='nw'>zzRefill()</code> then found the branch.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>207 words</span></summary><div class='body'><p><strong>Method: semi-formal, bounded-exhaustive checking of the stock main jar</strong> (a hunt unit, analysis core and case folding, 2026-10-26).</p><ul><li>The harness (<code class='nw'>StdTokTV</code>) ran all 7,380 sequences of 1..4 symbols over a 9-symbol alphabet (<code>StdTokTV.java:41-44</code>: two supplementary characters, two lone surrogates, five BMP chars; so 1..8 UTF-16 units), with <code class='nw'>maxTokenLength</code> 1..5 and 255, whole-string and 1-char Readers, through <code>StandardTokenizer</code> and <code>UAX29URLEmailTokenizer</code>: 177,120 runs.</li><li>Its reference tokenizer (an unlimited-buffer run of the same scanner) shares the bug, so a differential check alone missed it; the separate oracle "<code class='nw'>end()</code> final offset equals the input length" flagged 820 inputs for each tokenizer at the default <code class='nw'>maxTokenLength</code> 255 with a whole-string Reader (also the number of generated sequences that end in the lone high surrogate: 1 + 9 + 81 + 729). The shortest: the single unit U+D801 gives no tokens and final offset 0.</li><li>A written case analysis of <code class='nw'>zzRefill()</code> located the <code>c == -1</code> branch; a seeded length sweep measured how much text is lost, and a deterministic JUnit reproduced it on the stock jar with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</li><li>An independent reviewer from another model family (OpenAI GPT-5.6) then tried to refute it before it became a candidate, and wrote its own failing test.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No earlier report found: 218 logged queries on 2026-10-26 over Lucene's GitHub issues, PRs and commits, the JIRA archive, the Lucene and Solr lists, four downstream trackers, all 1,112 JFlex issues and PRs, and the web. The closest items are the threads that added the branch, about well-formed pairs only.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>. Nothing upstream fixes it, no open PR touches the scanners or skeletons, and JFlex master's skeleton still has the branch.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues and PRs (incl. migrated JIRA issues) and commit messages</th><td class='when'>2026-10-26</td><td>two scripted prior-report searches (51 and 111 queries) plus manual searches: class names, zzRefill, zzFinalHighSurrogate, isHighSurrogate, skeleton.default, "c == -1", ud83d, unpaired / lone / trailing surrogate, emoji, truncated, "no tokens", "final offset", LUCENE-8527</td><td>no report; origin threads only</td></tr><tr><th scope='row'>apache/lucene open PRs and recent commits</th><td class='when'>2026-10-26</td><td>changed files of the 38 open PRs with analysis-related titles (of 413); main since 2026-10-01 by path; git log -S on the look-ahead</td><td>none touches the scanners or skeletons; upstream head = the tested commit</td></tr><tr><th scope='row'>jflex-de/jflex</th><td class='when'>2026-10-26</td><td>all 1,112 issues and PRs grepped by title and body; master skeleton.default and its history read</td><td>#538 / #543 (origin, well-formed pairs); #1090 (a different zzRefill branch that throws); master still has the branch</td></tr><tr><th scope='row'>Downstream trackers (Elasticsearch, OpenSearch, Solr, Lucene.NET)</th><td class='when'>2026-10-26</td><td>a scripted prior-report search downstream queries and 11 manual searches</td><td>elastic/elasticsearch#45771 (a lone high surrogate at the end of a highlight fragment: output side, not this bug)</td></tr><tr><th scope='row'>JIRA archive and mailing lists</th><td class='when'>2026-10-26</td><td>LUCENE and SOLR JQL; dev@, java-user@, issues@, commits@ (Lucene), users@, dev@ and the old solr-user@ (Solr)</td><td>no report</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>14 queries</td><td>no matching symptom</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced twice in JFlex upgrades: LUCENE-8527 (<code class='nw'>283b19a8da6</code>, 2019) for StandardTokenizer and UAX29URLEmailTokenizer, first released in 7.7.0, and LUCENE-10239 (#452, <code class='nw'>af831d281056</code>, 2021) for Classic, Wikipedia and HTMLStrip, first released in 9.1.0. Run on 13 versions: 7.6.0 is correct and every release since is affected.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduction 1.</strong> LUCENE-8527 (#9573), JFlex 1.7.0 upgrade by @sarowe, commit <code class='nw'>283b19a8da6</code> (main line, 2019-01-08), <code class='nw'>e8c65da6bb8</code> (branch_7x, first release 7.7.0) and <code class='nw'>0e903cab47e</code> (branch_8x); a JIRA patch with no pull request. It added the look-ahead to the no-buffer-expansion skeleton only, which generates StandardTokenizer and UAX29URLEmailTokenizer.</p><p><strong>Introduction 2.</strong> LUCENE-10239, PR #452, JFlex 1.8.2 upgrade by @rmuir, commit <code class='nw'>af831d281056</code> (main, 2021-11-19), backport <code class='nw'>ee56d314257</code> (first release 9.1.0). It took JFlex's own default skeleton, which had the branch, so ClassicTokenizer, WikipediaTokenizer and HTMLStripCharFilter got it too. The reviewed diff shows the lines; nobody commented on them.</p><p><strong>Never fixed</strong>: every release from 7.7.0 to 10.5.2 and main for StandardTokenizer (24 runs on 13 versions, plus a 9.0.0 JUnit attempt that did not compile; 8.8.2-8.11.3 are untagged in the history clone and inferred from 8.8.1 and the executed 8.11.4); release branches were not checked. At every version run, the scanners that lose text are exactly those whose generated <code class='nw'>zzRefill</code> has the branch.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>6.6.6, 7.5.0, 7.6.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>all five scanners keep both words, final offset 12 ([hello, world]; HTMLStripCharFilter + WhitespaceTokenizer gives [hello, world\uD83D])</td></tr><tr><th scope='row'>7.7.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> Standard and UAX29URLEmail only</span></td><td>StandardTokenizer and UAX29URLEmailTokenizer give [] and final offset 0; Classic, Wikipedia and HTMLStrip are correct</td></tr><tr><th scope='row'>9.1.0, 9.12.3, 10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>all five scanners lose the text; the finder's JUnit fails 8 of 9 on 9.1.0, 9.12.3 and 10.5.2</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>all five lose the text with -ea and -da; the brief's tests fail 5/5 and 4/4</td></tr><tr><th scope='row'>main with the fix (regenerated)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the brief's tests pass; core analysis 186 tests and analysis-common 1,929 tests, 0 failures</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Cross-model reviews (OpenAI GPT-5.6, refute and works-as-designed lenses), an independent reproducer and an intended-behaviour devil's advocate each rated it real with their own failing tests; the adjudication re-ran two repros with -ea and -da and confirmed it with high confidence. No reviewer dissented.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>533 words</span></summary><div class='body'><p>Each check wrote and ran its own tests on main <code class='nw'>ea57360912ed</code>; the adjudication re-ran the finder's and the first verifier's repros with new seeds.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> candidate</span></td><td>8 of 9 tests fail with -ea and -da; 7 of 8 on 10.5.2 and 9.12.3; main() fails on 7.7.0-8.11.4 and passes on 7.6.0, 7.5.0, 6.6.6.</td></tr><tr><th scope='row'>refute review (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Own test: "red blue" + a lone high surrogate gives [] and final offset 0 with -ea and -da; controls pass; the fix passes its test and TestStandardAnalyzer 45/45.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own tests fail 8 of 13 on main, 10.5.2 and 9.12.3 with -ea and -da; all five scanners lose the text; length sweep 1..253 all lost, 254-255 fine, 256..507 one word split; corrected a test citation.</td></tr><tr><th scope='row'>works-as-designed review (OpenAI GPT-5.6, the cross-model review)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Rated the "malformed UTF-16, garbage in" case weak; its tests reproduce whole-value loss, tail loss and word splitting with five controls passing; 7.6.0 passes.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Rebutted MockTokenizer, TestUtil.randomAnalysisString, Unicode C10 and the jflex#538 remark; found the per-scanner start versions (9.0.0: only Standard and UAX29URLEmail lose text; 9.1.0: all five).</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the finder's repro (8 of 9 fail) and the independent reproduction's (8 of 13 fail) with -ea and -da, and the independent reproduction's test with the fix (8/8 pass).</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>New plain program and two JUnit tests fail on main (-ea, -da), 10.5.2 and 7.7.0, pass on 7.6.0; the regenerated fix passes them and the core analysis and analysis-common suites.</td></tr><tr><th scope='row'>Correction to the registry row</th><td><span class='v bad'><span aria-hidden='true'>&#10007;</span> 4 registry wordings corrected here</span></td><td>The registry card below still says "every input of 1..4 UTF-16 units" (found by; it was 7,380 sequences of 1..4 symbols, 1..8 UTF-16 units), "the stored value stays intact" (impact note; the lone surrogate becomes U+FFFD, the words are kept), "no widening of an application's own query restrictions" (security note; splits add terms) and "upstream main head equals the tested commit" (affected versions; main has moved on with no change to these files). This page uses the corrected wording.</td></tr><tr><th scope='row'>Fact check of this doc (independent AI tool)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; 6 text errors, fixed</span></td><td>Re-ran the plain program (main -ea/-da, 10.5.2, 7.7.0, 7.6.0), both JUnit tests with -ea and -da, the long values, the fix shadow, the bounded checker with the fix and Reader-call counts. Bug, mechanism, versions and fix hold; 6 wording errors (splits add terms, the checker's input space, the HTMLStripCharFilter exact-buffer case, two scope words, a line citation) fixed; it also found a possible sibling (HTMLStripCharFilter at exactly 16,384 chars).</td></tr><tr><th scope='row'>Cross-model fact check (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; 8 text errors, fixed or answered</span></td><td>Read-only review against the code and run logs: the core bug is real and well demonstrated; 8 errors (1 high: splits add terms, so "only removes tokens" was wrong), 8 overclaims and 7 missing caveats; rated the intended-behaviour case moderate in general, weak for this result.</td></tr><tr><th scope='row'>Diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> facts correct; 1 overlap, fixed and re-rendered</span></td><td>Every on-screen value, code line and line number matched the code and the probe logs.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-158/bug.png' download='jflex-refill-trailing-high-surrogate-drops-tokens-bug.png' target='_self'>PNG</a> <span class='n'>506 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,569 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-158, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>StandardAnalyzer and the other JFlex-generated scanners (StandardTokenizer, UAX29URLEmailTokenizer, ClassicTokenizer, WikipediaTokenizer, HTMLStripCharFilter) silently index no tokens for a text value that ends in an unpaired high surrogate, such as a string cut inside an emoji; values longer than the scan buffer lose or split their last buffer window</dd></div><div><dt>Area</dt><dd>analysis / StandardTokenizer and the other JFlex-generated scanners (zzRefill in both Lucene JFlex skeletons)</dd></div><div><dt>Priority</dt><dd>Medium, rank 9: </dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Anyone who analyzes text with StandardAnalyzer or StandardTokenizer at default settings (by code reading also the default analyzer of Elasticsearch and OpenSearch and the tokenizer of Solr's default text_general type), or with UAX29URLEmailTokenizer, ClassicTokenizer, WikipediaTokenizer or HTMLStripCharFilter, and whose field value ends in an unpaired high surrogate (a String cut by UTF-16 length inside an emoji, or a JSON \ud83d escape) gets no tokens and final offset 0 for a value that fits in one scanner read (up to 254 chars including the surrogate for StandardTokenizer and UAX29URLEmailTokenizer, 4,095 for ClassicTokenizer and WikipediaTokenizer, 16,383 behind HTMLStripCharFilter) and a lost or split last buffer window for longer values, with no error, with -ea and -da, while the stored value stays intact; released since 7.7.0 (StandardTokenizer, UAX29URLEmailTokenizer) and 9.1.0 (the other three); no scale needed.</dd></div><div><dt>Summary</dt><dd>You index a text field with StandardAnalyzer at default settings, and the value ends in an unpaired high surrogate, for example 'hello world' followed by U+D83D, which is what cutting a Java String inside an emoji, or decoding the JSON escape \ud83d, produces. You expect hello and world to be indexed and end() to report the input length as the final offset, as happens when the same lone surrogate sits mid-text and as Lucene 7.6.0 did. Instead the scanner's refill reads the whole text, looks one char ahead for the missing low surrogate, hits end of input and reports 'no new input', so the scanner ends the stream without scanning what it just read: no tokens, final offset 0, and the document does not match title:hello; values longer than the 255-char buffer lose or split their last window instead.</dd></div><div><dt>Introduced</dt><dd>283b19a8da6ab9e0b7e9a75b132d3067218d5502 (LUCENE-8527, apache/lucene#9573, JFlex 1.7.0 upgrade by sarowe, a JIRA patch committed without a pull request; the same change went to branch_7x as e8c65da6bb8 (first released in 7.7.0) and to branch_8x as 0e903cab47e) added the low-surrogate lookahead with 'if (c == -1) { return true; }' to the no-buffer-expansion skeleton only, which generates StandardTokenizerImpl and UAX29URLEmailTokenizerImpl; af831d281056 (LUCENE-10239, apache/lucene#452, JFlex 1.7.0 -&gt; 1.8.2 by rmuir; branch_9x backport ee56d314257, first released in 9.1.0) brought the same branch into the default skeleton from JFlex 1.8.2's own skeleton, which generates ClassicTokenizerImpl, WikipediaTokenizerImpl and HTMLStripCharFilter [exec: per-scanner boundaries 7.6.0 -&gt; 7.7.0 and 9.0.0 -&gt; 9.1.0 on SHA-1-checked release jars; read: git log -S, git blame, grep of the generated scanners at every release tag in the history clone] (2019-01-08 (283b19a8da6, LUCENE-8527; 7.7.0 tagged 2019-02-08); 2021-11-19 (af831d281056, LUCENE-10239; 9.1.0 tagged 2022-03-21))</dd></div><div><dt>First affected version</dt><dd>7.7.0 [exec] for StandardTokenizer (and so StandardAnalyzer) and UAX29URLEmailTokenizer (7.6.0 passes); 9.1.0 [exec] for ClassicTokenizer, WikipediaTokenizer and HTMLStripCharFilter (9.0.0 passes for those three)</dd></div><div><dt>Affected versions</dt><dd>StandardTokenizer, StandardAnalyzer and UAX29URLEmailTokenizer: 7.7.0-7.7.3, 8.0.0-8.11.4, 9.0.0-9.12.3, 10.0.0-10.5.2 (the latest release) and main ea57360912ed; ClassicTokenizer, WikipediaTokenizer and HTMLStripCharFilter: 9.1.0-9.12.3, 10.0.0-10.5.2 and main. Executed: the follow-up's framework-free history probe ('hello world' + U+D83D through all five scanners) fails on 7.7.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main with -ea (also -da on 7.7.0, 8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.5.2 and main), losing text only in StandardTokenizer and UAX29URLEmailTokenizer on 7.7.0-9.0.0 and in all five from 9.1.0 on, and passes on 6.6.6, 7.5.0 and 7.6.0 (7.6.0 also -da); the finder's JUnit fails on 9.1.0, 9.12.3, 10.5.2 and main and its main() on 7.7.0, 7.7.3, 8.0.0, 8.11.4, 9.12.3 and 10.5.2; the independent reproduction's JUnit fails on 9.12.3, 10.5.2 and main (-ea, -da) [exec]. The other releases come from a grep of the generated scanners at every release tag in the history clone (branch present in StandardTokenizerImpl at every tag from 7.7.0 to 10.5.2, in ClassicTokenizerImpl from 9.1.0; 8.8.2-8.11.3 are not tagged there, 8.11.4 was executed) [read]. The long-text symptoms (tail lost or a word split at the last refill boundary) were executed on 9.1.0 and later only; on 7.7.0-9.0.0 they follow from the identical branch [read]. Not fixed upstream: upstream main head equals the tested commit, no open PR touches the scanners or skeletons, and JFlex master's skeleton.default has the same branch [read 2026-10-26]; release branches were not checked.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; 218 logged queries: the finder's scripted prior-report search (51), the follow-up's scripted prior-report search (111) and 56 manual searches, over apache/lucene issues and PRs including migrated JIRA issues, apache/lucene commit messages, the changed files of the 38 open apache/lucene PRs with analysis-related titles (of 413 open; none touches the scanners or skeletons), main commits since 2026-10-01 by path (none), git log -S on the lookahead, the Elasticsearch, OpenSearch, Solr and Lucene.NET trackers, all 1,112 jflex-de/jflex issues and PRs grepped by title and body, the LUCENE and SOLR JIRA archive, the dev@, java-user@, issues@ and commits@ Lucene lists, the users@ and dev@ Solr lists and the old solr-user@ list, and the web; also the intended-behaviour check's gh searches on apache/lucene and jflex-de/jflex); upstream main head equals the tested commit and JFlex master's skeleton.default still has the same branch; related, none of them this bug: #9573 (LUCENE-8527) and jflex-de/jflex#538 / #543 (origin of the branch, about well-formed pairs split by spoon-feeding Readers), #452 (LUCENE-10239, the reviewed skeleton diff shows the branch, nobody commented on it), #14645 (open: replace Lucene's skeletons with JFlex's built-in buffer features, which have the same branch), jflex-de/jflex#1090 with FasterXML/jackson-dataformats-text#403 / #411 / #412 (a different zzRefill branch giving an exception; relevant to the sibling LFV-132), #15899 / #15900 (TruncateTokenFilter half surrogates; a committer writes that such input must be expected), elastic/elasticsearch#45771 (a lone high surrogate at the end of a highlight fragment, output side) and #4969 (LUCENE-3896, CharTokenizer, fixed 2012)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (11.0.0-SNAPSHOT; tested 2026-10-26): the plain program and both JUnit tests through the repro runner with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, and through gradle in a scratch worktree, stock and with the fix regenerated into all five scanners (the worktree was removed after the runs); the Maven Central jars 10.5.2 and 7.7.0 (fail) and 7.6.0 (passes), SHA-1 checked. The follow-up's history probe ran on 13 versions from 6.6.6 to main.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout gradle/regenerate/jflex/skeleton.default.txt:77 (zzRefill javadoc &#x27;@return false iff there was new input&#x27;), :118-131 (lookahead; &#x27;if (c == -1)&#x27; at :124); gradle/regenerate/jflex/skeleton.disable.buffer.expansion.txt:77, :110-127 (&#x27;if (c == -1)&#x27; at :120)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.java:51 (ZZ_BUFFERSIZE 255), :750 (javadoc), :780-797 (numRead &gt; 0 branch, lookahead read, &#x27;if (c == -1) { return true; }&#x27; at :791), :1004-1011 (refill true -&gt; YYEOF), :1034-1037 (YYEOF at a token start ends the stream); StandardTokenizerImpl.jflex:286 (&#x27;[^]&#x27; catch-all rule, &#x27;ignore it&#x27;); StandardTokenizer.java:100-104 (setMaxTokenLength sets the scanner buffer size)</code></li><li><code>a Lucene main checkout lucene/analysis/common/src/java/org/apache/lucene/analysis/classic/ClassicTokenizerImpl.java:34 (ZZ_BUFFERSIZE 4096), :505; wikipedia/WikipediaTokenizerImpl.java:34 (4096), :658; email/UAX29URLEmailTokenizerImpl.java:55 (255), :33667; charfilter/HTMLStripCharFilter.java:45 (16384), :5953 (the same &#x27;if (c == -1)&#x27; branch in each)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/analysis/package-info.java:276-281 (end() must set the final offset to &#x27;the total number of characters processed&#x27;); lucene/test-framework/src/java/org/apache/lucene/tests/analysis/BaseTokenStreamTestCase.java:1423 (checkAnalysisConsistency passes text.length() as the expected final offset); lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:1483-1485 (malformed surrogates silently replaced with U+FFFD)</code></li><li><code>a Lucene main checkout lucene/test-framework/src/java/org/apache/lucene/tests/analysis/MockTokenizer.java:264, :271 (fails on unpaired surrogates, &#x27;stream ends with unpaired high surrogate&#x27;); lucene/test-framework/src/java/org/apache/lucene/tests/util/TestUtil.java:1742-1744 (randomAnalysisString trims a trailing high surrogate); lucene/core/src/test/org/apache/lucene/analysis/TestCharacterUtils.java:91 (testFill), lucene/core/src/test/org/apache/lucene/analysis/TestCharArraySet.java:203 (raw &#x27;ABC\uD800&#x27;), lucene/analysis/common/src/test/org/apache/lucene/analysis/core/TestAnalyzers.java:176 (testLowerCaseFilterLowSurrogateLeftover)</code></li><li><code>a Lucene main checkout lucene/CHANGES.txt:6879 and :6954 (the two LUCENE-8527 entries of 7.7.0: Unicode 9.0 and emoji support, JFlex 1.7.0; nothing about surrogate input); SECURITY.md lines 28, 38, 44-46 and 50</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.java:51, 750, 769-803, 1004-1012, 1034-1044</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizer.java:159, 181; StandardTokenizerImpl.jflex:286</code></li><li><code>Lucene main ea57360912ed: gradle/regenerate/jflex/skeleton.default.txt:77, 118-131; skeleton.disable.buffer.expansion.txt:77, 110-127</code></li><li><code>Lucene main ea57360912ed: UAX29URLEmailTokenizerImpl.java:55, 33667; ClassicTokenizerImpl.java:34, 505; WikipediaTokenizerImpl.java:34, 658; HTMLStripCharFilter.java:45, 5953</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/document/Field.java:498; analysis/Analyzer.java:183-190; analysis/ReusableStringReader.java:45-51; gradle/regenerate/jflex/skeleton.default.txt:97-104</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:1483-1485; StandardTokenizer.java:100-104</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriterConfig.java:136-142; lucene/test-framework/.../TestUtil.java:629-650, 1681-1745</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: StandardTokenizerImpl.java:750; StandardTokenizerImpl.jflex:286; analysis/package-info.java:276-281</code></li><li><code>Lucene main ea57360912ed: lucene/test-framework/.../BaseTokenStreamTestCase.java:745-765, 1423; MockTokenizer.java:271; TestUtil.java:1681-1706, 1740-1744</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/common/src/test/.../core/TestAnalyzers.java:176-188; lucene/core/src/test/.../TestCharacterUtils.java:91-92; TestCharArraySet.java:199-203</code></li><li><code>Lucene main ea57360912ed: lucene/CHANGES.txt:6879, 6954; IndexWriter.java:1483-1485</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: StandardTokenizerImpl.java:783-803; gradle/libs.versions.toml (jflex 1.9.1); lucene/core/build.gradle:101, 184, 193, 202, 260</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TrailingHighSurrogate.java (plain main, public API, lucene-core only): <a href='../repro/LFV-158/TrailingHighSurrogate.java'><code>repro/LFV-158/TrailingHighSurrogate.java</code></a> (100 lines)</li><li>TestStandardAnalyzerTrailingHighSurrogate.java (JUnit, lucene/core): <a href='../repro/LFV-158/TestStandardAnalyzerTrailingHighSurrogate.java'><code>repro/LFV-158/TestStandardAnalyzerTrailingHighSurrogate.java</code></a> (92 lines)</li><li>TestTrailingHighSurrogateJFlexScanners.java (JUnit, lucene/analysis/common): <a href='../repro/LFV-158/TestTrailingHighSurrogateJFlexScanners.java'><code>repro/LFV-158/TestTrailingHighSurrogateJFlexScanners.java</code></a> (91 lines)</li><li>fix-with-tests.diff (the fix, regenerated scanners, checksums and both tests; 14 files, +200/-17): <a href='../repro/LFV-158/fix-with-tests.diff'><code>repro/LFV-158/fix-with-tests.diff</code></a> (348 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the repro: the user code, the buffer cells, the verbatim <code class='nw'>zzRefill()</code> and <code class='nw'>getNextToken()</code> lines at <code class='nw'>ea57360912ed</code>, and the expected and actual results; then longer values and the other four scanners. The PNG is the summary card. Made in parallel with this doc from the code and an executed probe (see the diagram directory's notes).</p><ul class='paths'><li><a href='../assets/LFV-158/bug.png'><code>assets/LFV-158/bug.png</code></a> (506 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

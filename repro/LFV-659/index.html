@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ICUTokenizer silently drops a word that is directly followed by ZERO WIDTH JOINER and an emoji, together with the emoji, because the joined &#x27;word ZWJ emoji&#x27; segment gets rule status 0 (UAX #29 WB3c chain in Default.rbbi) and the emoji check looks only at its first code point (LFV-659)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>ICUTokenizer silently drops a word that is directly followed by ZERO WIDTH JOINER and an emoji, together with the emoji, because the joined &#x27;word ZWJ emoji&#x27; segment gets rule status 0 (UAX #29 WB3c chain in Default.rbbi) and the emoji check looks only at its first code point</h1>
+<p class="facts small"><span>Bug LFV-659</span><span>Area: analysis / ICU (ICUTokenizer rule status: Default.rbbi WB3c chain, BreakIteratorWrapper emoji status, status-0 skip)</span><span>Priority: medium</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p><a href="../../bugs/LFV-659.html">Bug page for LFV-659</a></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You index text through the stock ICUTokenizer in which a word runs straight into an invisible ZERO WIDTH JOINER (U+200D) and then an emoji, for example &#x27;abc&#x27; + U+200D + U+1F44D, or a Malayalam word written in the older ZWJ chillu form followed by an emoji, and expect the word and the emoji to be tokens, as they are with a space before the emoji, without the ZWJ, or with StandardTokenizer. Instead neither appears: Unicode rule WB3c (ZWJ x Extended_Pictographic) keeps &#x27;word ZWJ emoji&#x27; in one segment, the break rules give that segment rule status 0 (&#x27;not a word&#x27;), BreakIteratorWrapper&#x27;s emoji check looks only at the segment&#x27;s first code point (a letter), and ICUTokenizer skips every status-0 segment, so &#x27;hello world&#x27; + U+200D + U+1F44D + &#x27; again&#x27; gives only [hello, again]. A TermQuery for the lost word finds nothing, with no error.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> <code>world</code> and the emoji are each inside some token, as with a space: <code>hello</code>, <code>world</code>, <code>👍</code>, <code>again</code>.</li><li><b>Actual:</b> <code>cjkAsWords=true: &quot;world&quot; of &quot;hello world\u200d\ud83d\udc4d again&quot; is in no token; tokens: [hello, again]</code></li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerZwjEmoji.java"><code>src/org/apache/lucene/analysis/icu/segmentation/TestICUTokenizerZwjEmoji.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/icu/build/libs/lucene-analysis-icu-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerZwjEmoji</code></pre>
+<p class="small">The module(s) analysis-icu also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Files shown on the bug page</h2><ul><li><a href="TestICUTokenizerWordZwjEmoji.java"><code>TestICUTokenizerWordZwjEmoji.java</code></a></li><li><a href="TestICUTokenizerZwjEmoji.java"><code>TestICUTokenizerZwjEmoji.java</code></a></li><li><a href="TestZwjWordEmoji.java"><code>TestZwjWordEmoji.java</code></a></li></ul>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

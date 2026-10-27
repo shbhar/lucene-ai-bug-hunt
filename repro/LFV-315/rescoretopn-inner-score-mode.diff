@@ -1,0 +1,16 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java b/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
+index 6015a1c430a..267a78cc53c 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
+@@ -69,7 +69,10 @@ public class RescoreTopNQuery extends Query {
+     DoubleValuesSource rewrittenValueSource = valuesSource.rewrite(indexSearcher);
+     IndexReader reader = indexSearcher.getIndexReader();
+     Query rewritten = indexSearcher.rewrite(query);
+-    Weight weight = indexSearcher.createWeight(rewritten, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
++    // A value source that reads the inner query's score needs a Weight that produces scores.
++    ScoreMode innerScoreMode =
++        valuesSource.needsScores() ? ScoreMode.COMPLETE : ScoreMode.COMPLETE_NO_SCORES;
++    Weight weight = indexSearcher.createWeight(rewritten, innerScoreMode, 1.0f);
+     HitQueue queue = new HitQueue(n, false);
+     // A value source that reads the inner scorer's score must be consumed at the scorer's current
+     // position, so those cannot be prefetched ahead and are scored as we go.

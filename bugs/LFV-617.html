@@ -1,0 +1,908 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Upgrading an index with a single old segment drops the soft-deleted documents SoftDeletesRetentionMergePolicy keeps</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-617 &middot; upgrade-leftover-merge-bypasses-wrapped-policy</p><h1 id='top'>Upgrading an index with a single old segment drops the soft-deleted documents SoftDeletesRetentionMergePolicy keeps</h1><p class='tldr'>Upgrade a soft-deletes index with <code class='nw'>IndexUpgrader</code> and a <code>SoftDeletesRetentionMergePolicy</code> around the default <code>TieredMergePolicy</code> that keeps every soft-deleted document, and a lone old segment of 13 documents (3 of them soft-deleted) comes out with 10, with no error. Releases 7.4.0 to 10.5.2 and main are affected.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 150</span><span class='sub'>Retained soft-deleted documents are lost silently and permanently during a format upgrade, which is real data loss, but only for the uncommon pairing of soft-deletes retention with IndexUpgrader or UpgradeIndexMergePolicy.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.4.0 (LUCENE-8233, 2018: soft deletes)<span class='sub'>introduced 2018-04-04 &middot; about 8 years</span></dd></div><div><dt>Affected</dt><dd>7.4.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading while modelling the index tools, then a JUnit on released-version indexes</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>SoftDeletesRetentionMergePolicy</code> keeps soft-deleted documents through merges, for example as change history. <code class='nw'>IndexUpgrader</code> rewrites old segments in the current format by wrapping your merge policy in <code>UpgradeIndexMergePolicy</code> and calling <code class='nw'>forceMerge(1)</code>. Together they should rewrite every old segment and keep every retained document.</p><figure class='visual' id='upgrade-leftover-merge-bypasses-wrapped-policy-short-visual'><div class='frame'><a class='still' href='../assets/LFV-617/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-617/bug.png' alt='Step-by-step diagram of IndexUpgrader on an index written by Lucene 10.5.2 with one segment of 13 documents, 3 of them soft-deleted and kept by SoftDeletesRetentionMergePolicy: upgrade() wraps the configured policy in UpgradeIndexMergePolicy; TieredMergePolicy declines the lone old segment; UpgradeIndexMergePolicy builds its own merge, which the retention policy never wraps; the merge copies only the 10 live documents and the upgrade commits 13 to 10 documents with no error. Control: the same config with two old segments keeps all 13.' width='1920' height='1080'></a></div><figcaption>Step by step through the upgrade of the 13-document index written by 10.5.2: the upgrade policy wraps yours, the delegate declines the lone old segment, the upgrade's own merge skips the retention policy and 10 documents remain; with two old segments all 13 are kept. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Your config keeps soft-deleted documents: <code>setSoftDeletesField("soft")</code> and <code>new SoftDeletesRetentionMergePolicy("soft", MatchAllDocsQuery::new, new TieredMergePolicy())</code>. An index written by 10.5.2 has one segment with 13 documents: 10 visible and 3 soft-deleted, which the policy keeps.</span></li><li><span>Upgrade it on main with <code>new IndexUpgrader(dir, config, false).upgrade()</code>. You expect the segment rewritten in the current format with all 13 documents, which is what happens when the same index has two old segments.</span></li><li><span><code class='nw'>IndexUpgrader</code> wraps your policy in <code>UpgradeIndexMergePolicy</code>, which first asks your policy to merge the old segment. <code>TieredMergePolicy</code> sees one segment with no hard deletes and answers "already merged".</span></li><li><span>So <code>UpgradeIndexMergePolicy</code> rewrites the segment with a plain merge of its own. The retention policy only decorates merges it returns itself, so it never sees this one, and the merge copies only the 10 live documents.</span></li><li><span>You get 10 documents: the 3 retained ones are gone from the index (the upgrade keeps only its new commit), with no error. Searches that hide soft-deleted documents still return the same 10.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that keep soft-deleted documents with <code>SoftDeletesRetentionMergePolicy</code> and upgrade with <code>IndexUpgrader(dir, config, ...)</code>, or with <code>UpgradeIndexMergePolicy</code> around the retention policy. With the default <code>TieredMergePolicy</code> as the delegate, every lone old segment without hard deletes is hit (7.5.0 and later), such as a force-merged index. The retained documents are lost from the index; the visible documents do not change.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>888 words</span></summary><div class='body'><p><code>SoftDeletesRetentionMergePolicy</code> "allows to carry over soft deleted documents across merges"; applications use it to keep recently deleted or updated documents, for example as change history. Upgrading such an index with <code>new IndexUpgrader(dir, config, false).upgrade()</code>, or with <code>UpgradeIndexMergePolicy</code> wrapped around the retention policy as that class's javadoc recipe shows, drops every soft-deleted document of an old segment that the delegate merge policy declines to merge. With <code>TieredMergePolicy</code> as the delegate (the default, and the one in the example), that is always so on 7.5.0 and later for a lone old segment without hard deletes, the usual shape of a force-merged index. An index written by 10.5.2 with 13 documents (10 visible, 3 soft-deleted and retained by a match-all query) comes out with 10; with two old segments it keeps all 13. There is no error, and the upgrade keeps only its new commit, so only a backup made before the upgrade still has them; the visible documents, as seen by readers that apply soft deletes, do not change. Cause: <code>UpgradeIndexMergePolicy.findForcedMerges</code> rewrites the old segments its delegate did not select with its own <code>new OneMerge(newInfos)</code>, and <code>OneMergeWrappingMergePolicy</code>, the base class of the retention policy, only wraps merges it returns itself. Data loss since 7.4.0, when soft deletes arrived; the leftover merge itself dates from 2011.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Soft deletes</strong>: with <code>IndexWriterConfig.setSoftDeletesField("soft")</code>, <code>softUpdateDocument</code>, or <code class='nw'>updateDocValues</code> on the soft-deletes field, hides a document by giving it a doc value in that field instead of marking it deleted. Readers obtained from the <code class='nw'>IndexWriter</code>, and <code>SoftDeletesDirectoryReaderWrapper</code>, skip it (a plain <code class='nw'>DirectoryReader</code> does not); a merge drops it unless the merge policy keeps it.</li><li><strong>SoftDeletesRetentionMergePolicy</strong>: a <code>OneMergeWrappingMergePolicy</code> that wraps each merge so that soft-deleted documents matching a retention query stay in the merged segment (<code>SoftDeletesRetentionMergePolicy.java:36-46</code>).</li><li><strong>OneMergeWrappingMergePolicy</strong>: "A wrapping merge policy that wraps the OneMerge objects returned by the wrapped merge policy" (<code>OneMergeWrappingMergePolicy.java:23-25</code>). Its four segment-based merge-selection methods return <code>wrapSpec(in.find*Merges(...))</code> (<code class='nw'>:44-83</code>); <code>findMerges(CodecReader...)</code>, the <code class='nw'>addIndexes</code> path, is inherited from <code>FilterMergePolicy</code> unwrapped, a separate gap not claimed here.</li><li><strong>UpgradeIndexMergePolicy and IndexUpgrader</strong>: the upgrade policy turns <code class='nw'>forceMerge</code> into "rewrite every segment written by another version"; <code>IndexUpgrader.upgrade()</code> installs it around the configured policy (<code>IndexUpgrader.java:180</code>), keeps only the last commit (<code class='nw'>:181</code>), runs <code class='nw'>forceMerge(1)</code> (<code class='nw'>:196</code>) and commits (<code class='nw'>:204</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><strong>The delegate is asked first.</strong> <code>UpgradeIndexMergePolicy.findForcedMerges</code> collects the old segments (<code>UpgradeIndexMergePolicy.java:86-93</code>) and asks its delegate, here the retention policy around <code>TieredMergePolicy</code>, to merge them (<code class='nw'>:101-102</code>).</li><li><strong>The delegate (<code>TieredMergePolicy</code>) declines a lone old segment without hard deletes.</strong> On the writer the upgrade has just opened, the segment is not pooled yet, so <code>IndexWriter.numDeletesToMerge</code> returns only hard deletes ("this is safe!", <code>IndexWriter.java:6449-6455</code>); <code>TieredMergePolicy</code> sees one segment with no deletes and returns nothing (logging "already merged" only with an <code class='nw'>InfoStream</code>, <code>TieredMergePolicy.java:835-847</code>). With a retain-all query it would decline even with exact counting, so this estimate is not the defect; for a query that keeps only some soft-deleted documents it is a second ingredient, since exact counting would leave reclaimable deletes and <code>TieredMergePolicy</code> would merge (and the wrapper wrap) the segment itself (code reading).</li><li><strong>The upgrade policy merges the leftovers itself.</strong> It logs "does not want to merge all old segments, merge remaining ones into new segment" (<code class='nw'>:117-125</code>, only with an <code class='nw'>InfoStream</code>) and adds <code>spec.add(new OneMerge(newInfos))</code> (<code class='nw'>:136</code>), a plain merge created outside the delegate. Its other methods still delegate; only the <code class='nw'>wrapForMerge</code> decoration of this merge is bypassed.</li><li><strong>The retention wrapper never sees it.</strong> Only merges returned through <code class='nw'>wrapSpec</code> are wrapped. <code>IndexWriter.mergeMiddle</code> calls <code>merge.wrapForMerge(reader)</code>; the plain merge returns the reader unchanged, and soft-deleted documents are kept only for a wrapped reader (<code>IndexWriter.java:5497-5501</code>). The new segment holds the live documents only.</li></ol><p>With two old segments, <code>TieredMergePolicy</code> merges them itself, that merge comes back through <code class='nw'>wrapSpec</code>, and every retained document survives. A probe logged the delegate's view (<code>numDeletesToMerge=0 delCount=0 softDel=3</code>), the plain <code>MergePolicy$OneMerge</code> returned for the segment, and <code>maxDoc=10 soft=0</code> after the upgrade.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-main-index-written-by-10-5-2-10-visible-3-soft-d'>The numbers (main, index written by 10.5.2: 10 visible + 3 soft-deleted = 13)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-main-index-written-by-10-5-2-10-visible-3-soft-d" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-main-index-written-by-10-5-2-10-visible-3-soft-d"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>scenario</th><th>expected</th><th>got</th></tr></thead><tbody><tr><td><code>IndexUpgrader(dir, retainAllConfig, false)</code>, one old segment (flushed or force-merged)</td><td>13</td><td><strong>10</strong></td></tr><tr><td>retention query that keeps 2 of the 3</td><td>12</td><td><strong>10</strong></td></tr><tr><td>partially upgraded index (the old segment plus one written by main)</td><td>14 / 15</td><td><strong>11 / 12</strong></td></tr><tr><td>the <code>UpgradeIndexMergePolicy</code> javadoc recipe and <code class='nw'>forceMerge(1)</code></td><td>13</td><td><strong>10</strong></td></tr><tr><td><code>LogByteSizeMergePolicy</code> or <code>LogDocMergePolicy</code> as the delegate, lone old segment: compound file / not</td><td>13</td><td><strong>10</strong> / 13</td></tr><tr><td>control: two old segments</td><td>13</td><td>13</td></tr><tr><td>control: lone old segment that also has a hard delete</td><td>all 3 kept</td><td>all 3 kept</td></tr><tr><td>control: retention policy outermost around <code>UpgradeIndexMergePolicy</code></td><td>13</td><td>13</td></tr><tr><td><code>new IndexUpgrader(dir)</code> (the command line builds the same config; by reading)</td><td>upgraded</td><td><code>IllegalArgumentException</code>: soft-deletes field not configured</td></tr></tbody></table></div><p>In every loss case the 10 visible documents (through readers that apply soft deletes) are unchanged and the index is consistent; only the retained soft-deleted documents disappear, also for a plain <code class='nw'>DirectoryReader</code>, which could still find them before the upgrade. With a <code class='nw'>LogMergePolicy</code> delegate, the delegate merges a lone non-compound-file old segment itself, wrapped; it declines a small compound-file one, whose compound-file flag already matches what the writer would write (<code>MergePolicy.java:750-758</code>), and that one loses the documents.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>309 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Applications that keep soft-deleted documents with <code>SoftDeletesRetentionMergePolicy</code> (opt-in; for example change history for replication or recovery, or recent versions for a time window) and upgrade the index format with <code>IndexUpgrader(dir, config, deletePriorCommits)</code>, or with <code>UpgradeIndexMergePolicy</code> around the retention policy and <code class='nw'>forceMerge</code>. Main's <code class='nw'>MIGRATE.md</code> (11.0) suggests <code>UpgradeIndexMergePolicy</code> to "upgrade segment formats immediately". For a soft-deletes index the config constructor is the only way to run <code class='nw'>IndexUpgrader</code>: the default constructors and the command line cannot open it.</li><li><strong>Trigger.</strong> Deterministic once an old segment has no hard deletes and the delegate does not select it. With <code>TieredMergePolicy</code> as the delegate (the default) that is always so on 7.5.0 and later for a lone old segment (a force-merged or small one-segment index), and for a partially upgraded index that holds one such segment; on 7.4.0 only for a non-compound-file one. With a <code class='nw'>LogMergePolicy</code> delegate only a lone compound-file old segment is declined. Any retention query that matches at least one soft-deleted document can be affected, not only match-all; for partial retention the fresh writer's hard-deletes-only estimate is part of the trigger. No scale, concurrency or special data.</li><li><strong>Effect.</strong> Silent loss of the documents the retention policy exists to keep, permanent for the index: the upgrade keeps only its new commit, so the previous commit is deleted; only a backup or copy made before the upgrade still has them. The visible documents (through readers that apply soft deletes) and the hard deletes are unchanged and the index is consistent; no deleted document comes back. Anything that later reads the retained history, including a plain <code class='nw'>DirectoryReader</code> search, which does not apply soft deletes, finds it missing.</li><li><strong>How rare.</strong> A judgement, not measured: the combination is uncommon, <code class='nw'>IndexUpgrader</code> is optional, no Lucene test combines these classes, and Elasticsearch and OpenSearch (default branches, code reading) do not call Lucene's <code class='nw'>IndexUpgrader</code> or <code>UpgradeIndexMergePolicy</code>.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A public-API JUnit for <code class='nw'>lucene/core</code> that needs no old index: it marks its own segments as old through the protected <code>shouldUpgradeSegment</code> hook and upgrades like <code class='nw'>IndexUpgrader</code> (fresh writer, <code class='nw'>forceMerge(1)</code>, commit). The one-segment test fails (13 expected, 10 found); the two controls pass, with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestUpgradeIndexMergePolicyRetainsSoftDeletes.java (core, 3 tests, no old index needed)</span><span class='meta'>126 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * An upgrade through UpgradeIndexMergePolicy, nested around a SoftDeletesRetentionMergePolicy the
+ * way IndexUpgrader nests it, must keep the soft-deleted documents that the retention policy
+ * retains.
+ */
+public class TestUpgradeIndexMergePolicyRetainsSoftDeletes extends LuceneTestCase {
+
+  private static final String SOFT = &quot;soft&quot;;
+
+  /** Treats the given segments as written by an older release, so no old index is needed. */
+  private static MergePolicy upgrade(MergePolicy in, Set&lt;String&gt; oldSegments) {
+    return new UpgradeIndexMergePolicy(in) {
+      @Override
+      protected boolean shouldUpgradeSegment(SegmentCommitInfo si) {
+        return oldSegments.contains(si.info.name);
+      }
+    };
+  }
+
+  /** Keeps every soft-deleted document. */
+  private static MergePolicy retainAll(MergePolicy in) {
+    return new SoftDeletesRetentionMergePolicy(SOFT, MatchAllDocsQuery::new, in);
+  }
+
+  /** 10 documents, then soft updates of ids 7, 8 and 9: 13 documents, 3 of them soft-deleted. */
+  private static Set&lt;String&gt; writeIndex(Directory dir, boolean twoSegments) throws IOException {
+    IndexWriterConfig iwc =
+        new IndexWriterConfig().setSoftDeletesField(SOFT).setMergePolicy(NoMergePolicy.INSTANCE);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int i = 0; i &lt; 10; i++) {
+        w.addDocument(doc(i));
+        if (twoSegments &amp;&amp; i == 4) {
+          w.commit();
+        }
+      }
+      for (int i = 7; i &lt; 10; i++) {
+        w.softUpdateDocument(
+            new Term(&quot;id&quot;, Integer.toString(i)), doc(i), new NumericDocValuesField(SOFT, 1));
+      }
+      w.commit();
+    }
+    Set&lt;String&gt; names = new HashSet&lt;&gt;();
+    for (SegmentCommitInfo sci : SegmentInfos.readLatestCommit(dir)) {
+      names.add(sci.info.name);
+    }
+    assertEquals(twoSegments ? 2 : 1, names.size());
+    return names;
+  }
+
+  private static Document doc(int id) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, Integer.toString(id), Field.Store.YES));
+    return doc;
+  }
+
+  /** Upgrades like IndexUpgrader (fresh writer, forceMerge(1), commit); asserts what survived. */
+  private static void upgradeAndCheck(Directory dir, MergePolicy mp, Set&lt;String&gt; old)
+      throws IOException {
+    IndexWriterConfig iwc = new IndexWriterConfig().setSoftDeletesField(SOFT).setMergePolicy(mp);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      w.forceMerge(1);
+      w.commit();
+    }
+    for (SegmentCommitInfo sci : SegmentInfos.readLatestCommit(dir)) {
+      assertFalse(&quot;old segment was not rewritten: &quot; + sci, old.contains(sci.info.name));
+    }
+    try (DirectoryReader r =
+        new SoftDeletesDirectoryReaderWrapper(DirectoryReader.open(dir), SOFT)) {
+      assertEquals(&quot;visible documents&quot;, 10, r.numDocs());
+      assertEquals(&quot;retained soft-deleted documents were dropped&quot;, 13, r.maxDoc());
+    }
+  }
+
+  /** The bug: the delegate declines a lone old segment and UpgradeIndexMergePolicy merges it. */
+  public void testOneOldSegment() throws IOException {
+    try (Directory dir = newDirectory()) {
+      Set&lt;String&gt; old = writeIndex(dir, false);
+      upgradeAndCheck(dir, upgrade(retainAll(new TieredMergePolicy()), old), old);
+    }
+  }
+
+  /** Control: the delegate merges two old segments itself, and the retention policy wraps it. */
+  public void testTwoOldSegments() throws IOException {
+    try (Directory dir = newDirectory()) {
+      Set&lt;String&gt; old = writeIndex(dir, true);
+      upgradeAndCheck(dir, upgrade(retainAll(new TieredMergePolicy()), old), old);
+    }
+  }
+
+  /** Control: with the retention policy outermost, UpgradeIndexMergePolicy&#x27;s merge is wrapped. */
+  public void testRetentionPolicyOutermost() throws IOException {
+    try (Directory dir = newDirectory()) {
+      Set&lt;String&gt; old = writeIndex(dir, false);
+      upgradeAndCheck(dir, retainAll(upgrade(new TieredMergePolicy(), old)), old);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.index.TestUpgradeIndexMergePolicyRetainsSoftDeletes -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>The upgraded segment holds all 13 documents: 10 visible and the 3 retained soft-deleted ones (<code class='nw'>maxDoc</code> 13).</dd></div><div class='got'><dt>Observed</dt><dd>It holds 10 (<code class='nw'>maxDoc</code> 10; the 3 retained documents are gone), with no error; the two-segment and retention-outermost controls keep 13.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-617/'>repro/LFV-617/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (434 lines) · 1,992 words</span></summary><div class='body'><p><code>TestUpgradeIndexMergePolicyRetainsSoftDeletes</code> (package <code>org.apache.lucene.index</code>, public and protected API only, google-java-format clean). It writes 10 documents and soft-updates 3 of them (13 documents, one or two segments), then upgrades through <code>UpgradeIndexMergePolicy</code> around <code>SoftDeletesRetentionMergePolicy("soft", MatchAllDocsQuery::new, new TieredMergePolicy())</code>, the nesting <code class='nw'>IndexUpgrader</code> uses, and checks that every old segment was rewritten, that 10 documents are visible and that <code class='nw'>maxDoc</code> is 13. Tests: <code>testOneOldSegment</code> (the bug), <code>testTwoOldSegments</code> and <code>testRetentionPolicyOutermost</code> (controls).</p><p>Also attached: the finder's test on the public <code class='nw'>IndexUpgrader</code> path, with indexes written by released 10.5.2 embedded as base64 zips (one segment fails, two segments pass), and the independent reproducer's six tests, which add partial retention and the hard-delete control. Run <code>./gradlew tidy</code> before attaching those two to a PR; they are not google-java-format clean.</p><div class="hd hd-3"><h3 id='code-2-h'>TestUpgradeKeepsRetainedSoftDeletes.java (IndexUpgrader on indexes written by 10.5.2, 2 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p><code>new IndexUpgrader(dir, retainAllConfig, false).upgrade()</code> on embedded indexes written by released 10.5.2 (13 documents, 3 soft-deleted, non-compound files). <code>testIndexUpgraderOneSegment</code> fails with 10 documents; <code>testIndexUpgraderTwoSegments</code> keeps 13.</p><figure class='code'><figcaption><span class='fname'>TestUpgradeKeepsRetainedSoftDeletes.java (IndexUpgrader on indexes written by 10.5.2, 2 tests)</span><span class='meta'>238 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.InputStream;
+import java.nio.file.Path;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.Version;
+
+/**
+ * Upgrading an index with a SoftDeletesRetentionMergePolicy in the config must keep the
+ * soft-deleted documents that the policy retains, like every other merge of that policy does.
+ *
+ * &lt;p&gt;Fixtures (written by an older Lucene release with MakeSoftDeletesIndex, soft-deletes field &quot;soft&quot;): 13
+ * documents, 3 of them soft-deleted; softdeletes-1seg has one segment, softdeletes-2seg two.
+ */
+public class TestUpgradeKeepsRetainedSoftDeletes extends LuceneTestCase {
+
+  /** Lucene release that wrote the fixtures (10.5.2; 9.12.3 for runs on 10.x releases). */
+  private static final String FIXTURE_VERSION = System.getProperty(&quot;fixture.version&quot;, &quot;10.5.2&quot;);
+
+  /** The two 10.5.2 fixtures, embedded so that the test is self-contained (zip, base64). */
+  private static final java.util.Map&lt;String, String&gt; EMBEDDED =
+      java.util.Map.of(
+          &quot;softdeletes-1seg.10.5.2.zip&quot;,
+      &quot;UEsDBBQAAAAIAAAAWl29lUs+XwAAAJ0AAAAGAAAAXzAuZmRts7+eIy7uU5qcmpdqaeCWmZqTUuyZl5Ja4ZtaksjAwM&quot;
+          + &quot;D4cc/W6IKt9RP8z9v3OodH/2BoaGDlBUpwATETEBswoIMARzgTJmkGF7nhhCG5CEozMvIe0Jj8AibNK/N2JgBQSwME&quot;
+          + &quot;FAAAAAgAAABaXciB5zKFAAAAsgAAAAYAAABfMC5mZHSzv54jLuNTmpyal2ppEFySX5Sa4paZmpNS7JZYXOKSWJLIwM&quot;
+          + &quot;DA+HHP1uiCrfUT/M/b9zqHR/9gYDBjYGJgY+Zg4YQBFgMGRoMGDkZDBkZDDsYGIGUE4jQwGoPFTCBSphApM4iUOVjM&quot;
+          + &quot;AiJlCZEy4GA0AkoZgihGIxDvgMbkFwxQMN10rjwAUEsDBBQAAAAIAAAAWl3nTk3kPAAAAEAAAAAGAAAAXzAuZmR4s7&quot;
+          + &quot;+eIy7mU5qcmpdqaeCWmZqTUuyZl5Ja4ZlSwQAEH/dsjS7YWj/B/7x9r3N49A+GAxqTXzBAwbllq3sBUEsDBBQAAAAI&quot;
+          + &quot;AAAAWl38rmfMfgAAAPwAAAAGAAAAXzAuZm5ts7+eIy7kU5qcmpdqaeKWmZqT4pmXll/MwMDA9HHP1uiCrfUT/M/b9z&quot;
+          + &quot;qHR/9gYGLKTGFgYmRg+A8FTLIBqUVgTQH5xSWZeenFbvlFuYklemlgihNirqGBCS51xaVpaZkVjAYMDIwM7GWpRcWZ&quot;
+          + &quot;+XmMNLPhgMbkFwxQoCxy+AoAUEsDBBQAAAAIAAAAWl2wnC8aIwEAAKkBAAAFAAAAXzAuc2mzv54jLuxTmpyal2ppEJ&quot;
+          + &quot;yanpuaV+KZl5bPAAQf92yNLthaP8H/vH2vc3j0DwYuoCArEDMBMSMyhxeI///n4MsBG6RXllpUnJmfx2ZooGeqZ8RW&quot;
+          + &quot;nF9alJzKmpZTWpzBWZKZm1pckphbwGtobmlkaW5kYQACIlmJZYl6RaV5IHmYATxGpnoGesbalro+IcHcYBVlqXkp+U&quot;
+          + &quot;XsoXnZefnleUz5xaw+mXmlFez5xXqJRckZ7Ikg0syEC8iHGgJTy8Uab6BXnMkGJNNScoXiDeIh3jY0MAEKlWQWYAjl&quot;
+          + &quot;pqALFRTnQvRXoMuk5CdjGglVXAKm8nIZ5eEBXZJflJrilpmak1Lsll+Um1iil5ufksrl5BocEh8c4OrqwnBAY/ILBi&quot;
+          + &quot;gQlVVyBABQSwMEFAAAAAgAAABaXdyDBHqjAAAAXQEAAAgAAABfMF8xLmZubbO/niMu5FOanJqXamnilpmak+KZl5Zf&quot;
+          + &quot;zMDAwPRxz9bogq31E/zP2/c6h0f/YDRkZspMYWBiZGD4DwVMsgGpRWBdAfnFJZl56cVu+UW5iSV6aWCKE2KwoYEJLn&quot;
+          + &quot;XFpWlpmRWMBgwMjAzsZalFxZn5eYw0s4GlOD+thIkDyALaAAZMcjBtLvnJYYk5pamo5nNAg8YApzpk8w9oTH4BNZjB&quot;
+          + &quot;0C44EgBQSwMEFAAAAAgAAABaXR779ypQAAAAWwAAABMAAABfMF8xX0x1Y2VuZTkwXzAuZHZks7+eIy7qU5qcmpdqae&quot;
+          + &quot;CSnxyWmFOaWuySWJLIwMDA9HHP1uiCrfUT/M/b9zqHR//gMYyHqY03AMoD1TACyf/1DAz//x/QmPyCAQr2n12oCgBQ&quot;
+          + &quot;SwMEFAAAAAgAAABaXZyfeQdiAAAAoAAAABMAAABfMF8xX0x1Y2VuZTkwXzAuZHZts7+eIy7pU5qcmpdqaeCSnxyWmF&quot;
+          + &quot;OaWuybWpKYkliSyMDAwPRxz9bogq31E/zP2/c6h0f/4DGMh6mPN2ACqmCwZoAAAQYY4GSGMv4DAQMjAyrwRuP/RwIH&quot;
+          + &quot;NCa/gImzNm9YAwBQSwMEFAAAAAgAAABaXdwhh1xIAAAAUAAAABMAAABfMF8xX0x1Y2VuZTkwXzAuZHZzs7+eIy7lU5&quot;
+          + &quot;qcmpdqaeCSnxyWmFOaWhycnVngmZeSWsHAwMD0cc/W6IKt9RP8z9v3OodH/+AxjIdpiDc4oDH5BQMUMFad8gcAUEsD&quot;
+          + &quot;BBQAAAAIAAAAWl3lVLyXVAAAAGQAAAASAAAAXzBfTHVjZW5lMTA0XzAuZG9js7+eIy7lU5qcmpdqaGASkF9ckpmXXh&quot;
+          + &quot;xelFmSWuSSn8wABB/3bI0u2Fo/wf+8fa9zePQPbrjyeANGLiYuZi4GRiAAE4yM3IyMBzQmv2CAgs2tjzIBUEsDBBQA&quot;
+          + &quot;AAAIAAAAWl0K0iP/SgAAAGgAAAASAAAAXzBfTHVjZW5lMTA0XzAucHNts7+eIy7tU5qcmpdqaGASkF9ckpmXXhxelF&quot;
+          + &quot;mSWuSbWpLIAAQf92yNLthaP8H/vH2vc3j0D264+ngDBjSQAqUPaEx+ARNLZ23lAABQSwMEFAAAAAgAAABaXYlsPQxo&quot;
+          + &quot;AAAAcwAAABIAAABfMF9MdWNlbmUxMDRfMC50aW2zv54jLuSUk5+cHVKUmhqSWpRb7JKZXMIABB/3bI0u2Fo/wf+8fa&quot;
+          + &quot;9zePQPbp/S5NS8VEMDk3gD0RADQyNjE1MzcwtLUUYWIODlrgOSzKwQIGJoxMrIJMLG3MUocUBj8gsGKJjbtOsnAFBL&quot;
+          + &quot;AwQUAAAACAAAAFpdNVIahEwAAABcAAAAEgAAAF8wX0x1Y2VuZTEwNF8wLnRpcLO/niMu7JSTn5wdUpSaGpJalFvsmZ&quot;
+          + &quot;eSWsEABB/3bI0u2Fo/wf+8fa9zePQPbp/S5NS8VEMDk3gDBXMGKFAIg7EOaEx+AWNXVy+4AgBQSwMEFAAAAAgAAABa&quot;
+          + &quot;XRlv3vl6AAAAsQAAABIAAABfMF9MdWNlbmUxMDRfMC50bWSzv54jLuSUk5+cHVKUmhqSWpRb7JtaksgABB/3bI0u2F&quot;
+          + &quot;o/wf+8fa9zePQPbp/S5NS8VEMDk3gDe6A2GTg/IL+4JDMvvTi8KLMktQhsCCEDGpiYGLh4eRkNGC0tGJwYmYBMQ0Yj&quot;
+          + &quot;JwafGAYIKIbSBzQmv4AyGWSCPzUBAFBLAwQUAAAACAAAAFpdudCeR34AAADlAAAACgAAAHNlZ21lbnRzXzGzv54jzl&quot;
+          + &quot;Gcmp6bmldSzMDAwPVxz9bogq31E/zP2/c6h0f/ZTTkYmXiYoAAFkYgwQgUYIo3QFP4g9OnNDk1L9XQwOQ/FDAgACMS&quot;
+          + &quot;zcyIpvUPI0e8QbyhXlpeLlQJE7MwSCQeYqSlQbyBXkpZLhaxYixiKQwHNCa/gNn82dUnCgBQSwECFAMUAAAACAAAAF&quot;
+          + &quot;pdvZVLPl8AAACdAAAABgAAAAAAAAAAAAAApIEAAAAAXzAuZmRtUEsBAhQDFAAAAAgAAABaXciB5zKFAAAAsgAAAAYA&quot;
+          + &quot;AAAAAAAAAAAAAKSBgwAAAF8wLmZkdFBLAQIUAxQAAAAIAAAAWl3nTk3kPAAAAEAAAAAGAAAAAAAAAAAAAACkgSwBAA&quot;
+          + &quot;BfMC5mZHhQSwECFAMUAAAACAAAAFpd/K5nzH4AAAD8AAAABgAAAAAAAAAAAAAApIGMAQAAXzAuZm5tUEsBAhQDFAAA&quot;
+          + &quot;AAgAAABaXbCcLxojAQAAqQEAAAUAAAAAAAAAAAAAAKSBLgIAAF8wLnNpUEsBAhQDFAAAAAgAAABaXdyDBHqjAAAAXQ&quot;
+          + &quot;EAAAgAAAAAAAAAAAAAAKSBdAMAAF8wXzEuZm5tUEsBAhQDFAAAAAgAAABaXR779ypQAAAAWwAAABMAAAAAAAAAAAAA&quot;
+          + &quot;AKSBPQQAAF8wXzFfTHVjZW5lOTBfMC5kdmRQSwECFAMUAAAACAAAAFpdnJ95B2IAAACgAAAAEwAAAAAAAAAAAAAApI&quot;
+          + &quot;G+BAAAXzBfMV9MdWNlbmU5MF8wLmR2bVBLAQIUAxQAAAAIAAAAWl3cIYdcSAAAAFAAAAATAAAAAAAAAAAAAACkgVEF&quot;
+          + &quot;AABfMF8xX0x1Y2VuZTkwXzAuZHZzUEsBAhQDFAAAAAgAAABaXeVUvJdUAAAAZAAAABIAAAAAAAAAAAAAAKSBygUAAF&quot;
+          + &quot;8wX0x1Y2VuZTEwNF8wLmRvY1BLAQIUAxQAAAAIAAAAWl0K0iP/SgAAAGgAAAASAAAAAAAAAAAAAACkgU4GAABfMF9M&quot;
+          + &quot;dWNlbmUxMDRfMC5wc21QSwECFAMUAAAACAAAAFpdiWw9DGgAAABzAAAAEgAAAAAAAAAAAAAApIHIBgAAXzBfTHVjZW&quot;
+          + &quot;5lMTA0XzAudGltUEsBAhQDFAAAAAgAAABaXTVSGoRMAAAAXAAAABIAAAAAAAAAAAAAAKSBYAcAAF8wX0x1Y2VuZTEw&quot;
+          + &quot;NF8wLnRpcFBLAQIUAxQAAAAIAAAAWl0Zb975egAAALEAAAASAAAAAAAAAAAAAACkgdwHAABfMF9MdWNlbmUxMDRfMC&quot;
+          + &quot;50bWRQSwECFAMUAAAACAAAAFpdudCeR34AAADlAAAACgAAAAAAAAAAAAAApIGGCAAAc2VnbWVudHNfMVBLBQYAAAAA&quot;
+          + &quot;DwAPAHQDAAAsCQAAAAA=&quot;,
+          &quot;softdeletes-2seg.10.5.2.zip&quot;,
+      &quot;UEsDBBQAAAAIAAAAWl17d7xeXwAAAJ0AAAAGAAAAXzAuZmRts7+eIy7uU5qcmpdqaeCWmZqTUuyZl5Ja4ZtaksjAwM&quot;
+          + &quot;AYfNbLXv1Duc6rpqCH86SfPWNoaGBlBUpwATETEBswoIMFDnAmTNIMLlLghCFZBKUZGVkPaEx+AZM+6VArAQBQSwME&quot;
+          + &quot;FAAAAAgAAABaXX5L4IxoAAAAggAAAAYAAABfMC5mZHSzv54jLuNTmpyal2ppEFySX5Sa4paZmpNS7JZYXOKSWJLIwM&quot;
+          + &quot;DAGHzWy179Q7nOq6agh/Oknz1jYBBjYGJgY2RmYoEBZgEGA0YDDgNGQyBtCKWNoLQxlDbhUGA0PKAx+QUDFLD757sA&quot;
+          + &quot;AFBLAwQUAAAACAAAAFpd2vA8+jwAAABAAAAABgAAAF8wLmZkeLO/niMu5lOanJqXamnglpmak1LsmZeSWuGZUsEABM&quot;
+          + &quot;FnvezVP5TrvGoKejhP+tkzhgMak18wQIEm/88MAFBLAwQUAAAACAAAAFpdd8Q3GX4AAAD8AAAABgAAAF8wLmZubbO/&quot;
+          + &quot;niMu5FOanJqXamnilpmak+KZl5ZfzMDAwBR81ste/UO5zqumoIfzpJ89Y2BiykxhYGJkYPgPBUyyAalFYE0B+cUlmX&quot;
+          + &quot;npxW75RbmJJXppYIoTYq6hgQkudcWlaWmZFYwGDAyMDOxlqUXFmfl5jDSz4YDG5BcMUMDzYGccAFBLAwQUAAAACAAA&quot;
+          + &quot;AFpdQaUMQiEBAACpAQAABQAAAF8wLnNps7+eIy7sU5qcmpdqaRCcmp6bmlfimZeWzwAEwWe97NU/lOu8agp6OE/62T&quot;
+          + &quot;MGLqAgKxAzATEjMgdE///PwZ5frJdYlJzBnggizUy4gPyy1KLizPw89tC87Lz88jy+HLBdMGE2QwM9Uz0jtuL80qLk&quot;
+          + &quot;VNa0nNLiDM6SzNzU4pLE3AJeQ3NLI0tzIwsDEBDJSixL1CsqzQPJwwzgMTLVM9Az1rbU9QkJ5garKEvNS8kvglnIlF&quot;
+          + &quot;/M6pOZV1rBxRpvoFecyQYk01JyheIN4iHeNjQwAQqVZBZgCOWmoAsVFOdC9Fegy6TkJ2MaCVVcAqbychnl4QFdkl+U&quot;
+          + &quot;muKWmZqTUuyWX5SbWKKXm5+SyuXkGhwSHxzg6urCcEBj8gsGKNijuC4eAFBLAwQUAAAACAAAAFpdG9nOhaMAAABdAQ&quot;
+          + &quot;AACAAAAF8wXzEuZm5ts7+eIy7kU5qcmpdqaeKWmZqT4pmXll/MwMDAFHzWy179Q7nOq6agh/Oknz1jNGRmykxhYGJk&quot;
+          + &quot;YPgPBUyyAalFYF0B+cUlmXnpxW75RbmJJXppYIoTYrChgQkudcWlaWmZFYwGDAyMDOxlqUXFmfl5jDSzgaU4P62EiQ&quot;
+          + &quot;PIAtoABkxyMG0u+clhiTmlqajmc0CDxgCnOmTzD2hMfgE1mKF/WUUfAFBLAwQUAAAACAAAAFpdrFwD7U8AAABbAAAA&quot;
+          + &quot;EwAAAF8wXzFfTHVjZW5lOTBfMC5kdmSzv54jLupTmpyal2pp4JKfHJaYU5pa7JJYksjAwMAUfNbLXv1Duc6rpqCH86&quot;
+          + &quot;SfPeMxjIepjTcAygPVMALJ//UMDP//H9CY/IIBCuSZ5X0BUEsDBBQAAAAIAAAAWl3Bm8tGYgAAAKAAAAATAAAAXzBf&quot;
+          + &quot;MV9MdWNlbmU5MF8wLmR2bbO/niMu6VOanJqXamngkp8clphTmlrsm1qSmJJYksjAwMAUfNbLXv1Duc6rpqCH86SfPe&quot;
+          + &quot;MxjIepjzdgAqpgsGaAAAEGGOBkhjL+AwEDIwMq8Ebj/0cCBzQmv4CJf9P0bgQAUEsDBBQAAAAIAAAAWl0vpnsdSAAA&quot;
+          + &quot;AFAAAAATAAAAXzBfMV9MdWNlbmU5MF8wLmR2c7O/niMu5VOanJqXamngkp8clphTmlocnJ1Z4JmXklrBwMDAFHzWy1&quot;
+          + &quot;79Q7nOq6agh/Oknz3jMYyHaYg3OKAx+QUDFPxqEc8GAFBLAwQUAAAACAAAAFpdOcNMyEgAAABVAAAAEgAAAF8wX0x1&quot;
+          + &quot;Y2VuZTEwNF8wLmRvY7O/niMu5VOanJqXamhgEpBfXJKZl14cXpRZklrkkp/MAATBZ73s1T+U67xqCno4T/rZM2648n&quot;
+          + &quot;gDBkYQOKAx+QUDFOS6CvgAAFBLAwQUAAAACAAAAFpdoYLzlUoAAABoAAAAEgAAAF8wX0x1Y2VuZTEwNF8wLnBzbbO/&quot;
+          + &quot;niMu7VOanJqXamhgEpBfXJKZl14cXpRZklrkm1qSyAAEwWe97NU/lOu8agp6OE/62TNuuPp4AwY0EAqlD2hMfgET27&quot;
+          + &quot;0ozwkAUEsDBBQAAAAIAAAAWl1C+IPGXQAAAGIAAAASAAAAXzBfTHVjZW5lMTA0XzAudGlts7+eIy7klJOfnB1SlJoa&quot;
+          + &quot;klqUW+ySmVzCAATBZ73s1T+U67xqCno4T/rZM26f0uTUvFRDA5N4A24dA0MjYxNuRkZOtjoGViBg5jFkZmTkYqw7oD&quot;
+          + &quot;H5BQMUTLld9Q4AUEsDBBQAAAAIAAAAWl1d1ZkOTAAAAFwAAAASAAAAXzBfTHVjZW5lMTA0XzAudGlws7+eIy7slJOf&quot;
+          + &quot;nB1SlJoaklqUW+yZl5JawQAEwWe97NU/lOu8agp6OE/62TNun9Lk1LxUQwOTeAMFcwYoUPCEsQ5oTH4BY7/69ucoAF&quot;
+          + &quot;BLAwQUAAAACAAAAFpdsrFW2noAAACxAAAAEgAAAF8wX0x1Y2VuZTEwNF8wLnRtZLO/niMu5JSTn5wdUpSaGpJalFvs&quot;
+          + &quot;m1qSyAAEwWe97NU/lOu8agp6OE/62TNun9Lk1LxUQwOTeAN7oDYZOD8gv7gkMy+9OLwosyS1CGwIIQMamJgYWFlZGQ&quot;
+          + &quot;0YTSwYnBgZgUxDRkMnBp8YBghIgtIHNCa/gDIZpktaFAIAUEsDBBQAAAAIAAAAWl0db6XyXgAAAJ0AAAAGAAAAXzEu&quot;
+          + &quot;ZmRts7+eIy7uU5qcmpdqaeCWmZqTUuyZl5Ja4ZtaksjAwMAYfNbLXv1Duc6rpqCH86SfvWJoaGDlAEpwATETEBswYA&quot;
+          + &quot;BHOAsmaQYXmeOEIdkCpRkZOQ5oTH4Bk3bbd64TAFBLAwQUAAAACAAAAFpdwL7uM4MAAACUAAAABgAAAF8xLmZkdLO/&quot;
+          + &quot;niMu41OanJqXamkQXJJflJrilpmak1Lsllhc4pJYksjAwMAYfNbLXv1Duc6rpqCH86SfvWJgUGJgYmBjYmVmgwEmBQ&quot;
+          + &quot;bGAFMORkOGAEYzIBXAwGjOwRhgyMBowREAFGW0DABJMgYYcDAaAdUYAimgGiMORgGjAxqTXzBAwRQv8ccAUEsDBBQA&quot;
+          + &quot;AAAIAAAAWl0Uf26gPAAAAEAAAAAGAAAAXzEuZmR4s7+eIy7mU5qcmpdqaeCWmZqTUuyZl5Ja4ZlSwQAEwWe97NU/lO&quot;
+          + &quot;u8agp6OE/62SuGAxqTXzBAgbGx5DMAUEsDBBQAAAAIAAAAWl2MYnAlfgAAAPwAAAAGAAAAXzEuZm5ts7+eIy7kU5qc&quot;
+          + &quot;mpdqaeKWmZqT4pmXll/MwMDAFHzWy179Q7nOq6agh/Okn71iYGLKTGFgYmRg+A8FTLIBqUVgTQH5xSWZeenFbvlFuY&quot;
+          + &quot;klemlgihNirqGBCS51xaVpaZkVjAYMDIwM7GWpRcWZ+XmMNLPhgMbkFwxQsOCSuR0AUEsDBBQAAAAIAAAAWl2w9gj/&quot;
+          + &quot;IgEAAKkBAAAFAAAAXzEuc2mzv54jLuxTmpyal2ppEJyanpuaV+KZl5bPAATBZ73s1T+U67xqCno4T/rZKwYuoCArED&quot;
+          + &quot;MBMSMyhwOI///nYM8v1kssSs5gTwSRZiZcQH5ZalFxZn4ee2hedl5+eR5fDtgumDCboYGeqZ4RW3F+aVFyKmtaTmlx&quot;
+          + &quot;BmdJZm5qcUlibgGvobmlkaW5kYUBCIhkJZYl6hWV5oHkYQbwGJnqGegZa1vq+oQEc4NVlKXmpeQXwSxkyi9m9cnMK6&quot;
+          + &quot;3gEoo3jIf41NDAJN5ArySzAEMoN4U13lCvOBNdIiU/GVN7LhtQbVpKLrpMQTFUpgJM5UF5JYzy8IAuyS9KTXHLTM1J&quot;
+          + &quot;KXbLL8pNLNHLzU9J5XJyDQ6JDw5wdXVhOKAx+QUDFISl+ywFAFBLAwQUAAAACAAAAFpdPbwzi0sAAABYAAAAEgAAAF&quot;
+          + &quot;8xX0x1Y2VuZTEwNF8wLmRvY7O/niMu5VOanJqXamhgEpBfXJKZl14cXpRZklrkkp/MAATBZ73s1T+U67xqCno4T/rZ&quot;
+          + &quot;K2648ngDBkYQYGNkPKAx+QUDFHg8uHUOAFBLAwQUAAAACAAAAFpde8DRc0oAAABoAAAAEgAAAF8xX0x1Y2VuZTEwNF&quot;
+          + &quot;8wLnBzbbO/niMu7VOanJqXamhgEpBfXJKZl14cXpRZklrkm1qSyAAEwWe97NU/lOu8agp6OE/62StuuPp4AwY0EAGl&quot;
+          + &quot;D2hMfgET8z16zR8AUEsDBBQAAAAIAAAAWl3piyJ1ZQAAAGsAAAASAAAAXzFfTHVjZW5lMTA0XzAudGlts7+eIy7klJ&quot;
+          + &quot;OfnB1SlJoaklqUW+ySmVzCAATBZ73s1T+U67xqCno4T/rZK26f0uTUvFRDA5N4A0EXA0MjUzNzC0tBRkZ+zjpWVlZp&quot;
+          + &quot;VhAQMTRiZWTiYmOq4zmgMfkFAxT8SrGVBQBQSwMEFAAAAAgAAABaXWixgCBMAAAAXAAAABIAAABfMV9MdWNlbmUxMD&quot;
+          + &quot;RfMC50aXCzv54jLuyUk5+cHVKUmhqSWpRb7JmXklrBAATBZ73s1T+U67xqCno4T/rZK26f0uTUvFRDA5N4AwVzBihQ&quot;
+          + &quot;8IexDmhMfgFjl7HNPA4AUEsDBBQAAAAIAAAAWl1slsKFegAAALEAAAASAAAAXzFfTHVjZW5lMTA0XzAudG1ks7+eIy&quot;
+          + &quot;7klJOfnB1SlJoaklqUW+ybWpLIAATBZ73s1T+U67xqCno4T/rZK26f0uTUvFRDA5N4A3ugNhk4PyC/uCQzL704vCiz&quot;
+          + &quot;JLUIbAghAxqYmBg4ODgYDRgtLRicGJmATENGIycGnxgGCMiG0gc0Jr+AMhmsDD9fBwBQSwMEFAAAAAgAAABaXWeDBY&quot;
+          + &quot;iRAAAAOAEAAAoAAABzZWdtZW50c18ys7+eI85RnJqem5pXUszAwMAVfNbLXv1Duc6rpqCH86SfvWc04mJl4mKAAHYm&quot;
+          + &quot;IMEEFGCKN0BT+IzTpzQ5NS/V0MDkPxQwIAAjEs3MiKb1HSNHvEG8oV5aXi5UCROzMEgkHmKkpUG8gV5KWS4WsWIsYi&quot;
+          + &quot;lM8YZoNrzC7rj/aADsQjStbyAOP6Ax+QXMMxOcr+wAAFBLAQIUAxQAAAAIAAAAWl17d7xeXwAAAJ0AAAAGAAAAAAAA&quot;
+          + &quot;AAAAAACkgQAAAABfMC5mZG1QSwECFAMUAAAACAAAAFpdfkvgjGgAAACCAAAABgAAAAAAAAAAAAAApIGDAAAAXzAuZm&quot;
+          + &quot;R0UEsBAhQDFAAAAAgAAABaXdrwPPo8AAAAQAAAAAYAAAAAAAAAAAAAAKSBDwEAAF8wLmZkeFBLAQIUAxQAAAAIAAAA&quot;
+          + &quot;Wl13xDcZfgAAAPwAAAAGAAAAAAAAAAAAAACkgW8BAABfMC5mbm1QSwECFAMUAAAACAAAAFpdQaUMQiEBAACpAQAABQ&quot;
+          + &quot;AAAAAAAAAAAAAApIERAgAAXzAuc2lQSwECFAMUAAAACAAAAFpdG9nOhaMAAABdAQAACAAAAAAAAAAAAAAApIFVAwAA&quot;
+          + &quot;XzBfMS5mbm1QSwECFAMUAAAACAAAAFpdrFwD7U8AAABbAAAAEwAAAAAAAAAAAAAApIEeBAAAXzBfMV9MdWNlbmU5MF&quot;
+          + &quot;8wLmR2ZFBLAQIUAxQAAAAIAAAAWl3Bm8tGYgAAAKAAAAATAAAAAAAAAAAAAACkgZ4EAABfMF8xX0x1Y2VuZTkwXzAu&quot;
+          + &quot;ZHZtUEsBAhQDFAAAAAgAAABaXS+mex1IAAAAUAAAABMAAAAAAAAAAAAAAKSBMQUAAF8wXzFfTHVjZW5lOTBfMC5kdn&quot;
+          + &quot;NQSwECFAMUAAAACAAAAFpdOcNMyEgAAABVAAAAEgAAAAAAAAAAAAAApIGqBQAAXzBfTHVjZW5lMTA0XzAuZG9jUEsB&quot;
+          + &quot;AhQDFAAAAAgAAABaXaGC85VKAAAAaAAAABIAAAAAAAAAAAAAAKSBIgYAAF8wX0x1Y2VuZTEwNF8wLnBzbVBLAQIUAx&quot;
+          + &quot;QAAAAIAAAAWl1C+IPGXQAAAGIAAAASAAAAAAAAAAAAAACkgZwGAABfMF9MdWNlbmUxMDRfMC50aW1QSwECFAMUAAAA&quot;
+          + &quot;CAAAAFpdXdWZDkwAAABcAAAAEgAAAAAAAAAAAAAApIEpBwAAXzBfTHVjZW5lMTA0XzAudGlwUEsBAhQDFAAAAAgAAA&quot;
+          + &quot;BaXbKxVtp6AAAAsQAAABIAAAAAAAAAAAAAAKSBpQcAAF8wX0x1Y2VuZTEwNF8wLnRtZFBLAQIUAxQAAAAIAAAAWl0d&quot;
+          + &quot;b6XyXgAAAJ0AAAAGAAAAAAAAAAAAAACkgU8IAABfMS5mZG1QSwECFAMUAAAACAAAAFpdwL7uM4MAAACUAAAABgAAAA&quot;
+          + &quot;AAAAAAAAAApIHRCAAAXzEuZmR0UEsBAhQDFAAAAAgAAABaXRR/bqA8AAAAQAAAAAYAAAAAAAAAAAAAAKSBeAkAAF8x&quot;
+          + &quot;LmZkeFBLAQIUAxQAAAAIAAAAWl2MYnAlfgAAAPwAAAAGAAAAAAAAAAAAAACkgdgJAABfMS5mbm1QSwECFAMUAAAACA&quot;
+          + &quot;AAAFpdsPYI/yIBAACpAQAABQAAAAAAAAAAAAAApIF6CgAAXzEuc2lQSwECFAMUAAAACAAAAFpdPbwzi0sAAABYAAAA&quot;
+          + &quot;EgAAAAAAAAAAAAAApIG/CwAAXzFfTHVjZW5lMTA0XzAuZG9jUEsBAhQDFAAAAAgAAABaXXvA0XNKAAAAaAAAABIAAA&quot;
+          + &quot;AAAAAAAAAAAKSBOgwAAF8xX0x1Y2VuZTEwNF8wLnBzbVBLAQIUAxQAAAAIAAAAWl3piyJ1ZQAAAGsAAAASAAAAAAAA&quot;
+          + &quot;AAAAAACkgbQMAABfMV9MdWNlbmUxMDRfMC50aW1QSwECFAMUAAAACAAAAFpdaLGAIEwAAABcAAAAEgAAAAAAAAAAAA&quot;
+          + &quot;AApIFJDQAAXzFfTHVjZW5lMTA0XzAudGlwUEsBAhQDFAAAAAgAAABaXWyWwoV6AAAAsQAAABIAAAAAAAAAAAAAAKSB&quot;
+          + &quot;xQ0AAF8xX0x1Y2VuZTEwNF8wLnRtZFBLAQIUAxQAAAAIAAAAWl1ngwWIkQAAADgBAAAKAAAAAAAAAAAAAACkgW8OAA&quot;
+          + &quot;BzZWdtZW50c18yUEsFBgAAAAAZABkAtwUAACgPAAAAAA==&quot;);
+
+  private Directory open(String name) throws Exception {
+    Path path = createTempDir(name);
+    InputStream in = getClass().getResourceAsStream(name);
+    if (in == null &amp;&amp; EMBEDDED.containsKey(name)) {
+      in = new java.io.ByteArrayInputStream(java.util.Base64.getDecoder().decode(EMBEDDED.get(name)));
+    }
+    assumeTrue(&quot;fixture &quot; + name + &quot; not on the classpath&quot;, in != null);
+    try (InputStream is = in) {
+      TestUtil.unzip(is, path);
+    }
+    return newFSDirectory(path);
+  }
+
+  /** Retains every soft-deleted document (retention query: match all). */
+  private static IndexWriterConfig retainAllConfig() {
+    return new IndexWriterConfig(null)
+        .setSoftDeletesField(&quot;soft&quot;)
+        .setMergePolicy(
+            new SoftDeletesRetentionMergePolicy(
+                &quot;soft&quot;, MatchAllDocsQuery::new, new TieredMergePolicy()));
+  }
+
+  private static void assertUpgradedAndRetained(Directory dir) throws Exception {
+    try (DirectoryReader reader = DirectoryReader.open(dir)) {
+      for (LeafReaderContext ctx : reader.leaves()) {
+        assertEquals(
+            Version.LATEST, ((SegmentReader) ctx.reader()).getSegmentInfo().info.getVersion());
+      }
+      // 13 documents in total: 10 visible, 3 soft-deleted that the retention policy keeps
+      assertEquals(&quot;retained soft-deleted documents were dropped&quot;, 13, reader.maxDoc());
+    }
+    try (DirectoryReader visible =
+        new SoftDeletesDirectoryReaderWrapper(DirectoryReader.open(dir), &quot;soft&quot;)) {
+      assertEquals(10, visible.numDocs());
+    }
+  }
+
+  /** Control: the delegate merges the two old segments, the retention policy wraps that merge. */
+  public void testIndexUpgraderTwoSegments() throws Exception {
+    try (Directory dir = open(&quot;softdeletes-2seg.&quot; + FIXTURE_VERSION + &quot;.zip&quot;)) {
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        assertEquals(2, reader.leaves().size());
+        assertEquals(13, reader.maxDoc());
+      }
+      new IndexUpgrader(dir, retainAllConfig(), false).upgrade();
+      assertUpgradedAndRetained(dir);
+    }
+  }
+
+  /**
+   * The delegate (TieredMergePolicy) sees a single segment as already merged, so the segment is
+   * rewritten by UpgradeIndexMergePolicy&#x27;s own &quot;merge remaining ones into new segment&quot; OneMerge,
+   * which the retention policy never wraps.
+   */
+  public void testIndexUpgraderOneSegment() throws Exception {
+    try (Directory dir = open(&quot;softdeletes-1seg.&quot; + FIXTURE_VERSION + &quot;.zip&quot;)) {
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        assertEquals(1, reader.leaves().size());
+        assertEquals(13, reader.maxDoc());
+      }
+      new IndexUpgrader(dir, retainAllConfig(), false).upgrade();
+      assertUpgradedAndRetained(dir);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.index.TestUpgradeKeepsRetainedSoftDeletes -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestUpgradeLeftoverMergeRetention.java (independent reproducer, 6 tests incl. 4 controls)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Fails for retain-all (13 expected, 10 found) and for a retention query that keeps 2 of 3 (12 expected, 10 found). Passes for two old segments, a lone segment with a hard delete, and the retention policy outermost (retain-all and 2 of 3).</p><figure class='code'><figcaption><span class='fname'>TestUpgradeLeftoverMergeRetention.java (independent reproducer, 6 tests incl. 4 controls)</span><span class='meta'>196 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Supplier;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent verifier repro (fixture-free). UpgradeIndexMergePolicy&#x27;s protected
+ * shouldUpgradeSegment hook is overridden to treat the segments written in phase 1 as &quot;old&quot;, so
+ * the upgrade code path runs without an index written by an older release.
+ *
+ * &lt;p&gt;Index: 10 visible docs + 3 soft-deleted older versions (ids 7, 8, 9). The upgrade runs on a
+ * freshly opened writer, as IndexUpgrader does.
+ */
+public class TestUpgradeLeftoverMergeRetention extends LuceneTestCase {
+
+  private static final String SOFT = &quot;soft_del&quot;;
+
+  /** Treats only the segments named at construction time as &quot;old&quot;. */
+  static final class UpgradeNamed extends UpgradeIndexMergePolicy {
+    private final Set&lt;String&gt; oldNames;
+
+    UpgradeNamed(MergePolicy in, Set&lt;String&gt; oldNames) {
+      super(in);
+      this.oldNames = oldNames;
+    }
+
+    @Override
+    protected boolean shouldUpgradeSegment(SegmentCommitInfo si) {
+      return oldNames.contains(si.info.name);
+    }
+  }
+
+  private static final Supplier&lt;Query&gt; RETAIN_ALL = MatchAllDocsQuery::new;
+
+  /** Retains the soft-deleted versions of ids 7 and 8 only (2 of 3). */
+  private static final Supplier&lt;Query&gt; RETAIN_TWO =
+      () -&gt; {
+        BooleanQuery.Builder b = new BooleanQuery.Builder();
+        b.add(new TermQuery(new Term(&quot;id&quot;, &quot;7&quot;)), BooleanClause.Occur.SHOULD);
+        b.add(new TermQuery(new Term(&quot;id&quot;, &quot;8&quot;)), BooleanClause.Occur.SHOULD);
+        return b.build();
+      };
+
+  /**
+   * Writes 10 docs and soft-updates ids 7..9 (13 docs, 3 soft-deleted). twoSegments: a commit
+   * after the first 5 docs gives a second segment. hardDelete: id 0 is also hard-deleted.
+   */
+  private static Set&lt;String&gt; writeIndex(Directory dir, boolean twoSegments, boolean hardDelete)
+      throws IOException {
+    IndexWriterConfig iwc = new IndexWriterConfig();
+    iwc.setSoftDeletesField(SOFT);
+    iwc.setMergePolicy(NoMergePolicy.INSTANCE);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int i = 0; i &lt; 10; i++) {
+        Document d = new Document();
+        d.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
+        d.add(new StringField(&quot;ver&quot;, &quot;1&quot;, Field.Store.YES));
+        w.addDocument(d);
+        if (twoSegments &amp;&amp; i == 4) {
+          w.commit();
+        }
+      }
+      for (int i = 7; i &lt; 10; i++) {
+        Document d = new Document();
+        d.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.YES));
+        d.add(new StringField(&quot;ver&quot;, &quot;2&quot;, Field.Store.YES));
+        w.softUpdateDocument(
+            new Term(&quot;id&quot;, Integer.toString(i)), d, new NumericDocValuesField(SOFT, 1));
+      }
+      if (hardDelete) {
+        w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;));
+      }
+      w.commit();
+    }
+    Set&lt;String&gt; names = new HashSet&lt;&gt;();
+    for (SegmentCommitInfo sci : SegmentInfos.readLatestCommit(dir)) {
+      names.add(sci.info.name);
+    }
+    return names;
+  }
+
+  /** {maxDoc, docs carrying the soft-delete field, number of leaves}. */
+  private static int[] counts(Directory dir) throws IOException {
+    try (DirectoryReader r = DirectoryReader.open(dir)) {
+      int soft = new IndexSearcher(r).count(new FieldExistsQuery(SOFT));
+      return new int[] {r.maxDoc(), soft, r.leaves().size()};
+    }
+  }
+
+  /**
+   * forceMerge(1) through the upgrade policy on a freshly opened writer; asserts every phase-1
+   * segment was rewritten and the expected docs survived.
+   */
+  private void upgradeAndCheck(
+      boolean twoSegments,
+      boolean hardDelete,
+      Supplier&lt;Query&gt; retention,
+      boolean retentionOutermost,
+      int expectedMaxDoc,
+      int expectedSoft)
+      throws IOException {
+    try (Directory dir = newDirectory()) {
+      Set&lt;String&gt; oldNames = writeIndex(dir, twoSegments, hardDelete);
+      assertEquals(twoSegments ? 2 : 1, oldNames.size());
+      int[] before = counts(dir);
+      assertEquals(&quot;maxDoc before&quot;, 13, before[0]);
+      assertEquals(&quot;soft-deleted before&quot;, 3, before[1]);
+
+      MergePolicy mp =
+          retentionOutermost
+              ? new SoftDeletesRetentionMergePolicy(
+                  SOFT, retention, new UpgradeNamed(new TieredMergePolicy(), oldNames))
+              : new UpgradeNamed(
+                  new SoftDeletesRetentionMergePolicy(SOFT, retention, new TieredMergePolicy()),
+                  oldNames);
+      IndexWriterConfig iwc = new IndexWriterConfig();
+      iwc.setSoftDeletesField(SOFT);
+      iwc.setMergePolicy(mp);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.forceMerge(1);
+        w.commit();
+      }
+      for (SegmentCommitInfo sci : SegmentInfos.readLatestCommit(dir)) {
+        assertFalse(&quot;segment was not rewritten: &quot; + sci, oldNames.contains(sci.info.name));
+      }
+      int[] after = counts(dir);
+      assertEquals(&quot;leaves after&quot;, 1, after[2]);
+      assertEquals(&quot;maxDoc after upgrade merge (retained soft deletes)&quot;, expectedMaxDoc, after[0]);
+      assertEquals(&quot;soft-deleted docs after upgrade merge&quot;, expectedSoft, after[1]);
+    }
+  }
+
+  /** BUG case: one old segment, retention keeps all 3 soft-deleted docs. Expect 13; fails. */
+  public void testUpgradeOuterOneSegmentRetainAll() throws IOException {
+    upgradeAndCheck(false, false, RETAIN_ALL, false, 13, 3);
+  }
+
+  /** BUG case: one old segment, retention keeps 2 of 3. Expect 12; fails. */
+  public void testUpgradeOuterOneSegmentRetainTwo() throws IOException {
+    upgradeAndCheck(false, false, RETAIN_TWO, false, 12, 2);
+  }
+
+  /** Control: two old segments, the delegate merges them (wrapped). Expect 13; passes. */
+  public void testUpgradeOuterTwoSegmentsRetainAll() throws IOException {
+    upgradeAndCheck(true, false, RETAIN_ALL, false, 13, 3);
+  }
+
+  /**
+   * Control: one old segment that also has a hard delete, so the delegate merges it itself
+   * (wrapped). Expect 12 (13 - 1 hard delete) with all 3 soft-deleted docs; passes.
+   */
+  public void testUpgradeOuterOneSegmentWithHardDeleteRetainAll() throws IOException {
+    upgradeAndCheck(false, true, RETAIN_ALL, false, 12, 3);
+  }
+
+  /** Control: retention policy outermost also wraps the leftover merge. Expect 13; passes. */
+  public void testRetentionOuterOneSegmentRetainAll() throws IOException {
+    upgradeAndCheck(false, false, RETAIN_ALL, true, 13, 3);
+  }
+
+  /** Control: retention outermost, partial retention. Expect 12; passes. */
+  public void testRetentionOuterOneSegmentRetainTwo() throws IOException {
+    upgradeAndCheck(false, false, RETAIN_TWO, true, 12, 2);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.index.TestUpgradeLeftoverMergeRetention -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle): affected; releases 7.4.0 to 10.5.2 affected; 7.3.1 and earlier have no soft deletes</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at a9779ef3c193 (or a later main where the files involved are unchanged)
+cp $REPRO/TestUpgradeIndexMergePolicyRetainsSoftDeletes.java lucene/core/src/test/org/apache/lucene/index/
+./gradlew :lucene:core:test --tests org.apache.lucene.index.TestUpgradeIndexMergePolicyRetainsSoftDeletes -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (the same failure)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestUpgradeIndexMergePolicyRetainsSoftDeletes &gt; testOneOldSegment FAILED
+    java.lang.AssertionError: retained soft-deleted documents were dropped expected:&lt;13&gt; but was:&lt;10&gt;
+TestUpgradeKeepsRetainedSoftDeletes &gt; testIndexUpgraderOneSegment FAILED
+    java.lang.AssertionError: retained soft-deleted documents were dropped expected:&lt;13&gt; but was:&lt;10&gt;
+TestUpgradeLeftoverMergeRetention &gt; testUpgradeOuterOneSegmentRetainAll FAILED
+    java.lang.AssertionError: maxDoc after upgrade merge (retained soft deletes) expected:&lt;13&gt; but was:&lt;10&gt;
+TestUpgradeLeftoverMergeRetention &gt; testUpgradeOuterOneSegmentRetainTwo FAILED
+    java.lang.AssertionError: maxDoc after upgrade merge (retained soft deletes) expected:&lt;12&gt; but was:&lt;10&gt;
+11 tests completed, 4 failed            (identical with -Ptests.asserts=false)
+(testTwoOldSegments, testRetentionPolicyOutermost, testIndexUpgraderTwoSegments and the 4 controls of the third class pass)
+
+# the independent reproducer&#x27;s logging probe
+  TMP sees _0 numDeletesToMerge=0 delCount=0 softDel=3
+Upgrade.findForcedMerges ... toMerge={_0(11.0.0):c13=true} -&gt; [org.apache.lucene.index.MergePolicy$OneMerge segs=[_0(11.0.0):c13]]
+UPGRADE(SDRMP(TMP)): maxDoc=10 soft=0 segs=segments_2: _1(11.0.0):c10</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>IndexUpgrader</code> puts the upgrade policy around yours while saying it upgrades "using the given config"; for a soft-deletes index that is the only way to run it.</li><li>Same tool, config and documents: two old segments keep 13 documents, one keeps 10.</li><li>The leftover merge predates merge wrapping and soft deletes; no test combines them.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>288 words</span></summary><div class='body'><p>No javadoc sentence literally promises that an upgrade keeps retained soft deletes; the case rests on consistency.</p><ul><li><strong>Contracts.</strong> <code>SoftDeletesRetentionMergePolicy</code>: "allows to carry over soft deleted documents across merges ... allows to control when soft deletes are claimed by merges" (<code>SoftDeletesRetentionMergePolicy.java:37-42</code>). <code>UpgradeIndexMergePolicy</code>: "All other methods delegate to the base MergePolicy given to the constructor", "forceMerge does no longer really merge; it is just used to 'forceMerge' older segment versions away", and its recipe <code>iwc.setMergePolicy(new UpgradeIndexMergePolicy(iwc.getMergePolicy()))</code> puts the configured policy inside (<code>UpgradeIndexMergePolicy.java:27-31</code>, <code class='nw'>:36-42</code>). <code>IndexUpgrader(Directory, IndexWriterConfig, boolean)</code> upgrades "using an IndexWriter using the given config" (<code>IndexUpgrader.java:154-158</code>) and its class javadoc expects a user policy ("The MergePolicy set by IndexWriterConfig may also reorder documents", <code class='nw'>:51-52</code>). <code class='nw'>IndexUpgrader</code> is not <code>@lucene.experimental</code>.</li><li><strong>The inconsistency.</strong> With the same tool, config and documents, two old segments keep 13 and one keeps 10; a lone segment with one hard delete keeps all its soft-deleted documents and one without loses them. With a <code class='nw'>LogMergePolicy</code> delegate the outcome also depends on whether the lone old segment is a compound file.</li><li><strong>History.</strong> The leftover merge is from LUCENE-3082 (2011, trunk <code class='nw'>600a50bb2ae</code>; 3.2 via <code class='nw'>535d974518b</code>), six years before <code>OneMergeWrappingMergePolicy</code> (LUCENE-7688, 2017, master <code class='nw'>6f9acb51549</code>; 6.5.0 via <code class='nw'>180614c1491</code>) and seven before soft deletes (LUCENE-8233, 2018, 7.4.0); none of LUCENE-8233's 15 comments mentions upgrading. No evidence was found that this interaction was considered or later addressed.</li><li><strong>Tests.</strong> No upstream test combines <code class='nw'>IndexUpgrader</code> or <code>UpgradeIndexMergePolicy</code> with <code>SoftDeletesRetentionMergePolicy</code>; <code>TestUpgradeIndexMergePolicy</code> runs the generic merge-policy tests over a plain <code>TieredMergePolicy</code>.</li><li><strong>Upstream remark.</strong> On LUCENE-8264 (#9311) a committer (@s1monw) pointed to <code>UpgradeIndexMergePolicy</code> for upgrades and to <code>OneMergeWrappingMergePolicy</code> "similar to what we do in the soft delete case in SoftDeletesRetentionMergePolicy", presenting them as composable.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>253 words</span></summary><div class='body'><p>The intended-behaviour verifier built the strongest case for "not a bug": <code>OneMergeWrappingMergePolicy</code> only promises to wrap the merges its delegate returns, so the leftover merge was never in scope; <code>IndexWriterConfig.setSoftDeletesField</code> says documents are retained "if the merge policy modifies the live docs of a merge reader" (<code>IndexWriterConfig.java:551-552</code>), and the writer's top policy, <code>UpgradeIndexMergePolicy</code>, does not; a direct user can put the retention policy outermost, which works; @mikemccand wrote on #8574 that the upgrade policy "was really designed for one-off usage via the IndexUpgrader tool"; the merge-policy classes involved are <code>@lucene.experimental</code>; and only invisible documents are lost.</p><p>Why it fails: <code class='nw'>IndexUpgrader</code> forces the losing nesting itself while saying it uses the given config, and its default constructor and command line cannot open a soft-deletes index, so the tool offers no safe way; the <code>UpgradeIndexMergePolicy</code> recipe nests the same way; the <code>IndexWriterConfig</code> sentence refers to the policy the user configured, not one the tool put around it; "one-off usage via the IndexUpgrader tool" is exactly this case; and <code>@lucene.experimental</code> permits API changes, not silently dropping documents a configured policy keeps. The verifier, the independent reproducer and cross-model reviews rated the case moderate. The cross-model fact check found this rebuttal mostly fair but noted that "using the given config" and "All other methods delegate" carry limited contractual weight (<code class='nw'>IndexUpgrader</code> already replaces the merge and deletion policies); the strongest argument is the behavioural inconsistency. <strong>Verdict: a defect</strong>, best filed as an inconsistency; a maintainer may still call it a composition gap.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>B: a <code>MergePolicy.wrapMerge(OneMerge)</code> hook for merges created by a wrapping policy</strong></p><p class='short'>Let the delegate decorate <code>UpgradeIndexMergePolicy</code>'s own merge too: a small <code>MergePolicy.wrapMerge(OneMerge)</code> hook, implemented by <code>OneMergeWrappingMergePolicy</code> and called for the leftover merge (+22/-1, four files). The three repros pass, and so do 450 tests (76 skipped) in 17 classes: the repros and the 14 closest upstream classes. A variant without an API change passes the same tests.</p><pre class='snippet' tabindex='0'><code>// MergePolicy: by default a policy does not decorate merges created around it
+public OneMerge wrapMerge(OneMerge merge) { return merge; }
+// FilterMergePolicy
+@Override public OneMerge wrapMerge(OneMerge merge) { return in.wrapMerge(merge); }
+// OneMergeWrappingMergePolicy (and so SoftDeletesRetentionMergePolicy)
+@Override public OneMerge wrapMerge(OneMerge merge) { return wrapOneMerge.apply(in.wrapMerge(merge)); }
+// UpgradeIndexMergePolicy.findForcedMerges, the leftover merge
+spec.add(in.wrapMerge(new OneMerge(newInfos)));   // was: spec.add(new OneMerge(newInfos))</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 707 words</span></summary><div class='body'><p>Two fixes were applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF): the three repro classes (11 tests; stock: 4 failures, assertions on and off) and 14 closest upstream classes in core, backward-codecs (which runs <code class='nw'>IndexUpgrader</code> on real old-version indexes) and misc. Either fix makes every repro pass. Which one, or another design, is the maintainers' call.</p><div class="hd hd-3"><h3 id='fix-wrapmerge-hook'>B: a <code>MergePolicy.wrapMerge(OneMerge)</code> hook for merges created by a wrapping policy <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-wrapmerge-hook" target="_self" aria-label="Link to this section" aria-describedby="fix-wrapmerge-hook"><span aria-hidden="true">#</span></a></div><p><code>MergePolicy.wrapMerge</code> returns the merge unchanged by default ("decorates a merge that a policy wrapping this one created itself"); <code>FilterMergePolicy</code> delegates it; <code>OneMergeWrappingMergePolicy</code> applies its operator after its delegate's; <code>UpgradeIndexMergePolicy</code> passes its leftover merge through it. Patch: <code>optionB-mergepolicy-wrapmerge-hook.diff</code>, +22/-1 in four files.</p><pre class='snippet' tabindex='0'><code>// MergePolicy: by default a policy does not decorate merges created around it
+public OneMerge wrapMerge(OneMerge merge) { return merge; }
+// FilterMergePolicy
+@Override public OneMerge wrapMerge(OneMerge merge) { return in.wrapMerge(merge); }
+// OneMergeWrappingMergePolicy (and so SoftDeletesRetentionMergePolicy)
+@Override public OneMerge wrapMerge(OneMerge merge) { return wrapOneMerge.apply(in.wrapMerge(merge)); }
+// UpgradeIndexMergePolicy.findForcedMerges, the leftover merge
+spec.add(in.wrapMerge(new OneMerge(newInfos)));   // was: spec.add(new OneMerge(newInfos))</code></pre><p class='k'>Trade-offs</p><ul><li>A new public expert method on the <code>@lucene.experimental</code> <code class='nw'>MergePolicy</code>; any decorating policy can opt in. <code>BPReorderingMergePolicy</code> (misc) would need its own override, not written here, to reorder this merge.</li><li><code class='nw'>MergePolicy</code> is widely subclassed: experimental status lowers compatibility expectations, but a clash with an existing downstream method of the same name, and the order in which mixed custom decorators apply, deserve review; the 450 tests cover no another contributor's policies.</li><li>No CHANGES entry, javadoc build or full <code class='nw'>check</code> was run; no performance effect expected (one call per upgrade merge).</li></ul><p class='k'>What the checks validated</p><ul><li>Stock: the three repro classes run 11 tests with 4 failures, assertions on and off.</li><li>With B: 11 of 11 pass with assertions on and off. With the 14 closest classes (<code>TestUpgradeIndexMergePolicy</code>, <code>TestOneMergeWrappingMergePolicy</code>, <code>TestSoftDeletesRetentionMergePolicy</code>, <code>TestSoftDeletesDirectoryReaderWrapper</code>, <code>TestPendingSoftDeletes</code>, <code>TestFilterMergePolicy</code>, <code class='nw'>TestMergePolicy</code>, <code>TestTieredMergePolicy</code>, <code>TestIndexWriterForceMerge</code>, <code>TestIndexWriterMergePolicy</code>, <code>TestSizeBoundedForceMerge</code>; <code>TestIndexUpgradeBackwardsCompatibility</code>, <code>TestEmptyIndexBackwardsCompatibility</code>; <code>TestBPReorderingMergePolicy</code>): 17 classes, 450 tests, 76 skipped, 0 failures. <code>TestFilterMergePolicy</code> checks that <code>FilterMergePolicy</code> overrides every <code class='nw'>MergePolicy</code> method.</li><li><code>:lucene:core:checkGoogleJavaFormat</code> passes with the patch and the compact test.</li></ul><div class="hd hd-3"><h3 id='fix-chain-walk'>A: wrap the leftover merge like the delegate chain would (no API change) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-chain-walk" target="_self" aria-label="Link to this section" aria-describedby="fix-chain-walk"><span aria-hidden="true">#</span></a></div><p><code>UpgradeIndexMergePolicy</code> walks its <code>FilterMergePolicy</code> chain and applies each <code>OneMergeWrappingMergePolicy</code>'s operator to its own merge, innermost first, as <code class='nw'>wrapSpec</code> does for returned merges; <code>OneMergeWrappingMergePolicy</code> gets a package-private <code>wrapOneMerge(OneMerge)</code>. Patch: <code>optionA-wrap-leftover-merge-like-delegate.diff</code>, the finder's sketch, +24/-1 in two files.</p><pre class='snippet' tabindex='0'><code>private OneMerge wrapLikeDelegate(OneMerge merge) {
+  ArrayDeque&lt;OneMergeWrappingMergePolicy&gt; wrappers = new ArrayDeque&lt;&gt;();
+  for (MergePolicy p = in; p instanceof FilterMergePolicy f; p = f.in) {
+    if (p instanceof OneMergeWrappingMergePolicy w) wrappers.push(w);
+  }
+  while (wrappers.isEmpty() == false) merge = wrappers.pop().wrapOneMerge(merge);
+  return merge;
+}
+// findForcedMerges: spec.add(wrapLikeDelegate(new OneMerge(newInfos)));</code></pre><p class='k'>Trade-offs</p><ul><li>No public API change, but it only reaches <code>OneMergeWrappingMergePolicy</code> subclasses through <code>FilterMergePolicy.in</code>; another decorator in the chain, such as <code>BPReorderingMergePolicy</code>, stays bypassed (by reading only). It reaches into another class's operator, which a maintainer may find too clever.</li></ul><p class='k'>What the checks validated</p><ul><li>The three repro classes 11 of 11 pass (assertions on); the same 17 classes, 450 tests, 76 skipped, 0 failures. Earlier the finder's build passed its 2 tests and 19 upstream merge-policy tests, and the independent reproducer's and the adjudication's runs passed 6 of 6 and 2 of 2 with it.</li></ul><div class="hd hd-3"><h3 id='fix-retention-outermost'>Workaround: retention policy outermost, without <code class='nw'>IndexUpgrader</code> <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-retention-outermost" target="_self" aria-label="Link to this section" aria-describedby="fix-retention-outermost"><span aria-hidden="true">#</span></a></div><p>Open an <code class='nw'>IndexWriter</code> with <code>new SoftDeletesRetentionMergePolicy(field, query, new UpgradeIndexMergePolicy(new TieredMergePolicy()))</code>, run <code class='nw'>forceMerge(1)</code> and commit (<code class='nw'>IndexUpgrader</code> also sets <code>KeepOnlyLastCommitDeletionPolicy</code>, which is already the default deletion policy; set it only if your config uses another one). The retention wrapper then also wraps the upgrade policy's own merge.</p><p class='k'>Trade-offs</p><ul><li>Users must know about it; <code class='nw'>IndexUpgrader</code> itself cannot be configured this way.</li></ul><p class='k'>What the checks validated</p><ul><li><code>testRetentionPolicyOutermost</code> and the independent reproducer's and devil's advocate's controls keep all 13 documents (and 12 or 11 under partial retention).</li></ul><div class="hd hd-3"><h3 id='fix-docs-only'>C: document the limitation</h3><a class="hlink" href="#fix-docs-only" target="_self" aria-label="Link to this section" aria-describedby="fix-docs-only"><span aria-hidden="true">#</span></a></div><p>Warn in <code class='nw'>IndexUpgrader</code> and <code>UpgradeIndexMergePolicy</code> that decorating delegates do not see the leftover merge and that a retention policy must be outermost.</p><p class='k'>Trade-offs</p><ul><li>Cheapest, but <code class='nw'>IndexUpgrader</code> still cannot upgrade such an index safely. Not a fix either: counting soft deletes for unpooled segments in <code>numDeletesToMerge</code>, since with a retain-all query <code>TieredMergePolicy</code> would still decline the segment.</li></ul></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Elasticsearch and OpenSearch, the large soft-deletes users, do not call Lucene's <code class='nw'>IndexUpgrader</code> or <code>UpgradeIndexMergePolicy</code> (default branches, code reading), but Elasticsearch 7.17 and OpenSearch main have their own upgrade merge policies that add a merge of their own around a nested retention policy in a similar way (code reading, nothing run).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code reading, not a formal method. While modelling which index tools may change which documents for a round-trip test of the index tools, the finder read <code>UpgradeIndexMergePolicy.findForcedMerges</code> and saw that it merges leftovers itself. A public-API JUnit on indexes written by released 10.5.2 and 9.12.3 confirmed it; the randomized round-trip test never could, as it builds no old segments.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>161 words</span></summary><div class='body'><p><strong>Method: code reading</strong> (non-formal tier), in a hunt unit that compares Lucene's index tools by round-tripping indexes through them (a randomized differential test).</p><ul><li>While modelling the <code class='nw'>IndexUpgrader</code> leg (which tools may change which documents), the finder read <code>UpgradeIndexMergePolicy.findForcedMerges</code> and noticed that the merge it creates for old segments its delegate declines is a plain <code class='nw'>OneMerge</code>, which a wrapping delegate never sees.</li><li>It wrote fixture indexes with the released 10.5.2 and 9.12.3 jars (13 documents, 3 soft-deleted, one or two segments) and a public-API JUnit around <code>new IndexUpgrader(dir, config, false)</code>: one segment loses the 3 retained documents, two keep them. A shadow build with the fix sketch passed.</li><li>The randomized differential itself did not find it: it builds no old-version segments and no retention policies.</li><li>Found 2026-10-26 on main <code class='nw'>a9779ef3c193</code>; then checked by an independent reproducer, a devil's-advocate verifier, reviews by a model from another family (reading only), an adjudication, a follow-up (history, prior reports, security) and an audit.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (163 queries, 2026-10-26): GitHub issues, PRs and code, JIRA, the mailing lists, downstream projects and the changed files of all 407 open PRs. Nearest: #8574 (open), about the size of the same leftover merge.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>. The nearest items concern the same leftover-merge block or name the same classes, for other defects.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs, code and commits; Elasticsearch, OpenSearch, Solr</th><td class='when'>2026-10-26</td><td>two runs of the hunt's prior-report tool (class names, <code class='nw'>wrapForMerge</code>, "merge remaining ones into new segment", soft-deletes and wrapping-order phrasings) and 26 manual GitHub searches</td><td>no report; same block, other defects: #8574 (LUCENE-7523, open: monster segments; cite it), #9052 (LUCENE-8004, Won't Fix), #8722 (LUCENE-7671, open); #9311 (LUCENE-8264) names the three policies for N-2 support</td></tr><tr><th scope='row'>JIRA archive; dev@, java-user@, issues@, commits@</th><td class='when'>2026-10-26</td><td>15 JIRA queries (five issues read in full) and 40 list queries</td><td>no report</td></tr><tr><th scope='row'>Open apache/lucene PRs</th><td class='when'>2026-10-26</td><td>changed files of all 407 open PRs</td><td>none touches <code>UpgradeIndexMergePolicy.java</code>; #16571 touches <code>OneMergeWrappingMergePolicy</code> and the retention wrapper for another bug and would not fix this</td></tr><tr><th scope='row'>Earlier runs</th><td class='when'>2026-10-26</td><td>the finder's run (40 queries) and the devil's-advocate verifier's (27)</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Data loss since 7.4.0 (LUCENE-8233, 2018, which added soft deletes and the retention policy); the leftover merge itself is from 2011 (LUCENE-3082). Executed on releases from 7.4.0 to 10.5.2 and on main: one old segment loses the documents, two keep them. Never fixed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Data loss introduced by</strong> LUCENE-8233 "Add support for soft deletes to IndexWriter" (@s1monw, 2018-04-04; branch_7x <code class='nw'>02fa5a0b059</code>, master <code class='nw'>ecc17f90233</code>; a JIRA patch, migrated as #9280), which added <code>SoftDeletesRetentionMergePolicy</code> as a <code>OneMergeWrappingMergePolicy</code> whose wrapper is the only thing that keeps retained documents through a merge. <strong>The defective line is older</strong>: <code>spec.add(new OneMerge(newInfos))</code> comes from LUCENE-3082 (trunk <code class='nw'>600a50bb2ae</code>, 2011; 3.2 via <code class='nw'>535d974518b</code>), and it has bypassed <code>OneMergeWrappingMergePolicy</code> since that class appeared (LUCENE-7688, master <code class='nw'>6f9acb51549</code>; 6.5.0 via <code class='nw'>180614c1491</code>) without losing data before soft deletes. <strong>LUCENE-7976</strong> (2018-06-15, <code class='nw'>9c4e315c1cb</code> / <code class='nw'>2519025fdaf</code>, 7.5.0) widened the trigger: before it, <code>TieredMergePolicy</code> merged a lone compound-file old segment itself.</p><p>The first ordinary major upgrade, 7.7.3 to 8.0.0, loses the documents. 7.4.0 is affected, but its ordinary trigger is unusual (an index written before 7.4 that started soft-deleting under 7.4, with a non-compound-file old segment); the first routine upgrade of an index that already had soft deletes is 7.4.0 to 7.5.0. Releases between the executed ones share the unchanged code path (read). No commit on main or branch_10x changes it; the unreleased branch_10_6 and branch_10x heads have the same code (read, not run).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>13 -&gt; 10 for a 10.5.2- or 9.12.3-written lone segment and fixture-free; 11 tests, 4 failures through gradle, assertions on and off; two segments keep 13</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>13 -&gt; 10 upgrading a 9.12.3-written index (assertions on and off); two segments keep 13</td></tr><tr><th scope='row'>8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>13 -&gt; 10 upgrading an index written by the previous major line; two segments keep 13 (8.0.0, 9.0.0, 9.12.3, 10.0.0)</td></tr><tr><th scope='row'>7.5.0, 7.7.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>13 -&gt; 10 upgrading a 7.4.0 index (compound file or not on 7.5.0; non-compound on 7.7.3); two segments keep 13 (7.5.0)</td></tr><tr><th scope='row'>7.4.0</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> non-CFS segment only</span></td><td>a lone non-compound-file old segment loses the documents (assertions on and off); a compound-file one is merged by TieredMergePolicy itself and keeps them</td></tr><tr><th scope='row'>6.5.0, 7.3.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>no soft deletes (7.3.1: compile error); the leftover merge already bypasses a merge-counting wrapper, without data loss</td></tr><tr><th scope='row'>fix A or B (scratch worktree at <code class='nw'>a9779ef3c193</code>)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>11 of 11 repro tests pass; 17 classes (the 3 repros and the 14 closest upstream classes), 450 tests, 76 skipped, 0 failures</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and a devil's-advocate verifier reproduced it with their own tests on main, 10.5.2 and 9.12.3; an adjudication confirmed it (medium confidence) and an audit kept it. Reviews by a model from another family could only read the code; they agreed on the root cause.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>486 words</span></summary><div class='body'><p>Each executing check wrote or re-ran its own JUnit on the stock code; every control passed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own fixture-free JUnit 2 of 6 fail and own <code class='nw'>IndexUpgrader</code> JUnit on indexes written by 10.5.2, 9.12.3 and 8.11.4 2 of 2 fail, on main, 10.5.2 and 9.12.3, assertions on and off; found partial retention and the partially upgraded case; a logging probe showed the mechanism; the fix sketch makes everything pass.</td></tr><tr><th scope='row'>devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; medium-high that it is not intended</span></td><td>A 13-test composition probe on main: the default <code class='nw'>IndexUpgrader</code> cannot open a soft-deletes index, the javadoc recipe loses the documents, a partially upgraded index loses them (15 -&gt; 12), only the retention policy outermost keeps them.</td></tr><tr><th scope='row'>cross-model reviews (refute, intended, root cause)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not_real (procedural), real, uncertain; root cause agreed</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) could only read the code: the refute lens said not_real with low confidence only because it could not run anything; the intended lens said real; the root-cause lens agreed on the cause and noted that the fix sketch does not cover other decorators. A separate run re-ran the repro for each lens: the intended and root-cause re-runs failed 1 of 2 as claimed; the refute re-run failed 2 of 2, including the two-segment control, because the fixtures were not yet embedded, after which the finder embedded them.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, medium</span></td><td>Re-ran the independent reproduction's tests: 2 of 6 fail with assertions on and off; <code class='nw'>IndexUpgrader</code> on 10.5.2-written one-segment indexes 13 -&gt; 10 and 14 -&gt; 11; two segments keep them; with the fix all pass. Medium because a maintainer may call it a composition gap.</td></tr><tr><th scope='row'>Follow-up and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces; keep</span></td><td>History (59 runs from 6.4.2 to main), prior reports (new) and security screen (none); the registry step and the audit re-ran the finder's and the independent reproduction's tests on stock main with the same failures.</td></tr><tr><th scope='row'>fact check of the doc (independent)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug and main claims hold; 5 text errors, fixed</span></td><td>Re-ran the brief's gradle command and all three repro classes on a fresh extraction of <code class='nw'>a9779ef3c193</code> (11 tests, 4 failures, assertions on and off), both fixes (11 of 11) and the repro harness on main, 10.5.2 and 9.12.3. A probe with other delegates found that <code>LogByteSizeMergePolicy</code> and <code>LogDocMergePolicy</code> keep a lone non-compound-file old segment and lose a compound-file one, so the "always" claim now names <code>TieredMergePolicy</code>.</td></tr><tr><th scope='row'>cross-model fact check of the brief</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> bug real; 4 text errors, 6 overclaims, 5 missing caveats, all addressed</span></td><td>The independent reviewer from another model family (OpenAI GPT-5.6) read the code and the run records: the mechanism, repros, history, fixes and security classification are sound; it corrected the claim about unchanged search results (a plain <code class='nw'>DirectoryReader</code> does not apply soft deletes) and the scope of <code>OneMergeWrappingMergePolicy</code>'s wrapping, and rated the intended-behaviour case moderate.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-617/bug.png' download='upgrade-leftover-merge-bypasses-wrapped-policy-bug.png' target='_self'>PNG</a> <span class='n'>446 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,484 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-617, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>UpgradeIndexMergePolicy rewrites the old segments its delegate declines with its own plain OneMerge, which a wrapping delegate never sees, so IndexUpgrader (or UpgradeIndexMergePolicy) with a SoftDeletesRetentionMergePolicy inside silently purges the soft-deleted documents the retention policy must keep</dd></div><div><dt>Area</dt><dd>core index / UpgradeIndexMergePolicy and IndexUpgrader with OneMergeWrappingMergePolicy delegates (SoftDeletesRetentionMergePolicy)</dd></div><div><dt>Priority</dt><dd>Medium, rank 150: Retained soft-deleted documents are lost silently and permanently during a format upgrade, which is real data loss, but only for the uncommon pairing of soft-deletes retention with IndexUpgrader or UpgradeIndexMergePolicy.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that keep soft-deleted documents with SoftDeletesRetentionMergePolicy (for example as change history for replication or recovery) and upgrade the index format with new IndexUpgrader(dir, config, deletePriorCommits), or with UpgradeIndexMergePolicy wrapped around the retention policy as its javadoc recipe shows, lose every retained soft-deleted document of an old segment that the delegate declines to merge; with TieredMergePolicy as the delegate (the default) that is always the case on 7.5.0 and later for a lone old segment without hard deletes (the usual shape of a force-merged index) and also for a partially upgraded index that holds one such old segment (a LogMergePolicy delegate declines only a lone compound-file old segment, fact-check probe); the loss is permanent for the index (the upgrade keeps only its new commit) and silent, the visible documents (through readers that apply soft deletes) stay the same, it needs the opt-in soft-deletes retention plus the upgrade tool's config constructor (the command-line form cannot open a soft-deletes index at all), and no scale is needed.</dd></div><div><dt>Summary</dt><dd>You configure soft deletes with SoftDeletesRetentionMergePolicy("soft", MatchAllDocsQuery::new, new TieredMergePolicy()), which must keep every soft-deleted document, and upgrade a one-segment index written by Lucene 10.5.2 (10 visible plus 3 soft-deleted documents) with new IndexUpgrader(dir, thatConfig, false).upgrade(). You expect the segment to be rewritten in the current format with all 13 documents, exactly as happens when the same index has two old segments. Instead TieredMergePolicy treats the lone segment as already merged, UpgradeIndexMergePolicy rewrites it with its own 'merge remaining ones into new segment' OneMerge that the retention policy never wraps, and the 3 retained documents are purged with no error (maxDoc 13 -&gt; 10; partial retention queries lose their documents the same way).</dd></div><div><dt>Introduced</dt><dd>02fa5a0b0593 (branch_7x; master ecc17f902330), LUCENE-8233 'Add support for soft deletes to IndexWriter' (JIRA patch, no GitHub PR; migrated issue apache/lucene#9280). It added SoftDeletesRetentionMergePolicy as a OneMergeWrappingMergePolicy whose OneMerge wrapper (wrapForMerge -&gt; applyRetentionQuery) is the only thing that keeps retained soft-deleted documents through a merge, and nothing routes UpgradeIndexMergePolicy's own merge through it [read: git log, git blame and git log -S in the history clone; exec: 7.3.1 lacks the API (compile error), 7.4.0 loses the documents]. The defective line spec.add(new OneMerge(newInfos)) (UpgradeIndexMergePolicy.java:136) is older: LUCENE-3082 (600a50bb2ae8, 2011-05-09, first release 3.2). It has bypassed OneMergeWrappingMergePolicy wrapping since that class appeared (LUCENE-7688, 6.5.0) but lost no data before soft deletes [exec on 6.5.0 and 7.3.1 with a merge-counting wrapper]. LUCENE-7976 (branch_7x 9c4e315c1cb3, master 2519025fdafe, 7.5.0) widened the trigger from a lone non-compound-file old segment to any lone old segment without deletes [exec]. (2018-04-04 (LUCENE-8233 committed to branch_7x and master); the defective line 2011-05-09 (LUCENE-3082); trigger widened 2018-06-15 (LUCENE-7976))</dd></div><div><dt>First affected version</dt><dd>7.4.0 [exec, -ea and -da], the first release with soft deletes and SoftDeletesRetentionMergePolicy. On 7.4.0 the lone old segment must not be a compound file (a lone compound-file old segment is merged by TieredMergePolicy itself, wrapped, and kept [exec]), and the only IndexUpgrader trigger is an index written by an older release that started soft-deleting under 7.4.0 [exec]. 7.5.0 is the first release in which an ordinary upgrade of a soft-deletes index (written by 7.4.0) loses the documents, compound file or not [exec]. 7.3.1 and earlier: the API is absent [exec: compile error].</dd></div><div><dt>Affected versions</dt><dd>Every release from 7.4.0 to 10.5.2, and main a9779ef3c193; never fixed. Executed (retain-all policy, one old segment without hard deletes, 13 -&gt; 10 documents) on 7.4.0 (-ea and -da), 7.5.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 (-ea and -da) and main (-ea and -da) with official release jars and JDK 25 [exec]; the two-old-segment control keeps all 13 documents on 7.4.0, 7.5.0, 8.0.0, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main [exec]; the releases in between share the unchanged code path [read]. The unreleased branch_10_6 and branch_10x heads have the same code [read, not executed]. The 7 commits on main since the hunt's previous base do not touch any of the files involved. Not affected: 7.3.1 and earlier (no soft deletes) [exec].</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26 follow-up search, read-only, the prior-report record verdict new, 163 query records: 87 GitHub records (issue, PR and code searches over apache/lucene, elastic/elasticsearch, opensearch-project/OpenSearch and apache/solr, and a scan of the changed files of all 407 open apache/lucene PRs), 40 dev@, java-user@, issues@ and commits@ list queries, 15 JIRA queries (LUCENE and SOLR; full text of five issues read), 9 web, 7 commit-history and 4 downstream queries, and one record for the finder's earlier run (40 queries) and the intended-behaviour check's (27), which agree). No issue, PR, review thread, JIRA entry, list post or downstream report says that UpgradeIndexMergePolicy's own leftover merge skips a decorating delegate's OneMerge wrapping, or that an upgrade drops soft-deleted documents kept by SoftDeletesRetentionMergePolicy; nothing is by the owner (shbhar). Closest, same code block but a different defect: LUCENE-7523 (apache/lucene#8574, open: the leftover merge can build a monster segment; cite it in a filing as the open issue on this code), LUCENE-8004 (#9052, Won't Fix) and LUCENE-7671 (#8722, open); their proposals would still create unwrapped merges. LUCENE-8264 (#9311, Won't Fix) names UpgradeIndexMergePolicy, OneMergeWrappingMergePolicy and SoftDeletesRetentionMergePolicy together, but for N-2 index support. Open PR #16571 touches OneMergeWrappingMergePolicy and the retention wrapper (the LFV-509 overlap), not this path, and would not fix it. Not fixed: no commit on main or branch_10x changes this path, and no open PR touches UpgradeIndexMergePolicy.java.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26): three public-API JUnits through gradle in a scratch worktree with assertions on and off (2026-10-27), and with two fixes together with 14 closest upstream test classes in core, backward-codecs and misc; repro runs by the finder, an independent reproducer, a devil's-advocate verifier, the adjudication, an audit and the registry step; the release jars 7.4.0, 7.5.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 upgrading indexes written by older releases, plus 6.4.2, 6.5.0 and 7.3.1 for the older root (59 history runs). OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/UpgradeIndexMergePolicy.java:26-50 (at a9779ef3c193) (class javadoc: &#x27;All other methods delegate to the base MergePolicy&#x27; at :28, usage recipe iwc.setMergePolicy(new UpgradeIndexMergePolicy(iwc.getMergePolicy())) at :38, @lucene.experimental at :50), :80-139 (findForcedMerges: delegate first, then the log message &#x27;does not want to merge all old segments, merge remaining ones into new segment&#x27; at :120-122 and spec.add(new OneMerge(newInfos)) at :136)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/OneMergeWrappingMergePolicy.java:23-28 (at a9779ef3c193) (wraps &#x27;the OneMerge objects returned by the wrapped merge policy&#x27;), :52-59 (findForcedMerges -&gt; wrapSpec(in.findForcedMerges(...))), :75-83 (wrapSpec)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SoftDeletesRetentionMergePolicy.java:36-46 (at a9779ef3c193) (class javadoc: &#x27;allows to carry over soft deleted documents across merges&#x27;; extends OneMergeWrappingMergePolicy)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexUpgrader.java:137-148 (at a9779ef3c193) (default constructors use new IndexWriterConfig(null)), :159-163 (config constructor &#x27;using the given config&#x27;), :180 (iwc.setMergePolicy(new UpgradeIndexMergePolicy(iwc.getMergePolicy()))), :181 (KeepOnlyLastCommitDeletionPolicy), :196 (forceMerge(1)), :204 (commit)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:6445-6456 (at a9779ef3c193) (numDeletesToMerge returns only hard deletes for an unpooled segment, &#x27;this is safe!&#x27;), :5497-5500 (mergeMiddle keeps soft deletes only when wrapForMerge returns another reader)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/TieredMergePolicy.java:838-846 (at a9779ef3c193) (forceMerge(1) with a single eligible segment whose entry is in segmentsToMerge: &#x27;already merged&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriterConfig.java:551-555 (at a9779ef3c193) (soft deletes retain documents across merges if the merge policy modifies the live docs of a merge reader); FieldInfos.java:459-466 (an IndexWriter without the soft-deletes field rejects a soft-deletes index)</code></li><li><code>github.com/apache/lucene/issues/8574, /9052, /8722, /9311 and pull/16571 (read 2026-10-26, via the prior-report record)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/UpgradeIndexMergePolicy.java:26-50, 68-70, 80-139</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/OneMergeWrappingMergePolicy.java:23-83</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SoftDeletesRetentionMergePolicy.java:36-46</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexUpgrader.java:137-148, 154-163, 180-204</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:6445-6460, 5492-5501</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/TieredMergePolicy.java:834-848</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfos.java:459-466</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/LogMergePolicy.java:195-202, 348-356; MergePolicy.java:745-758; FilterMergePolicy.java:50-53</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/MIGRATE.md:153</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexUpgrader.java:181, 204</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/SoftDeletesRetentionMergePolicy.java:36-44</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/UpgradeIndexMergePolicy.java:26-50</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexUpgrader.java:31-53, 154-163</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriterConfig.java:551-555</code></li><li><code>lucene/core/src/test/org/apache/lucene/index/TestUpgradeIndexMergePolicy.java:24-33</code></li><li><code>github.com/apache/lucene/issues/9311 and /8574 (read by the devil&#x27;s-advocate verifier, 2026-10-26)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/misc/src/java/org/apache/lucene/misc/index/BPReorderingMergePolicy.java:119-158</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestUpgradeIndexMergePolicyRetainsSoftDeletes.java (core, 3 tests, no old index needed): <a href='../repro/LFV-617/TestUpgradeIndexMergePolicyRetainsSoftDeletes.java'><code>repro/LFV-617/TestUpgradeIndexMergePolicyRetainsSoftDeletes.java</code></a> (126 lines)</li><li>TestUpgradeKeepsRetainedSoftDeletes.java (IndexUpgrader on indexes written by 10.5.2, 2 tests): <a href='../repro/LFV-617/TestUpgradeKeepsRetainedSoftDeletes.java'><code>repro/LFV-617/TestUpgradeKeepsRetainedSoftDeletes.java</code></a> (238 lines)</li><li>TestUpgradeLeftoverMergeRetention.java (independent reproducer, 6 tests incl. 4 controls): <a href='../repro/LFV-617/TestUpgradeLeftoverMergeRetention.java'><code>repro/LFV-617/TestUpgradeLeftoverMergeRetention.java</code></a> (196 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture made in parallel with this doc from a probe run on main <code class='nw'>a9779ef3c193</code>; every value on screen is taken from the probe's trace.</p><ul class='paths'><li><a href='../assets/LFV-617/bug.png'><code>assets/LFV-617/bug.png</code></a> (446 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -1,0 +1,972 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>ConfusionMatrix.getPrecision() skips classes that are assigned but never correct, so macro precision is too high</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-768 &middot; confusionmatrix-macro-precision-ignores-predicted-only-classes</p><h1 id='top'>ConfusionMatrix.getPrecision() skips classes that are assigned but never correct, so macro precision is too high</h1><p class='tldr'><code>ConfusionMatrix.getPrecision()</code> averages the per-class precision only over classes that are some document's correct answer, so a class the classifier assigns but no evaluated document has never lowers it. Four "sports" documents answered "politics" three times give 1.0 instead of 0.5; every release since 6.1.0 does this.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 198</span><span class='sub'>ConfusionMatrixGenerator silently overstates macro precision and F1 in the ordinary case where some class is only ever assigned, the same silent wrong evaluation output as the Medium DatasetSplitter utility rows, so it closes the classification block right after LFV-682 instead of sitting in Low with the timeout row LFV-633.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>6.1.0 (LUCENE-7305, 2016)<span class='sub'>introduced 2016-05-26 &middot; over 10 years</span></dd></div><div><dt>Affected</dt><dd>6.1.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive check of the metrics against their formulas, confirmed by JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Lucene's classification module can score a classifier on labelled documents: <code>ConfusionMatrixGenerator.getConfusionMatrix</code> builds a confusion matrix with one row per correct answer and, inside each row, a count per assigned class. <code>getPrecision(String)</code> gives one class's precision; <code class='nw'>getPrecision()</code> is their macro average.</p><figure class='visual' id='confusionmatrix-macro-precision-ignores-predicted-only-classes-short-visual'><div class='frame'><a class='still' href='../assets/LFV-768/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-768/bug.png' alt='Summary card. Title: ConfusionMatrix.getPrecision() leaves out classes that are assigned but never correct. Left: 4 test articles, all sports, 3 answered politics; getConfusionMatrix(testReader, classifier, ...).getPrecision(); a one-row matrix with row key &quot;sports&quot; and assigned columns &quot;sports&quot; 1 and &quot;politics&quot; 3, the politics column marked &quot;not a row key&quot;; precision sports 1 / 1 = 1.0, politics 0 / 3 = 0.0; code lines 293 &quot;for (... classification : linearizedMatrix.entrySet())&quot; and 298 &quot;return p / linearizedMatrix.size();&quot; marked: loops over the row keys (correct answers) only, politics is skipped and it divides by 1 row, 1.0 / 1 = 1.0; expected 0.5, actual 1.0; silent, no exception or warning. Right: result executed on main with -ea and -da, expected vs actual: the example getPrecision() 0.5 vs 1.0; classes a, b, also answers c 0.667 vs 1.0; built-in naive Bayes, held-out index 0.5 vs 1.0; the example getF1Measure() 0.333 vs 0.4; control with no assigned-only class 0.833 vs 0.833. Notes: fix sketch (executed): average getPrecision(String) over the row and the column keys, all of the above then match; getRecall() loops over the same rows (an assigned-only class has recall 0/0), maintainers may align both or document the row-key reading; since 6.1.0, LUCENE-7305 (dc50b79a146, 2016) made it a macro average, still over the row keys.' width='1920' height='1080'></a></div><figcaption>The four "sports" documents as a one-row matrix: "politics" is only a column, so the row-key loop skips it and divides by one row. Expected against actual on main for the three failing cases, F1 and a control. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Evaluate a classifier with <code>ConfusionMatrixGenerator.getConfusionMatrix</code> on four documents labelled "sports". It answers "sports" once and "politics" three times: the matrix is <code>{sports={sports=1, politics=3}}</code>.</span></li><li><span>Per class, precision is right: <code>getPrecision("sports")</code> = 1/1 = 1.0 and <code>getPrecision("politics")</code> = 0/3 = 0.0.</span></li><li><span><code class='nw'>getPrecision()</code> is "the macro averaged precision (see getPrecision(String)) over all the classes", so you expect (1.0 + 0.0) / 2 = 0.5.</span></li><li><span>You get 1.0. The macro loop runs over the matrix rows, which are the correct answers only; "politics" is only a column, so it is in neither the sum nor the count. <code class='nw'>getF1Measure()</code> is too high with it: 0.4 instead of 0.333.</span></li><li><span>Real workflow: the built-in <code>SimpleNaiveBayesClassifier</code>, trained on one index and evaluated on a held-out index of four "sports" documents, answers "politics" twice; macro precision reads 1.0, not 0.5.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications and tests that evaluate a classifier with <code>ConfusionMatrixGenerator</code> (opt-in <code>lucene/classification</code> module) and read <code class='nw'>getPrecision()</code> or <code class='nw'>getF1Measure()</code>, whenever an assigned class has no evaluated document: a held-out split that lacks a rare class, or a custom classifier. The value is never too low, and too high whenever at least one answer is right. Per-class numbers, indexing and search are unaffected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>674 words</span></summary><div class='body'><p><code>ConfusionMatrixGenerator.getConfusionMatrix</code> runs a classifier over the labelled documents of a reader and files each document under its correct answer, counting the class it was assigned inside that row. <code>ConfusionMatrix.getPrecision()</code>, documented as "the macro averaged precision (see getPrecision(String)) over all the classes", then averages <code>getPrecision(klass)</code> over the rows only and divides by the number of rows. A class that the classifier assigns but that no evaluated document has as its correct answer exists only as a column: its precision is well defined and 0, but it is left out of the sum and the count, so its wrong answers never lower the macro value, which is too high whenever at least one answer is right. Four "sports" documents answered "politics" three times give 1.0 instead of 0.5; the built-in <code>SimpleNaiveBayesClassifier</code> evaluated on a held-out index gives 1.0 with half its answers wrong; <code class='nw'>getF1Measure()</code>, built from it, is too high as well. Per-class precision, the matrix, indexing and search are unaffected. Every release from 6.1.0 to 10.5.2 and main is affected; averaging over the union of the matrix's rows and columns fixes it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Confusion matrix</strong>: <code>getConfusionMatrix(reader, classifier, classField, textField, timeout)</code> asks the classifier for a class for every document of <code class='nw'>reader</code> that has a class value and a stored text, and counts (correct class, assigned class) pairs. <code>getLinearizedMatrix()</code> returns it as "a Map whose keys are the correct classification answers and whose values are the actual answers' counts" (<code>ConfusionMatrixGenerator.java:172-177</code>): rows are correct answers, the inner keys are assigned classes.</li><li><strong>Precision of a class</strong>: of the documents the classifier assigned to that class, the share whose correct answer it is: tp / (tp + fp). <code>getPrecision(String)</code> computes it from the class's row and column (<code class='nw'>:188-205</code>).</li><li><strong>Macro average</strong>: the plain mean of a per-class metric over the classes, so that small classes count as much as big ones. <code class='nw'>getPrecision()</code> is documented as "the macro averaged precision (see getPrecision(String)) over all the classes" (<code class='nw'>:287</code>).</li><li><strong>Assigned-only class</strong>: a class the classifier returns that is the correct answer of no evaluated document. It appears only as an inner key (a column), never as a row.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>getConfusionMatrix</code> files each document under its correct answer: the assigned class if it is one of the document's correct answers, else <code>correctAnswers[0]</code> (<code class='nw'>:118-123</code>), and counts the assigned class inside that row (<code class='nw'>:125-137</code>). So rows are correct answers only.</li><li><code>getPrecision(String)</code> for an assigned-only class finds no row, so tp is 0 and it returns 0 (<code class='nw'>:204</code>): right, since none of its answers was right.</li><li><code class='nw'>getPrecision()</code> sums <code>getPrecision(klass)</code> over <code>linearizedMatrix.entrySet()</code> and returns <code>p / linearizedMatrix.size()</code> (<code class='nw'>:291-299</code>): rows only. The assigned-only class, with its precision of 0, is in neither the sum nor the divisor.</li><li>Leaving out a 0 never lowers a mean. With an assigned-only class the reported macro precision is too high whenever at least one answer is right (if none is, every precision is 0 and both means are 0); without one it is exact. <code class='nw'>getF1Measure()</code> (<code class='nw'>:246-250</code>) is the harmonic mean of <code class='nw'>getPrecision()</code> and <code class='nw'>getRecall()</code>, so it is too high too.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>dataset (matrix)</th><th>per-class precision</th><th><code class='nw'>getPrecision()</code></th><th>mean over all classes</th></tr></thead><tbody><tr><td>4 x sports answered sports, politics, politics, politics: <code>{sports={sports=1, politics=3}}</code></td><td>sports 1.0, politics 0.0</td><td><strong>1.0</strong></td><td>0.5</td></tr><tr><td>a, a, b, b answered a, c, b, c: <code>{a={a=1, c=1}, b={b=1, c=1}}</code></td><td>a 1.0, b 1.0, c 0.0</td><td><strong>1.0</strong></td><td>0.667</td></tr><tr><td><code>SimpleNaiveBayesClassifier</code> on a held-out index: <code>{sports={sports=2, politics=2}}</code></td><td>sports 1.0, politics 0.0</td><td><strong>1.0</strong></td><td>0.5</td></tr><tr><td>control, a, b answered a, a: <code>{a={a=1}, b={a=1}}</code></td><td>a 0.5, b 0.0 (never assigned)</td><td>0.25</td><td>0.25</td></tr></tbody></table></div><p><code class='nw'>getF1Measure()</code> on the first dataset: 0.4 today, 0.333 with precision 0.5 and the same recall 0.25. In the finder's bounded-exhaustive run over every dataset of 1-5 documents (15,503), 7,056 of the 12,694 datasets with an assigned-only class read higher than the mean over all classes (an independent recount: exactly those with at least one right answer) and the other 5,638 read the same; 1,299 read exactly 1.0 although some answers were wrong.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>315 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Callers of <code>getConfusionMatrix</code> who read <code class='nw'>getPrecision()</code> or <code class='nw'>getF1Measure()</code>. Inside Lucene only tests call it (a grep of <code>lucene/*/src/java</code> finds only the class itself), so the users are direct API users. <code>getPrecision(String)</code>, <code>getRecall(String)</code> and the matrix are correct.</li><li><strong>When.</strong> Whenever at least one assigned class has no evaluated document with it as the correct answer: evaluating on an index other than the training index (the reader's <code class='nw'>@param</code> describes the training index, but the module ships <code class='nw'>DatasetSplitter</code>, and its <code>Test20NewsgroupsClassification</code>, a <code class='nw'>@Monster</code> test skipped in normal runs, calls <code>getConfusionMatrix(testReader, ...)</code> on its held-out reader); any custom <code class='nw'>Classifier</code>, since <code class='nw'>assignClass</code> has no label restriction (upstream's own <code>TestConfusionMatrixGenerator</code> stub returns <code>new BytesRef()</code>, a class no document has); and, by reading only, documents that <code>getConfusionMatrix</code> leaves out (no stored class or text, a null result, the hard-coded 5-second per-call timeout, the cumulative cutoff) while their class is still assigned to others. With a built-in classifier evaluated on its own training reader and a single-valued class field it is uncommon, but it can happen: the built-in naive Bayes classifiers take their classes from the class field's index terms, which still include a class whose documents are all deleted but not yet merged away. The fact check ran this: 3 live "sports" and 30 deleted "politics" documents give <code>{sports={politics=2, sports=1}}</code> and macro precision 1.0 instead of 0.5.</li><li><strong>Default vs opt-in.</strong> No setting is needed: it is the only behaviour of <code class='nw'>getPrecision()</code>. The module is opt-in.</li><li><strong>Size.</strong> Up to the full gap to 1.0: three wrong answers out of four leave it at 1.0. Two documents are enough.</li><li><strong>Silent.</strong> A plausible number between 0 and 1, no exception, no warning. A comparison of classifiers by macro precision or F1 can favour one that sends its mistakes into a class the test set lacks.</li><li><strong>Versions.</strong> Every release from 6.1.0 (2016) to 10.5.2 and main.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit class for <code>lucene/classification</code>, public API only. Each test checks the matrix and the per-class precision first, then the macro value. The stub-classifier case and the held-out naive Bayes case fail on main, 10.5.2 and 9.12.3 with assertions on and off (the releases with assertions off in the fact check's runs); the third test, a control, passes.</p><figure class='code'><figcaption><span class='fname'>TestConfusionMatrixMacroPrecision.java (lucene/classification, public API)</span><span class='meta'>162 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.classification.utils;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.classification.ClassificationResult;
+import org.apache.lucene.classification.Classifier;
+import org.apache.lucene.classification.SimpleNaiveBayesClassifier;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * {@link ConfusionMatrixGenerator.ConfusionMatrix#getPrecision()} is &quot;the macro averaged precision
+ * (see getPrecision(String)) over all the classes&quot;. A class that the classifier assigns but that no
+ * evaluated document has as its correct answer must be part of that average.
+ */
+public class TestConfusionMatrixMacroPrecision extends LuceneTestCase {
+
+  private static final String CLASS_FIELD = &quot;category&quot;;
+  private static final String TEXT_FIELD = &quot;text&quot;;
+
+  /** Answers with the document&#x27;s text, so each test chooses the assigned class directly. */
+  private static final class EchoClassifier implements Classifier&lt;BytesRef&gt; {
+    @Override
+    public ClassificationResult&lt;BytesRef&gt; assignClass(String text) {
+      return new ClassificationResult&lt;&gt;(new BytesRef(text), 1d);
+    }
+
+    @Override
+    public List&lt;ClassificationResult&lt;BytesRef&gt;&gt; getClasses(String text) {
+      return null;
+    }
+
+    @Override
+    public List&lt;ClassificationResult&lt;BytesRef&gt;&gt; getClasses(String text, int max) {
+      return null;
+    }
+  }
+
+  private static void add(IndexWriter w, String correctClass, String text) throws IOException {
+    Document doc = new Document();
+    doc.add(new StringField(CLASS_FIELD, correctClass, Field.Store.YES));
+    doc.add(new TextField(TEXT_FIELD, text, Field.Store.YES));
+    w.addDocument(doc);
+  }
+
+  /** Four &quot;sports&quot; documents; the classifier answers &quot;politics&quot; for three of them. */
+  public void testAssignedOnlyClassCountsInMacroPrecision() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new StandardAnalyzer()))) {
+        add(w, &quot;sports&quot;, &quot;sports&quot;);
+        add(w, &quot;sports&quot;, &quot;politics&quot;);
+        add(w, &quot;sports&quot;, &quot;politics&quot;);
+        add(w, &quot;sports&quot;, &quot;politics&quot;);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        ConfusionMatrixGenerator.ConfusionMatrix cm =
+            ConfusionMatrixGenerator.getConfusionMatrix(
+                reader, new EchoClassifier(), CLASS_FIELD, TEXT_FIELD, -1);
+        assertEquals(
+            Map.of(&quot;sports&quot;, Map.of(&quot;sports&quot;, 1L, &quot;politics&quot;, 3L)), cm.getLinearizedMatrix());
+        assertEquals(1.0, cm.getPrecision(&quot;sports&quot;), 0.0); // 1 of 1 &quot;sports&quot; answers is right
+        assertEquals(0.0, cm.getPrecision(&quot;politics&quot;), 0.0); // 0 of 3 &quot;politics&quot; answers are right
+        assertEquals(
+            &quot;macro precision over sports and politics; matrix=&quot; + cm.getLinearizedMatrix(),
+            0.5,
+            cm.getPrecision(),
+            1e-12);
+      }
+    }
+  }
+
+  /**
+   * The built-in naive Bayes classifier, trained on one index and evaluated on a held-out index
+   * whose documents are all &quot;sports&quot;: it answers &quot;politics&quot; for two of the four.
+   */
+  public void testHeldOutIndexWithSimpleNaiveBayes() throws Exception {
+    Analyzer analyzer = new StandardAnalyzer();
+    try (Directory train = newDirectory();
+        Directory test = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(train, new IndexWriterConfig(analyzer))) {
+        add(w, &quot;sports&quot;, &quot;football match goal striker&quot;);
+        add(w, &quot;sports&quot;, &quot;tennis match set point&quot;);
+        add(w, &quot;sports&quot;, &quot;goal keeper football league&quot;);
+        add(w, &quot;politics&quot;, &quot;election vote parliament minister&quot;);
+        add(w, &quot;politics&quot;, &quot;parliament vote budget minister&quot;);
+      }
+      try (IndexWriter w = new IndexWriter(test, new IndexWriterConfig(analyzer))) {
+        add(w, &quot;sports&quot;, &quot;football goal match&quot;);
+        add(w, &quot;sports&quot;, &quot;tennis set point&quot;);
+        add(w, &quot;sports&quot;, &quot;federation election vote minister&quot;);
+        add(w, &quot;sports&quot;, &quot;league vote parliament minister budget&quot;);
+      }
+      try (IndexReader trainReader = DirectoryReader.open(train);
+          IndexReader testReader = DirectoryReader.open(test)) {
+        Classifier&lt;BytesRef&gt; classifier =
+            new SimpleNaiveBayesClassifier(trainReader, analyzer, null, CLASS_FIELD, TEXT_FIELD);
+        ConfusionMatrixGenerator.ConfusionMatrix cm =
+            ConfusionMatrixGenerator.getConfusionMatrix(
+                testReader, classifier, CLASS_FIELD, TEXT_FIELD, -1);
+        assertEquals(
+            Map.of(&quot;sports&quot;, Map.of(&quot;sports&quot;, 2L, &quot;politics&quot;, 2L)), cm.getLinearizedMatrix());
+        assertEquals(1.0, cm.getPrecision(&quot;sports&quot;), 0.0);
+        assertEquals(0.0, cm.getPrecision(&quot;politics&quot;), 0.0);
+        assertEquals(
+            &quot;macro precision over sports and politics; matrix=&quot; + cm.getLinearizedMatrix(),
+            0.5,
+            cm.getPrecision(),
+            1e-12);
+      }
+    }
+  }
+
+  /**
+   * Control, passes today: no assigned-only class. &quot;b&quot; is never assigned, so its precision is 0 and
+   * it is averaged in.
+   */
+  public void testNeverAssignedClassIsAveragedIn() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new StandardAnalyzer()))) {
+        add(w, &quot;a&quot;, &quot;a&quot;);
+        add(w, &quot;b&quot;, &quot;a&quot;);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        ConfusionMatrixGenerator.ConfusionMatrix cm =
+            ConfusionMatrixGenerator.getConfusionMatrix(
+                reader, new EchoClassifier(), CLASS_FIELD, TEXT_FIELD, -1);
+        assertEquals(Map.of(&quot;a&quot;, Map.of(&quot;a&quot;, 1L), &quot;b&quot;, Map.of(&quot;a&quot;, 1L)), cm.getLinearizedMatrix());
+        assertEquals(0.5, cm.getPrecision(&quot;a&quot;), 0.0);
+        assertEquals(0.0, cm.getPrecision(&quot;b&quot;), 0.0);
+        assertEquals(0.25, cm.getPrecision(), 1e-12);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestConfusionMatrixMacroPrecision.java $LUCENE/lucene/classification/src/test/org/apache/lucene/classification/utils/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:classification:test --tests TestConfusionMatrixMacroPrecision -Ptests.seed=7680E010 -Ptests.asserts=true
+# also with -Ptests.asserts=false; the result did not depend on the seed
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>getPrecision()</code> = 0.5 in both failing tests, the mean of 1.0 (sports) and 0.0 (politics).</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>getPrecision()</code> = 1.0 in both, with the per-class values 1.0 and 0.0 as expected; the control gives the correct 0.25.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-768/'>repro/LFV-768/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (462 lines) · 2,415 words</span></summary><div class='body'><p><code>TestConfusionMatrixMacroPrecision</code> indexes 2-5 tiny documents with a plain <code>IndexWriterConfig(new StandardAnalyzer())</code>, a <code class='nw'>StringField</code> class and a stored <code class='nw'>TextField</code> text. Test 1 uses a stub classifier that answers with the document's text (it stands in for any <code class='nw'>Classifier</code>); test 2 trains the built-in <code>SimpleNaiveBayesClassifier</code> on one index and evaluates it on a held-out one; test 3 is the control <code>{a={a=1}, b={a=1}}</code> (0.25), which passes today and with both fixes. It sits in <code>org.apache.lucene.classification.utils</code> next to <code>TestConfusionMatrixGenerator</code> but uses nothing package-private. It passes <code>:lucene:classification:tidy</code> and <code>check -x test</code>, compiles unchanged against 10.5.2 and 9.12.3, and gave the same result for 5 seeds on stock and 9 with a fix.</p><p>The other files: the finder's 2-test class (the sports/politics case and the a, b, c case), the independent reproducer's class with a randomized property check against an independent reference (150 datasets: 63-88 mismatches per run, none without an assigned-only class), and the number probe that prints precision, recall, F1 and accuracy on stock and patched builds.</p><div class="hd hd-3"><h3 id='code-2-h'>TestConfusionMatrixMacroPrecisionClasses.java (the finder&#x27;s test)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>2 tests: <code>{sports={politics=3, sports=1}}</code> expected 0.5, was 1.0; <code>{a={a=1, c=1}, b={b=1, c=1}}</code> expected 0.667, was 1.0. Fails 2 of 2 on main with assertions on and off, on 10.5.2 and on 9.12.3; passes with fix A.</p><figure class='code'><figcaption><span class='fname'>TestConfusionMatrixMacroPrecisionClasses.java (the finder&#x27;s test)</span><span class='meta'>122 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.classification.utils;
+
+import java.util.List;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.classification.ClassificationResult;
+import org.apache.lucene.classification.Classifier;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * ConfusionMatrix#getPrecision() is documented as &quot;the macro averaged precision (see
+ * getPrecision(String)) over all the classes&quot;, but it averages only over the classes that occur as
+ * a correct answer (the keys of the linearized matrix). A class that the classifier assigns but that
+ * no evaluated document has is left out, so its false positives disappear from the macro average.
+ */
+public class TestConfusionMatrixMacroPrecisionClasses extends LuceneTestCase {
+
+  /** answers the class stored in the document&#x27;s text field */
+  private static final class FixedAnswerClassifier implements Classifier&lt;BytesRef&gt; {
+    @Override
+    public ClassificationResult&lt;BytesRef&gt; assignClass(String text) {
+      return new ClassificationResult&lt;&gt;(new BytesRef(text), 1d);
+    }
+
+    @Override
+    public List&lt;ClassificationResult&lt;BytesRef&gt;&gt; getClasses(String text) {
+      return null;
+    }
+
+    @Override
+    public List&lt;ClassificationResult&lt;BytesRef&gt;&gt; getClasses(String text, int max) {
+      return null;
+    }
+  }
+
+  private static void add(IndexWriter w, String correct, String answer) throws Exception {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;category&quot;, correct, Field.Store.YES));
+    doc.add(new StoredField(&quot;text&quot;, answer));
+    w.addDocument(doc);
+  }
+
+  public void testPredictedOnlyClassCountsInMacroPrecision() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new StandardAnalyzer()))) {
+        // four documents of class &quot;sports&quot;; the classifier answers &quot;politics&quot; for three of them
+        add(w, &quot;sports&quot;, &quot;sports&quot;);
+        add(w, &quot;sports&quot;, &quot;politics&quot;);
+        add(w, &quot;sports&quot;, &quot;politics&quot;);
+        add(w, &quot;sports&quot;, &quot;politics&quot;);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        ConfusionMatrixGenerator.ConfusionMatrix cm =
+            ConfusionMatrixGenerator.getConfusionMatrix(
+                reader, new FixedAnswerClassifier(), &quot;category&quot;, &quot;text&quot;, -1);
+        assertEquals(4, cm.getNumberOfEvaluatedDocs());
+        // per-class precision is right: sports 1/1, politics 0/3
+        assertEquals(1.0, cm.getPrecision(&quot;sports&quot;), 0.0);
+        assertEquals(0.0, cm.getPrecision(&quot;politics&quot;), 0.0);
+        // macro average over all the classes of the matrix (sports, politics) = (1 + 0) / 2
+        assertEquals(
+            &quot;macro precision must average getPrecision(String) over all the classes, &quot;
+                + &quot;including &#x27;politics&#x27;, which the classifier answered three times; matrix=&quot;
+                + cm.getLinearizedMatrix(),
+            0.5,
+            cm.getPrecision(),
+            1e-12);
+      }
+    }
+  }
+
+  public void testMacroPrecisionMatchesAverageOfPerClassPrecision() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new StandardAnalyzer()))) {
+        // two correct classes; the classifier also answers a third class &quot;c&quot; that no document has
+        add(w, &quot;a&quot;, &quot;a&quot;);
+        add(w, &quot;a&quot;, &quot;c&quot;);
+        add(w, &quot;b&quot;, &quot;b&quot;);
+        add(w, &quot;b&quot;, &quot;c&quot;);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        ConfusionMatrixGenerator.ConfusionMatrix cm =
+            ConfusionMatrixGenerator.getConfusionMatrix(
+                reader, new FixedAnswerClassifier(), &quot;category&quot;, &quot;text&quot;, -1);
+        double avg = (cm.getPrecision(&quot;a&quot;) + cm.getPrecision(&quot;b&quot;) + cm.getPrecision(&quot;c&quot;)) / 3;
+        assertEquals(1.0, cm.getPrecision(&quot;a&quot;), 0.0);
+        assertEquals(1.0, cm.getPrecision(&quot;b&quot;), 0.0);
+        assertEquals(0.0, cm.getPrecision(&quot;c&quot;), 0.0);
+        assertEquals(
+            &quot;macro precision over the classes a, b, c; matrix=&quot; + cm.getLinearizedMatrix(),
+            avg,
+            cm.getPrecision(),
+            1e-12);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestConfusionMatrixMacroPrecisionV1.java (independent reproducer)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>3 tests with other data: gold a, a, b, b answered a, x, b, x (1.0 instead of 0.667); a randomized property check against an independent tp / (tp + fp) reference averaged over all observed classes; and a control. Fails 2 of 3 on main, 10.5.2 and 9.12.3; passes 3 of 3 with fix A or B (0 of 150 mismatches).</p><figure class='code'><figcaption><span class='fname'>TestConfusionMatrixMacroPrecisionV1.java (independent reproducer)</span><span class='meta'>243 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.classification.utils;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeSet;
+import org.apache.lucene.classification.ClassificationResult;
+import org.apache.lucene.classification.Classifier;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Independent check of ConfusionMatrix.getPrecision() (macro average). Only public API is used:
+ * documents are indexed, a fixed lookup classifier answers, and the matrix comes from
+ * ConfusionMatrixGenerator.getConfusionMatrix.
+ */
+public class TestConfusionMatrixMacroPrecisionV1 extends LuceneTestCase {
+
+  private static final String CLASS_FIELD = &quot;cat&quot;;
+  private static final String TEXT_FIELD = &quot;body&quot;;
+
+  /** Classifier that answers from a fixed text -&gt; label table. */
+  private static Classifier&lt;BytesRef&gt; lookupClassifier(Map&lt;String, String&gt; answers) {
+    return new Classifier&lt;BytesRef&gt;() {
+      @Override
+      public ClassificationResult&lt;BytesRef&gt; assignClass(String text) {
+        String label = answers.get(text);
+        return label == null ? null : new ClassificationResult&lt;&gt;(new BytesRef(label), 1d);
+      }
+
+      @Override
+      public List&lt;ClassificationResult&lt;BytesRef&gt;&gt; getClasses(String text) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public List&lt;ClassificationResult&lt;BytesRef&gt;&gt; getClasses(String text, int max) {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
+
+  /** gold[i] is the correct class of document i, pred[i] the classifier&#x27;s answer for it. */
+  private static ConfusionMatrixGenerator.ConfusionMatrix matrix(String[] gold, String[] pred)
+      throws IOException {
+    assertEquals(gold.length, pred.length);
+    Map&lt;String, String&gt; answers = new HashMap&lt;&gt;();
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+      for (int i = 0; i &lt; gold.length; i++) {
+        String text = &quot;text&quot; + i;
+        answers.put(text, pred[i]);
+        Document doc = new Document();
+        doc.add(new StringField(CLASS_FIELD, gold[i], Field.Store.YES));
+        doc.add(new TextField(TEXT_FIELD, text, Field.Store.YES));
+        w.addDocument(doc);
+      }
+      w.commit();
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        ConfusionMatrixGenerator.ConfusionMatrix cm =
+            ConfusionMatrixGenerator.getConfusionMatrix(
+                reader, lookupClassifier(answers), CLASS_FIELD, TEXT_FIELD, -1);
+        assertEquals(gold.length, cm.getNumberOfEvaluatedDocs());
+        return cm;
+      }
+    }
+  }
+
+  /** Reference per-class precision tp/(tp+fp), 0 when the class was never assigned. */
+  private static double refPrecision(String klass, String[] gold, String[] pred) {
+    int tp = 0;
+    int assigned = 0;
+    for (int i = 0; i &lt; gold.length; i++) {
+      if (pred[i].equals(klass)) {
+        assigned++;
+        if (gold[i].equals(klass)) {
+          tp++;
+        }
+      }
+    }
+    return assigned == 0 ? 0d : (double) tp / assigned;
+  }
+
+  private static double refMacroPrecision(TreeSet&lt;String&gt; classes, String[] gold, String[] pred) {
+    double sum = 0;
+    for (String k : classes) {
+      sum += refPrecision(k, gold, pred);
+    }
+    return sum / classes.size();
+  }
+
+  private static TreeSet&lt;String&gt; labels(String[]... arrays) {
+    TreeSet&lt;String&gt; s = new TreeSet&lt;&gt;();
+    for (String[] a : arrays) {
+      for (String x : a) {
+        s.add(x);
+      }
+    }
+    return s;
+  }
+
+  /**
+   * Classes a and b, two documents each. Each class gets one right answer and one wrong answer
+   * &#x27;x&#x27;, a label no document has. Half of the answers are wrong, and &#x27;x&#x27; was assigned twice and
+   * was wrong both times (getPrecision(&quot;x&quot;) is 0), so the macro average over the classes a, b, x is
+   * (1 + 1 + 0) / 3.
+   */
+  public void testWrongAnswersIntoUnseenLabel() throws IOException {
+    String[] gold = {&quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;};
+    String[] pred = {&quot;a&quot;, &quot;x&quot;, &quot;b&quot;, &quot;x&quot;};
+    ConfusionMatrixGenerator.ConfusionMatrix cm = matrix(gold, pred);
+
+    Map&lt;String, Map&lt;String, Long&gt;&gt; expectedMatrix = new HashMap&lt;&gt;();
+    expectedMatrix.put(&quot;a&quot;, Map.of(&quot;a&quot;, 1L, &quot;x&quot;, 1L));
+    expectedMatrix.put(&quot;b&quot;, Map.of(&quot;b&quot;, 1L, &quot;x&quot;, 1L));
+    assertEquals(expectedMatrix, cm.getLinearizedMatrix());
+
+    // per-class precision is right, including the assigned-only class x
+    assertEquals(1d, cm.getPrecision(&quot;a&quot;), 1e-12);
+    assertEquals(1d, cm.getPrecision(&quot;b&quot;), 1e-12);
+    assertEquals(0d, cm.getPrecision(&quot;x&quot;), 1e-12);
+
+    double expected = (cm.getPrecision(&quot;a&quot;) + cm.getPrecision(&quot;b&quot;) + cm.getPrecision(&quot;x&quot;)) / 3;
+    assertEquals(
+        &quot;macro precision over the classes {a, b, x}; matrix=&quot;
+            + cm.getLinearizedMatrix()
+            + &quot; F1=&quot;
+            + cm.getF1Measure()
+            + &quot; recall=&quot;
+            + cm.getRecall(),
+        expected,
+        cm.getPrecision(),
+        1e-12);
+  }
+
+  /**
+   * Control: the same data, but the wrong answers go to the other existing class. No label is
+   * assigned-only, and macro precision is (1/2 + 1/2) / 2 = 0.5. This passes on the code under test.
+   */
+  public void testControlWrongAnswersIntoExistingLabel() throws IOException {
+    String[] gold = {&quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;};
+    String[] pred = {&quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;a&quot;};
+    ConfusionMatrixGenerator.ConfusionMatrix cm = matrix(gold, pred);
+    assertEquals(0.5d, cm.getPrecision(&quot;a&quot;), 1e-12);
+    assertEquals(0.5d, cm.getPrecision(&quot;b&quot;), 1e-12);
+    assertEquals(&quot;matrix=&quot; + cm.getLinearizedMatrix(), 0.5d, cm.getPrecision(), 1e-12);
+  }
+
+  /**
+   * Random datasets (gold in {a,b,c}, answers in {a,b,c,d}): compares getPrecision() with an
+   * independent reference that averages tp/(tp+fp) over the union of the correct and the assigned
+   * labels. Also records whether the result equals the average over the correct labels only.
+   */
+  public void testRandomDatasetsAgainstReference() throws IOException {
+    String[] goldLabels = {&quot;a&quot;, &quot;b&quot;, &quot;c&quot;};
+    String[] predLabels = {&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;};
+    int datasets = 150;
+    int mismatches = 0;
+    int mismatchesWithoutAssignedOnly = 0;
+    int withAssignedOnly = 0;
+    int equalsGoldOnlyMean = 0;
+    int implementationLower = 0;
+    List&lt;String&gt; examples = new ArrayList&lt;&gt;();
+    for (int t = 0; t &lt; datasets; t++) {
+      int n = 1 + random().nextInt(7);
+      String[] gold = new String[n];
+      String[] pred = new String[n];
+      for (int i = 0; i &lt; n; i++) {
+        gold[i] = goldLabels[random().nextInt(goldLabels.length)];
+        pred[i] = predLabels[random().nextInt(predLabels.length)];
+      }
+      ConfusionMatrixGenerator.ConfusionMatrix cm = matrix(gold, pred);
+      double actual = cm.getPrecision();
+      TreeSet&lt;String&gt; goldSet = labels(gold);
+      TreeSet&lt;String&gt; union = labels(gold, pred);
+      boolean assignedOnly = union.size() &gt; goldSet.size();
+      if (assignedOnly) {
+        withAssignedOnly++;
+      }
+      double refUnion = refMacroPrecision(union, gold, pred);
+      double refGold = refMacroPrecision(goldSet, gold, pred);
+      if (Math.abs(actual - refGold) &lt; 1e-12) {
+        equalsGoldOnlyMean++;
+      }
+      if (Math.abs(actual - refUnion) &gt; 1e-12) {
+        mismatches++;
+        if (!assignedOnly) {
+          mismatchesWithoutAssignedOnly++;
+        }
+        if (actual &lt; refUnion) {
+          implementationLower++;
+        }
+        if (examples.size() &lt; 3) {
+          examples.add(
+              &quot;matrix=&quot; + cm.getLinearizedMatrix() + &quot; got=&quot; + actual + &quot; expected=&quot; + refUnion);
+        }
+      }
+    }
+    String summary =
+        &quot;datasets=&quot;
+            + datasets
+            + &quot; withAssignedOnlyLabel=&quot;
+            + withAssignedOnly
+            + &quot; mismatches=&quot;
+            + mismatches
+            + &quot; mismatchesWithoutAssignedOnlyLabel=&quot;
+            + mismatchesWithoutAssignedOnly
+            + &quot; implementationLowerThanReference=&quot;
+            + implementationLower
+            + &quot; equalsCorrectLabelsOnlyMean=&quot;
+            + equalsGoldOnlyMean
+            + &quot; examples=&quot;
+            + examples;
+    System.out.println(&quot;V1-SUMMARY &quot; + summary);
+    assertEquals(summary, 0, mismatches);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestConfusionMatrixMetricsProbe.java (number probe)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Prints <code class='nw'>getPrecision()</code>, <code class='nw'>getRecall()</code>, <code class='nw'>getF1Measure()</code> and <code class='nw'>getAccuracy()</code> for four small datasets; always passes. Used for the stock and fix numbers on this page.</p><figure class='code'><figcaption><span class='fname'>TestConfusionMatrixMetricsProbe.java (number probe)</span><span class='meta'>97 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.classification.utils;
+
+import java.io.IOException;
+import java.util.List;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.classification.ClassificationResult;
+import org.apache.lucene.classification.Classifier;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Number probe (always passes): prints getPrecision(), getRecall(), getF1Measure() and getAccuracy()
+ * for a few small (correct class, assigned class) datasets, to compare stock and patched builds.
+ */
+public class TestConfusionMatrixMetricsProbe extends LuceneTestCase {
+
+  private static final class EchoClassifier implements Classifier&lt;BytesRef&gt; {
+    @Override
+    public ClassificationResult&lt;BytesRef&gt; assignClass(String text) {
+      return new ClassificationResult&lt;&gt;(new BytesRef(text), 1d);
+    }
+
+    @Override
+    public List&lt;ClassificationResult&lt;BytesRef&gt;&gt; getClasses(String text) {
+      return null;
+    }
+
+    @Override
+    public List&lt;ClassificationResult&lt;BytesRef&gt;&gt; getClasses(String text, int max) {
+      return null;
+    }
+  }
+
+  private static void probe(String name, String... correctThenAssigned) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new StandardAnalyzer()))) {
+        for (int i = 0; i &lt; correctThenAssigned.length; i += 2) {
+          Document doc = new Document();
+          doc.add(new StringField(&quot;category&quot;, correctThenAssigned[i], Field.Store.YES));
+          doc.add(new TextField(&quot;text&quot;, correctThenAssigned[i + 1], Field.Store.YES));
+          w.addDocument(doc);
+        }
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        ConfusionMatrixGenerator.ConfusionMatrix cm =
+            ConfusionMatrixGenerator.getConfusionMatrix(
+                reader, new EchoClassifier(), &quot;category&quot;, &quot;text&quot;, -1);
+        System.out.println(
+            &quot;PROBE &quot;
+                + name
+                + &quot; matrix=&quot;
+                + cm.getLinearizedMatrix()
+                + &quot; precision=&quot;
+                + cm.getPrecision()
+                + &quot; recall=&quot;
+                + cm.getRecall()
+                + &quot; f1=&quot;
+                + cm.getF1Measure()
+                + &quot; accuracy=&quot;
+                + cm.getAccuracy());
+      }
+    }
+  }
+
+  public void testPrintMetrics() throws Exception {
+    probe(&quot;sports-politics&quot;, &quot;sports&quot;, &quot;sports&quot;, &quot;sports&quot;, &quot;politics&quot;, &quot;sports&quot;, &quot;politics&quot;,
+        &quot;sports&quot;, &quot;politics&quot;);
+    probe(&quot;abc&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;c&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;c&quot;);
+    probe(&quot;control-a-b&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;a&quot;);
+    probe(&quot;control-balanced&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;a&quot;);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also 10.5.2 and 9.12.3 (release jars, test unchanged)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java arithmetic; only this platform was run)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestConfusionMatrixMacroPrecision.java $LUCENE/lucene/classification/src/test/org/apache/lucene/classification/utils/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:classification:test --tests TestConfusionMatrixMacroPrecision -Ptests.seed=7680E010 -Ptests.asserts=true
+# also with -Ptests.asserts=false; the result did not depend on the seed
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, seed 7680E010, assertions on (the same with them off, seed 7680E011)
+TestConfusionMatrixMacroPrecision &gt; testHeldOutIndexWithSimpleNaiveBayes FAILED
+    java.lang.AssertionError: macro precision over sports and politics; matrix={sports={politics=2, sports=2}} expected:&lt;0.5&gt; but was:&lt;1.0&gt;
+TestConfusionMatrixMacroPrecision &gt; testAssignedOnlyClassCountsInMacroPrecision FAILED
+    java.lang.AssertionError: macro precision over sports and politics; matrix={sports={politics=3, sports=1}} expected:&lt;0.5&gt; but was:&lt;1.0&gt;
+3 tests completed, 2 failed
+
+# the same two failures through the standalone runner on main (assertions on and off), 10.5.2 and 9.12.3
+# with fix A or fix B: 3 tests completed, 0 failed
+
+# number probe (precision / recall / F1)           stock              fix A                fix B
+# {sports={sports=1, politics=3}}                   1.0 / 0.25 / 0.4   0.5 / 0.25 / 0.333   0.5 / 0.125 / 0.2
+# {a={a=1, c=1}, b={b=1, c=1}}                      1.0 / 0.5 / 0.667  0.667 / 0.5 / 0.571  0.667 / 0.333 / 0.444
+# {a={a=1}, b={a=1}} (control)                      0.25 / 0.5 / 0.333 unchanged            unchanged</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc promises the macro average "over all the classes", and <code>getPrecision("politics")</code> is defined: 0.0.</li><li>LUCENE-7305 added it "to avoid bias ... from imbalanced classes"; dropping these classes biases it upward only.</li><li>A never-assigned class (0/0) is averaged in as 0, an always-wrong one (0/3) is left out; no doc, test or issue asks for that.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>294 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code class='nw'>getPrecision()</code>: "get the macro averaged precision (see {@link #getPrecision(String)}) over all the classes." (<code>ConfusionMatrixGenerator.java:287</code>). It points to the per-class method, which accepts any class and is defined for an assigned-only class. The classes of a confusion matrix are its rows and its columns.</li><li><strong>Stated goal.</strong> LUCENE-7305 (#8359), which introduced the macro average: "<code class='nw'>ConfusionMatrix</code> multi class measures should be based on macro average to avoid bias (for the good or the bad) from imbalanced classes." A class with zero correct-answer documents is the extreme imbalance.</li><li><strong>Not an "undefined values are skipped" rule.</strong> A correct-answer class that is never assigned has precision 0/0; <code>getPrecision(String)</code> returns 0 for it and it is averaged in (control: 0.25). The assigned-only class has a defined precision of 0 and is the one left out.</li><li><strong>Not a "gold classes" rule either.</strong> With a multi-valued class field a wrong answer is filed under <code>correctAnswers[0]</code> only (<code class='nw'>:118-123</code>): gold {a, b} answered c plus gold {c} answered c gives rows {a, c}, so "b", a correct answer, has no row (executed by the devil's advocate). The row set is a by-product of how documents are filed.</li><li><strong>Nothing documents or tests it.</strong> No javadoc, CHANGES or MIGRATE entry; every aggregate assertion in the upstream tests is only 0 &lt;= value &lt;= 1, including the test whose stub assigns a class no document has; the five related issues (#7538, #7912, #8211, #8248, #8359) have one-line bodies (a feature or fix request each) and only commit notices as comments, plus one thank-you; none discusses which classes the averages run over.</li><li><strong>History.</strong> The row-only loop came from LUCENE-6854 (<code class='nw'>d9f4eb84cfb</code>, 2016-01-08), when <code class='nw'>getPrecision()</code> was a micro average; LUCENE-7305 (<code class='nw'>dc50b79a146</code>) kept the loop and changed the formula around it.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>257 words</span></summary><div class='body'><p>The strongest "works as designed" case (the cross-model reviews rated it moderate; the devil's advocate moderate overall, strong for recall and weak for precision; the independent reproducer moderate-to-weak): <code>getLinearizedMatrix()</code> documents its keys as the correct answers, so "all the classes" can mean "all the correct-answer classes"; averaging over the test set's classes is a recognized convention (Weka 3.8's <code>unweightedMacroFmeasure</code> skips classes with no test instance "since recall is undefined there anyway"; scikit-learn with <code class='nw'>labels</code> set to the gold labels gives Lucene's numbers); <code>getConfusionMatrix</code> documents its reader as "the IndexReader containing the index used for creating the Classifier", and with that setup the built-in classifiers rarely assign a class with no evaluated document; and precision is not meant to count misses, while macro recall (0.25) does show them.</p><p>Why it fails for precision: Weka's reason, undefined recall, does not apply to precision, which is defined and 0; the code does not implement the gold-class convention (multi-valued case); scikit-learn's default macro average uses the union of true and predicted labels (0.5 and 0.667 on the two examples); the module's own split workflow (a <code class='nw'>@Monster</code> test, and a use the reader's <code class='nw'>@param</code> does not describe) evaluates on another reader, where the built-in naive Bayes classifier reads 1.0 with half its answers wrong; even the training reader can produce it; and nothing documents the exclusion. The union is one recognized convention, not the only one. A javadoc fix is still a legitimate answer for the maintainers. Recall is not claimed: a class that is never a correct answer has recall 0/0.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Average precision over the rows and columns; document recall's set (fix A)</strong></p><p class='short'>Average <code>getPrecision(String)</code> over the union of the matrix's rows and columns, the correct and the assigned classes (+13/-5 lines with javadoc), and document that <code class='nw'>getRecall()</code> averages over the correct answers. Nothing changes when every assigned class is also a correct answer. The new test and the whole classification suite pass with it.</p><pre class='snippet' tabindex='0'><code>public double getPrecision() {
+  // a class that is assigned but never a correct answer is only a column key
+  Set&lt;String&gt; classes = new HashSet&lt;&gt;(linearizedMatrix.keySet());
+  for (Map&lt;String, Long&gt; answers : linearizedMatrix.values()) {
+    classes.addAll(answers.keySet());
+  }
+  double p = 0;
+  for (String klass : classes) {
+    p += getPrecision(klass);
+  }
+
+  return p / classes.size();
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 661 words</span></summary><div class='body'><p>Fix A is the narrow change; fix B uses one class set for both macro averages. Both were validated the same way. The choice between them, or a javadoc-only answer (C), is the maintainers': say in the issue that recall uses the same row-only loop but that the recall of a class that is never a correct answer is 0/0.</p><div class="hd hd-3"><h3 id='fix-precision-union'>Average precision over the rows and columns; document recall's set (fix A) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-precision-union" target="_self" aria-label="Link to this section" aria-describedby="fix-precision-union"><span aria-hidden="true">#</span></a></div><p><code>ConfusionMatrixGenerator.getPrecision()</code> collects the row keys and every inner key into a set and averages <code>getPrecision(klass)</code> over it; the javadoc of <code class='nw'>getPrecision()</code> names the set, and the javadoc of <code class='nw'>getRecall()</code> says it averages over the correct answers. The algorithm is the finder's fix sketch, with a revised comment and javadoc. With a multi-valued class field the matrix keys are the correct answer each document is filed under, so the owner may word recall's javadoc that way.</p><pre class='snippet' tabindex='0'><code>public double getPrecision() {
+  // a class that is assigned but never a correct answer is only a column key
+  Set&lt;String&gt; classes = new HashSet&lt;&gt;(linearizedMatrix.keySet());
+  for (Map&lt;String, Long&gt; answers : linearizedMatrix.values()) {
+    classes.addAll(answers.keySet());
+  }
+  double p = 0;
+  for (String klass : classes) {
+    p += getPrecision(klass);
+  }
+
+  return p / classes.size();
+}</code></pre><p class='k'>Trade-offs</p><ul><li>No change when every assigned class is also a correct answer (both controls unchanged); an empty matrix still gives NaN (0/0), as today.</li><li>Precision and recall then average over different class sets and <code class='nw'>getF1Measure()</code> combines them; the javadoc says so. Lead example: F1 0.4 becomes 0.333.</li><li>Cost: one extra pass over the matrix, negligible next to classifying the documents.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: the new test passes 3 of 3 together with <code>TestConfusionMatrixGenerator</code> (2 suites, 10 tests); the whole <code>:lucene:classification:test</code> passes with assertions on and off (13 suites, 46 tests, 1 <code class='nw'>@Monster</code> test skipped, 0 failures each); <code>:lucene:classification:check -x test</code> (google-java-format, ecj lint, forbidden APIs) passes.</li><li>Standalone runner with the fix shadowed: the new test 3 of 3 with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the finder's test 2 of 2; the independent reproducer's test 3 of 3 (0 of 150 property mismatches). Earlier, the finder's equivalent code brought the exhaustive harness to 0 macro-precision mismatches against the all-classes mean over the 15,448 datasets with an evaluated document (macro recall and F1, which fix A leaves alone, still differ in 7,056), and made the 6.1.0 port pass.</li></ul><div class="hd hd-3"><h3 id='fix-both-union'>One class set for both macro averages (fix B) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-both-union" target="_self" aria-label="Link to this section" aria-describedby="fix-both-union"><span aria-hidden="true">#</span></a></div><p>A private <code class='nw'>getClasses()</code> returns the rows plus the columns; <code class='nw'>getPrecision()</code> and <code class='nw'>getRecall()</code> both average over it, and both javadocs say "over all the classes: the correct answers and the assigned classes" (+24/-8).</p><p class='k'>Trade-offs</p><ul><li>Matches scikit-learn's default macro average for both metrics, and F1 is computed on one set.</li><li>Also lowers <code class='nw'>getRecall()</code>: an assigned-only class adds a recall of 0 (the code's 0-for-undefined convention), so the lead example's macro recall goes from 0.25 to 0.125 and F1 from 0.4 to 0.2. Under the Weka convention that recall is undefined and should be skipped.</li></ul><p class='k'>What the checks validated</p><p>Scratch worktree, gradle: the new test with <code>TestConfusionMatrixGenerator</code> (2 suites, 10 tests), the whole <code>:lucene:classification:test</code> with assertions on and off (13 suites, 46 tests, 1 skipped, 0 failures each) and <code>:lucene:classification:check -x test</code> pass. Standalone runner: the new test 3 of 3, the independent reproducer's test 3 of 3.</p><div class="hd hd-3"><h3 id='fix-javadoc-only'>Document the row-only set (fix C)</h3><a class="hlink" href="#fix-javadoc-only" target="_self" aria-label="Link to this section" aria-describedby="fix-javadoc-only"><span aria-hidden="true">#</span></a></div><p>Say in the javadoc of <code class='nw'>getPrecision()</code> and <code class='nw'>getRecall()</code> that they average over the keys of <code>getLinearizedMatrix()</code> (the correct answer each document is filed under) and that classes only ever assigned are not counted.</p><p class='k'>Trade-offs</p><p>No behaviour change, so the upward bias stays, but it becomes documented. Nothing to run.</p><div class="hd hd-3"><h3 id='fix-caller-class-set'>Let the caller pass the class set (not built)</h3><a class="hlink" href="#fix-caller-class-set" target="_self" aria-label="Link to this section" aria-describedby="fix-caller-class-set"><span aria-hidden="true">#</span></a></div><p>An overload such as <code>getPrecision(Collection&lt;String&gt; classes)</code>, so a caller can average over the classifier's full label set, for example the class field's terms.</p><p class='k'>Trade-offs</p><p>New API; leaves the default as it is unless combined with A or B.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>A product that gates a model rollout or a threshold on this macro precision or F1 would base that decision on a number that is too high.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An AI finder drove the public <code>getConfusionMatrix</code> with a stub classifier over every dataset of 1 to 5 documents (15,503) and compared each metric with reference formulas. Per-class precision, recall and F1 always matched; macro precision was above the mean over all the matrix's classes in 7,056 datasets. It then reduced this to a public-API JUnit test.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>237 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong>, bounded-exhaustive translation validation: the real metrics against reference formulas (per class, and macro averages over all the matrix's classes and over the correct-answer classes), over every case in a small bounded space, on the stock main jar.</p><ul><li>Space: every multiset of 1-5 evaluated documents, correct class in {a, b, c}, assigned class in {a, b, c, d}, or a null result, which leaves the document out: 15,503 datasets, each driven through the public <code>getConfusionMatrix</code> with a stub classifier.</li><li>Result: per-class precision, recall and F1 equal their formulas in all 15,448 datasets with an evaluated document (the 55 with none give NaN). Macro precision differs from the mean over all the matrix's classes in 7,056 (always higher) and equals the mean over the correct-answer classes only in all 15,448. That pointed straight at the label set of the macro loop. The harness also recorded 7,056 macro-recall and macro-F1 differences from the all-classes reference (recall is not claimed) and 13,950 <code class='nw'>getAccuracy()</code> differences from correct / evaluated (a separate, unregistered lead).</li><li>With the union fix, the harness has 0 macro-precision mismatches against the all-classes mean and 7,056 against the correct-answer-only mean (macro recall and F1, untouched by the fix, still differ in 7,056), so the harness tells the two readings apart.</li><li>The finder then wrote the 2-test JUnit; an independent reproducer, the cross-model reviews, a devil's advocate, an adjudication and an audit each re-ran or rewrote it.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-27): 228 tool queries and 30 direct and web searches over GitHub issues, PRs and commits, JIRA, four mailing lists and downstream projects, every classification-module issue and PR, and the files of all 408 open PRs. The nearest items are the 2016 issues that added these metrics.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Keyword search only: GitHub search reads at most 50 results per query, two web queries were throttled, and private reports are not visible. None of the hits is by the owner. Nearest items, none the same bug: #8359 / LUCENE-7305 (introduced the macro average; one-line body, commit notices only); #7912 / LUCENE-6854 (added the global metrics and the row-key loop); #8248 / LUCENE-7193 (added <code class='nw'>getF1Measure()</code>); #8211 / LUCENE-7156 (an earlier, different precision bug, fixed in 2016); #7538 / LUCENE-6479 (created the class); #8251 / LUCENE-7196 (the splitter should put every class into each split; bears on reach only); SOLR-13903 (Solr's own streaming confusion matrix, other code). Hunt-internal: LFV-633 (a timed-out classification blocks later documents) is another bug in the same class with a different fix site.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), downstream repositories</th><td class='when'>2026-10-27</td><td>the scripted prior-report search in three runs (45, 45 and 98 queries: ConfusionMatrixGenerator, ConfusionMatrix, getPrecision, macro average, confusion matrix precision, symptom phrases) plus a devil's-advocate run of 40; gh search issues with 6 phrasings; 7 search/issues queries, also on apache/solr and two downstream search engines</td><td>no report; history items only</td></tr><tr><th scope='row'>Classification module items and open PRs</th><td class='when'>2026-10-27</td><td>all 47 issues and 24 PRs labelled module:classification (by title); the file lists of all 408 open PRs; the file's commit list on upstream main</td><td>no open PR touches ConfusionMatrixGenerator.java; the file's last change (#16255) is unrelated</td></tr><tr><th scope='row'>JIRA and mailing lists</th><td class='when'>2026-10-27</td><td>component modules/classification (47 issues), "classification AND confusion" (11), full comments of LUCENE-4345, 6479, 6854, 7156, 7305, 7196, 6852, 2878 and SOLR-13903; dev@, java-user@, issues@ and commits@ through the tool runs</td><td>only the feature issues, commit notices and JIRA notification mails</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-27</td><td>6 general web queries (2 more throttled)</td><td>no Lucene-specific hit</td></tr><tr><th scope='row'>Code history</th><td class='when'>2026-10-27</td><td>git log --follow on the file, -S 'p / linearizedMatrix.size()', message greps for confusion, macro and classification</td><td>the loop is unchanged since LUCENE-7305; no CHANGES entry ever mentioned these metrics</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 6.1.0 by LUCENE-7305 (2016), which made <code class='nw'>getPrecision()</code> a macro average over the matrix rows. All 90 releases from 6.1.0 to 10.5.2 and main were run and are affected; 6.0.x had an older, different formula error. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-7305 (#8359, "Use macro average in confusion matrix metrics to normalize imbalanced classes", @tteofili; a JIRA patch, no pull request, no CHANGES entry): trunk <code class='nw'>dc50b79a146</code> (2016-05-26) and the same-day branch_6x cherry-pick <code class='nw'>55d854566e1</code>, which ships in 6.1.0. It replaced the micro average with <code>p += getPrecision(klass)</code> over <code>linearizedMatrix.entrySet()</code> and <code>p / linearizedMatrix.size()</code>. <code>git log -L</code> shows no later change to the method; <code>git blame -w</code> gives the sum and divisor to that commit and the row-key loop to LUCENE-6854 (<code class='nw'>d9f4eb84cfb</code>, 2016-01-08). Upstream main <code class='nw'>f7bcc0abd816</code> (2026-10-27), branch_10x and branch_10_6 carry the unchanged method.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test: 2 of 3 fail (gradle and the standalone runner, assertions on and off), 1.0 instead of 0.5 twice; the control passes</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test: 2 of 3 fail, the same numbers (release jars, test unchanged)</td></tr><tr><th scope='row'>6.1.0 to 10.5.2 (90 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> release sweep</span></td><td>version-independent port: 1.0 instead of 0.5 and 0.667; its control 0.833 correct on every release (assertions on; 6.1.0 also with them off)</td></tr><tr><th scope='row'>6.1.0 with only <code class='nw'>getPrecision()</code> fixed</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the port passes (0.5, 0.667, control unchanged): the same lines are at fault from the first release</td></tr><tr><th scope='row'>6.0.0, 6.0.1</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> precursor</span></td><td>1.0 on both examples, but <code class='nw'>getPrecision()</code> was a micro average with a different formula error (control 0.6 instead of 0.75), reworked before 6.1.0 by LUCENE-7156, LUCENE-7193 and LUCENE-7305, the last replacing it with the macro average</td></tr><tr><th scope='row'>5.5.5 and earlier</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>no ConfusionMatrixGenerator (compile error)</td></tr><tr><th scope='row'>fix A or fix B on main</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>this doc's test and the independent reproducer's test pass with either fix (the finder's test with fix A); the whole classification suite passes</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate, an adjudication, the follow-up re-runs and an audit confirmed it with executed tests; read-only reviews by another model family (OpenAI GPT-5.6) agreed on the root cause. This doc's gradle runs reproduced it on main <code class='nw'>a9779ef3c193</code> and validated both fixes.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>408 words</span></summary><div class='body'><p>Gap: neither cross-model review could execute code (their client allowed reading only), so all execution evidence comes from the hunt's own AI tools (one model family) and a separate run' own runs. The refute lens's "not real" is procedural: it agreed on the root cause and that the inputs are legal.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>The exhaustive check flagged 7,056 of 15,503 datasets; the JUnit test fails 2 of 2 on main with assertions on and off, on 10.5.2 and on 9.12.3, and passes with the union fix; the 42 upstream classification tests stay green.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real (low, procedural only)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) could only read code: it agreed on the root cause and that the inputs are in contract, rated the intended argument moderate, and worked a hand example (A answered A, B answered C: 1/2 instead of 1/3).</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium), intended argument moderate</span></td><td>Read-only as well; a separate run's own test of the hand example fails on main and 10.5.2 and passes with the fix; a scikit-learn reference gives 0.5 and 0.667 with its default label set.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test written from the claim: fails 2 of 3 on main (assertions on and off), 10.5.2 and 9.12.3; the property check finds 63-88 mismatches per 150 datasets, none without an assigned-only class; passes with the fix.</td></tr><tr><th scope='row'>devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>Built the strongest intended case (gold-class convention, Weka, same-reader use) and showed why it fails for precision: the held-out naive Bayes case reads 1.0, and with a multi-valued class field a correct-answer class can have no row.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (medium), minor</span></td><td>Re-ran the independent reproducer's test with assertions off and the finder's test with them on, new seeds: both fail as recorded; not a duplicate; filing caveats on framing, recall and wording.</td></tr><tr><th scope='row'>Follow-up and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Follow-up re-runs with fresh seeds (finder's test 2 of 2 fail, the reproducer's 2 of 3, the fix 2 of 2 pass), the 90-release sweep and the prior-art search; an independent audit re-ran two tests and kept the row as minor.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fixes A and B validated</span></td><td>New 3-test JUnit through gradle and the standalone runner (main with assertions on and off, 10.5.2, 9.12.3); both fixes pass it, the whole classification suite and the static checks.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-768/bug.png' download='confusionmatrix-macro-precision-ignores-predicted-only-classes-bug.png' target='_self'>PNG</a> <span class='n'>433 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,586 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-768, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>ConfusionMatrix.getPrecision() leaves out classes that are assigned but never the correct answer, so their false positives do not lower macro precision (1.0 instead of 0.5 when 3 of 4 'sports' documents are answered 'politics')</dd></div><div><dt>Area</dt><dd>classification / ConfusionMatrixGenerator.ConfusionMatrix (classifier evaluation utility: macro-averaged precision)</dd></div><div><dt>Priority</dt><dd>Medium, rank 198: ConfusionMatrixGenerator silently overstates macro precision and F1 in the ordinary case where some class is only ever assigned, the same silent wrong evaluation output as the Medium DatasetSplitter utility rows, so it closes the classification block right after LFV-682 instead of sitting in Low with the timeout row LFV-633.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Applications or tests that evaluate a Classifier with ConfusionMatrixGenerator.getConfusionMatrix (an opt-in evaluation utility in lucene/classification; in-tree only tests call it) and read getPrecision() or getF1Measure() get an overstated macro precision, with no error, whenever the classifier assigns at least one class that no evaluated document has as its correct answer (for example a class missing from a held-out test split, or any label a custom Classifier returns): that class's false positives are left out (minimal case 1.0 instead of 0.5; the built-in SimpleNaiveBayesClassifier evaluated on a held-out index reads 1.0 with half its answers wrong); per-class getPrecision(String) stays correct, no index, search or stored data is touched, and it is in every release from 6.1.0 to 10.5.2 and main.</dd></div><div><dt>Summary</dt><dd>You evaluate a classifier with ConfusionMatrixGenerator.getConfusionMatrix and read ConfusionMatrix.getPrecision(), documented as 'the macro averaged precision (see getPrecision(String)) over all the classes', and expect the mean of getPrecision(String) over every class in the matrix, including a class the classifier assigned but that no evaluated document has as its correct answer (its per-class precision is correctly 0). Instead getPrecision() averages only over the matrix's row keys, which are the correct answers, so such an assigned-only class is left out of both the sum and the count: four 'sports' documents of which three are answered 'politics' give macro precision 1.0 instead of 0.5, and getF1Measure(), which is built from it, is overstated too.</dd></div><div><dt>Introduced</dt><dd>dc50b79a146d95b8dd6d68523adfcedb2440a0e2 (trunk, 2016-05-26, author and committer tteofili): LUCENE-7305 'Use macro average in confusion matrix metrics to normalize imbalanced classes' (migrated as apache/lucene#8359; JIRA patch era, no pull request; JIRA fix version 6.1, no CHANGES.txt entry); the same-day branch_6x cherry-pick 55d854566e1e3c14cd91d91f414469104c935103 is the commit that ships in 6.1.0. It replaced the micro-averaged getPrecision() by 'p += getPrecision(klass)' over linearizedMatrix.entrySet() and 'return p / linearizedMatrix.size()' [read: git log -L shows no later change to the method, git blame -w attributes the sum and the divisor (main lines 295, 298) to it; exec: 6.1.0 fails, and the 6.1.0 source with only getPrecision() changed to average over the union of row and column labels, shadowed over the 6.1.0 jar, passes]. The row-key loop itself (main lines 293-294) is older: d9f4eb84cfbdaf7d5f72396828c61651d5c5dee3 (LUCENE-6854, apache/lucene#7912, 2016-01-08, 6.0.0), when getPrecision() was a micro average with other formula errors; 6.0.x is a precursor, not an affected version (follow-up root_origin). (2016-05-26 (trunk dc50b79a146 and branch_6x 55d854566e1); the row-key loop dates from 2016-01-08 (d9f4eb84cfb))</dd></div><div><dt>First affected version</dt><dd>6.1.0 [exec, -ea and -da]: the first release with the macro-averaged getPrecision() (branch_6x cherry-pick 55d854566e1; the trunk commit first ships in 7.0.0). 5.5.5 and earlier have no ConfusionMatrixGenerator [exec: compile error]; 6.0.0 and 6.0.1 already return 1.0 on both scenarios [exec], but there getPrecision() was a micro average whose formula was wrong even without an assigned-only class (control 0.6 instead of 0.75), fixed in 6.1.0 by LUCENE-7156, LUCENE-7193 and LUCENE-7305, so 6.0.x is recorded as a precursor.</dd></div><div><dt>Affected versions</dt><dd>every release from 6.1.0 to 10.5.2 (all 90 releases: 6.1.0-6.6.6, 7.0.0-7.7.3, 8.0.0-8.11.4, 9.0.0-9.12.3, 10.0.0-10.5.2) and main a9779ef3c193 (unreleased 11.0); never fixed upstream. [exec] the follow-up's version-independent main() port (public API: NIOFSDirectory, KeywordAnalyzer, one-segment LeafReader, the finder's stub classifier; scenarios S1 sports/politics, S2 a,b plus assigned-only c, and a control with no assigned-only class) returns getPrecision() 1.0 on S1 (expected 0.5) and 1.0 on S2 (expected 0.667) and the correct 0.833 on the control on every one of the 90 releases (-ea, seed DEADBEEF; 6.1.0 also -da) and on main; the finder's JUnit fails 2 of 2 on 9.12.3, 10.5.2 and main (-ea and -da); the independent reproduction's JUnit fails 2 of 3 on 9.12.3, 10.5.2 and main (-ea and -da); the intended-behaviour check re-ran the finder's JUnit on 10.5.2; a separate run's JUnit fails 1 of 2 on 10.5.2 and main. [read] branch_10_6 2763db11b0a, branch_10x 1309534296e and upstream main f7bcc0abd816 (2026-10-27) carry the unchanged method. Not affected: 5.5.5 and earlier (no API) [exec]; 6.0.0 and 6.0.1 (precursor, see first_affected_version) [exec].</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, read-only; the prior-report record verdict new): three scripted prior-report searches (the finder's 45 queries, follow-up v1 with 45 non-web queries and follow-up v2 with 98 queries over GitHub issues, PRs and commits on apache/lucene, downstream repositories, the dev@, java-user@, issues@ and commits@ lists and the JIRA archive), 30 direct and web searches (gh search issues, search/issues on apache/lucene and on apache/solr, elastic/elasticsearch and opensearch-project/OpenSearch, all 47 issues and 24 PRs labelled module:classification read by title, the JIRA component modules/classification (47 issues) and 'classification AND confusion' (11), full comments of LUCENE-4345, 6479, 6854, 7156, 7305, 7196, 6852, 2878 and SOLR-13903, 6 web queries), plus the intended-behaviour check's 40-query scripted prior-report search and the independent reproduction's read-only gh searches; the file lists of all 408 open apache/lucene PRs were checked and none changes ConfusionMatrixGenerator.java. Not fixed upstream: getPrecision() still loops over the row keys on upstream main f7bcc0abd816 (2026-10-27); the file's last change is #16255 (2026-06-14, unrelated). Related, not reports: #8359 / LUCENE-7305 (introduced the macro average; one-line body, only commit notices, no discussion of which classes are averaged), #7912 / LUCENE-6854 (added the global metrics and the row-key loop), #8248 / LUCENE-7193 (added getF1Measure() from the global precision and recall), #8211 / LUCENE-7156 (an earlier, different precision bug: the false-positive counter started at -classes.size(); fixed 2016), #7538 / LUCENE-6479 (created the class), #8251 / LUCENE-7196 (DatasetSplitter should put every class into each split; bears on reach only); SOLR-13903 is Solr's own streaming confusion matrix, other code.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the 10.5.2 and 9.12.3 release jars. The history follow-up ran a version-independent port on all 90 releases from 6.1.0 to 10.5.2 with assertions on (6.1.0 also off), and on 5.5.5, 6.0.0 and 6.0.1; the fact check ran this doc's test on 10.5.2 and 9.12.3 with assertions off too. Fixes A and B were validated in the scratch worktree: the new test, <code>TestConfusionMatrixGenerator</code>, the whole <code>lucene/classification</code> suite with assertions on and off, and <code>:lucene:classification:check -x test</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/classification/src/java/org/apache/lucene/classification/utils/ConfusionMatrixGenerator.java:46-60 (at a9779ef3c193) (getConfusionMatrix javadoc: &#x27;the IndexReader containing the index used for creating the Classifier&#x27;), :110-137 (each evaluated document is filed under its correct answer; a wrong answer goes under correctAnswers[0] at :118-123; the assigned class becomes a column key), :172-177 (getLinearizedMatrix: &#x27;a Map whose keys are the correct classification answers and whose values are the actual answers&#x27; counts&#x27;), :182-205 (getPrecision(String): tp/(tp+fp), 0 for an assigned-only class), :246-250 (getF1Measure() from getPrecision() and getRecall()), :286-299 (getPrecision(): javadoc &#x27;the macro averaged precision (see getPrecision(String)) over all the classes&#x27; at :287; loop over linearizedMatrix.entrySet() at :293-296; &#x27;return p / linearizedMatrix.size()&#x27; at :298), :301-314 (getRecall(): same row-key loop and wording)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/classification/src/java/org/apache/lucene/classification/utils/ConfusionMatrixGenerator.java:46-62, 85-137 (92, 118-123, 125-137), 172-180, 188-205 (204), 246-250, 286-299 (287, 293-298) @ a9779ef3c193</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/classification/src/java/org/apache/lucene/classification/utils/ConfusionMatrixGenerator.java:51-52, 85-137 @ a9779ef3c193</code></li><li><code>lucene/classification/src/java/org/apache/lucene/classification/utils/ConfusionMatrixGenerator.java:78-80, 87-111, 140-142 (which documents are evaluated; 5-second per-call timeout) @ a9779ef3c193</code></li><li><code>lucene/classification/src/java/org/apache/lucene/classification/SimpleNaiveBayesClassifier.java:140-148, BM25NBClassifier.java:124-132 (classes from the index terms)</code></li><li><code>lucene/classification/src/java/org/apache/lucene/classification/Classifier.java:26-37 (@lucene.experimental; assignClass)</code></li><li><code>lucene/classification/src/test/org/apache/lucene/classification/Test20NewsgroupsClassification.java:71 (@Monster), 300-301, 352-353 (getConfusionMatrix on testReader)</code></li><li><code>lucene/classification/src/test/org/apache/lucene/classification/utils/TestConfusionMatrixGenerator.java:43-61 (stub returns new BytesRef(), :48)</code></li><li><code>a Lucene main checkout (grep -rl ConfusionMatrixGenerator lucene/*/src/java: only ConfusionMatrixGenerator.java)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/classification/src/java/org/apache/lucene/classification/utils/ConfusionMatrixGenerator.java:172-177, 188-205, 286-299, 301-314 @ a9779ef3c193</code></li><li><code>gh issue view 8359 --repo apache/lucene (LUCENE-7305 body, read-only, 2026-10-27)</code></li><li><code>lucene/classification/src/test/org/apache/lucene/classification/utils/TestConfusionMatrixGenerator.java:43-81, 103-120 (range-only assertions)</code></li><li><code>gh api repos/apache/lucene/issues/{7538,7912,8211,8248,8359} and their comments (read-only, 2026-10-27)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestConfusionMatrixMacroPrecision.java (lucene/classification, public API): <a href='../repro/LFV-768/TestConfusionMatrixMacroPrecision.java'><code>repro/LFV-768/TestConfusionMatrixMacroPrecision.java</code></a> (162 lines)</li><li>TestConfusionMatrixMacroPrecisionClasses.java (the finder&#x27;s test): <a href='../repro/LFV-768/TestConfusionMatrixMacroPrecisionClasses.java'><code>repro/LFV-768/TestConfusionMatrixMacroPrecisionClasses.java</code></a> (122 lines)</li><li>TestConfusionMatrixMacroPrecisionV1.java (independent reproducer): <a href='../repro/LFV-768/TestConfusionMatrixMacroPrecisionV1.java'><code>repro/LFV-768/TestConfusionMatrixMacroPrecisionV1.java</code></a> (243 lines)</li><li>TestConfusionMatrixMetricsProbe.java (number probe): <a href='../repro/LFV-768/TestConfusionMatrixMetricsProbe.java'><code>repro/LFV-768/TestConfusionMatrixMetricsProbe.java</code></a> (97 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A light summary card, made in parallel with this doc from an executed probe on main <code class='nw'>a9779ef3c193</code> (assertions on and off, and with the fix as a control); the PNG is the summary card. Its control row is the probe's own control (a, a, b, b answered a, b, b, b: 0.833 either way); the doc's test uses a different control (0.25). The "fix sketch" line is fix A's code. The card's expected <code class='nw'>getF1Measure()</code> (0.333) keeps recall unchanged, as fix A does; fix B would give 0.2. It names LUCENE-7305's trunk commit <code class='nw'>dc50b79a146</code>; 6.1.0 ships its same-day cherry-pick <code class='nw'>55d854566e1</code>. Its condition ("an assigned class that no evaluated document has as its correct answer") is the single-valued case: with a multi-valued class field, any class that is never a row key is left out.</p><ul class='paths'><li><a href='../assets/LFV-768/bug.png'><code>assets/LFV-768/bug.png</code></a> (433 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

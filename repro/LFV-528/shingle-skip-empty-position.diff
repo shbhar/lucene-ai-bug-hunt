@@ -1,0 +1,31 @@
+diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/shingle/ShingleFilter.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/shingle/ShingleFilter.java
+index 3f2779ce82d..e4bd8f12f21 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/shingle/ShingleFilter.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/shingle/ShingleFilter.java
+@@ -261,6 +261,26 @@ public final class ShingleFilter extends TokenFilter {
+ 
+   @Override
+   public boolean incrementToken() throws IOException {
++    int skippedPositions = 0;
++    while (true) {
++      if (nextGram()) {
++        if (skippedPositions > 0) {
++          // count the positions that had no output
++          posIncrAtt.setPositionIncrement(posIncrAtt.getPositionIncrement() + skippedPositions);
++        }
++        return true;
++      }
++      if (inputWindow.isEmpty()) {
++        return false;
++      }
++      // No token at this position (for example, the window starts with a filler and is too short
++      // for a shingle), but later positions may still hold tokens: move on.
++      gramSize.reset();
++      skippedPositions++;
++    }
++  }
++
++  private boolean nextGram() throws IOException {
+     boolean tokenAvailable = false;
+     int builtGramSize = 0;
+     if (gramSize.atMinValue() || inputWindow.size() < gramSize.getValue()) {

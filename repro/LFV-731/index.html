@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hunspell spell skips the per-entry checks on COMPOUNDRULE compound parts, so it accepts compounds that C Hunspell rejects: a KEEPCASE first part in capitalized or upper case, a FORCEUCASE last part in lower case, and a NEEDAFFIX or FORBIDDENWORD entry as a first or middle part (LFV-731)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>Hunspell spell skips the per-entry checks on COMPOUNDRULE compound parts, so it accepts compounds that C Hunspell rejects: a KEEPCASE first part in capitalized or upper case, a FORCEUCASE last part in lower case, and a NEEDAFFIX or FORBIDDENWORD entry as a first or middle part</h1>
+<p class="facts small"><span>Bug LFV-731</span><span>Area: analysis / hunspell (Hunspell.spell compound checking, COMPOUNDRULE)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You load a Hunspell dictionary that joins foo/G and bar/H by &#x27;COMPOUNDRULE GH&#x27;, give foo or bar one of the per-entry flags KEEPCASE, FORCEUCASE, NEEDAFFIX or FORBIDDENWORD, call Hunspell.spell, and expect the answer C Hunspell 1.3.2 and 1.7.2 give (and Lucene itself gives when the same parts are joined by COMPOUNDFLAG): Foobar and FOOBAR rejected when foo is KEEPCASE, foobar rejected when bar is FORCEUCASE, and foobar rejected when foo is a NEEDAFFIX virtual stem or a FORBIDDENWORD entry. Instead spell returns true in all four cases, with and without -ea, in every release since 8.9.0; on the public Swedish dictionary sv_SE it accepts lower-case rule compounds such as tolvkronorsgatan that the dictionary&#x27;s FORCEUCASE flag and C Hunspell reject. The cause: checkCompoundRules takes every non-final part as a raw dictionary.lookupWord result, without the NEEDAFFIX, FORBIDDENWORD, COMPOUNDFORBIDFLAG and first-part case (KEEPCASE) filters, and checkLastCompoundPart never applies the FORCEUCASE check (hasForceUCaseProblem) that the COMPOUNDFLAG path uses.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> spell returns true in all four cases, with and without -ea, in every release since 8.9.0; on the public Swedish dictionary sv_SE it accepts lower-case rule compounds such as tolvkronorsgatan that the dictionary&#x27;s FORCEUCASE flag and C Hunspell reject.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/analysis/hunspell/TestCompoundRulePartChecks.java"><code>src/org/apache/lucene/analysis/hunspell/TestCompoundRulePartChecks.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/analysis/common/build/libs/lucene-analysis-common-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.analysis.hunspell.TestCompoundRulePartChecks</code></pre>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<p>Formal models and scripts this bug's part of the hunt used: <a href="../../models/hunspell-synthetic-dictionary-differential/index.html">hunspell-synthetic-dictionary-differential</a></p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-27. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

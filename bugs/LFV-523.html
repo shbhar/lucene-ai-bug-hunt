@@ -1,0 +1,823 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>A zero-length token makes TokenStreamToAutomaton drop every path through it, so the document suggester, AnalyzingSuggester and FuzzySuggester silently lose the suggestion</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-523 &middot; tokenstreamtoautomaton-empty-token-drops-path</p><h1 id='top'>A zero-length token makes TokenStreamToAutomaton drop every path through it, so the document suggester, AnalyzingSuggester and FuzzySuggester silently lose the suggestion</h1><p class='tldr'>With <code class='nw'>ArabicAnalyzer</code>, "foo ـ bar" (a standalone tatweel) never comes back for "foo": the tatweel becomes an empty token, and <code>TokenStreamToAutomaton</code> adds no arc for a token with no bytes, so every path through it vanishes. The document suggester (since 5.1.0), <code>AnalyzingSuggester</code> and <code class='nw'>FuzzySuggester</code> (since 4.1.0) lose such values silently.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 47</span><span class='sub'>A zero-length token (for example a standalone tatweel under the stock Arabic analyzers) silently drops the whole suggestion from the completion suggesters, a rare silent suggester loss like LFV-248.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>4.1.0 (LUCENE-3842, 2012)<span class='sub'>introduced 2012-09-28 &middot; over 14 years</span></dd></div><div><dt>Affected</dt><dd>4.1.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive translation validation against a reference of the join semantics</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Completion suggesters turn each value's tokens into an automaton, one arc per byte. A token with no bytes gets no arc, so every path through it is cut: the value gets no suggestion entry, and a lookup key with such a token matches nothing.</p><figure class='visual' id='tokenstreamtoautomaton-empty-token-drops-path-short-visual'><div class='frame'><a class='still' href='../assets/LFV-523/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-523/bug.png' alt='Three panels. 1: the automaton toAutomaton() builds for the tokens foo, empty, bar: states 0, 2, 3, 1 spell f, o, o, a SEP arc leads to state 4, there is no arc from 4 to 5 for the empty token (its byte loop runs 0 times), and states 5, 6, 8, 9 and the accept state 7 (SEP, b, a, r) are unreachable, so the automaton accepts no string. 2: TokenStreamToAutomaton.java lines 155-156 add the SEP arc into the leaving state, 178-181 create the end state, 197-207 add the token&#x27;s only arcs in the per-byte loop; the recommended fix (option A2) adds one HOLE arc from 4 to 5, and none when every token is empty. 3: PrefixCompletionQuery &quot;foo&quot; on a SuggestField: expected foo ـ bar (weight 2) and foo bar (weight 1), actual only foo bar; ConcatenateGraphFilter emits 0 tokens for 1 path; AnalyzingSuggester and FuzzySuggester return only foo bar, getCount() 1 for 2 inputs.' width='1920' height='1080'></a></div><figcaption>The automaton built for the tokens foo, "", bar: the empty token gets no arc, so every state after it (grey) is unreachable and the automaton accepts nothing. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index two suggestions with the stock <code class='nw'>ArabicAnalyzer</code>: "foo bar" (weight 1) and "foo ـ bar" (weight 2; the middle character is a standalone tatweel, U+0640). The analyzer turns them into the tokens [foo, bar] and [foo, "", bar].</span></li><li><span>Ask for the prefix "foo": <code>PrefixCompletionQuery</code> on a <code class='nw'>SuggestField</code>, or <code class='nw'>lookup("foo")</code> on <code>AnalyzingSuggester</code> or <code class='nw'>FuzzySuggester</code>. You expect both suggestions, [foo ـ bar, foo bar].</span></li><li><span>You get [foo bar]. The suggester turns a value's tokens into an automaton with one arc per byte. The empty token has 0 bytes, so no arc reaches the state after it, and the automaton for "foo ـ bar" accepts no string at all.</span></li><li><span>So <code>ConcatenateGraphFilter</code> emits 0 tokens for a token graph with exactly one path, the document gets no completion entry, and <code>AnalyzingSuggester</code> counts 1 entry for 2 inputs. The document and its other fields are indexed; only the suggestion entry is missing. Nothing throws, with assertions on or off.</span></li><li><span>Not only Arabic: a chain that strips punctuation turns "-" into "", so "Spider Man - Homecoming" never comes back for "spider". In a test set of 84 suggestions, all 45 that contain a standalone tatweel got no entry: the 42 that mix it with words should have one (the 3 made only of tatweels get none even with the recommended fix).</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications using <code class='nw'>SuggestField</code>/<code>CompletionAnalyzer</code>, <code>AnalyzingSuggester</code>, <code class='nw'>FuzzySuggester</code> or <code>ConcatenateGraphFilter</code>, for values whose analysis has an empty token: a standalone tatweel under the stock Arabic, Persian or Sorani analyzer, or a filter that blanks a token, such as punctuation stripping. Deterministic and silent for every value whose only path runs through the empty token; index size plays no part; other entries are unaffected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>691 words</span></summary><div class='body'><p><code>TokenStreamToAutomaton</code> turns a token graph into an automaton whose labels are each token's bytes, with a separator (<code class='nw'>POS_SEP</code>) between tokens. For each token it creates the state where the token ends and adds one arc per byte, the last one into that state. A token whose term is empty has no bytes, so no arc is added, the end state is never reached, and every path through the token is lost. Stock analysis emits such tokens on purpose: <code class='nw'>ArabicAnalyzer</code>, <code class='nw'>PersianAnalyzer</code> and <code class='nw'>SoraniAnalyzer</code> turn a standalone tatweel (U+0640) into <code class='nw'>""</code>, and <code>PatternReplaceFilter</code> can blank a punctuation-only token. Everything built on the class then drops the value without an error (the other suggesters, such as the infix and FST lookups, do not use it): <code>ConcatenateGraphFilter</code> emits no token although it promises "one output token for every path", the document suggester (<code class='nw'>SuggestField</code>, <code>CompletionAnalyzer</code>) indexes no entry, and <code>AnalyzingSuggester</code> and <code class='nw'>FuzzySuggester</code> skip the input. With <code class='nw'>ArabicAnalyzer</code>, the suggestions "foo bar" and "foo ـ bar" and the prefix "foo" give only [foo bar]; a lookup that contains a standalone tatweel returns nothing. A stacked empty token loses only its own path. The loop has had no zero-length case since the class was written in 2012: all 120 release tags from 4.1.0 to 10.5.2 in the history clone have it, the 21 releases executed fail, and so does main.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Empty token</strong>: a token whose term has zero characters, <code class='nw'>""</code>. Lucene allows them, and some stock filters produce them on purpose: the Arabic, Persian and Sorani normalizers delete the tatweel (U+0640), a typographic stretching mark, so a tatweel standing alone between spaces becomes <code class='nw'>""</code>; <code>PatternReplaceFilter</code> can blank a token such as <code class='nw'>-</code>.</li><li><strong><code>TokenStreamToAutomaton</code></strong>: turns the tokens of one value into an automaton, a graph of states joined by arcs, one arc per byte of each token, with a separator arc (<code class='nw'>SEP</code>) between tokens and a <code class='nw'>HOLE</code> arc where a position is missing (a removed stop word). Each path from the start to an accept state spells one way to read the value.</li><li><strong>Its users</strong>: <code>ConcatenateGraphFilter</code> joins every path into one token; the document suggester (<code class='nw'>SuggestField</code>, <code>CompletionAnalyzer</code>) indexes those joined tokens; <code>AnalyzingSuggester</code> and <code class='nw'>FuzzySuggester</code> index the automaton's strings directly. The other suggesters (<code>AnalyzingInfixSuggester</code>, <code>BlendedInfixSuggester</code>, <code>FreeTextSuggester</code>, <code>FSTCompletionLookup</code>, <code>WFSTCompletionLookup</code>) do not use it.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>For every token, the state where the token ends is created first (<code>TokenStreamToAutomaton.java:178-181</code>).</li><li>The token's arcs are added only inside <code>for (int byteIDX = 0; byteIDX &lt; termLen; byteIDX++)</code> (<code class='nw'>:197-207</code>); the last arc ends in that state.</li><li>For an empty token <code class='nw'>termLen</code> is 0, the loop runs zero times, and nothing joins the state where the token starts to the state where it ends. Everything after it hangs off an unreachable state: for <code class='nw'>foo</code>, <code class='nw'>""</code>, <code class='nw'>bar</code> the automaton accepts no string.</li><li>With no strings, <code>ConcatenateGraphFilter</code> emits no token, the completion field gets no entry, and the analyzing suggesters get no input. If the empty token is stacked on a non-empty one at the same position, only its own path is lost.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-main-assertions-on-and-off'>The numbers (main, assertions on and off)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-main-assertions-on-and-off" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-main-assertions-on-and-off"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>what you do</th><th>expected</th><th>got</th></tr></thead><tbody><tr><td><code>TokenStreamToAutomaton</code> on <code class='nw'>a</code>, <code class='nw'>""</code>, <code class='nw'>b</code></td><td>1 path</td><td>0</td></tr><tr><td>the same with <code class='nw'>a</code>, {<code class='nw'>y</code> \</td><td><code class='nw'>""</code>}, <code class='nw'>b</code></td><td>2 paths</td><td>1</td></tr><tr><td><code>ConcatenateGraphFilter</code> on <code class='nw'>a</code>, <code class='nw'>""</code>, <code class='nw'>b</code></td><td>1 token</td><td>0, for each of the 5 separators tried and both position settings</td></tr><tr><td><code class='nw'>SuggestField</code> "foo bar" and "foo ـ bar", <code class='nw'>ArabicAnalyzer</code>, prefix "foo"</td><td>2</td><td>1 (foo bar)</td></tr><tr><td><code>AnalyzingSuggester</code> / <code class='nw'>FuzzySuggester</code>, same inputs</td><td>2</td><td>1; <code class='nw'>getCount()</code> 1 for 2 inputs</td></tr><tr><td>whitespace + lowercase + <code class='nw'>patternReplace</code> stripping punctuation: "Spider Man - Homecoming", lookup "spider"</td><td>2</td><td>1</td></tr><tr><td>84 suggestions (all 1-3 word sequences of foo, bar, baz, ـ), <code>AnalyzingSuggester</code></td><td>81 (84 minus the 3 made only of tatweels, which get none even with the fix)</td><td>39: the 42 that mix a tatweel with words are lost</td></tr><tr><td>query side, same 84: lookup "foo ـ"</td><td>20 (with the fix)</td><td>0 ("foo" gives 13)</td></tr><tr><td>controls: a non-empty middle token, a hole</td><td>kept</td><td>kept</td></tr></tbody></table></div></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>343 words</span></summary><div class='body'><ul><li><strong>Entry points.</strong> The document suggester (<code class='nw'>SuggestField</code>, <code>ContextSuggestField</code>, <code>CompletionAnalyzer</code>, <code>PrefixCompletionQuery</code> and its siblings), <code>AnalyzingSuggester</code>, <code class='nw'>FuzzySuggester</code>, and <code>ConcatenateGraphFilter</code> (or its <code class='nw'>concatenateGraph</code> factory) in any analysis chain.</li><li><strong>What it takes.</strong> A value, or a lookup key, whose analysis contains a token with an empty term that the paths must cross (an empty token stacked next to a non-empty one loses only its own path). Stock prebuilt analyzers: <code class='nw'>ArabicAnalyzer</code>, <code class='nw'>PersianAnalyzer</code> and <code class='nw'>SoraniAnalyzer</code> on a standalone tatweel. Custom chains: a filter that can blank a token with no <code class='nw'>LengthFilter</code> after it, for example <code>PatternReplaceFilter</code> stripping punctuation under a whitespace tokenizer (its javadoc warns it "may produce Tokens whose text is the empty string"), or <code class='nw'>KeywordTokenizer</code> + <code class='nw'>TrimFilter</code> on blanks.</li><li><strong>Opt-in.</strong> The completion suggesters and <code>ConcatenateGraphFilter</code> are features an application chooses (the document suggester also needs a completion postings format), and <code>TokenStreamToAutomaton</code>, <code>ConcatenateGraphFilter</code> and the suggester classes are marked experimental (the analyzers and <code>PatternReplaceFilter</code> are not). Within such an application the trigger is ordinary text.</li><li><strong>Deterministic and silent.</strong> Every value whose only path runs through an empty token is lost on the first try, with assertions on or off; no exception, no log line. The automaton is built from the value's own tokens, so index size plays no part. In the security probe the document and its other fields were indexed, CheckIndex was clean and other entries were unaffected.</li><li><strong>Both sides.</strong> At index time the value never becomes a suggestion (the document is indexed, its completion entry is not); at lookup time a key with a standalone tatweel ("foo ـ") returns nothing.</li><li><strong>Not affected.</strong> <code>AnalyzingInfixSuggester</code>, <code>BlendedInfixSuggester</code>, <code>FreeTextSuggester</code>, <code>FSTCompletionLookup</code> and <code>WFSTCompletionLookup</code> do not use <code>TokenStreamToAutomaton</code> or <code>ConcatenateGraphFilter</code>.</li><li><strong>How often.</strong> A standalone tatweel is uncommon in titles and names (it normally sits inside words); a punctuation-stripping chain hits ordinary text such as "Spider Man - Homecoming" every time. Nobody has reported it since 4.1.0, so the registry rates it rare (a judgement, not a measurement).</li><li><strong>Downstream.</strong> Search servers build completion features on these classes; that path was not executed.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit file for the suggest module, which reaches core and analysis-common too: 6 tests on public API and the module's test helpers, controls asserted first. All 6 fail on main through gradle with <code>-Ptests.asserts=true</code> and <code class='nw'>=false</code> and through the harness with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, and on 10.5.2.</p><figure class='code'><figcaption><span class='fname'>TestEmptyTokenSuggestions.java (6 tests, suggest module)</span><span class='meta'>187 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.document;
+
+import static org.apache.lucene.search.suggest.document.TestSuggestField.iwcWithSuggestField;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.TokenStreamToAutomaton;
+import org.apache.lucene.analysis.ar.ArabicAnalyzer;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.ConcatenateGraphFilter;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.suggest.Input;
+import org.apache.lucene.search.suggest.InputArrayIterator;
+import org.apache.lucene.search.suggest.Lookup;
+import org.apache.lucene.search.suggest.Lookup.LookupResult;
+import org.apache.lucene.search.suggest.analyzing.AnalyzingSuggester;
+import org.apache.lucene.search.suggest.analyzing.FuzzySuggester;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.CannedTokenStream;
+import org.apache.lucene.tests.analysis.Token;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.automaton.AutomatonTestUtil;
+import org.apache.lucene.util.automaton.Automaton;
+
+/**
+ * A token whose term is empty must not remove the paths through it. ArabicAnalyzer (and
+ * PersianAnalyzer, SoraniAnalyzer) turn a standalone tatweel (U+0640) into such a token, and
+ * PatternReplaceFilter can blank a punctuation-only token.
+ */
+public class TestEmptyTokenSuggestions extends LuceneTestCase {
+
+  private static final String TATWEEL = &quot;\u0640&quot;;
+
+  /** TokenStreamToAutomaton: one accepted string for every path through the token graph. */
+  public void testTokenStreamToAutomaton() throws IOException {
+    // control: a, x, b has one path
+    assertEquals(1, paths(token(&quot;a&quot;, 1), token(&quot;x&quot;, 1), token(&quot;b&quot;, 1)));
+    // a, &quot;&quot;, b has one path too
+    assertEquals(1, paths(token(&quot;a&quot;, 1), token(&quot;&quot;, 1), token(&quot;b&quot;, 1)));
+  }
+
+  /** The same with the empty token stacked on a non-empty one: a, {y | &quot;&quot;}, b has two paths. */
+  public void testTokenStreamToAutomatonStacked() throws IOException {
+    assertEquals(2, paths(token(&quot;a&quot;, 1), token(&quot;y&quot;, 1), token(&quot;&quot;, 0), token(&quot;b&quot;, 1)));
+  }
+
+  /** ConcatenateGraphFilter: &quot;one output token for every path through the token stream&quot;. */
+  public void testConcatenateGraphFilter() throws IOException {
+    // control
+    assertEquals(1, concatenate(token(&quot;a&quot;, 1), token(&quot;x&quot;, 1), token(&quot;b&quot;, 1)).size());
+    List&lt;String&gt; out = concatenate(token(&quot;a&quot;, 1), token(&quot;&quot;, 1), token(&quot;b&quot;, 1));
+    assertEquals(&quot;one output token expected, got &quot; + out, 1, out.size());
+  }
+
+  /** The document suggester (SuggestField + PrefixCompletionQuery) with a stock analyzer. */
+  public void testSuggestFieldWithArabicAnalyzer() throws IOException {
+    Analyzer analyzer = new ArabicAnalyzer();
+    assertEquals(List.of(&quot;foo&quot;, &quot;&quot;, &quot;bar&quot;), terms(analyzer, &quot;foo &quot; + TATWEEL + &quot; bar&quot;));
+    try (Directory dir = newDirectory();
+        RandomIndexWriter iw =
+            new RandomIndexWriter(random(), dir, iwcWithSuggestField(analyzer, &quot;suggest&quot;))) {
+      Document doc = new Document();
+      doc.add(new SuggestField(&quot;suggest&quot;, &quot;foo bar&quot;, 1));
+      iw.addDocument(doc);
+      doc = new Document();
+      doc.add(new SuggestField(&quot;suggest&quot;, &quot;foo &quot; + TATWEEL + &quot; bar&quot;, 2));
+      iw.addDocument(doc);
+      try (DirectoryReader reader = iw.getReader()) {
+        SuggestIndexSearcher searcher = new SuggestIndexSearcher(reader);
+        PrefixCompletionQuery query =
+            new PrefixCompletionQuery(analyzer, new Term(&quot;suggest&quot;, &quot;foo&quot;));
+        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+        for (TopSuggestDocs.SuggestScoreDoc hit :
+            searcher.suggest(query, 10, false).scoreLookupDocs()) {
+          keys.add(hit.key.toString());
+        }
+        assertEquals(List.of(&quot;foo &quot; + TATWEEL + &quot; bar&quot;, &quot;foo bar&quot;), keys);
+      }
+    }
+  }
+
+  /** AnalyzingSuggester and FuzzySuggester with the same stock analyzer. */
+  public void testAnalyzingAndFuzzySuggesterWithArabicAnalyzer() throws IOException {
+    Analyzer analyzer = new ArabicAnalyzer();
+    Input[] inputs = {new Input(&quot;foo bar&quot;, 1), new Input(&quot;foo &quot; + TATWEEL + &quot; bar&quot;, 2)};
+    List&lt;String&gt; expected = List.of(&quot;foo &quot; + TATWEEL + &quot; bar&quot;, &quot;foo bar&quot;);
+    try (Directory dir = newDirectory()) {
+      AnalyzingSuggester analyzing = new AnalyzingSuggester(dir, &quot;analyzing&quot;, analyzer);
+      analyzing.build(new InputArrayIterator(inputs));
+      assertEquals(expected, keys(analyzing, &quot;foo&quot;));
+      FuzzySuggester fuzzy = new FuzzySuggester(dir, &quot;fuzzy&quot;, analyzer);
+      fuzzy.build(new InputArrayIterator(inputs));
+      assertEquals(expected, keys(fuzzy, &quot;foo&quot;));
+    }
+  }
+
+  /** A custom chain that strips punctuation, so the token &quot;-&quot; becomes &quot;&quot;. */
+  public void testAnalyzingSuggesterWithPunctuationStripped() throws IOException {
+    Analyzer analyzer =
+        CustomAnalyzer.builder()
+            .withTokenizer(&quot;whitespace&quot;)
+            .addTokenFilter(&quot;lowercase&quot;)
+            .addTokenFilter(&quot;patternReplace&quot;, &quot;pattern&quot;, &quot;[^\\p{L}\\p{N}]&quot;, &quot;replacement&quot;, &quot;&quot;)
+            .build();
+    assertEquals(
+        List.of(&quot;spider&quot;, &quot;man&quot;, &quot;&quot;, &quot;homecoming&quot;), terms(analyzer, &quot;Spider Man - Homecoming&quot;));
+    Input[] inputs = {
+      new Input(&quot;Spider Man Far From Home&quot;, 1), new Input(&quot;Spider Man - Homecoming&quot;, 2)
+    };
+    try (Directory dir = newDirectory()) {
+      AnalyzingSuggester suggester = new AnalyzingSuggester(dir, &quot;punct&quot;, analyzer);
+      suggester.build(new InputArrayIterator(inputs));
+      assertEquals(
+          List.of(&quot;Spider Man - Homecoming&quot;, &quot;Spider Man Far From Home&quot;),
+          keys(suggester, &quot;spider&quot;));
+    }
+  }
+
+  private static Token token(String term, int posInc) {
+    Token t = new Token(term, 0, 1);
+    t.setPositionIncrement(posInc);
+    return t;
+  }
+
+  private static int paths(Token... tokens) throws IOException {
+    Automaton a = new TokenStreamToAutomaton().toAutomaton(new CannedTokenStream(tokens));
+    return AutomatonTestUtil.getFiniteStringsRecursive(a, -1).size();
+  }
+
+  private static List&lt;String&gt; concatenate(Token... tokens) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (ConcatenateGraphFilter f = new ConcatenateGraphFilter(new CannedTokenStream(tokens))) {
+      TermToBytesRefAttribute att = f.addAttribute(TermToBytesRefAttribute.class);
+      f.reset();
+      while (f.incrementToken()) {
+        out.add(att.getBytesRef().utf8ToString());
+      }
+      f.end();
+    }
+    return out;
+  }
+
+  private static List&lt;String&gt; terms(Analyzer analyzer, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = analyzer.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    return out;
+  }
+
+  private static List&lt;String&gt; keys(Lookup suggester, String key) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (LookupResult r : suggester.lookup(key, false, 10)) {
+      out.add(r.key.toString());
+    }
+    return out;
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at ea57360912ed (or a later commit where TokenStreamToAutomaton.java is unchanged)
+cp $REPRO/TestEmptyTokenSuggestions.java lucene/suggest/src/test/org/apache/lucene/search/suggest/document/
+./gradlew :lucene:suggest:test --tests org.apache.lucene.search.suggest.document.TestEmptyTokenSuggestions -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (the same 6 failures). Without the flag, gradle picks the mode from the seed;
+# for DEADBEEF the suggest module&#x27;s default is assertions off.
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>[foo ـ bar, foo bar] for the prefix "foo"; 1 path and 1 joined token for <code class='nw'>a</code>, <code class='nw'>""</code>, <code class='nw'>b</code> (2 paths when the empty token is stacked).</dd></div><div class='got'><dt>Observed</dt><dd>[foo bar] from <code class='nw'>SuggestField</code> and <code>AnalyzingSuggester</code>; 0 paths (1 of 2 when stacked) and 0 tokens from <code>ConcatenateGraphFilter</code>; nothing throws.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-523/'>repro/LFV-523/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (285 lines) · 1,524 words</span></summary><div class='body'><p>Copy the file into the suggest module's <code>org.apache.lucene.search.suggest.document</code> test package and run the command. It uses public API, the test framework (<code>CannedTokenStream</code>, <code class='nw'>Token</code>, <code>RandomIndexWriter</code>, <code>AutomatonTestUtil</code>) and the module's own test helpers (<code>TestSuggestField.iwcWithSuggestField</code>, <code class='nw'>Input</code>, <code>InputArrayIterator</code>). It is google-java-format clean: the file is the output of the module's <code class='nw'>tidy</code> task.</p><p>On stock, <code>testAnalyzingAndFuzzySuggesterWithArabicAnalyzer</code> stops at its <code>AnalyzingSuggester</code> assertion, so its <code class='nw'>FuzzySuggester</code> half runs only with a fix; the stock <code class='nw'>FuzzySuggester</code> failure was shown by an independent reproducer. The other files below are the recommended fix, its extra tests, and the finder's original 3-test JUnit.</p><div class="hd hd-3"><h3 id='code-2-h'>The fix: optionA2-hole-arc-unless-all-empty.diff</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The fix: optionA2-hole-arc-unless-all-empty.diff</span><span class='meta'>52 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java b/lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java
+index 764391d2cf2..ca8e9943b05 100644
+--- a/lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java
++++ b/lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java
+@@ -21,6 +21,7 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+ import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
+ import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
++import org.apache.lucene.internal.hppc.IntArrayList;
+ import org.apache.lucene.util.BytesRef;
+ import org.apache.lucene.util.RollingBuffer;
+ import org.apache.lucene.util.automaton.Automaton;
+@@ -125,6 +126,9 @@ public class TokenStreamToAutomaton {
+     int freedPos = 0;
+     Position posData = null;
+     int maxOffset = 0;
++    // (from, to) state pairs of zero-length tokens, connected at the end:
++    final IntArrayList emptyTokens = new IntArrayList();
++    boolean sawNonEmptyToken = false;
+     while (in.incrementToken()) {
+       int posInc = posIncAtt.getPositionIncrement();
+       if (preservePositionIncrements == false &amp;&amp; posInc &gt; 1) {
+@@ -194,6 +198,13 @@ public class TokenStreamToAutomaton {
+ 
+       int state = posData.leaving;
+ 
++      if (termLen == 0) {
++        emptyTokens.add(state);
++        emptyTokens.add(endPosData.arriving);
++      } else {
++        sawNonEmptyToken = true;
++      }
++
+       for (int byteIDX = 0; byteIDX &lt; termLen; byteIDX++) {
+         final int nextState = byteIDX == termLen - 1 ? endPosData.arriving : builder.createState();
+         int c;
+@@ -211,6 +222,15 @@ public class TokenStreamToAutomaton {
+ 
+     in.end();
+ 
++    if (sawNonEmptyToken) {
++      // A zero-length token has no bytes, but it still spans its position(s): connect it like a
++      // hole so the paths through it are kept (consumers remove HOLE, leaving two adjacent
++      // separators). A stream of only zero-length tokens accepts nothing, like an empty stream.
++      for (int i = 0; i &lt; emptyTokens.size(); i += 2) {
++        builder.addTransition(emptyTokens.get(i), emptyTokens.get(i + 1), HOLE);
++      }
++    }
++
+     int endPosInc = posIncAtt.getPositionIncrement();
+     if (endPosInc == 0 &amp;&amp; finalOffsetGapAsHole &amp;&amp; offsetAtt.endOffset() &gt; maxOffset) {
+       endPosInc = 1;
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>Core tests for the PR: test-graphtokenizers.diff (TestGraphTokenizers, +3 tests)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p><code class='nw'>testEmptyToken</code> and <code>testStackedEmptyToken</code> fail on stock; <code>testOnlyEmptyTokens</code> passes on stock and with the recommended fix, and fails with the always-add-the-arc variant.</p><figure class='code'><figcaption><span class='fname'>Core tests for the PR: test-graphtokenizers.diff (TestGraphTokenizers, +3 tests)</span><span class='meta'>44 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>diff --git a/lucene/core/src/test/org/apache/lucene/analysis/TestGraphTokenizers.java b/lucene/core/src/test/org/apache/lucene/analysis/TestGraphTokenizers.java
+index 0f3a9e6c62c..ca915d961e5 100644
+--- a/lucene/core/src/test/org/apache/lucene/analysis/TestGraphTokenizers.java
++++ b/lucene/core/src/test/org/apache/lucene/analysis/TestGraphTokenizers.java
+@@ -602,6 +602,39 @@ public class TestGraphTokenizers extends BaseTokenStreamTestCase {
+     assertSameLanguage(Operations.union(List.of(s2a(&quot;a&quot;), s2a(&quot;X&quot;))), ts);
+   }
+ 
++  public void testEmptyToken() throws Exception {
++    final TokenStream ts =
++        new CannedTokenStream(
++            new Token[] {
++              token(&quot;abc&quot;, 1, 1), token(&quot;&quot;, 1, 1), token(&quot;def&quot;, 1, 1),
++            });
++    final Automaton actual = new TokenStreamToAutomaton().toAutomaton(ts);
++    assertFalse(&quot;the path through the empty token is lost&quot;, Operations.isEmpty(actual));
++    // a zero-length token keeps its position, like a hole
++    assertSameLanguage(join(s2a(&quot;abc&quot;), SEP_A, HOLE_A, SEP_A, s2a(&quot;def&quot;)), actual);
++  }
++
++  public void testStackedEmptyToken() throws Exception {
++    final TokenStream ts =
++        new CannedTokenStream(
++            new Token[] {
++              token(&quot;abc&quot;, 1, 1), token(&quot;xyz&quot;, 1, 1), token(&quot;&quot;, 0, 1), token(&quot;def&quot;, 1, 1),
++            });
++    final Automaton a1 = join(s2a(&quot;abc&quot;), SEP_A, s2a(&quot;xyz&quot;), SEP_A, s2a(&quot;def&quot;));
++    final Automaton a2 = join(s2a(&quot;abc&quot;), SEP_A, HOLE_A, SEP_A, s2a(&quot;def&quot;));
++    assertSameLanguage(Operations.union(List.of(a1, a2)), ts);
++  }
++
++  public void testOnlyEmptyTokens() throws Exception {
++    final TokenStream ts =
++        new CannedTokenStream(
++            new Token[] {
++              token(&quot;&quot;, 1, 1), token(&quot;&quot;, 1, 1),
++            });
++    // like a stream with no tokens
++    assertTrue(Operations.isEmpty(new TokenStreamToAutomaton().toAutomaton(ts)));
++  }
++
+   /** Returns all paths */
+   private Set&lt;String&gt; toPathStrings(Automaton a) {
+     BytesRefBuilder scratchBytesRefBuilder = new BytesRefBuilder();
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>The finder&#x27;s TestEmptyTokenDropsSuggestion.java (3 tests)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>The first repro: it also asserts the exact joined token <code>a SEP SEP b</code> for <code>ConcatenateGraphFilter</code>. It builds the completion codec by name instead of using the module's helper.</p><figure class='code'><figcaption><span class='fname'>The finder&#x27;s TestEmptyTokenDropsSuggestion.java (3 tests)</span><span class='meta'>189 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.document;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.ar.ArabicAnalyzer;
+import org.apache.lucene.analysis.miscellaneous.ConcatenateGraphFilter;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.FilterCodec;
+import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.suggest.InputIterator;
+import org.apache.lucene.search.suggest.Lookup.LookupResult;
+import org.apache.lucene.search.suggest.analyzing.AnalyzingSuggester;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.CannedTokenStream;
+import org.apache.lucene.tests.analysis.Token;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * A zero-length token in the analyzed stream makes TokenStreamToAutomaton lose every path through it, so
+ * ConcatenateGraphFilter emits no token and the completion suggesters index nothing for that suggestion.
+ * Stock trigger: ArabicAnalyzer (also PersianAnalyzer, SoraniAnalyzer) turns a standalone tatweel (U+0640)
+ * into an empty token.
+ */
+public class TestEmptyTokenDropsSuggestion extends LuceneTestCase {
+
+  private static final String TATWEEL = &quot;ـ&quot;;
+
+  /** ConcatenateGraphFilter: &quot;one output token for every path through the token stream&quot;. */
+  public void testConcatenateGraphFilterKeepsThePathThroughAnEmptyToken() throws Exception {
+    TokenStream in =
+        new CannedTokenStream(new Token(&quot;a&quot;, 1, 0, 1), new Token(&quot;&quot;, 1, 2, 2), new Token(&quot;b&quot;, 1, 3, 4));
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (ConcatenateGraphFilter f = new ConcatenateGraphFilter(in)) {
+      TermToBytesRefAttribute att = f.addAttribute(TermToBytesRefAttribute.class);
+      f.reset();
+      while (f.incrementToken()) {
+        out.add(att.getBytesRef().utf8ToString());
+      }
+      f.end();
+    }
+    // the graph a -&gt; &quot;&quot; -&gt; b has exactly one path; joined with the separator it is a SEP SEP b
+    assertEquals(List.of(&quot;a\u001F\u001Fb&quot;), out);
+  }
+
+  /** NRT document suggester (SuggestField + PrefixCompletionQuery) with a stock analyzer. */
+  public void testSuggestFieldWithArabicAnalyzer() throws Exception {
+    Analyzer analyzer = new ArabicAnalyzer();
+    assertEquals(List.of(&quot;foo&quot;, &quot;&quot;, &quot;bar&quot;), tokens(analyzer, &quot;foo &quot; + TATWEEL + &quot; bar&quot;)); // precondition
+
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+      iwc.setCodec(completionCodec());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        Document d1 = new Document();
+        d1.add(new SuggestField(&quot;suggest&quot;, &quot;foo bar&quot;, 1));
+        w.addDocument(d1);
+        Document d2 = new Document();
+        d2.add(new SuggestField(&quot;suggest&quot;, &quot;foo &quot; + TATWEEL + &quot; bar&quot;, 2));
+        w.addDocument(d2);
+        w.commit();
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        SuggestIndexSearcher searcher = new SuggestIndexSearcher(reader);
+        PrefixCompletionQuery query = new PrefixCompletionQuery(analyzer, new Term(&quot;suggest&quot;, &quot;foo&quot;));
+        TopSuggestDocs hits = searcher.suggest(query, 10, false);
+        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+        for (TopSuggestDocs.SuggestScoreDoc hit : hits.scoreLookupDocs()) {
+          keys.add(hit.key.toString());
+        }
+        assertEquals(
+            &quot;both suggestions start with &#x27;foo&#x27;&quot;, List.of(&quot;foo &quot; + TATWEEL + &quot; bar&quot;, &quot;foo bar&quot;), keys);
+      }
+    }
+  }
+
+  /** AnalyzingSuggester goes through the same TokenStreamToAutomaton. */
+  public void testAnalyzingSuggesterWithArabicAnalyzer() throws Exception {
+    Analyzer analyzer = new ArabicAnalyzer();
+    try (Directory dir = newDirectory()) {
+      AnalyzingSuggester suggester = new AnalyzingSuggester(dir, &quot;suggest&quot;, analyzer);
+      suggester.build(inputs(new String[] {&quot;foo bar&quot;, &quot;foo &quot; + TATWEEL + &quot; bar&quot;}, new long[] {1, 2}));
+      List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+      for (LookupResult r : suggester.lookup(&quot;foo&quot;, false, 10)) {
+        keys.add(r.key.toString());
+      }
+      assertEquals(List.of(&quot;foo &quot; + TATWEEL + &quot; bar&quot;, &quot;foo bar&quot;), keys);
+      assertEquals(2, suggester.getCount());
+    }
+  }
+
+  private static Codec completionCodec() {
+    // the completion format that wraps this release&#x27;s default postings format (Completion104 on main)
+    String delegate = TestUtil.getDefaultPostingsFormat().getName();
+    final PostingsFormat completion =
+        PostingsFormat.forName(&quot;Completion&quot; + delegate.substring(&quot;Lucene&quot;.length()));
+    final PostingsFormat perField =
+        new PerFieldPostingsFormat() {
+          @Override
+          public PostingsFormat getPostingsFormatForField(String field) {
+            return completion;
+          }
+        };
+    Codec base = TestUtil.getDefaultCodec();
+    return new FilterCodec(base.getName(), base) {
+      @Override
+      public PostingsFormat postingsFormat() {
+        return perField;
+      }
+    };
+  }
+
+  private static List&lt;String&gt; tokens(Analyzer a, String text) throws Exception {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute t = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(t.toString());
+      }
+      ts.end();
+    }
+    return out;
+  }
+
+  private static InputIterator inputs(String[] keys, long[] weights) {
+    return new InputIterator() {
+      int i = -1;
+
+      @Override
+      public BytesRef next() {
+        return ++i &lt; keys.length ? new BytesRef(keys[i]) : null;
+      }
+
+      @Override
+      public long weight() {
+        return weights[i];
+      }
+
+      @Override
+      public BytesRef payload() {
+        return null;
+      }
+
+      @Override
+      public boolean hasPayloads() {
+        return false;
+      }
+
+      @Override
+      public Set&lt;BytesRef&gt; contexts() {
+        return null;
+      }
+
+      @Override
+      public boolean hasContexts() {
+        return false;
+      }
+    };
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed (gradle and a standalone harness): affected; the 10.5.2 release jars: affected; per-version probes fail on 21 releases from 4.1.0 to 10.5.2</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock ea57360912ed, the env command (gradle, seed DEADBEEF, -Ptests.asserts=true; the same 6 failures in the same order with =false); log order
+TestEmptyTokenSuggestions &gt; testAnalyzingAndFuzzySuggesterWithArabicAnalyzer FAILED
+    java.lang.AssertionError: expected:&lt;[foo ـ bar, foo bar]&gt; but was:&lt;[foo bar]&gt;
+TestEmptyTokenSuggestions &gt; testTokenStreamToAutomaton FAILED
+    java.lang.AssertionError: expected:&lt;1&gt; but was:&lt;0&gt;
+TestEmptyTokenSuggestions &gt; testConcatenateGraphFilter FAILED
+    java.lang.AssertionError: one output token expected, got [] expected:&lt;1&gt; but was:&lt;0&gt;
+TestEmptyTokenSuggestions &gt; testTokenStreamToAutomatonStacked FAILED
+    java.lang.AssertionError: expected:&lt;2&gt; but was:&lt;1&gt;
+TestEmptyTokenSuggestions &gt; testSuggestFieldWithArabicAnalyzer FAILED
+    java.lang.AssertionError: expected:&lt;[foo ـ bar, foo bar]&gt; but was:&lt;[foo bar]&gt;
+TestEmptyTokenSuggestions &gt; testAnalyzingSuggesterWithPunctuationStripped FAILED
+    java.lang.AssertionError: expected:&lt;[Spider Man - Homecoming, Spider Man Far From Home]&gt; but was:&lt;[Spider Man Far From Home]&gt;
+6 tests completed, 6 failed
+
+# the same 6 of 6 through the standalone harness: main -ea, main -da, 10.5.2</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code>ConcatenateGraphFilter</code> promises "one output token for every path"; foo → "" → bar has one path and gets none.</li><li>The authors' own 2012 comment says two adjacent separators also match an empty-string token; on our reading, its path was meant to survive.</li><li>Empty tokens are intended: Lucene's Sorani test asserts that a standalone U+0640 normalizes to "".</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>317 words</span></summary><div class='body'><ul><li><strong><code>ConcatenateGraphFilter</code> javadoc</strong> (<code>ConcatenateGraphFilter.java:40-41</code>): "Concatenates/Joins every incoming token with a separator into one output token for every path through the token stream (which is a graph)."</li><li><strong><code>TokenStreamToAutomaton</code> javadoc</strong> (<code class='nw'>:31-33</code>): the labels are the token's bytes, and "Between tokens we insert POS_SEP and for holes we insert HOLE." Read literally, <code class='nw'>a</code>, <code class='nw'>""</code>, <code class='nw'>b</code> gives <code>a SEP SEP b</code>, not an empty language; the javadoc does not mention empty tokens, so this is a reading, not an explicit rule.</li><li><strong>The authors' comment</strong> in <code class='nw'>replaceSep</code> (<code>AnalyzingSuggester.java:295-301</code>, added with the trunk commit of the class, <code class='nw'>f2f91bae46c</code>; the copy at <code>ConcatenateGraphFilter.java:316-322</code> came later through <code>CompletionTokenStream</code>, LUCENE-6339, and LUCENE-8332): removing a hole leaves "two SEP tokens next to each other ... Note that it will also match an empty-string token". Our reading, an inference: it assumes the empty token's path is there.</li><li><strong><code>preservePositionIncrements</code> javadoc</strong> (<code>ConcatenateGraphFilter.java:103-105</code>): "Whether to add an empty token for missing positions. The effect is a consecutive SEP_LABEL."</li><li><strong>Empty terms are legal</strong>: <code>TestSoraniNormalizationFilter</code> asserts <code>checkOneTerm(a, "\u0640", "")</code> (<code class='nw'>:85</code>); <code>PatternReplaceFilter</code>'s javadoc warns it may produce empty tokens; LUCENE-3529 and LUCENE-4880 made <code class='nw'>IndexWriter</code> and <code class='nw'>MemoryIndex</code> accept empty terms. Being legal to index does not by itself mean every experimental graph consumer promises to handle them; the case rests on the <code>ConcatenateGraphFilter</code> promise and on the absence of any exclusion.</li><li><strong>Upstream tests</strong>: one randomized test, <code>TestFlattenGraphFilter</code> (<code class='nw'>:702</code>), asserts that this class's output for its graphs has no dead states (not a stated invariant, but dead states are not expected output); the empty-token automaton has them. <code>TestGraphTokenizers</code> and <code>TestConcatenateGraphFilter</code> cover holes and an empty stream, never a zero-length token, and no test pins today's behaviour.</li><li><strong>History</strong>: the loop never had a zero-length case (LUCENE-3842, 2012); the 66 JIRA comments of that issue discuss holes and separators only, and no won't-fix or by-design discussion was found.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>218 words</span></summary><div class='body'><p>Strongest case for "intended": the classes that build and consume the automaton are experimental; <code>PatternReplaceFilter</code> warns about empty tokens, so users should add <code>LengthFilter(min=1)</code>; some components reject empty tokens; <code>AnalyzingSuggester</code> documents that "Lookups with the empty string return no results", <code class='nw'>SuggestField</code> rejects an empty value, and an empty stream yields no output by design. And an empty term has no byte for an arc, so encoding it as a <code class='nw'>HOLE</code> conflates a real token with a missing position; nobody has reported the behaviour.</p><p>Why it fails: experimental allows API changes, not silent loss of entries; no javadoc of these classes asks for non-empty tokens, and the authors' comment, on our reading, expects the empty token to survive; the prebuilt Arabic, Persian and Sorani analyzers have no option for an extra filter (wrapping them works, but nothing tells users to); the empty-input rules cover an empty value, stream or lookup, not a non-empty value with one empty token inside; and an upstream test treats dead states as a failure for its graphs. The encoding point is about how to keep the path, not whether to keep it. Every checker concluded "not intended". The exact joined form (<code>a SEP SEP b</code> or <code>a SEP b</code>) is a design choice for the maintainers; the path must not vanish.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Connect an empty token like a hole, unless every token is empty (recommended of the two tested shapes)</strong></p><p class='short'>Recommended of the two tested shapes: connect a zero-length token like a hole (one <code class='nw'>HOLE</code> arc to its end state), only when the stream also has a non-empty token, so an all-empty lookup still matches nothing. +20 lines; the new tests and the core analysis, analysis-common and suggest suites pass. Limit: an all-empty <code>ContextSuggestField</code> value gets an entry.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>6 options · 1,259 words</span></summary><div class='body'><p>Both arc-based options were run through gradle in a scratch worktree at <code class='nw'>ea57360912ed</code>; the others are untested design alternatives. Every command is in the fix folder's <code class='nw'>commands.txt</code>.</p><div class="hd hd-3"><h3 id='fix-hole-arc-unless-all-empty'>Connect an empty token like a hole, unless every token is empty (recommended of the two tested shapes) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-hole-arc-unless-all-empty" target="_self" aria-label="Link to this section" aria-describedby="fix-hole-arc-unless-all-empty"><span aria-hidden="true">#</span></a></div><p><code>optionA2-hole-arc-unless-all-empty.diff</code>, <code>TokenStreamToAutomaton.java</code> only, +20 lines (counting an <code class='nw'>IntArrayList</code> import and two blank lines). Each empty token's start and end states are recorded; after the loop they get the one <code class='nw'>HOLE</code> arc a hole gets, if the stream had any non-empty token. <code>ConcatenateGraphFilter</code> and <code>AnalyzingSuggester</code> (so also <code class='nw'>FuzzySuggester</code>) turn <code class='nw'>HOLE</code> into an epsilon, so <code class='nw'>a</code>, <code class='nw'>""</code>, <code class='nw'>b</code> is joined as <code>a SEP SEP b</code>, the form the <code class='nw'>replaceSep</code> comment and the <code>preservePositionIncrements</code> javadoc describe; direct callers of <code class='nw'>toAutomaton</code>, such as the test framework's <code>assertGraphStrings</code>, see the raw <code class='nw'>HOLE</code> label. A stream of only empty tokens keeps today's automaton (it accepts nothing), so a lookup key made only of empty tokens still matches nothing, like an empty key, and for <code class='nw'>SuggestField</code>, <code>AnalyzingSuggester</code> and <code class='nw'>FuzzySuggester</code> a value made only of tatweels still gets no entry. <code>Automaton.Builder</code> accepts transitions in any order.</p><pre class='snippet' tabindex='0'><code>    // (from, to) state pairs of zero-length tokens, connected at the end:
+    final IntArrayList emptyTokens = new IntArrayList();
+    boolean sawNonEmptyToken = false;
+    while (in.incrementToken()) {
+      ...
+      if (termLen == 0) {
+        emptyTokens.add(state);
+        emptyTokens.add(endPosData.arriving);
+      } else {
+        sawNonEmptyToken = true;
+      }
+      ...
+    }
+    in.end();
+
+    if (sawNonEmptyToken) {
+      // A zero-length token has no bytes, but it still spans its position(s): connect it like a
+      // hole so the paths through it are kept (consumers remove HOLE, leaving two adjacent
+      // separators). A stream of only zero-length tokens accepts nothing, like an empty stream.
+      for (int i = 0; i &lt; emptyTokens.size(); i += 2) {
+        builder.addTransition(emptyTokens.get(i), emptyTokens.get(i + 1), HOLE);
+      }
+    }</code></pre><p class='k'>Trade-offs</p><ul><li><strong><code>ContextSuggestField</code></strong>: the all-empty exception looks at the whole stream, and <code>ContextSuggestField</code> puts a non-empty context-prefix token in front of the value. So with this fix a <code>ContextSuggestField</code> value made only of tatweels gets an entry with an empty key (stock gets none), and a match-all <code class='nw'>ContextQuery</code> returns it (executed by the fact check). The guard test checks only the lookup side. Any non-empty token, even one stacked alternative, turns the exception off.</li><li>An empty token and a removed (hole) token become the same in the automaton when <code>preservePositionIncrements</code> is true; with false a hole collapses to <code>a SEP b</code> while this fix still gives <code>a SEP SEP b</code>. The exact form is the maintainers' choice.</li><li>A prefix lookup "foo" returns "foo ـ bar", but the exact lookup "foo bar" does not match it, as with a stop-word hole.</li><li>Edges: a stream whose only position holds a non-empty token and a stacked empty one also accepts the empty string (no stock analyzer was seen producing that); an empty token with <code>positionLength &gt; 1</code> gets one <code class='nw'>HOLE</code> arc across its span (untested).</li><li>Not reviewed by a committer.</li></ul><p class='k'>What the checks validated</p><ul><li>The doc's test plus 3 guard tests for lookups made only of empty tokens (<code>AnalyzingSuggester</code>, <code>PrefixCompletionQuery</code>, <code class='nw'>ContextQuery</code>): 9 tests, 0 failures, with <code>-Ptests.asserts=true</code> and <code class='nw'>=false</code>.</li><li><code>TestGraphTokenizers</code> with 3 new tests: 26 tests, 0 failures; core <code>org.apache.lucene.analysis.*</code>: 21 classes, 171 tests, 0 failures (assertions on, the core module's default for this seed).</li><li>The whole suggest module: 32 classes, 245 tests (236 upstream + 9 new), 0 failures, with assertions off (2026-10-26, the seed's default) and on (the fact check's <code>-Ptests.asserts=true</code> re-run). The whole analysis-common module: 339 classes, 1,909 tests, 0 failures, likewise off and on (it includes the graph-string tests of <code>TestSynonymGraphFilter</code> and <code>TestWordDelimiterGraphFilter</code>, which use this class). <code class='nw'>TestRandomChains</code>: 2 tests, 0 failures (assertions off).</li><li><code>:lucene:core:check :lucene:suggest:check -x test</code> (google-java-format, ecjLint, forbiddenApis) passes.</li><li>Harness with the fix shadowed in: the finder's test 3 of 3 (including the joined token <code>a SEP SEP b</code>), an independent reproducer's 10 of 10, and the follow-up's security probe: in 620 lookups every stock result set is a subset of the fix's, 0 <code class='nw'>ContextQuery</code> errors, a lone-tatweel lookup returns nothing, 81 of 84 inputs get an entry.</li></ul><div class="hd hd-3"><h3 id='fix-hole-arc-always'>A HOLE arc for every empty token (the finder's 6-line sketch) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-hole-arc-always" target="_self" aria-label="Link to this section" aria-describedby="fix-hole-arc-always"><span aria-hidden="true">#</span></a></div><p>Inside the loop, <code>if (termLen == 0) builder.addTransition(state, endPosData.arriving, HOLE);</code>. It fixes every bug test, and no upstream test fails (suggest 245 tests, analysis-common 1,909, <code class='nw'>TestRandomChains</code>).</p><pre class='snippet' tabindex='0'><code>      if (termLen == 0) {
+        // A zero-length token still spans its position(s): connect it like a hole so that the paths
+        // through it are kept (consumers remove HOLE, so it reads as an empty element between two SEPs).
+        builder.addTransition(state, endPosData.arriving, HOLE);
+      }</code></pre><p class='k'>Trade-offs</p><p>A value or lookup made only of empty tokens becomes the empty string: a lookup for a lone tatweel returns every suggestion (<code>AnalyzingSuggester</code> 2 of 2 instead of 0, <code>PrefixCompletionQuery</code> 1 of 1), against the documented "Lookups with the empty string return no results". With assertions off a <code class='nw'>ContextQuery</code> returns 2 of 2, including an entry made only of a tatweel; with assertions on that lookup fails with an <code class='nw'>AssertionError</code> at <code>ContextQuery.java:319</code>.</p><p class='k'>What the checks validated</p><p>The 6 bug tests, the finder's 3 and the reproducer's 10 pass. The 3 guard tests fail through gradle with assertions off and through the harness with assertions on and off; <code>testOnlyEmptyTokens</code> fails (assertions on). The suggest, analysis-common and <code class='nw'>TestRandomChains</code> suites ran with assertions off (the seed's default).</p><div class="hd hd-3"><h3 id='fix-join-without-position'>Join an empty token without its position (a SEP b)</h3><a class="hlink" href="#fix-join-without-position" target="_self" aria-label="Link to this section" aria-describedby="fix-join-without-position"><span aria-hidden="true">#</span></a></div><p>Treat a zero-length token like a removed token with <code>preservePositionIncrements=false</code>, so "foo ـ bar" matches the lookup "foo bar".</p><p class='k'>Trade-offs</p><p>More code (merge the token's start and end states, or an epsilon), and an empty token then behaves differently from a hole, against the <code>preservePositionIncrements</code> javadoc. Untested.</p><div class="hd hd-3"><h3 id='fix-filter-in-consumers'>Remove empty tokens in each consumer</h3><a class="hlink" href="#fix-filter-in-consumers" target="_self" aria-label="Link to this section" aria-describedby="fix-filter-in-consumers"><span aria-hidden="true">#</span></a></div><p>Wrap the stream in <code>ConcatenateGraphFilter</code> and the analyzing suggesters with a filter that drops empty tokens and carries their position increment, as <code class='nw'>LengthFilter</code> does.</p><p class='k'>Trade-offs</p><p>For an empty token alone at its position it gives the recommended fix's result for those consumers; for a stacked one (position increment 0) the filter removes the alternative, while the recommended fix keeps it as a <code class='nw'>HOLE</code> path. <code>TokenStreamToAutomaton</code> stays wrong for its other callers (for example the test framework's <code>assertGraphStrings</code>), and three places change instead of one. Untested.</p><div class="hd hd-3"><h3 id='fix-explicit-empty-token'>Make an empty token explicit: reject it, or give it its own label</h3><a class="hlink" href="#fix-explicit-empty-token" target="_self" aria-label="Link to this section" aria-describedby="fix-explicit-empty-token"><span aria-hidden="true">#</span></a></div><p>Either <code class='nw'>toAutomaton</code> throws on a zero-length term, so the loss becomes loud, or the empty token gets its own label instead of <code class='nw'>HOLE</code>, so consumers can tell it from a missing position.</p><p class='k'>Trade-offs</p><p>Rejecting makes values that index silently today fail at index time; a new label needs every consumer of the automaton to handle it. Untested; listed because the cross-model fact check suggested presenting it.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround in every affected release: drop empty tokens before the suggester <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p>In a <code class='nw'>CustomAnalyzer</code>, add the <code class='nw'>length</code> filter with <code class='nw'>min=1</code>; around a prebuilt analyzer, an <code class='nw'>AnalyzerWrapper</code> whose <code class='nw'>wrapComponents</code> appends <code>new LengthFilter(tokenStream, 1, Integer.MAX_VALUE)</code>. <code class='nw'>LengthFilter</code> turns the removed token into a hole, so the value is joined as <code>foo SEP SEP bar</code>, the same form as the recommended fix for an empty token alone at its position (a stacked empty token is simply removed).</p><p class='k'>Trade-offs</p><p>Each application has to know about it; nothing in the suggester documentation says it is needed.</p><p class='k'>What the checks validated</p><p>On stock main, <code class='nw'>ArabicAnalyzer</code> wrapped this way returns [foo ـ bar, foo bar] from both <code>AnalyzingSuggester</code> and <code class='nw'>SuggestField</code> (2 tests, 0 failures).</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Bounded-exhaustive translation validation: a checker compared the real <code>ConcatenateGraphFilter</code> and <code>TokenStreamToAutomaton</code> with an independent reference of the documented join semantics over every token graph of up to 3 positions (1,041,120 checks). Paths through an empty token went missing; a suggester-level checker and a survey of stock analyzers then found the tatweel trigger.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>240 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation</strong> (a hunt unit, completion suggester indexing, 2026-10-26, main <code class='nw'>ea57360912ed</code>). No model checker, SMT solver or prover was involved.</p><ul><li>The finder (an AI tool) wrote an independent reference of the documented join semantics: one output token for every path, separators between tokens, holes for missing positions.</li><li>Its checker (<code>ConcatGraphTV.java</code>) ran the real classes against it over every token graph of up to 3 positions, each a hole or 1-2 distinct stacked tokens from an 8-token alphabet that includes the empty token (every token with position length 1; graphs made only of holes skipped), with trailing holes on and off, 5 separators and both <code>preservePositionIncrements</code> settings: 1,041,120 checks. The run reported 889,575 mismatches in all, sorted into classes; the class "missing paths through an empty token" (245,958 checks) is this bug, and the other classes (separator escaping, non-ASCII separators, the expansion limit and an unclassified rest) are separate questions, not part of this report.</li><li>A suggester-level checker (<code class='nw'>SuggestTV.java</code>), with a token mapped to <code class='nw'>""</code>, found 7,915 mismatching (query x configuration) checks out of 13,440, each missing one or more results and none returning an extra one; a survey of stock analyzers found that the Arabic, Persian and Sorani analyzers emit an empty token for a standalone tatweel.</li><li>Then a public-API JUnit, a cross-model review, independent verifiers, an adjudication, a 66-run release sweep, a prior-report search and a security screen (see Independent checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found: about 241 tool queries, 59 GitHub searches and 9 web searches over issues, PRs, commits, JIRA, the mailing lists and downstream projects, plus the changed files of all 408 open PRs (2026-10-26). Upstream main still has the 2020 version of the file, and no open PR touches it.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>None of the searched issues, PRs, commits, JIRA entries, list threads or downstream reports describes a zero-length token cutting paths in <code>TokenStreamToAutomaton</code>, <code>ConcatenateGraphFilter</code> emitting nothing for it, or suggestions lost this way; nothing is by the owner. The two earlier defect fixes the class's history shows concern holes (LUCENE-8344, 2018; commit <code class='nw'>e64111c6545</code>, 2017). Word-based searches show what was found, not that no report exists anywhere.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene)</th><td class='when'>2026-10-26</td><td>a scripted prior-report search in five runs (about 241 queries in all, with GitHub, JIRA, list and web sources), 31 direct GitHub searches: class names, 'empty token', 'zero-length token', tatweel, kashida, U+0640, replaceSep, POS_SEP, the suggester classes with 'empty'</td><td>no report; nearest #9391 / LUCENE-8344 (trailing position increment), commit e64111c6545 (holes freed too early), #4915 / LUCENE-3842 (the introducing change, no zero-length discussion), #9379, #9370, #10061 (ConcatenateGraphFilter), #7518 and #9334 (empty value rejected, empty query returns nothing: intended)</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 408 open apache/lucene PRs; re-checked with a PR search for TokenStreamToAutomaton</td><td>none touches TokenStreamToAutomaton.java; #16911 (deletes branch_10x) is the only one touching ConcatenateGraphFilter</td></tr><tr><th scope='row'>JIRA archive and mailing lists</th><td class='when'>2026-10-26</td><td>the migrated LUCENE JIRA, dev@, java-user@, issues@ and commits@ (including the exact phrases 'empty token' and 'zero-length token')</td><td>no report; java-user threads only confirm that empty tokens are legal and that TrimFilter + LengthFilter removes them</td></tr><tr><th scope='row'>Downstream and web</th><td class='when'>2026-10-26</td><td>28 GitHub searches on Elasticsearch, OpenSearch, Solr, lucene-solr and Lucene.NET; 9 web searches; two Q&amp;A pages checked later through their public feeds (one saved feed was a 'page not found' page; the fact check fetched it again)</td><td>no report; Elasticsearch #46445, #31738, #25664, #30286 are missing completion suggestions from other causes</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since the class was written for LUCENE-3842 (2012) and first released in 4.1.0; the loop never changed. Fails on all 21 releases tried from 4.1.0 to 10.5.2 and on main. Silent everywhere except 4.10.x and 5.1-5.2, where unrelated changes made it throw. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>9 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-3842 "add AnalyzingSuggester" (@mikemccand, issue #4915): written on the feature branch in <code class='nw'>9d7873ff5a6</code> (2012-09-15), committed to trunk as <code class='nw'>f2f91bae46c</code> and merged to branch_4x as <code class='nw'>0c89e05d765</code> (2012-09-28). The trunk commit added the <code class='nw'>replaceSep</code> comment (in <code>AnalyzingSuggester</code>) that, on our reading, expects an empty-string token to read as two separators. Later edits to the loop (LUCENE-5030, LUCENE-5752, LUCENE-6653, the LUCENE-9570 reformat) added no zero-length case. <strong>Not a regression.</strong></p><p>Consumers are affected from their own first release: <code>AnalyzingSuggester</code> and <code class='nw'>FuzzySuggester</code> 4.1.0, the document suggester 5.1.0 (LUCENE-6339), <code>ConcatenateGraphFilter</code> 7.4.0 (LUCENE-8332). On 4.10.x and 5.1-5.2 the same lost path made an unrelated automaton change throw <code>IllegalStateException: from state (0) already had transitions added</code>; LUCENE-5963 and LUCENE-6365 made it silent again. No issue links that exception to empty tokens. On upstream main the file's last change is the 2020 reformat.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>4.0.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>TokenStreamToAutomaton, AnalyzingSuggester and FuzzySuggester do not exist (compile error)</td></tr><tr><th scope='row'>4.1.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first affected</span></td><td>the automaton for a, "", b accepts 0 strings; both suggesters return only "foo bar"; one added arc fixes it</td></tr><tr><th scope='row'>4.5.1, 4.9.1</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>silent drop</td></tr><tr><th scope='row'>4.10.0, 4.10.4</th><td><span class='v warn'><span aria-hidden='true'>&#9650;</span> throws</span></td><td>core path lost; AnalyzingSuggester/FuzzySuggester.build() throws IllegalStateException</td></tr><tr><th scope='row'>5.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>silent drop</td></tr><tr><th scope='row'>5.1.0, 5.2.1</th><td><span class='v warn'><span aria-hidden='true'>&#9650;</span> throws</span></td><td>suggesters drop the entry silently; consuming CompletionAnalyzer's stream throws IllegalStateException</td></tr><tr><th scope='row'>5.3.0 to 10.5.2 (13 releases run: 5.3.0, 5.5.5, 6.0.0, 6.6.6, 7.0.0, 7.4.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>silent: 0 completion tokens, suggestion lost; ConcatenateGraphFilter emits 0 tokens from 7.4.0 on; the doc's test fails 6 of 6 on 10.5.2</td></tr><tr><th scope='row'>main ea57360912ed</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the doc's test fails 6 of 6 through gradle with -Ptests.asserts=true and =false and through the harness with -ea and -da; upstream main a95c754ee003 still has the 2020 version of the file</td></tr><tr><th scope='row'>main with the recommended fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the doc's test and guards 9 of 9; core analysis 171 tests pass (assertions on), and suggest 245 and analysis-common 1,909 with assertions on and off</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and an adjudication said real; an OpenAI GPT-5.6 reviewer (reading only) agreed on the root cause, said real in most of its lenses and "not real" in one only because it could not run code. This doc's test and both arc-based fixes were run through gradle.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>437 words</span></summary><div class='body'><p>All checks ran on main <code class='nw'>ea57360912ed</code> unless noted; the GPT-5.6 reviews read code only. Assertion modes: the harness runs used <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the 2026-10-26 gradle runs used the seed's default (off for the suggest and analysis-common modules, on for core), and the 2026-10-27 fact check re-ran them with an explicit <code>-Ptests.asserts=true</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder (a hunt unit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>The 3-test JUnit fails 3 of 3 on main, 10.5.2 and 9.12.3; a main() variant fails on 9.0.0, 8.11.4, 7.7.3 and 6.6.6; with the fix sketch it passes.</td></tr><tr><th scope='row'>Cross-model review (OpenAI GPT-5.6, reading only)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> root cause real; intended behaviour real; refute not real (procedural)</span></td><td>It agreed on the root cause, found the inputs in contract and the works-as-designed case weak; the refute lens defaults to "not real" when it cannot run code. A separate run re-ran the finder's test: fail 3 of 3, pass with the fix.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Its own 10-test JUnit fails its 7 bug tests on main, 10.5.2 and 9.12.3 (the 3 controls pass), including the stacked path, FuzzySuggester, the document suggester and a PatternReplace chain; 10 of 10 with the fix.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the strongest intended readings (misuse, acknowledged corner case, empty-input rules, experimental API) and showed why each fails; its probe recorded dead states, no output for any separator, and a stacked path lost.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test with a fresh seed (7 of 10 fail, assertions on and off), the finder's (3 of 3) and the independent reproduction's with the fix (10 of 10 pass).</td></tr><tr><th scope='row'>Follow-up and registry re-runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced</span></td><td>The 66-run release sweep, the security probe (620 lookups, only lost results), and re-runs with fresh seeds on main and 10.5.2.</td></tr><tr><th scope='row'>This doc's test and fix validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>The new 6-test JUnit fails 6 of 6 through gradle (assertions on and off, fact-check re-run) and through the harness on main and 10.5.2; the recommended fix passes it, 3 guard tests, 3 new core tests and the core analysis, suggest and analysis-common suites.</td></tr><tr><th scope='row'>Fact checks of this doc (2026-10-27)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug confirmed; wording fixed</span></td><td>An independent fact check and a cross-model one (OpenAI GPT-5.6, reading only) confirmed the bug and the mechanism and found wording and provenance errors: the assertion mode of the gradle runs, a cited run of an earlier draft, the fix's <code>ContextSuggestField</code> limit, the scope of the affected suggesters, and the unit of the checker's count. All are fixed here; the fact check re-ran the test and the fix's suites with assertions on.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-523/bug.png' download='tokenstreamtoautomaton-empty-token-drops-path-bug.png' target='_self'>PNG</a> <span class='n'>492 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,516 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-523, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>A zero-length token makes TokenStreamToAutomaton drop every path through it, so ConcatenateGraphFilter emits nothing and the document suggester, AnalyzingSuggester and FuzzySuggester silently lose that suggestion (stock trigger: a standalone tatweel U+0640 with ArabicAnalyzer, PersianAnalyzer or SoraniAnalyzer)</dd></div><div><dt>Area</dt><dd>analysis / TokenStreamToAutomaton (core), reached through ConcatenateGraphFilter (analysis-common) and the completion suggesters (suggest: NRT document suggester, AnalyzingSuggester, FuzzySuggester)</dd></div><div><dt>Priority</dt><dd>Medium, rank 47: A zero-length token (for example a standalone tatweel under the stock Arabic analyzers) silently drops the whole suggestion from the completion suggesters, a rare silent suggester loss like LFV-248.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits applications that use a completion suggester (the NRT document suggester through SuggestField or CompletionAnalyzer, AnalyzingSuggester or FuzzySuggester) or ConcatenateGraphFilter directly, and only for values whose analysis contains a zero-length token, which the stock ArabicAnalyzer, PersianAnalyzer and SoraniAnalyzer emit for a standalone tatweel and custom chains emit when a filter such as PatternReplaceFilter blanks a punctuation-only token: that suggestion is silently never indexed or never returned (a stacked empty token loses only its own alternative path), with -ea and -da, no scale needed and no exception.</dd></div><div><dt>Summary</dt><dd>You index the suggestion 'foo ـ bar' (a standalone Arabic tatweel between two words) with ArabicAnalyzer into a SuggestField, or build an AnalyzingSuggester or FuzzySuggester from it, and expect a lookup for 'foo' to return it next to 'foo bar', because ArabicAnalyzer turns the tatweel into an ordinary empty token and ConcatenateGraphFilter promises one output token for every path through the token graph. Instead TokenStreamToAutomaton adds a token's transitions only inside its per-byte loop, which never runs for a zero-length token, so the token's end state is unreachable: ConcatenateGraphFilter emits nothing, the document suggester indexes no entry for the value and the analyzing suggesters skip the input, so the suggestion never comes back. A stacked empty token loses only its own alternative path; nothing throws, with assertions on or off.</dd></div><div><dt>Introduced</dt><dd>f2f91bae46cbc4a883324521767e4701fbbbc14a (LUCENE-3842 'add AnalyzingSuggester', mikemccand, svn r1391683 on trunk; the class was first written on the feature branch lucene3842 in 9d7873ff5a6 (r1385125, 2012-09-15) and reached branch_4x as the merge 0c89e05d765 (r1391686); JIRA patch workflow, no PR; issue #4915) [read: git log --follow and git blame in the history clone; git blame on main still attributes the loop skeleton (TokenStreamToAutomaton.java:174-175, 178, 181-182, 206-207) to it, and none of the later commits that touched the loop (LUCENE-5030, LUCENE-5752, LUCENE-6653, the LUCENE-9570 reformat) added a zero-length case]. Not a regression (2012-09-28 (trunk and branch_4x commits; the feature-branch commit is from 2012-09-15))</dd></div><div><dt>First affected version</dt><dd>4.1.0 [exec] (the first release with TokenStreamToAutomaton, AnalyzingSuggester and FuzzySuggester; 4.0.0 does not have them [exec: compile error]). Later consumers are affected from their own first release: the NRT document suggester from 5.1.0 and ConcatenateGraphFilter from 7.4.0 [exec]</dd></div><div><dt>Affected versions</dt><dd>4.1.0 through 10.5.2 (the latest release; the latest 9.x is 9.12.3) and main ea57360912ed. [exec] per-era main() probes (e1, e1b, e2, e2d, e3) fail on 4.1.0, 4.5.1, 4.9.1, 4.10.0, 4.10.4, 5.0.0, 5.1.0, 5.2.1, 5.3.0, 5.5.5, 6.0.0, 6.6.6, 7.0.0, 7.4.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main (4.1.0, 4.10.4, 10.5.2 and main also with -da), with every control (a non-empty middle token) passing; on 4.1.0 one added arc for the empty token (shadowed) makes the probe pass; the ConcatenateGraphFilter probe fails on 7.4.0, 8.11.4, 9.12.3, 10.5.2 and main; the finder's JUnit fails 3 of 3 on 9.12.3, 10.5.2 and main (-ea, -da); the independent reproduction's JUnit fails 7 of 10 on 9.12.3, 10.5.2 and main (-ea, -da). The visible symptom differs in two windows for reasons unrelated to this bug: on 4.10.0-4.10.4 AnalyzingSuggester/FuzzySuggester.build() throws IllegalStateException 'from state (0) already had transitions added', and on 5.1.0-5.2.1 consuming the document suggester's analysis chain throws the same exception [exec; mechanism read: LUCENE-5752, then LUCENE-5963 and LUCENE-6365]; every other release loses the suggestion silently. [read] all 120 release tags from 4.1.0 to 10.5.2 in the history clone have the per-term loop with no zero-length case (8.8.2-8.11.4 are not tagged there; 8.11.4 was executed). Not fixed upstream: upstream main ffa9d816eeb4 has a byte-identical TokenStreamToAutomaton.java, its last change on main and the 10.x branches is the 2020 reformat, and no open PR touches it [read, 2026-10-26]. Executed only on aarch64 Linux with JDK 25 (plain Java logic)</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; the prior-report record, verdict new; plus the finder's and the intended-behaviour check's searches): a scripted prior-report search in five runs (24 + 38 + 60 + 66 + 53 queries) over apache/lucene GitHub issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists (including the exact phrases 'empty token', 'zero-length token' and 'empty tokens'), the JIRA archive and the web; 31 GitHub GraphQL searches on apache/lucene (class names, 'empty token', tatweel, kashida, U+0640, replaceSep, POS_SEP, the suggester classes with 'empty') and 28 on Elasticsearch, OpenSearch, Solr, lucene-solr and Lucene.NET; 9 web searches; the changed files of all 408 open apache/lucene PRs; the file's commit history on main and the 10.x branches; local git history (-S 'termLen == 0': none). Related, not this bug: #9391/LUCENE-8344 (closed, 2018: trailing position increment with preservePositionIncrements=false; the last functional change to the class), commit e64111c6545 (2017: holes freed too early), #4915/LUCENE-3842 (closed: introduced the class and the replaceSep comment; its discussion never mentions zero-length tokens), #9379/LUCENE-8332 and #9370/LUCENE-8323 (ConcatenateGraphFilter created), #10061/LUCENE-9018 (custom separator; holds the preservePositionIncrements 'empty token' javadoc), #6094/LUCENE-5030, #7025/LUCENE-5963, #7400/LUCENE-6339 (other changes to the same code), #7518/LUCENE-6459 (SuggestField rejects an empty value), #9334/LUCENE-8287 and commit beb163c9160 (empty query automata, intended), #9570, #9465, #3479, #2049 (empty tokens in other components), Elasticsearch #46445, #31738, #25664, #30286 (missing completion suggestions for other causes), #16911 (open PR that deletes branch_10x; the only open PR touching ConcatenateGraphFilter). Not filed by the owner</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (commit of 2026-10-24; tested 2026-10-26, re-checked 2026-10-27), seed DEADBEEF: the doc's test through gradle with <code>-Ptests.asserts=true</code> and <code class='nw'>=false</code> (the fact check's re-run; the 2026-10-26 gradle runs used the seed's default, assertions off) and through a standalone JUnit harness with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the doc's test also on the 10.5.2 release jars; per-version probes on 21 releases from 4.1.0 to 10.5.2 (4.0.0 does not have the class).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java:30-36 (at ea57360912ed) (class javadoc: transition labels are the token&#x27;s UTF-8 bytes or code points; &#x27;Between tokens we insert POS_SEP and for holes we insert HOLE&#x27; at :33; @lucene.experimental), :174-181 (the token&#x27;s end position and its arriving state are created), :195 (state = posData.leaving), :197-206 (the only transitions for a token, inside &#x27;for (int byteIDX = 0; byteIDX &lt; termLen; byteIDX++)&#x27;: zero iterations when termLen == 0)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConcatenateGraphFilter.java:39-46 (at ea57360912ed) (class javadoc: &#x27;one output token for every path through the token stream (which is a graph)&#x27;; @lucene.experimental), :100-105 (preservePositionIncrements: &#x27;Whether to add an empty token for missing positions. The effect is a consecutive SEP_LABEL&#x27;), :221-235 (toAutomaton through TokenStreamToAutomaton), :312-324 (replaceSep: removing a HOLE leaves two SEPs, &#x27;Note that it will also match an empty-string token&#x27;)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/analyzing/AnalyzingSuggester.java:95 (at ea57360912ed) (documented limitation: lookups with the empty string return no results), :268-301 (replaceSep with the same HOLE comment), :317-318 and :406 (TokenStreamToAutomaton use)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/TestSoraniNormalizationFilter.java:85 (at ea57360912ed) (checkOneTerm(a, &quot;\u0640&quot;, &quot;&quot;): a standalone tatweel normalizes to the empty term by design); lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicNormalizer.java:48, :81 (TATWEEL removed); lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/PatternReplaceFilter.java:32 (&#x27;may produce Tokens whose text is the empty string&#x27;)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java:30-36 (class javadoc), :155-156 (SEP arc), :174-181 (end state created), :195-207 (the per-byte loop, the only arcs of a token), :244-255 (accept states)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConcatenateGraphFilter.java:39-46 (one output token for every path), :226-250 and :285-333 (toAutomaton, replaceSep)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/SuggestField.java:104, :114-120; CompletionTokenStream.java:59-60; CompletionAnalyzer.java:149-152 (the document suggester goes through ConcatenateGraphFilter)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/analyzing/AnalyzingSuggester.java:406, :415-419 (build enumerates the finite strings of each input&#x27;s automaton)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/analyzing/AnalyzingInfixSuggester.java, BlendedInfixSuggester.java, FreeTextSuggester.java; fst/FSTCompletionLookup.java, WFSTCompletionLookup.java (no use of TokenStreamToAutomaton or ConcatenateGraphFilter)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicNormalizer.java:48, :81; ckb/SoraniNormalizer.java:55, :108 (TATWEEL deleted); ar/ArabicAnalyzer.java:132-142 (no LengthFilter)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/PatternReplaceFilter.java:31-32</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConcatenateGraphFilterFactory.java:47 (SPI name concatenateGraph)</code></li><li><code>lucene/suggest/build.gradle (suggest depends on core and analysis-common)</code></li></ul></dd></div><div><dt>Minimal repro</dt><dd><ul class='paths'><li><code>lucene/suggest/build.gradle</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConcatenateGraphFilter.java:40-41, :103-105, :316-322</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java:30-36</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/analyzing/AnalyzingSuggester.java:95, :295-301</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/TestSoraniNormalizationFilter.java:85</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/core/TestFlattenGraphFilter.java:702</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/miscellaneous/TestConcatenateGraphFilter.java:163-167 (testEmpty: an empty stream)</code></li><li><code>lucene/CHANGES.txt:17012 (LUCENE-3529), :14115 (LUCENE-4880)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConcatenateGraphFilter.java:103-105, :313-323; lucene/suggest/src/java/org/apache/lucene/search/suggest/analyzing/AnalyzingSuggester.java:95, :292-302; lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java:271-299 (addHoles, HOLE arc :291)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/ContextSuggestField.java:78-101, :137-152 (context-prefix token); lucene/core/src/java/org/apache/lucene/analysis/FilteringTokenFilter.java:49-60; lucene/test-framework/src/java/org/apache/lucene/tests/analysis/BaseTokenStreamTestCase.java:1595-1610</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestEmptyTokenSuggestions.java (6 tests, suggest module): <a href='../repro/LFV-523/TestEmptyTokenSuggestions.java'><code>repro/LFV-523/TestEmptyTokenSuggestions.java</code></a> (187 lines)</li><li>The fix: optionA2-hole-arc-unless-all-empty.diff: <a href='../repro/LFV-523/optionA2-hole-arc-unless-all-empty.diff'><code>repro/LFV-523/optionA2-hole-arc-unless-all-empty.diff</code></a> (52 lines)</li><li>Core tests for the PR: test-graphtokenizers.diff (TestGraphTokenizers, +3 tests): <a href='../repro/LFV-523/test-graphtokenizers.diff'><code>repro/LFV-523/test-graphtokenizers.diff</code></a> (44 lines)</li><li>The finder&#x27;s TestEmptyTokenDropsSuggestion.java (3 tests): <a href='../repro/LFV-523/TestEmptyTokenDropsSuggestion.java'><code>repro/LFV-523/TestEmptyTokenDropsSuggestion.java</code></a> (189 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the automaton for the tokens foo, "", bar with the state numbers of an executed run on main, the three code locations, and what the user gets; made in parallel with this doc.</p><ul class='paths'><li><a href='../assets/LFV-523/bug.png'><code>assets/LFV-523/bug.png</code></a> (492 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

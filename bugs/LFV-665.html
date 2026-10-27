@@ -1,0 +1,597 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>ArabicStemmer strips only one prefix: after the conjunction و (&quot;and&quot;) the article stays, unlike the light10 algorithm ArabicAnalyzer cites</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-665 &middot; arabic-stemmer-waw-then-article-not-stripped</p><h1 id='top'>ArabicStemmer strips only one prefix: after the conjunction و (&quot;and&quot;) the article stays, unlike the light10 algorithm ArabicAnalyzer cites</h1><p class='tldr'><code class='nw'>ArabicAnalyzer</code> cites the light10 stemmer, which strips a leading و ("and") and then the article, but Lucene stops after the و: <code class='nw'>وبالكتاب</code> ("and with the book") is indexed as <code class='nw'>بالكتاب</code>, not <code class='nw'>كتاب</code>, so a search for <code class='nw'>الكتاب</code> ("the book") finds 0 of 1 documents. Every release since 2.9.0 has it.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 110</span><span class='sub'>The default ArabicAnalyzer has silently missed matches since 2.9.0 on common waw+article words such as وبالتالي, a bigger trigger than the Brazilian -logias row LFV-663, but it is one language and the fix&#x27;s net effect is unmeasured.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>2.9.0 (LUCENE-1406, committed 2008-10-20; light10 contract since LUCENE-1758, 2009)<span class='sub'>introduced 2008-10-20 &middot; over 18 years</span></dd></div><div><dt>Affected</dt><dd>2.9.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive differential check against the paper's published steps</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Arabic attaches "and" (و) and "with the" or "for the" (بال, لل) to the front of a word. A light stemmer removes them so that every form of a word shares one index term. Lucene's stemmer removes only the first of these pieces it finds.</p><figure class='visual' id='arabic-stemmer-waw-then-article-not-stripped-short-visual'><div class='frame'><a class='still' href='../assets/LFV-665/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-665/bug.png' alt='Summary card: Lucene ArabicStemmer strips only one prefix: after و (and) the article stays. Left panel, وبالكتاب two ways: expected (light10, the paper&#x27;s section 2.2) وبالكتاب, step 1 removes و, giving بالكتاب, step 2 removes بال, giving كتاب, the term of الكتاب; actual on main: step 1 removes و, giving بالكتاب, and the method returns, so no article is tried again (ArabicStemmer.java:92). Right panel, the search with ArabicAnalyzer: the document وبالكتاب is stored as بالكتاب, the query الكتاب becomes body:كتاب, count = 0 where 1 hit is expected. The same for و + بال, كال, فال, لل; not affected: و + ال and one prefix alone.' width='1920' height='1080'></a></div><figcaption>The word <code class='nw'>وبالكتاب</code> ("and with the book") two ways: light10 removes و and then بال and gets <code class='nw'>كتاب</code>; Lucene's <code class='nw'>stemPrefix</code> returns after removing و and indexes <code class='nw'>بالكتاب</code>, so a search for <code class='nw'>الكتاب</code> ("the book") finds 0 of 1 documents. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index the document <code class='nw'>وبالكتاب</code>, "and with the book" (و "and" + بال "with the" + كتاب "book"), with the stock <code>new ArabicAnalyzer()</code>. Its javadoc says it stems "as specified by" the light10 paper.</span></li><li><span>Light10 runs ordered steps: remove a leading و if 3 or more letters remain, then one article (ال, وال, بال, كال, فال, لل) if 2 or more remain, then suffixes. You expect <code class='nw'>كتاب</code>, the same term as <code class='nw'>الكتاب</code> ("the book") and <code class='nw'>بالكتاب</code>.</span></li><li><span>You get <code class='nw'>بالكتاب</code>. <code>ArabicStemmer.stemPrefix</code> keeps the six articles and the و in one list, tried in order, and returns after the first match: it removes the و and never tries <code class='nw'>بال</code> on the rest.</span></li><li><span>A <code class='nw'>TermQuery</code> for the analyzed <code class='nw'>الكتاب</code> (<code class='nw'>body:كتاب</code>) finds 0 of 1 documents, with no error. The same happens for و + لل, كال and فال, and for real words such as <code class='nw'>وبالتالي</code> ("and therefore") becomes <code class='nw'>بالتال</code> instead of <code class='nw'>تال</code>.</span></li><li><span>Only و + ال works, because <code class='nw'>وال</code> is in the list itself. The code is the same in every release from 2.9.0 (2009) to 10.5.2 and on main.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Everyone who indexes or searches Arabic text with the stock <code class='nw'>ArabicAnalyzer</code>, <code class='nw'>ArabicStemFilter</code> or the <code class='nw'>arabicStem</code> factory. Real words such as <code class='nw'>وبالتالي</code>, <code class='nw'>وبالنسبة</code> and <code class='nw'>وللمرة</code> always get a different term than light10 gives; a hit is missed when query and document use different forms of the word. There is no error; the net effect on ranking quality was not measured.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>789 words</span></summary><div class='body'><p><code class='nw'>ArabicAnalyzer</code>'s javadoc says it "implements light-stemming as specified by: Light Stemming for Arabic Information Retrieval" (<code>ArabicAnalyzer.java:38-39</code>). Section 2.2 of that paper runs ordered steps: 1) remove a leading و ("and") if 3 or more characters remain, 2) remove one definite article (ال, وال, بال, كال, فال, لل) if 2 or more remain, 3) go through the suffixes once. <code>ArabicStemmer.stemPrefix</code> instead scans one array, the six articles followed by و (<code>ArabicStemmer.java:46-54</code>), and returns after the first match (<code class='nw'>:90-94</code>); <code class='nw'>stem()</code> calls it once (<code class='nw'>:76-81</code>). So once it removes the و it never tries the articles on the rest: <code class='nw'>وبالكتاب</code> ("and with the book") is indexed as <code class='nw'>بالكتاب</code> instead of <code class='nw'>كتاب</code>, the term of <code class='nw'>الكتاب</code> and <code class='nw'>بالكتاب</code>, and the same for و + لل, كال and فال (<code class='nw'>وللطلاب</code> becomes <code class='nw'>للطلاب</code>, <code class='nw'>وبالتالي</code> becomes <code class='nw'>بالتال</code>). A <code class='nw'>TermQuery</code> for the analyzed <code class='nw'>الكتاب</code> then finds 0 of 1 documents that contain only <code class='nw'>وبالكتاب</code>, with no error. و + ال is unaffected because <code class='nw'>وال</code> is in the array itself. The single-return loop came with the class (LUCENE-1406, 2008) and was kept when it moved to light10 (LUCENE-1758, 2009), so every release from 2.9.0 to 10.5.2 and main has it. The fix tries the articles again after removing the one-letter و; it changes indexed terms (reindex note needed) and also brings light10's own overstemming for a few words, so no retrieval gain is claimed.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Light stemming</strong>: removing a few frequent prefixes and suffixes without a dictionary, so that <code class='nw'>الكتاب</code> ("the book"), <code class='nw'>بالكتاب</code> ("with the book") and <code class='nw'>وبالكتاب</code> ("and with the book") all get the index term <code class='nw'>كتاب</code> ("book").</li><li><strong>The prefixes</strong>: the conjunction و (wa-, "and") and the definite articles ال (al-, "the"), وال (wa + al-), بال (bi-l-, "with the"), كال (ka-l-, "like the"), فال (fa-l-, "so the"), لل (li-l-, "for the"). They are written joined to the word, and و can come before one of the others.</li><li><strong>light10</strong>: the stemmer of Larkey, Ballesteros and Connell, "Light Stemming for Arabic Information Retrieval", which <code class='nw'>ArabicAnalyzer</code> cites. Section 2.2 (page 13 of the paper): "1. Remove و (\"and\") ... if the remainder of the word is 3 or more characters long. ... 2. Remove any of the definite articles if this leaves 2 or more characters. 3. Go through the list of suffixes once ...".</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>ArabicStemmer.prefixes</code> is one array: <code>ال, وال, بال, كال, فال, لل, و</code>, with و last (<code>ArabicStemmer.java:46-54</code>).</li><li><code class='nw'>stemPrefix</code> tries the entries in order and <code class='nw'>return</code>s <code class='nw'>deleteN(...)</code> on the first that matches (<code class='nw'>:90-94</code>). <code class='nw'>stem()</code> calls it once, then the suffixes (<code class='nw'>:76-81</code>).</li><li>For <code class='nw'>وبالكتاب</code> none of the six articles matches (the word starts with و and then ب, so even <code class='nw'>وال</code> fails at its second letter); و matches and is removed, and the method returns <code class='nw'>بالكتاب</code>. <code class='nw'>بال</code> would match now (7 characters, it needs 5), but nothing tries it again.</li><li>The length rules (<code class='nw'>:118-132</code>: و needs 4 or more characters, the others their length + 2) are exactly the paper's 3 and 2 remaining characters; only the order of steps 1 and 2 was lost when they were folded into one list.</li><li><code class='nw'>ArabicStemFilter</code> applies the stemmer to every non-keyword token (<code>ArabicStemFilter.java:44-55</code>); <code class='nw'>ArabicAnalyzer</code> ends its chain with it (<code>ArabicAnalyzer.java:131-142</code>); the SPI factory <code class='nw'>arabicStem</code> creates the same filter.</li><li>A double و before <code class='nw'>وال</code> (<code class='nw'>ووال...</code>) is hit the same way, because <code class='nw'>وال</code> no longer matches at position 0. Words too short for light10's length rules (for example و + بال + one letter) come out the same either way; in the follow-up's probe, 70 of 148,795 waw+article-shaped words are unchanged by the fix.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>input</th><th>light10 (and main with the fix)</th><th>main</th></tr></thead><tbody><tr><td><code class='nw'>الكتاب</code>, <code class='nw'>بالكتاب</code>, <code class='nw'>والكتاب</code>, <code class='nw'>وكتاب</code> (controls)</td><td><code class='nw'>كتاب</code></td><td><code class='nw'>كتاب</code></td></tr><tr><td><code class='nw'>وبالكتاب</code> (و + بال, "and with the book")</td><td><code class='nw'>كتاب</code></td><td><code class='nw'>بالكتاب</code></td></tr><tr><td><code class='nw'>وللطلاب</code> (و + لل, "and for the students")</td><td><code class='nw'>طلاب</code></td><td><code class='nw'>للطلاب</code></td></tr><tr><td><code class='nw'>وكالبحر</code> (و + كال, "and like the sea")</td><td><code class='nw'>بحر</code></td><td><code class='nw'>كالبحر</code></td></tr><tr><td><code class='nw'>وبالتالي</code> ("and therefore")</td><td><code class='nw'>تال</code></td><td><code class='nw'>بالتال</code></td></tr><tr><td><code class='nw'>وبالنسبة</code></td><td><code class='nw'>نسب</code></td><td><code class='nw'>بالنسب</code></td></tr><tr><td><code class='nw'>وللمرة</code></td><td><code class='nw'>مر</code></td><td><code class='nw'>للمر</code></td></tr><tr><td><code>ArabicAnalyzer("الكتاب بالكتاب وبالكتاب")</code></td><td><code>[كتاب, كتاب, كتاب]</code></td><td><code>[كتاب, كتاب, بالكتاب]</code></td></tr><tr><td>one document <code class='nw'>وبالكتاب</code>, <code class='nw'>TermQuery</code> on the analyzed <code class='nw'>الكتاب</code></td><td>1 hit</td><td>0 hits</td></tr></tbody></table></div><p>The rows for <code class='nw'>وبالتالي</code>, <code class='nw'>وبالنسبة</code> and <code class='nw'>وللمرة</code> come from a probe through the default <code class='nw'>ArabicAnalyzer</code>, and the fact check's probe through <code class='nw'>ArabicStemFilter</code> alone gives the same terms; the other word rows ran through <code class='nw'>ArabicStemFilter</code>.</p><p>When the query text goes through the same analyzer (for example a query parser over <code class='nw'>ArabicAnalyzer</code>), the miss goes both ways: the query <code class='nw'>وبالكتاب</code> gives <code class='nw'>بالكتاب</code> and misses documents that say <code class='nw'>الكتاب</code> or <code class='nw'>بالكتاب</code>. A <code class='nw'>TermQuery</code> built from a raw string is not analyzed, and <code>ArabicAnalyzer.normalize()</code> does not stem.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>362 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications that analyze Arabic text with the stock <code class='nw'>ArabicAnalyzer</code> (the default constructor included, <code>ArabicAnalyzer.java:96-98</code>), <code class='nw'>ArabicStemFilter</code> directly, or the <code class='nw'>arabicStem</code> factory (for example in a <code class='nw'>CustomAnalyzer</code>). No option turns the behaviour on or off. Tokens marked as keywords (for example by the analyzer's stem exclusion set) are not stemmed, and stopwords are removed before the stemmer.</li><li><strong>Not affected.</strong> و + ال (<code class='nw'>والكتاب</code>), any single prefix alone, words without a leading و, words too short for light10's length rules, and the separate Snowball Arabic stemmer.</li><li><strong>What triggers it.</strong> Real words of the shape و + بال, كال, فال or لل ("and with the", "and like the", "and so the", "and for the"), for example <code class='nw'>وبالتالي</code> ("and therefore"), <code class='nw'>وبالنسبة</code>, <code class='nw'>وللمرة</code>, and a double و before <code class='nw'>وال</code>. It is deterministic, at index time and, when the query is analyzed the same way, at query time, and needs no size or setting. How often these words occur in real text was not measured.</li><li><strong>What the damage looks like.</strong> Mostly missed matches between a waw+article form and the other forms of the same word, inside each document's own field: the document <code class='nw'>وبالكتاب</code> is not found by <code class='nw'>الكتاب</code> or <code class='nw'>بالكتاب</code>, and the query <code class='nw'>وبالكتاب</code> misses them; much less often, extra conflations that light10 would not make (see the next point). No exception and no term longer than its input: a probe over 411,089 words on main (assertions on and off) found neither. The work per token stays a fixed handful of comparisons (from the code), and the index is not damaged.</li><li><strong>Scale, honestly.</strong> Over that bounded, mostly constructed word set the stock stemmer loses 19,859,718 same-stem pairs that light10 would make and keeps 240,799 that light10 would not; over 29 real words it loses 18 pairs and keeps 2 (one right, <code class='nw'>وكالة</code>/<code class='nw'>وكالات</code>; one spurious, <code class='nw'>وبالون</code>/<code class='nw'>بال</code>). These are counts over a constructed set, not corpus frequencies, and the net retrieval effect of a fix was not measured.</li><li><strong>Existing indexes</strong> keep the old terms until reindexed; after a fix, new query terms and old documents disagree for these words until the field is reindexed.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code>lucene/analysis/common</code>, public API only: <code class='nw'>ArabicStemFilter</code> on single words, the default <code class='nw'>ArabicAnalyzer</code> on three forms of "the book", and a one-document index searched with a <code class='nw'>TermQuery</code>. The control (single prefixes) passes; the other five tests fail, the same on main, 10.5.2 and 9.12.3, with assertions on or off.</p><figure class='code'><figcaption><span class='fname'>TestArabicWawThenArticle.java (lucene/analysis/common, public API)</span><span class='meta'>111 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.ar;
+
+import java.io.IOException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+
+/**
+ * Light10 (&quot;Light Stemming for Arabic Information Retrieval&quot;, section 2.2) runs its steps in order:
+ * (1) remove the conjunction waw if 3 or more characters remain, (2) remove a definite article if 2
+ * or more characters remain, (3) remove suffixes. A word with waw in front of an article other than
+ * &quot;wal-&quot; should therefore lose both and stem like the article form.
+ */
+public class TestArabicWawThenArticle extends BaseTokenStreamTestCase {
+
+  private static void checkStem(String input, String expected) throws IOException {
+    MockTokenizer tok = whitespaceMockTokenizer(input);
+    assertTokenStreamContents(new ArabicStemFilter(tok), new String[] {expected});
+  }
+
+  /** Control: each single prefix is removed (passes today). */
+  public void testSinglePrefixControls() throws IOException {
+    checkStem(&quot;الكتاب&quot;, &quot;كتاب&quot;); // al-kitab, &quot;the book&quot;
+    checkStem(&quot;بالكتاب&quot;, &quot;كتاب&quot;); // bi-al-kitab, &quot;with the book&quot;
+    checkStem(&quot;والكتاب&quot;, &quot;كتاب&quot;); // wa-al-kitab: &quot;wal-&quot; is itself in the prefix list
+    checkStem(&quot;وكتاب&quot;, &quot;كتاب&quot;); // wa-kitab, &quot;and a book&quot;
+    checkStem(&quot;للطلاب&quot;, &quot;طلاب&quot;); // li-l-tullab, &quot;for the students&quot;
+    checkStem(&quot;كالبحر&quot;, &quot;بحر&quot;); // ka-al-bahr, &quot;like the sea&quot;
+  }
+
+  /** wa + bi-al-: &quot;and with the book&quot;. */
+  public void testWawBiAl() throws IOException {
+    checkStem(&quot;وبالكتاب&quot;, &quot;كتاب&quot;);
+  }
+
+  /** wa + li-l-: &quot;and for the students&quot;. */
+  public void testWawLil() throws IOException {
+    checkStem(&quot;وللطلاب&quot;, &quot;طلاب&quot;);
+  }
+
+  /** wa + ka-al-: &quot;and like the sea&quot;. */
+  public void testWawKaAl() throws IOException {
+    checkStem(&quot;وكالبحر&quot;, &quot;بحر&quot;);
+  }
+
+  /** End to end through the default ArabicAnalyzer: the three forms should conflate. */
+  public void testAnalyzerConflation() throws IOException {
+    try (Analyzer a = new ArabicAnalyzer()) {
+      assertAnalyzesTo(a, &quot;الكتاب بالكتاب وبالكتاب&quot;, new String[] {&quot;كتاب&quot;, &quot;كتاب&quot;, &quot;كتاب&quot;});
+    }
+  }
+
+  /**
+   * User-visible effect: a query for &quot;the book&quot; misses a document that says &quot;and with the book&quot;.
+   */
+  public void testSearchMiss() throws IOException {
+    try (Analyzer a = new ArabicAnalyzer();
+        Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+        Document d = new Document();
+        d.add(new TextField(&quot;body&quot;, &quot;وبالكتاب&quot;, Field.Store.NO));
+        w.addDocument(d);
+      }
+      String queryTerm;
+      try (TokenStream ts = a.tokenStream(&quot;body&quot;, &quot;الكتاب&quot;)) {
+        CharTermAttribute t = ts.addAttribute(CharTermAttribute.class);
+        ts.reset();
+        assertTrue(ts.incrementToken());
+        queryTerm = t.toString();
+        assertFalse(ts.incrementToken());
+        ts.end();
+      }
+      assertEquals(&quot;كتاب&quot;, queryTerm);
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        assertEquals(
+            &quot;a query for &#x27;the book&#x27; should match &#x27;and with the book&#x27;&quot;,
+            1,
+            s.count(new TermQuery(new Term(&quot;body&quot;, queryTerm))));
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestArabicWawThenArticle.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/ar/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests TestArabicWawThenArticle -Ptests.seed=5EED0665
+# also with -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>وبالكتاب</code>, <code class='nw'>وللطلاب</code> and <code class='nw'>وكالبحر</code> stem to <code class='nw'>كتاب</code>, <code class='nw'>طلاب</code> and <code class='nw'>بحر</code>, the analyzer gives <code>[كتاب, كتاب, كتاب]</code>, and the search finds 1 document.</dd></div><div class='got'><dt>Observed</dt><dd>They stem to <code class='nw'>بالكتاب</code>, <code class='nw'>للطلاب</code> and <code class='nw'>كالبحر</code>, the analyzer gives <code>[كتاب, كتاب, بالكتاب]</code>, and the search finds 0: 6 tests, 5 failed.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-665/'>repro/LFV-665/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (132 lines) · 1,007 words</span></summary><div class='body'><p>Copy the class into the module's test tree and run it with gradle. It needs only <code class='nw'>lucene-core</code>, <code>lucene-analysis-common</code> and the test framework. With the fix (below) all 6 tests pass.</p><p>The other files are the finder's shorter 3-test JUnit (stemming and the analyzer, no index) and the follow-up's public-API probe that runs on old releases (3.1 and later; a 2.9 variant exists).</p><div class="hd hd-3"><h3 id='code-2-h'>TestArabicWawBeforeArticle.java (the finder&#x27;s test, 3 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p><code class='nw'>ArabicStemFilter</code> over <code class='nw'>KeywordTokenizer</code>, and the default <code class='nw'>ArabicAnalyzer</code>. 2 of 3 fail on main (assertions on and off), 10.5.2, 9.12.3, 10.0.0 and 9.1.0; the article-alone control passes.</p><figure class='code'><figcaption><span class='fname'>TestArabicWawBeforeArticle.java (the finder&#x27;s test, 3 tests)</span><span class='meta'>52 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE
+ * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this
+ * file to You under the Apache License, Version 2.0 (the &quot;License&quot;); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ */
+package org.apache.lucene.analysis.ar;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * ArabicAnalyzer implements light10 (Larkey, Ballesteros and Connell, &quot;Light Stemming for Arabic Information
+ * Retrieval&quot;, section 2.2): step 1 removes an initial waw if 3 or more characters remain, step 2 then removes a
+ * definite article if 2 or more characters remain, step 3 removes suffixes. ArabicStemmer.stemPrefix removes at most
+ * one prefix, so after it removes the waw it never removes the article that follows (bal-, kal-, fal-, lil-).
+ */
+public class TestArabicWawBeforeArticle extends BaseTokenStreamTestCase {
+
+  private static Analyzer stemOnly() {
+    return new Analyzer() {
+      @Override
+      protected TokenStreamComponents createComponents(String fieldName) {
+        Tokenizer t = new KeywordTokenizer();
+        return new TokenStreamComponents(t, new ArabicStemFilter(t));
+      }
+    };
+  }
+
+  public void testArticleAloneControl() throws Exception {
+    try (Analyzer a = stemOnly()) {
+      checkOneTerm(a, &quot;بالكتاب&quot;, &quot;كتاب&quot;); // bi-al-kitab, &quot;with the book&quot;
+      checkOneTerm(a, &quot;للطلاب&quot;, &quot;طلاب&quot;); // li-l-tullab, &quot;for the students&quot;
+      checkOneTerm(a, &quot;والكتاب&quot;, &quot;كتاب&quot;); // wa-al- is in the article list itself
+    }
+  }
+
+  public void testWawThenArticle() throws Exception {
+    try (Analyzer a = stemOnly()) {
+      checkOneTerm(a, &quot;وبالكتاب&quot;, &quot;كتاب&quot;); // wa-bi-al-kitab, &quot;and with the book&quot;
+      checkOneTerm(a, &quot;وللطلاب&quot;, &quot;طلاب&quot;); // wa-li-l-tullab, &quot;and for the students&quot;
+    }
+  }
+
+  public void testArabicAnalyzerConflates() throws Exception {
+    try (Analyzer a = new ArabicAnalyzer()) {
+      assertAnalyzesTo(a, &quot;الكتاب بالكتاب وبالكتاب&quot;, new String[] {&quot;كتاب&quot;, &quot;كتاب&quot;, &quot;كتاب&quot;});
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>HistArabicFilterProbe.java (public-API probe for old releases)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>A plain <code class='nw'>main</code> that feeds one-token streams to <code class='nw'>ArabicStemFilter</code> (the <code>CharTermAttribute</code> API, 3.1 and later) and checks 3 controls and 4 waw+article words. On every release where it ran (3.1.0, 3.6.2, 4.10.4, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.12.3, 10.5.2) and on main, the controls stem and all 4 waw+article words keep the article.</p><figure class='code'><figcaption><span class='fname'>HistArabicFilterProbe.java (public-API probe for old releases)</span><span class='meta'>80 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE
+ * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this
+ * file to You under the Apache License, Version 2.0 (the &quot;License&quot;); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+ */
+package org.apache.lucene.analysis.ar;
+
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+
+/**
+ * Public-API history probe for 3.1 and later (CharTermAttribute API, which every release from 3.1 to main has; the
+ * tokenizer and ArabicAnalyzer constructors changed across versions, so a one-token TokenStream feeds the public
+ * ArabicStemFilter directly). Exits non-zero (AssertionError &quot;BUG&quot;) when waw+article keeps its article; a control
+ * failure throws IllegalStateException &quot;CONTROL&quot;.
+ */
+public class HistArabicFilterProbe {
+
+  /** Emits one fixed token. */
+  static final class OneToken extends TokenStream {
+    private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
+    private final String text;
+    private boolean done;
+
+    OneToken(String text) {
+      this.text = text;
+    }
+
+    @Override
+    public boolean incrementToken() {
+      if (done) return false;
+      clearAttributes();
+      termAtt.setEmpty().append(text);
+      done = true;
+      return true;
+    }
+
+    @Override
+    public void reset() {
+      done = false;
+    }
+  }
+
+  static String filter(String w) throws Exception {
+    TokenStream ts = new ArabicStemFilter(new OneToken(w));
+    CharTermAttribute t = ts.addAttribute(CharTermAttribute.class);
+    ts.reset();
+    if (!ts.incrementToken()) throw new IllegalStateException(&quot;no token&quot;);
+    String out = t.toString();
+    ts.end();
+    ts.close();
+    return out;
+  }
+
+  public static void main(String[] args) throws Exception {
+    String ctl1 = filter(&quot;بالكتاب&quot;);
+    String ctl2 = filter(&quot;للطلاب&quot;);
+    String ctl3 = filter(&quot;والكتاب&quot;);
+    System.out.println(&quot;control filter bal-kitab -&gt; &quot; + ctl1 + &quot; ; lil-tullab -&gt; &quot; + ctl2 + &quot; ; wal-kitab -&gt; &quot; + ctl3);
+    if (!ctl1.equals(&quot;كتاب&quot;) || !ctl2.equals(&quot;طلاب&quot;) || !ctl3.equals(&quot;كتاب&quot;))
+      throw new IllegalStateException(&quot;CONTROL failed&quot;);
+    String[][] bug = {
+      {&quot;وبالكتاب&quot;, &quot;كتاب&quot;}, {&quot;وللطلاب&quot;, &quot;طلاب&quot;}, {&quot;وكالبحر&quot;, &quot;بحر&quot;}, {&quot;وفالكتاب&quot;, &quot;كتاب&quot;},
+    };
+    StringBuilder bad = new StringBuilder();
+    int n = 0;
+    for (String[] b : bug) {
+      String got = filter(b[0]);
+      boolean ok = got.equals(b[1]);
+      System.out.println(&quot;filter &quot; + b[0] + &quot; -&gt; &quot; + got + &quot; (light10 &quot; + b[1] + &quot;) &quot; + (ok ? &quot;ok&quot; : &quot;MISMATCH&quot;));
+      if (!ok) {
+        n++;
+        bad.append(&#x27; &#x27;).append(b[0]).append(&quot;-&gt;&quot;).append(got);
+      }
+    }
+    if (n &gt; 0) throw new AssertionError(&quot;BUG waw+article not stripped by ArabicStemFilter (&quot; + n + &quot;/4):&quot; + bad);
+    System.out.println(&quot;no mismatch&quot;);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT) through gradle; 10.5.2 and 9.12.3 release jars through a standalone JUnit runner: reproduced (this test); 2.9.0 to 10.0.0 (14 more releases): reproduced with the follow-up&#x27;s probes or the finder&#x27;s test; 2.4.1: no Arabic package</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code># $LUCENE = a Lucene checkout of main; JAVA_HOME = a JDK 25
+cp $REPRO/TestArabicWawThenArticle.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/ar/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests TestArabicWawThenArticle -Ptests.seed=5EED0665
+# also with -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, seed 5EED0665 (the same 5 failures with -Ptests.asserts=false, seed 5EED0666)
+TestArabicWawThenArticle &gt; testWawBiAl FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;[]كتاب&gt; but was:&lt;[بال]كتاب&gt;
+TestArabicWawThenArticle &gt; testAnalyzerConflation FAILED
+    org.junit.ComparisonFailure: term 2 expected:&lt;[]كتاب&gt; but was:&lt;[بال]كتاب&gt;
+TestArabicWawThenArticle &gt; testWawKaAl FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;[]بحر&gt; but was:&lt;[كال]بحر&gt;
+TestArabicWawThenArticle &gt; testWawLil FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;[]طلاب&gt; but was:&lt;[لل]طلاب&gt;
+TestArabicWawThenArticle &gt; testSearchMiss FAILED
+    java.lang.AssertionError: a query for &#x27;the book&#x27; should match &#x27;and with the book&#x27; expected:&lt;1&gt; but was:&lt;0&gt;
+6 tests completed, 5 failed
+
+# standalone runner: 6 run, 5 failed on main (assertions on and off), 10.5.2 and 9.12.3; 6 run, 0 failed with fix A or fix B on the classpath</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>ArabicAnalyzer</code> says it stems "as specified by" the light10 paper, whose steps remove و first, then an article.</li><li>The light10 code the authors' lab distributed does the same with Lucene's tables: a 10-million-word diff finds 6,072 differences, all و + article, and 0 with the fix.</li><li>No test, comment or discussion calls stopping after و deliberate.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>443 words</span></summary><div class='body'><ul><li><strong>The analyzer's contract.</strong> <code>ArabicAnalyzer.java:38-39</code>: "This analyzer implements light-stemming as specified by: &lt;i&gt; Light Stemming for Arabic Information Retrieval &lt;/i&gt;" (the PDF URL after it is dead).</li><li><strong>CHANGES of the light10 change</strong> (LUCENE-1758, <code class='nw'>820620f3a72</code>, 2009, the whole entry): "ArabicAnalyzer now uses the light10 algorithm, has a refined default stopword list, and lowercases non-Arabic text. You'll need to fully re-index any previously created indexes. This isn't a break in back-compatibility because ArabicAnalyzer has not yet been released. (Robert Muir)"</li><li><strong>The stemmer's javadoc</strong> defines stemming as "Removal of attached definite article, conjunction, and prepositions" (<code>ArabicStemmer.java:26-29</code>).</li><li><strong>The paper, section 2.2</strong> (page 13): "We tried several versions of light stemming, all of which followed the same steps: 1. Remove و (\"and\") for light2, light3, and light8, and light10 if the remainder of the word is 3 or more characters long. ... 2. Remove any of the definite articles if this leaves 2 or more characters. 3. Go through the list of suffixes once ...". Lucene's length rules are exactly these 3 and 2 characters. Its Table 1 (page 14) lists the light10 "prefixes" as ال, وال, بال, كال, فال, لل, و, the same strings in the same order as <code>ArabicStemmer.java:46-54</code>.</li><li><strong>The lab's distributed code.</strong> The Lemur Toolkit's <code class='nw'>arabic_light10</code> (University of Massachusetts) does "Remove waw (advance pointer) if remainder &gt;= 3 chars", then "Remove definite article if remainder &gt;=2 chars", then the suffixes; its article and suffix tables equal Lucene's. A diff of Lucene against a Java port of its stemming steps (Lemur's normalization and stopword steps left out, as <code class='nw'>ArabicStemFilter</code> does neither), every word up to 6 letters over 13 letters plus 5 million random longer words (10,229,043 words), finds 6,072 differences, every one و followed by an article, and 0 with the fix. It is the light10 code the lab distributed, not necessarily the code of the paper's experiments (which ran on an in-house engine).</li><li><strong>The original author's aim</strong> (LUCENE-1406, #2480): "the major motivation for implementing it exactly the way it is presented in the paper is that the algorithm is TREC-tested".</li><li><strong>Tests.</strong> <code>TestArabicStemFilter</code> checks each prefix alone (<code class='nw'>والحسن</code>, <code class='nw'>بالحسن</code>, <code class='nw'>كالحسن</code>, <code class='nw'>فالحسن</code>, <code class='nw'>للاخر</code>, <code class='nw'>وحسن</code>), و plus suffixes and two suffixes; none has و followed by an article other than <code class='nw'>وال</code>, and none asserts that such an article is kept.</li><li><strong>History.</strong> Neither LUCENE-1406 nor LUCENE-1758 discusses stopping after one prefix; no CHANGES or MIGRATE entry mentions it. (The 2008 light8 code cited an earlier paper by the same authors, "Improving Stemming for Arabic Information Retrieval: Light Stemming and Co-occurrence Analysis" (2002), which was not checked here; the light10 paper says light8 followed the same steps.)</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>242 words</span></summary><div class='body'><p>The intended-behaviour checks built the strongest case for "works as designed" (rated moderate by the cross-model reviewer): the helper's javadoc says "Stem a prefix off" (singular) while the suffix helper says "Stem suffix(es) off"; the array copies the paper's Table 1 column, which lists و next to the articles and also <code class='nw'>وال</code>, so "remove one Table 1 prefix" is a possible reading; the output has been stable since 2009 with no report; a fix forces a reindex; on LUCENE-8028 a committer asked to be conservative about changing the default; <code class='nw'>ArabicStemmer</code> is package-private and <code class='nw'>ArabicStemFilter</code> only promises to "apply" it; and the fix brings light10's own overstemming (<code class='nw'>وكالات</code>, "agencies", becomes <code class='nw'>ات</code> instead of <code class='nw'>كال</code>).</p><p>Why it fails: the public contract is the analyzer's "as specified by" and the CHANGES "now uses the light10 algorithm", and the paper's steps are explicitly separate and ordered. The lab's own light10 code keeps <code class='nw'>وال</code> in its article table and still removes و first, so the Table 1 reading does not hold. The original author said they followed the paper "exactly", and the length rules do. Nothing records stopping after و as a decision. The reindex cost and the overstemming are real, but they are a compatibility and quality decision for maintainers, not evidence that the current output is the documented one; the overstemming is the paper's own behaviour, and stock already overstems the same way without the و (<code class='nw'>بالون</code> gives <code class='nw'>ون</code>).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>After removing و, try the articles once more</strong></p><p class='short'>After <code class='nw'>stemPrefix</code> removes the one-letter و, try the six articles once more (+15/-2 in <code>ArabicStemmer.java</code>). With it the repro passes and the module's full <code class='nw'>check</code> passes (1,915 tests). Indexed terms change, so the CHANGES entry needs a reindex note, and a few words overstem as light10 does (<code class='nw'>وكالات</code> becomes <code class='nw'>ات</code>).</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 781 words</span></summary><div class='body'><p>Two equivalent code fixes were validated (A through gradle and the module's check, B with the standalone runner); C and D are the alternatives a maintainer may prefer.</p><div class="hd hd-3"><h3 id='fix-retry-articles'>After removing و, try the articles once more <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-retry-articles" target="_self" aria-label="Link to this section" aria-describedby="fix-retry-articles"><span aria-hidden="true">#</span></a></div><p>In <code>ArabicStemmer.stemPrefix</code>, when the matched prefix is the one-letter و, try the six articles on the rest before returning (+15/-2 as formatted by <code class='nw'>tidy</code>; the same logic as the finder's +9/-1 sketch). A regression test: the repro's class, or its cases added to <code>TestArabicStemFilter</code>.</p><pre class='snippet' tabindex='0'><code>int stemPrefix(char[] s, int len) {
+  for (int i = 0; i &lt; prefixes.length; i++) {
+    if (startsWithCheckLength(s, len, prefixes[i])) {
+      len = deleteN(s, 0, len, prefixes[i].length);
+      // light10 removes the conjunction waw (step 1) before a definite article (step 2):
+      // after removing waw, try the articles once more
+      if (prefixes[i].length == 1) {
+        for (int j = 0; j &lt; prefixes.length - 1; j++) {
+          if (startsWithCheckLength(s, len, prefixes[j])) {
+            return deleteN(s, 0, len, prefixes[j].length);
+          }
+        }
+      }
+      return len;
+    }
+  }
+  return len;
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Changes indexed terms for waw+article words long enough for light10's length rules: the CHANGES entry should advise reindexing fields analyzed with <code class='nw'>ArabicAnalyzer</code>, <code class='nw'>ArabicStemFilter</code> or <code class='nw'>arabicStem</code>; it suits main (11.0). (LUCENE-1758's reindex note of 2009 is no precedent: it came before the analyzer's first release.)</li><li>Brings light10's own overstemming where the و is a root letter followed by letters that look like an article: <code class='nw'>وكالات</code> ("agencies") becomes <code class='nw'>ات</code> instead of <code class='nw'>كال</code>, so it no longer conflates with <code class='nw'>وكالة</code> ("agency", <code class='nw'>كال</code> on both); <code class='nw'>وبالون</code> becomes <code class='nw'>ون</code>, as <code class='nw'>بالون</code> already does on stock, instead of <code class='nw'>بال</code>. That is the paper's behaviour; no retrieval gain is claimed.</li><li>Relies on و being the only one-letter entry and the last one in <code class='nw'>prefixes</code>, and on every entry before it being a light10 article (true today, <code>ArabicStemmer.java:46-53</code>).</li><li>Cost: at most 6 more 2-3-character comparisons and one more in-place shift for a token that starts with و.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree at <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: the new test fails 5 of 6 on stock and passes 6 of 6 with the fix; the 5 Arabic suites pass 56 of 56 with assertions on and off (TestArabicStemFilter 23, TestArabicNormalizationFilter 15, TestArabicAnalyzer 8, TestArabicFilters 4, the new 6); <code>:lucene:analysis:common:check</code> passes: checkGoogleJavaFormat, ecjLint, forbiddenApis and the whole module's tests (340 suites, 1,915 tests, 0 failed, 18 skipped).</li><li>An exhaustive diff against a light10 reference written from the paper (every word up to 6 letters over 13 letters, 5,229,042 words): 0 mismatches with the fix, 3,042 on stock. The diff against the lab's code port (10.2 million words) gave 0 with the finder's equivalent sketch.</li></ul><div class="hd hd-3"><h3 id='fix-two-steps'>Write the two light10 steps out (validated with the standalone runner) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-two-steps" target="_self" aria-label="Link to this section" aria-describedby="fix-two-steps"><span aria-hidden="true">#</span></a></div><p>Step 1: if the word starts with و and has 4 or more characters, remove it. Step 2: try the six articles once (+10/-2).</p><pre class='snippet' tabindex='0'><code>int stemPrefix(char[] s, int len) {
+  // light10 step 1: remove the conjunction waw if 3 or more characters remain
+  if (len &gt;= 4 &amp;&amp; s[0] == WAW) {
+    len = deleteN(s, 0, len, 1);
+  }
+  // light10 step 2: remove one definite article if 2 or more characters remain
+  for (int i = 0; i &lt; prefixes.length - 1; i++) {
+    if (startsWithCheckLength(s, len, prefixes[i])) {
+      return deleteN(s, 0, len, prefixes[i].length);
+    }
+  }
+  return len;
+}</code></pre><p class='k'>Trade-offs</p><p>Reads like the paper and gives the same output as A on the tested space (for a word that starts with <code class='nw'>وال</code>, removing و and then <code class='nw'>ال</code> removes the same 3 characters as <code class='nw'>وال</code> alone, under the same length rules). It still loops to <code>prefixes.length - 1</code>, so it relies on و staying the last entry; moving و out of the array would be cleaner but touches more lines. Same reindex and overstemming notes as A.</p><p class='k'>What the checks validated</p><p>The doc's test 6 of 6 and the upstream TestArabicStemFilter, TestArabicAnalyzer and TestArabicFilters 35 of 35 with it on the classpath; the exhaustive diff (5,229,042 words) finds 0 mismatches. Not run through gradle <code class='nw'>tidy</code> or <code class='nw'>check</code>.</p><div class="hd hd-3"><h3 id='fix-document'>Document the current behaviour</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>Say in the <code class='nw'>ArabicAnalyzer</code> and <code class='nw'>ArabicStemmer</code> javadocs that at most one prefix is removed, so و + بال, كال, فال, لل keep the article.</p><p class='k'>Trade-offs</p><p>No reindex, but the analyzer would no longer implement the algorithm it cites, and the missed matches stay.</p><div class="hd hd-3"><h3 id='fix-opt-in'>Make the light10 order opt-in</h3><a class="hlink" href="#fix-opt-in" target="_self" aria-label="Link to this section" aria-describedby="fix-opt-in"><span aria-hidden="true">#</span></a></div><p>Keep the default and add a switch (a constructor flag on <code class='nw'>ArabicStemFilter</code>, a factory parameter). Not built.</p><p class='k'>Trade-offs</p><p>Avoids silent term changes for existing indexes, but adds API surface for what the docs already promise, and the default stays different from light10.</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive check ran the stock <code class='nw'>ArabicStemFilter</code> and an independent reference written from section 2.2 of the cited paper over 408,800 constructed words. They differed on 119,138, every one a و before an article, and on none with the fix. The finder then reduced it to a public-API test and read the code and its history.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>178 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive differential checking against a reference written from the published rules</strong> (the study's "semi-formal" tier). Hunt unit "light stemmers against their published rules", 2026-10-27, main <code class='nw'>a9779ef3c193</code>.</p><ul><li>The reference implements light10 steps 1-3 from section 2.2 of the paper that <code class='nw'>ArabicAnalyzer</code> cites, independently of Lucene's code.</li><li>Word space: 14 prefix chains x 2,380 stems (length 0 to 3 over 13 letters: the 11 letters of the affix tables plus 2 neutral letters, د and س) x 13 suffix chains = 433,160 combinations, which the harness deduplicates to 408,800 distinct words, each run through the stock <code class='nw'>ArabicStemFilter</code> and the reference.</li><li>Result: 119,138 mismatches, every one with a و before an article (و + بال, كال, فال, لل: 4 x 29,744; a double و before وال: 162); 0 mismatches with the fix sketch on the classpath.</li><li>An AI finder then wrote the public-API JUnit and traced the cause in <code class='nw'>stemPrefix</code> and the git history; independent AI tools reproduced it, built their own exhaustive diffs (one against the light10 code the authors' lab distributed) and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: 134 scripted prior-report search queries in two runs (GitHub, mailing lists, JIRA, the web in English and Arabic) plus manual searches (2026-10-27); the final run's 565 hits include none of this bug. Related: LUCENE-8028 / lucene-solr PR #274, an unmerged opt-in stemmer whose own table covers و + article; it never calls the default stemmer wrong.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No report of this defect was found. The closest item is related work, and a filing should cite it: a maintainer may answer "use or revive that stemmer".</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>scripted prior-report search (two runs)</th><td class='when'>2026-10-27</td><td>51 and 83 queries: GitHub issues, PRs and commits, downstream projects, the dev, java-user, issues and commits lists, JIRA and 8 web queries in English and Arabic</td><td>final run: 565 distinct hits, 0 high, 20 medium; none reports this bug</td></tr><tr><th scope='row'>GitHub (manual)</th><td class='when'>2026-10-27</td><td>apache/lucene "arabic" (all 59 titles read), ArabicStemmer, ArabicStemFilter, ArabicAnalyzer, open and closed PRs; apache/lucene-solr; Elasticsearch, OpenSearch, Solr, Lucene.NET; all of GitHub; the trackers of two ports</td><td>no report; no open PR changes stemPrefix</td></tr><tr><th scope='row'>JIRA archive and mailing lists</th><td class='when'>2026-10-27</td><td>LUCENE and SOLR (arabic, waw, prefix, ArabicStemmer); java-user@, dev@, solr-user@, users@solr (four Arabic threads read in full)</td><td>no report</td></tr><tr><th scope='row'>Related items (read)</th><td class='when'>2026-10-27</td><td>LUCENE-8028 / #9076 and lucene-solr PR #274; LUCENE-1406 / #2480; LUCENE-1758 / #2832; tomoya55/ar-stemmer#4</td><td>a separate opt-in stemmer whose table covers و + article, never calling the default wrong; a 2008 remark that light8 misses "many common 'prefix'/suffix combinations", naming no waw+article case; the light10 change; another contributor's port that stopped looping over prefixes because it overstemmed</td></tr><tr><th scope='row'>History</th><td class='when'>2026-10-27</td><td>git log on ArabicStemmer.java and TestArabicStemFilter.java; lucene/CHANGES.txt on main</td><td>no behaviour change to stemPrefix since 2009</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with the class by LUCENE-1406 (<code class='nw'>8dfe073760c</code>, 2008-10-20) and kept by the light10 change LUCENE-1758 (<code class='nw'>820620f3a72</code>, 2009-08-05), both before the first release, 2.9.0; never changed since. It fails on 16 releases from 2.9.0 to 10.5.2 and on main; 2.4.1 has no Arabic package.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>8dfe073760c</code> (LUCENE-1406, #2480; patch by rmuir, committed by gsingers as svn r706342, 2008-10-20), light8: <code class='nw'>stem()</code> calls <code class='nw'>stemPrefix()</code> once and it returns after the first match; the loop is already in the contributor's patch. From then on و + بال, كال and فال keep their article. <code class='nw'>820620f3a72</code> (LUCENE-1758, #2832, rmuir, 2009-08-05) moved to light10: it added the <code class='nw'>لل</code> entry just before و, the light10 javadoc and the CHANGES line, and left the loop alone, so و + لل is affected too.</p><p>Both landed before 2.9.0 (2009-09-24), the first release with the Arabic package, so no release ever shipped a different variant. Later commits on these lines (LUCENE-2503 rename, LUCENE-9570 reformat, LUCENE-10003 array syntax, LUCENE-10561 visibility) keep the behaviour. All 136 release tags in the history clone that contain the light10 commit have the same code; upstream main <code class='nw'>a95c754ee003</code> (read 2026-10-27) still has it.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 5 of 6 fail (gradle and the standalone runner, assertions on and off); the finder's test 2 of 3; the stemmer and filter probes 4 of 4</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 5 of 6 fail; the finder's test 2 of 3; the probes 4 of 4</td></tr><tr><th scope='row'>9.1.0, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test 2 of 3 fail (10.0.0 also the stemmer probe)</td></tr><tr><th scope='row'>3.0.3, 3.1.0, 3.6.2, 4.0.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the stemmer probe (4 controls; not on 3.1.0) and/or the public filter probe (3 controls; 3.1.0, 3.6.2, 4.10.4 to 8.11.4): 4 of 4 waw+article words keep the article in each run, the controls stem</td></tr><tr><th scope='row'>2.9.0, 2.9.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the stemmer probe: 4 of 4; the 2.9 filter probe (2 controls, 2 waw+article words): 2 of 2, and ArabicAnalyzer gives [كتاب, كتاب, بالكتاب]</td></tr><tr><th scope='row'>2.4.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>no Arabic package: the probe does not compile</td></tr><tr><th scope='row'>main with the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix</span></td><td>this doc's test 6 of 6 and the probes pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and an adjudication found it real and re-ran it on main with assertions on and off; two executed reviews by another model family agreed (real, high). A later audit and this doc re-ran it, the doc through gradle with the fix and the module's full check.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>520 words</span></summary><div class='body'><p>Each check wrote or ran its own tests against the stock jars at <code class='nw'>a9779ef3c193</code> (the cross-model reviews read <code class='nw'>ea57360912ed</code>, whose analysis sources are identical, and their test was re-run on <code class='nw'>a9779ef3c193</code>).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Exhaustive diff against the paper's steps (408,800 words, 119,138 mismatches, all و + article); JUnit fails 2 of 3 on main (on and off), 10.5.2 and 9.12.3; passes with the fix; upstream Arabic tests 31 of 31 with it.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit written from the claim only: 5 of 6 fail on main (on and off), 10.5.2 and 9.12.3, including the 0-hit search; 6 of 6 with the fix. Own exhaustive diff (5.2 million words): 3,042 mismatches, all و + article, 0 with the fix. This doc's test is based on it.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6, executed mode) wrote its own test (<code class='nw'>وبالصقر</code> gives <code class='nw'>بالصقر</code>): fails 2 of 3 with assertions on and off and over 3 iterations, passes with the fix; root cause agreed.</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Built the works-as-designed case (singular javadoc, one-at-a-time tests, stable output, reindex cost) and rated it moderate; rejected because the analyzer's javadoc and CHANGES promise the paper's light10.</td></tr><tr><th scope='row'>The cross-model review re-runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced</span></td><td>The reviewer's test re-run on <code class='nw'>a9779ef3c193</code> (assertions on and off), 10.5.2 and 9.12.3: 2 of 3 fail; 3 of 3 pass with the fix.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Read the lab's light10 code: و first, then the article, with Lucene's tables; a diff against a port of it (10.2 million words) finds 6,072 mismatches, all و + article, 0 with the fix. Flagged the overstemming and LUCENE-8028 as filing caveats.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test: 5 of 6 fail with assertions on and off, 6 of 6 with the fix; read section 2.2 and the lab's code; duplicate of none; framing and reindex caveats.</td></tr><tr><th scope='row'>Follow-up</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> new, security none</span></td><td>History runs on 16 releases plus main, prior-report search (new), security probe (411,089 words, no exception, no term longer than its input).</td></tr><tr><th scope='row'>audit 4</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's test with a fresh seed: 2 of 3 fail with assertions on and off; code, paper and the lab's code re-read; impact kept.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, fix validated</span></td><td>The doc's test through gradle on stock (5 of 6 fail, on and off) and with fix A (6 of 6); the module's full <code class='nw'>check</code> with fix A (1,915 tests pass); the standalone runner on main, 10.5.2, 9.12.3 and both fixes.</td></tr><tr><th scope='row'>fact checks of this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; corrections applied</span></td><td>An independent fact check re-ran the doc's gradle command (5 of 6 fail, assertions on and off), fix A with the module's check (1,915 tests pass) and the standalone runner on main, 10.5.2 and 9.12.3 with assertions on and off. A second one, by another model family (OpenAI GPT-5.6, read-only), re-read the sources and logs. Both found the bug as described; their counting, quoting and wording corrections are applied.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-665/bug.png' download='arabic-stemmer-waw-then-article-not-stripped-bug.png' target='_self'>PNG</a> <span class='n'>454 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,432 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-665, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>ArabicStemmer removes at most one prefix, so after it strips the conjunction waw it never strips the article that follows (wa+bi-al-, wa+li-l-, wa+ka-al-, wa+fa-al-), unlike the light10 algorithm ArabicAnalyzer documents</dd></div><div><dt>Area</dt><dd>analysis-common / Arabic light stemmer (ArabicStemmer.stemPrefix; ArabicStemFilter, ArabicAnalyzer and the 'arabicStem' factory)</dd></div><div><dt>Priority</dt><dd>Medium, rank 110: The default ArabicAnalyzer has silently missed matches since 2.9.0 on common waw+article words such as وبالتالي, a bigger trigger than the Brazilian -logias row LFV-663, but it is one language and the fix&#x27;s net effect is unmeasured.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Missed matches (plus a few accidental extra conflations), with no error: every application that indexes or queries Arabic text through ArabicAnalyzer (default constructor included), ArabicStemFilter or the 'arabicStem' factory, on every release from 2.9.0 through 10.5.2 and on main, gets the article form instead of the stem for words that start with the conjunction waw followed by bi-al-, li-l-, ka-al- or fa-al- (for example 'and with the book' is indexed as 'with-the-book', not 'book'), so a search for 'the book' misses a document that only contains 'and with the book'; wa+al- is not affected, no scale is needed, the result is the same with -ea and -da, the net retrieval effect of a fix was not measured (the paper-faithful fix also overstems a few words), and because a fix changes indexed terms, affected fields need reindexing after it.</dd></div><div><dt>Summary</dt><dd>You index Arabic text with the stock ArabicAnalyzer, whose javadoc says it implements light stemming 'as specified by' the light10 paper; that paper removes a leading waw ('and') first and then a definite article, so 'وبالكتاب' ('and with the book') should stem to 'كتاب' ('book'), like 'الكتاب' and 'بالكتاب'. Instead ArabicStemmer.stemPrefix scans one list (the six articles, then waw) and returns after the first match, so once it has removed the waw it never tries the articles: 'وبالكتاب' becomes 'بالكتاب' and 'وللطلاب' becomes 'للطلاب'. A TermQuery for the analyzed form of 'الكتاب' then finds 0 of 1 documents that contain only 'وبالكتاب', with no error.</dd></div><div><dt>Introduced</dt><dd>8dfe073760c5f97a980390ae5daad3a881fd7730 (LUCENE-1406 'new Arabic Analyzer (Apache license)', GitHub #2480; patch by rmuir, committed by gsingers as svn r706342, 2008-10-20) [read: history clone, git log -L on stemPrefix, and the contributor's LUCENE-1406.patch, which already has the single-return loop]: stem() calls stemPrefix() once and stemPrefix() returns after the first match in one list {al, wal, bal, kal, fal, waw}, so wa+bal-, wa+kal- and wa+fal- keep their article from this commit on. 820620f3a7224c6416d001984570897682112676 (LUCENE-1758 'improve arabic analyzer: light8 -&gt; light10', GitHub #2832, rmuir, 2009-08-05) added the lil- entry just before waw, the light10 javadoc citation and the CHANGES line 'ArabicAnalyzer now uses the light10 algorithm', without changing the loop, so wa+lil- is affected from then on. Not a regression: later commits on these lines (3241eb9291c LUCENE-2503 rename, 6faa4f98e04 LUCENE-9570 reformat, 8ac26737913 LUCENE-10003 array syntax, 694d797526a LUCENE-10561 visibility) preserve behaviour. (2008-10-20 (light10 contract and the lil- entry 2009-08-05; first released 2009-09-24 in 2.9.0))</dd></div><div><dt>First affected version</dt><dd>2.9.0 [exec] (tag releases/lucene/2.9.0, 2009-09-24, the first release with the org.apache.lucene.analysis.ar package; it contains both commits). The last release before it, 2.4.1, has no Arabic package [exec: the probe does not compile, class ArabicStemmer not found], so no release ever shipped a different variant.</dd></div><div><dt>Affected versions</dt><dd>Every release that ships the Arabic analysis API, 2.9.0 through 10.5.2, and main a9779ef3c193; not fixed. [exec] a same-package stemmer probe, a public ArabicStemFilter/ArabicAnalyzer probe, or both (4 of 4 waw+article words keep the article, 4 controls stemmed) fail on 2.9.0, 2.9.4, 3.0.3, 3.1.0, 3.6.2, 4.0.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main, and the stemmer probe passes on main with the fix shadowed; the finder's JUnit fails 2 of 3 on 9.1.0, 9.12.3, 10.0.0, 10.5.2 (-ea and -da) and main (-ea and -da). [read] all 136 release tags in the history clone that contain 820620f3a72 have the same prefix list, stem() and stemPrefix() bodies and length rules (the 8.9-8.11.x tags are missing from the clone; 8.11.4 was executed); upstream main a95c754ee003 still has the single-return stemPrefix (read 2026-10-27).</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27, last run, read-only; the prior-report record, verdict new): two scripted prior-report searches (the finder's 51 queries and the follow-up's 83 queries over GitHub issues and PRs, commits, downstream repositories, the dev, java-user, issues and commits lists, JIRA and 8 web queries in English and Arabic; 565 distinct hits, 0 high, 20 medium), manual GitHub searches (apache/lucene 'arabic' with all 59 titles read, ArabicStemmer, ArabicStemFilter, ArabicAnalyzer; apache/lucene-solr; Elasticsearch, OpenSearch, Solr, Lucene.NET; all of GitHub; the trackers of two ports), JIRA (LUCENE, SOLR), the Lucene and Solr user lists, and the file's full git history. No issue, PR, JIRA ticket, list thread, commit or web page reports that ArabicStemmer stops after the waw and keeps the following article, or that it departs from the light10 step order; no open PR changes stemPrefix. Related, not the same bug: LUCENE-8028 / #9076 (open, 2017) and lucene-solr PR #274 (open, never merged) propose a separate, opt-in dictionary-assisted stemmer from other papers whose compound-prefix table includes وبال, وكال, وفال and ولل; neither says the default stemmer departs from light10 (a maintainer asked to keep the default unchanged and add the new stemmer as an option). LUCENE-1406 / #2480 has a 2008 remark by its contributor (rmuir) that 'many common prefix/suffix combinations are not stemmed by light8 algorithm', a coverage remark that names no waw+article case. another contributor's Ruby port (tomoya55/ar-stemmer#4, 2016) dropped looping over all prefixes because it overstemmed; not about Lucene. Gaps: academic papers that evaluate Lucene's analyzer were not searched exhaustively; some Stack Overflow and blog pages could not be fetched.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the release jars 10.5.2 and 9.12.3 (this doc's test); 2.9.0, 2.9.4, 3.0.3, 3.1.0, 3.6.2, 4.0.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.0.0, 9.1.0 and 10.0.0 with the follow-up's probes or the finder's test; 2.4.1 (no Arabic package). Fix A was validated in the scratch worktree with the module's <code class='nw'>check</code> task (1,915 tests); fix B with the standalone runner.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicStemmer.java:21-32 (at a9779ef3c193) (class javadoc: &#x27;Removal of attached definite article, conjunction, and prepositions&#x27;), :46-54 (prefixes {ال, وال, بال, كال, فال, لل, و}, waw last), :76-81 (stem(): stemPrefix once, then stemSuffix), :83-94 (stemPrefix: &#x27;Stem a prefix off&#x27;; returns deleteN(...) on the first match), :96-108 (stemSuffix goes through the suffix list once), :118-132 (startsWithCheckLength: waw needs len &gt;= 4, the others prefix length + 2)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicAnalyzer.java:35-39 (at a9779ef3c193) (javadoc: &#x27;implements light-stemming as specified by: Light Stemming for Arabic Information Retrieval&#x27;), :95-98 (default constructor), :130-143 (createComponents: StandardTokenizer, LowerCaseFilter, DecimalDigitFilter, StopFilter, ArabicNormalizationFilter, ArabicStemFilter); lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicStemFilter.java:26-27, :44-55 (applies ArabicStemmer to every non-keyword token); lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicStemFilterFactory.java:41 (SPI name &#x27;arabicStem&#x27;)</code></li><li><code>GitHub, read-only (2026-10-27): apache/lucene #2480 (LUCENE-1406 comments), #9076 (LUCENE-8028 body and comments), apache/lucene-solr PR #274 (description), apache/lucene main a95c754ee003 ArabicStemmer.java (stemPrefix unchanged; last commits 51b3a5baa73e #14804, 694d797526ae LUCENE-10561)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicStemmer.java:46-54 (at a9779ef3c193) (prefixes), :76-81 (stem), :90-94 (stemPrefix), :103-108 (stemSuffix), :118-132 (startsWithCheckLength)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicAnalyzer.java:38-39 (at a9779ef3c193) (javadoc), :131-142 (createComponents), :146-150 (normalize, no stemming); ArabicStemFilter.java:44-55; ArabicStemFilterFactory.java:41, :57-58</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicAnalyzer.java:96-98 (at a9779ef3c193) (default constructor), :109-119 (stem exclusion set), :131-142 (:136 StopFilter before the stemmer, :139-141 SetKeywordMarkerFilter); ArabicStemFilter.java:47 (keyword tokens skipped); ArabicStemmer.java:90-94 and StemmerUtil.deleteN (work per token)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicStemFilterFactory.java:41 (at a9779ef3c193) (SPI name arabicStem); lucene/analysis/common/src/java/org/tartarus/snowball/ext/ArabicStemmer.java (at a9779ef3c193) (separate Snowball stemmer)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicAnalyzer.java:38-39; (at a9779ef3c193) ArabicStemmer.java:26-29, :83-94 (&#x27;Stem a prefix off&#x27;), :96-108 (&#x27;Stem suffix(es) off&#x27;), :118-132</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/ar/TestArabicStemFilter.java:31-57, (at a9779ef3c193) :99-105</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestArabicWawThenArticle.java (lucene/analysis/common, public API): <a href='../repro/LFV-665/TestArabicWawThenArticle.java'><code>repro/LFV-665/TestArabicWawThenArticle.java</code></a> (111 lines)</li><li>TestArabicWawBeforeArticle.java (the finder&#x27;s test, 3 tests): <a href='../repro/LFV-665/TestArabicWawBeforeArticle.java'><code>repro/LFV-665/TestArabicWawBeforeArticle.java</code></a> (52 lines)</li><li>HistArabicFilterProbe.java (public-API probe for old releases): <a href='../repro/LFV-665/HistArabicFilterProbe.java'><code>repro/LFV-665/HistArabicFilterProbe.java</code></a> (80 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A light, step-by-step picture of one concrete example (the document <code class='nw'>وبالكتاب</code>, the query <code class='nw'>الكتاب</code>), made in parallel with this doc. Every term, scan result and hit count on screen comes from an executed probe on main <code class='nw'>a9779ef3c193</code> (stock and with the fix sketch), and every numbered code line is checked against the code at that commit. The PNG is the final summary card.</p><ul class='paths'><li><a href='../assets/LFV-665/bug.png'><code>assets/LFV-665/bug.png</code></a> (454 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

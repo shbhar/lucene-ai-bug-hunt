@@ -1,0 +1,939 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Sorani normalizer: an invisible direction mark after a word-final HEH (ه) keeps it from becoming AE (ە)</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-668 &middot; sorani-final-heh-trailing-bidi-mark</p><h1 id='top'>Sorani normalizer: an invisible direction mark after a word-final HEH (ه) keeps it from becoming AE (ە)</h1><p class='tldr'><code class='nw'>SoraniAnalyzer</code> folds a word-final HEH <code class='nw'>ه</code> into AE <code class='nw'>ە</code> and deletes invisible direction marks, but checks for the word's end before deleting a mark after the HEH. So <code class='nw'>خانه</code> ("house") plus a right-to-left mark keeps its HEH: a search for <code class='nw'>خانە</code> finds 2 of 3 spellings, silently, since 4.7.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 137</span><span class='sub'>The stock SoraniAnalyzer silently indexes a different term for a word ending in HEH plus an invisible RLM, LRM or ALM, but only that rare input shape in one niche language triggers it.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>4.7.0 (LUCENE-5379, 2014)<span class='sub'>introduced 2014-01-04 &middot; over 12 years</span></dd></div><div><dt>Affected</dt><dd>4.7.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive check of the normalizer against its javadoc rules</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Sorani's vowel e is AE <code class='nw'>ە</code>, and the normalizer also folds a word-final HEH <code class='nw'>ه</code> to it. It deletes invisible formatting characters such as direction marks too, but only after it has already looked at the HEH.</p><figure class='visual' id='sorani-final-heh-trailing-bidi-mark-short-visual'><div class='frame'><a class='still' href='../assets/LFV-668/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-668/bug.png' alt='Summary of the bug: SoraniNormalizer.normalize walks the token خانه + RLM (U+062E U+0627 U+0646 U+0647 U+200F) once, left to right. At i = 3 the HEH test i == len - 1 is 3 == 4, false, so the HEH stays; at i = 4 the RLM, a Character.FORMAT character, is deleted (len = 4); the result ends in HEH (U+0647) and nothing checks it again. The class javadoc says word-final 0647 is converted to 06D5 (AE) and directional controls are removed. With the stock SoraniAnalyzer a document with خانه + RLM is indexed as [..U+0647] and one without the mark as [..U+06D5]; a query for خانه finds only the unmarked document, and a query with the mark only the marked one. The same with LRM and ALM; a leading RLM before a word-initial REH is harmless. A narrow fix (the HEH is final if only format characters other than ZWNJ and ZWJ follow) makes both documents index as AE; affected fields need a reindex.' width='1920' height='1080'></a></div><figcaption>How <code class='nw'>خانه</code> + RLM is walked once, left to right, so its HEH is tested before the mark is deleted, and why two documents that look the same then never match. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index three documents with <code>new SoraniAnalyzer()</code> that spell "house" three ways: <code class='nw'>خانە</code> (AE), <code class='nw'>خانه</code> (HEH) and <code class='nw'>خانه</code> followed by an invisible right-to-left mark (RLM, U+200F), each followed by <code class='nw'>گەورەیە</code> ("is big").</span></li><li><span>The normalizer's own rules say a word-final HEH becomes AE and direction marks are removed, so all three should be indexed as <code class='nw'>خانە</code>, and a search for <code class='nw'>خانە</code> should find 3 of 3 documents.</span></li><li><span>It finds 2 of 3. The normalizer walks the word once, left to right. At the HEH it asks "is this the last character?", and the answer is no, because the RLM is still behind it. One step later it deletes the RLM, but it never looks at the HEH again.</span></li><li><span>So the marked word is indexed as <code class='nw'>خانه</code> (U+0647 at the end), and a query copied with the mark finds only that document, 1 of 3. The same happens with LRM and ALM, at query time (<code>Analyzer.normalize</code>) and after stemming. No error is raised.</span></li><li><span>It has been like this since the Sorani analyzer was added in 4.7.0 (2014). Treating the HEH as final when only invisible formatting characters (other than ZWNJ and ZWJ) follow it fixes it, and all 30 upstream Sorani tests still pass.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone indexing Sorani Kurdish with <code class='nw'>SoraniAnalyzer</code> (default constructor included), <code>SoraniNormalizationFilter</code> or the <code>soraniNormalization</code> factory. It needs a word whose final e is typed as HEH with an invisible RLM, LRM or ALM right after it: rare, but silent, at index and query time, and the two spellings then never match.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>739 words</span></summary><div class='body'><p>Lucene's Sorani normalizer (<code class='nw'>SoraniNormalizer</code>, used by <code>SoraniNormalizationFilter</code>, <code class='nw'>SoraniAnalyzer</code> and the <code>soraniNormalization</code> factory) documents two rules that meet here: a word-final HEH (U+0647) is converted to AE (U+06D5), and "formatting characters such as directional controls are removed". It applies them in one left-to-right pass and tests <code>i == len - 1</code> when it reaches the HEH, while a trailing RLM, LRM or ALM is still in the buffer; the mark is deleted one step later and the HEH, now last, is never converted. <code>StandardTokenizer</code> keeps such a mark inside the token, so the stock analyzer indexes <code class='nw'>خانه</code> + RLM as <code class='nw'>خانه</code> and <code class='nw'>خانه</code> as <code class='nw'>خانە</code>: the two look the same and do not match each other, at index and query time, with no error. Every release from 4.7.0 (2014) to 10.5.2 and main is affected. A 15-line fix that looks past trailing formatting characters the class deletes (any <code class='nw'>Character.FORMAT</code> character except ZWNJ and ZWJ) passes the new test and all 30 upstream Sorani tests.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Sorani normalization</strong>: <code>SoraniNormalizationFilter</code>, and <code class='nw'>SoraniAnalyzer</code> which uses it, runs <code>SoraniNormalizer.normalize</code> on every token. The class javadoc lists its rules, among them "Alternate forms of vowel 'e' (0647+200C, word-final 0647, 0629) are converted to 06D5 (AE)" and "Harakat, tatweel, and formatting characters such as directional controls are removed." (<code>SoraniNormalizer.java:29</code>, <code class='nw'>:33</code>).</li><li><strong>HEH and AE</strong>: AE <code class='nw'>ە</code> (U+06D5) is Sorani's letter for the vowel e. At the end of a word the normalizer treats HEH <code class='nw'>ه</code> (U+0647) as the same vowel; the upstream test gives the reason: "always (and in final form by def), so frequently omitted" (<code>TestSoraniNormalizationFilter.java:70-73</code>).</li><li><strong>Direction marks</strong>: invisible characters such as RLM (U+200F), LRM (U+200E) and ALM (U+061C) that steer the display of mixed left-to-right and right-to-left text. Java classifies them as <code class='nw'>Character.FORMAT</code>. They do not change how the HEH joins (Unicode joining type Transparent), so <code class='nw'>خانه</code> + RLM looks exactly like <code class='nw'>خانه</code>.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>normalize</code> walks the buffer once, left to right, with one <code class='nw'>switch</code> per character (<code>SoraniNormalizer.java:72-128</code>).</li><li><code>case HEH</code> converts the HEH only <code>if (i == len - 1)</code>: if it is the last character of the buffer at that moment (<code class='nw'>:89-93</code>).</li><li>A trailing mark is still in the buffer then. The <code class='nw'>default</code> branch deletes it later, like every <code class='nw'>Character.FORMAT</code> character (<code class='nw'>:120-124</code>).</li><li>For <code class='nw'>خانه</code> + RLM (<code>len = 5</code>): at <code>i = 3</code> the test is <code>3 == 4</code>, false, so the HEH stays; at <code>i = 4</code> the RLM is deleted (<code>len = 4</code>); the result <code class='nw'>خانه</code> ends in an unconverted HEH.</li><li>The class's other position rule is safe: a leading mark is deleted before the REH is visited, so a word-initial REH still becomes RREH (<code class='nw'>:100-104</code>). The ZWNJ rule rewrites the HEH before it itself (<code class='nw'>:82-88</code>).</li><li><code class='nw'>SoraniAnalyzer</code> tokenizes with <code>StandardTokenizer</code>, which keeps a trailing format character inside the token (UAX#29 rule WB4, <code>StandardTokenizerImpl.jflex:83-85</code>), and its <code class='nw'>normalize</code> (the query side) applies the same filter (<code>SoraniAnalyzer.java:113-130</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><ul><li>Filter output for <code class='nw'>خانه</code> + one tail, stock and with the fix: no tail <code class='nw'>..06D5</code> both; RLM, LRM, ALM, PDF (U+202C), RLO (U+202E), PDI (U+2069): <code class='nw'>..0647</code>, with the fix <code class='nw'>..06D5</code>; ZWNJ <code class='nw'>..06D5</code> both (its own rule); ZWJ, TATWEEL and FATHA <code class='nw'>..0647</code> both (not claimed: they force a joining form or mark a consonant).</li><li><code class='nw'>SoraniAnalyzer</code>, three documents <code>خانە گەورەیە</code> (AE spelling), <code>خانه گەورەیە</code> (HEH spelling) and the HEH spelling with an RLM after <code class='nw'>خانه</code>: a search for <code class='nw'>خانە</code> or for <code class='nw'>خانه</code> finds 2 of 3; the query copied with the mark finds 1 of 3; with the fix every query finds 3 of 3.</li><li>Stemming: <code class='nw'>کوردییه</code> ("Kurdish") is stemmed to <code>[..06CC 06CC]</code>, with a trailing RLM to <code>[..06CC 06CC 0647]</code>.</li><li>Exhaustive, all 1,118,481 strings of length 0 to 5 over a 16-character alphabet: within that alphabet the fix changes exactly the 31,420 inputs whose last HEH is followed only by RLM, LRM, ALM, PDF or soft hyphen, and in each only that HEH.</li><li>Every BMP character after <code class='nw'>خانه</code>: the fix changes the output (HEH to AE) for exactly 41 characters, the <code class='nw'>Character.FORMAT</code> characters other than ZWNJ and ZWJ on JDK 25. Besides the direction marks they include U+FEFF, U+200B, U+2060-U+2064, U+206A-U+206F, U+180E, U+FFF9-U+FFFB and the prepended concatenation marks (U+0600-U+0605, U+06DD, U+070F, U+0890, U+0891, U+08E2). None of them is join-causing (ICU: 26 Transparent, 15 Non_Joining).</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>592 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications that index Sorani Kurdish text with <code>new SoraniAnalyzer()</code> or any other constructor (no option avoids it), with <code>SoraniNormalizationFilter</code> in a custom chain, or with the SPI factory <code>soraniNormalization</code> (the factory javadoc shows the Solr form <code>solr.SoraniNormalizationFilterFactory</code>). Downstream servers that ship a built-in Sorani analyzer on this filter, such as Elasticsearch's <code class='nw'>sorani</code> analyzer with its <code>sorani_normalization</code> filter, inherit it (read in their documentation; not executed).</li><li><strong>Default or opt-in.</strong> You opt in by choosing the Sorani analyzer or filter for a field; inside it, this is the default behaviour.</li><li><strong>What triggers it.</strong> A word whose final vowel is typed as HEH and whose final HEH is followed only by one or more invisible formatting characters that the class deletes, such as RLM, LRM, ALM, PDF, RLO, PDI or the soft hyphen, with no ZWNJ or ZWJ among them (HEH + RLM + ZWNJ already becomes AE through the ZWNJ rule). Deterministic: every such input, every time; no size or scale is needed.</li><li><strong>Effect.</strong> The marked word is indexed and queried as <code class='nw'>..0647</code>, the unmarked one as <code class='nw'>..06D5</code>, so they do not match each other in either direction (a search finds 2 of 3 spellings, a query copied with the mark 1 of 3). The stemmer then sees a different word, so the stemmed terms differ too (<code class='nw'>کوردییه</code>: <code>[..06CC 06CC]</code> without the mark, <code>[..06CC 06CC 0647]</code> with it). The marked term is one that HEH + TATWEEL or HEH + FATHA already produce, so a query typed with the mark also matches a document whose word ends in HEH + TATWEEL (executed in the follow-up's probe).</li><li><strong>Not affected.</strong> Words spelled with AE, words without a trailing mark, marks anywhere but directly after a final HEH. No exception, no hang, no extra cost; offsets and positions are consistent and <code class='nw'>CheckIndex</code> is clean (the follow-up's probe: 3,000 trigger-dense strings, <code>checkRandomData(200)</code>, <code class='nw'>CheckIndex</code> after <code class='nw'>forceMerge(1)</code>).</li><li><strong>How likely.</strong> Rare. The upstream Sorani vocabulary test file (8,272 rows of frequent corpus words) has 11 words with a trailing direction control (U+202E), none of them after a HEH, and the prior-report searches found no report in the 12 years since 4.7.0.</li><li><strong>Existing indexes and rollout.</strong> A fix changes indexed terms of affected words, so those fields need a reindex, and index-time and query-time analysis must change together: with the fixed analyzer at query time only, a query typed with the mark no longer finds the old marked documents, so neither spelling finds them (reasoning).</li><li><strong>Workaround.</strong> Until a fix ships, a <code class='nw'>patternReplace</code> char filter that deletes the direction marks in front of the tokenizer gives <code class='nw'>..06D5</code> and 3 of 3 hits (executed with SPI names through <code class='nw'>CustomAnalyzer</code>); it must be in both the index-time and the query-time analyzer. Its pattern leaves out the soft hyphen and the other format characters the fix covers, and the executed <code class='nw'>CustomAnalyzer</code> has no stop filter or keyword marker, so it is not the same as <code class='nw'>SoraniAnalyzer</code>; to keep <code class='nw'>SoraniAnalyzer</code> (a <code class='nw'>final</code> class), wrap it in an <code class='nw'>AnalyzerWrapper</code> that adds the char filter in <code class='nw'>wrapReader</code> and <code>wrapReaderForNormalization</code> (not executed).</li><li><strong>Unicode versions and older JDKs.</strong> JDK 25's <code class='nw'>Character</code> data is Unicode 16.0, <code>StandardTokenizer</code>'s tables are Unicode 12.1, and the joining types here come from ICU (Unicode 17). ALM (U+061C) and the isolates LRI, RLI, FSI and PDI (U+2066-U+2069) were added in Unicode 6.3, after Java 8's Unicode 6.2, so on Java 8 they are not format characters and would stay in the term (not executed); RLM and LRM behave the same on every supported JDK.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code>lucene/analysis/common</code>, public API plus the test framework: two controls and five tests through the filter, <code>SoraniAnalyzer.normalize</code> and a three-document search. The five fail on main, 10.5.2 and 9.12.3, with assertions on and off; all seven pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestSoraniFinalHehDirectionalMark.java (lucene/analysis/common, public API)</span><span class='meta'>116 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.ckb;
+
+import java.io.IOException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.util.QueryBuilder;
+
+/**
+ * A word-final HEH (U+0647) must become AE (U+06D5) also when an invisible directional mark follows
+ * it: SoraniNormalizer removes directional controls, so they must not hide the end of the word.
+ */
+public class TestSoraniFinalHehDirectionalMark extends BaseTokenStreamTestCase {
+
+  /** KHAH ALEF NOON HEH: &quot;house&quot;, with the final vowel typed as HEH. */
+  private static final String HOUSE_HEH = &quot;\u062E\u0627\u0646\u0647&quot;;
+
+  /** The same word spelled with AE. */
+  private static final String HOUSE_AE = &quot;\u062E\u0627\u0646\u06D5&quot;;
+
+  /** GAF AE WAW REH AE YEH AE: &quot;is big&quot;. */
+  private static final String IS_BIG = &quot;\u06AF\u06D5\u0648\u0631\u06D5\u06CC\u06D5&quot;;
+
+  private Analyzer filter;
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    filter =
+        new Analyzer() {
+          @Override
+          protected TokenStreamComponents createComponents(String fieldName) {
+            Tokenizer tokenizer = new KeywordTokenizer();
+            return new TokenStreamComponents(tokenizer, new SoraniNormalizationFilter(tokenizer));
+          }
+        };
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    filter.close();
+    super.tearDown();
+  }
+
+  /** Control: a bare word-final HEH becomes AE. */
+  public void testControlFinalHeh() throws IOException {
+    checkOneTerm(filter, HOUSE_HEH, HOUSE_AE);
+  }
+
+  /** Control: HEH + TATWEEL stays HEH, as the upstream vocabulary test expects. */
+  public void testControlHehTatweelStaysHeh() throws IOException {
+    checkOneTerm(filter, HOUSE_HEH + &quot;\u0640&quot;, HOUSE_HEH);
+  }
+
+  public void testFinalHehBeforeRightToLeftMark() throws IOException {
+    checkOneTerm(filter, HOUSE_HEH + &quot;\u200F&quot;, HOUSE_AE);
+  }
+
+  public void testFinalHehBeforeLeftToRightMark() throws IOException {
+    checkOneTerm(filter, HOUSE_HEH + &quot;\u200E&quot;, HOUSE_AE);
+  }
+
+  public void testFinalHehBeforeArabicLetterMark() throws IOException {
+    checkOneTerm(filter, HOUSE_HEH + &quot;\u061C&quot;, HOUSE_AE);
+  }
+
+  /** Query side: SoraniAnalyzer.normalize. */
+  public void testAnalyzerNormalize() throws IOException {
+    try (Analyzer a = new SoraniAnalyzer()) {
+      assertEquals(
+          a.normalize(&quot;body&quot;, HOUSE_AE).utf8ToString(),
+          a.normalize(&quot;body&quot;, HOUSE_HEH + &quot;\u200F&quot;).utf8ToString());
+    }
+  }
+
+  /** End to end: a search for the AE spelling finds all three spellings of the word. */
+  public void testSearchFindsAllThreeSpellings() throws IOException {
+    try (Analyzer a = new SoraniAnalyzer();
+        Directory dir = newDirectory()) {
+      try (RandomIndexWriter w = new RandomIndexWriter(random(), dir, newIndexWriterConfig(a))) {
+        for (String house : new String[] {HOUSE_AE, HOUSE_HEH, HOUSE_HEH + &quot;\u200F&quot;}) {
+          Document doc = new Document();
+          doc.add(newTextField(&quot;body&quot;, house + &quot; &quot; + IS_BIG, Field.Store.NO));
+          w.addDocument(doc);
+        }
+        try (IndexReader r = w.getReader()) {
+          IndexSearcher s = newSearcher(r);
+          assertEquals(3, s.count(new QueryBuilder(a).createBooleanQuery(&quot;body&quot;, HOUSE_AE)));
+        }
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestSoraniFinalHehDirectionalMark.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests TestSoraniFinalHehDirectionalMark -Ptests.seed=66800030 -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>خانه</code> + RLM, LRM or ALM normalizes to <code class='nw'>خانە</code> (..U+06D5), like <code class='nw'>خانه</code> alone, and the search for <code class='nw'>خانە</code> finds 3 of 3 documents.</dd></div><div class='got'><dt>Observed</dt><dd>It stays <code class='nw'>خانه</code> (..U+0647), <code>term 0 expected:&lt;خان[ە]&gt; but was:&lt;خان[ه]&gt;</code>, and the search finds 2 of 3, with no error.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-668/'>repro/LFV-668/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (398 lines) · 2,289 words</span></summary><div class='body'><p>The tests run <code>SoraniNormalizationFilter</code> over a <code class='nw'>KeywordTokenizer</code> (<code class='nw'>checkOneTerm</code>), compare <code>SoraniAnalyzer.normalize</code> for the AE spelling and the marked spelling, and index the three spellings of "house" with <code>new SoraniAnalyzer()</code> and <code>RandomIndexWriter</code>, then count hits of <code>QueryBuilder.createBooleanQuery("body", "خانە")</code>. Controls: a bare final HEH becomes AE, and HEH + TATWEEL stays HEH (as the upstream vocabulary expects); both pass on stock and with the fix. The module's <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLint</code> and <code class='nw'>forbiddenApis</code> tasks pass on the file. The result does not depend on the seed (the same 5 tests fail at every seed tried), although the test framework still randomizes the writer, directory and searcher; pass <code class='nw'>-Ptests.asserts</code> explicitly.</p><p>The test needs 9.1 or later (the <code>org.apache.lucene.tests</code> package). For 4.7.0 to 9.0.0 use the version-independent <code class='nw'>main()</code> below (exit 1 = bug reproduced, 0 = documented behaviour, 3 = a control failed). Maintainers may prefer the five cases folded into <code>TestSoraniNormalizationFilter</code> and <code>TestSoraniAnalyzer</code>.</p><div class="hd hd-3"><h3 id='code-2-h'>SoraniFinalHehAcrossVersions.java (version-independent main(), 4.7.0 to main)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Two controls and up to five checks (the filter with RLM, LRM and ALM, the <code class='nw'>SoraniAnalyzer</code> token stream and, from 6.2.0, <code>Analyzer.normalize</code>). Fails on all 12 releases run from 4.7.0 to 10.5.2 and on main; passes with the fix.</p><figure class='code'><figcaption><span class='fname'>SoraniFinalHehAcrossVersions.java (version-independent main(), 4.7.0 to main)</span><span class='meta'>190 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.ckb;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Version-independent repro for the Sorani word-final HEH rule (main() mode, public API only, no
+ * test framework, so the same source compiles against every release that has the ckb package,
+ * 4.7.0 and later).
+ *
+ * &lt;p&gt;SoraniNormalizer documents that a word-final HEH (U+0647) becomes AE (U+06D5) and that
+ * &quot;formatting characters such as directional controls are removed&quot;. A word ending in HEH followed
+ * by an invisible directional mark (RLM U+200F, LRM U+200E, ALM U+061C) keeps HEH, while the same
+ * word without the mark gets AE.
+ *
+ * &lt;p&gt;Exit status: 0 = documented behaviour, 1 = bug reproduced, 3 = a control failed (the harness
+ * itself is not trustworthy on this version).
+ */
+public class SoraniFinalHehAcrossVersions {
+
+  /** Emits exactly one token with the given text, so the filter is tested alone. */
+  static final class OneToken extends TokenStream {
+    private final CharTermAttribute term = addAttribute(CharTermAttribute.class);
+    private final String text;
+    private boolean done;
+
+    OneToken(String text) {
+      this.text = text;
+    }
+
+    @Override
+    public boolean incrementToken() {
+      if (done) {
+        return false;
+      }
+      clearAttributes();
+      term.setEmpty().append(text);
+      done = true;
+      return true;
+    }
+
+    @Override
+    public void reset() throws IOException {
+      super.reset();
+      done = false;
+    }
+  }
+
+  // KHAH ALEF NOON HEH (&quot;house&quot;, final vowel typed with HEH) and its documented normal form
+  static final String WORD = &quot;\u062E\u0627\u0646\u0647&quot;;
+  static final String EXPECTED = &quot;\u062E\u0627\u0646\u06D5&quot;;
+  // KHAH ALEF NOON (no final HEH): a trailing mark must simply be removed
+  static final String NO_HEH = &quot;\u062E\u0627\u0646&quot;;
+
+  static String hex(String s) {
+    StringBuilder b = new StringBuilder();
+    for (int i = 0; i &lt; s.length(); i++) {
+      if (i &gt; 0) b.append(&#x27; &#x27;);
+      b.append(String.format(&quot;U+%04X&quot;, (int) s.charAt(i)));
+    }
+    return b.toString();
+  }
+
+  static String filter(String in) throws IOException {
+    TokenStream ts = new SoraniNormalizationFilter(new OneToken(in));
+    try {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      if (!ts.incrementToken()) throw new IllegalStateException(&quot;no token&quot;);
+      String s = term.toString();
+      if (ts.incrementToken()) throw new IllegalStateException(&quot;more than one token&quot;);
+      ts.end();
+      return s;
+    } finally {
+      ts.close();
+    }
+  }
+
+  static List&lt;String&gt; analyze(Analyzer a, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;String&gt;();
+    TokenStream ts = a.tokenStream(&quot;f&quot;, new StringReader(text));
+    try {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) out.add(hex(term.toString()));
+      ts.end();
+    } finally {
+      ts.close();
+    }
+    return out;
+  }
+
+  /** SoraniAnalyzer() since 5.0; SoraniAnalyzer(Version) in 4.x. Public constructors only. */
+  static Analyzer newSoraniAnalyzer() throws Exception {
+    try {
+      return SoraniAnalyzer.class.getConstructor().newInstance();
+    } catch (NoSuchMethodException e) {
+      Class&lt;?&gt; v = Class.forName(&quot;org.apache.lucene.util.Version&quot;);
+      Object ver;
+      try {
+        ver = v.getField(&quot;LATEST&quot;).get(null);
+      } catch (NoSuchFieldException e2) {
+        ver = v.getField(&quot;LUCENE_CURRENT&quot;).get(null);
+      }
+      return SoraniAnalyzer.class.getConstructor(v).newInstance(ver);
+    }
+  }
+
+  static int bugs = 0;
+  static int controlFailures = 0;
+
+  static void check(boolean control, String name, String expected, String actual) {
+    boolean ok = expected.equals(actual);
+    if (!ok) {
+      if (control) controlFailures++;
+      else bugs++;
+    }
+    System.out.println(
+        (ok ? &quot;PASS &quot; : (control ? &quot;CONTROL-FAIL &quot; : &quot;BUG &quot;)) + name + &quot;: expected=[&quot; + expected
+            + &quot;] actual=[&quot; + actual + &quot;]&quot;);
+  }
+
+  public static void main(String[] args) throws Exception {
+    System.out.println(
+        &quot;java.version=&quot;
+            + System.getProperty(&quot;java.version&quot;)
+            + &quot; Character.getType(U+061C)==FORMAT: &quot;
+            + (Character.getType(&#x27;\u061C&#x27;) == Character.FORMAT));
+
+    // Controls: the documented rules work when nothing follows the HEH / when there is no HEH.
+    check(true, &quot;filter(word)&quot;, hex(EXPECTED), hex(filter(WORD)));
+    check(true, &quot;filter(noHeh+RLM)&quot;, hex(NO_HEH), hex(filter(NO_HEH + &quot;\u200F&quot;)));
+
+    // The bug: a trailing directional mark is removed, but the HEH before it is not converted.
+    check(false, &quot;filter(word+RLM)&quot;, hex(EXPECTED), hex(filter(WORD + &quot;\u200F&quot;)));
+    check(false, &quot;filter(word+LRM)&quot;, hex(EXPECTED), hex(filter(WORD + &quot;\u200E&quot;)));
+    check(false, &quot;filter(word+ALM)&quot;, hex(EXPECTED), hex(filter(WORD + &quot;\u061C&quot;)));
+
+    Analyzer a = newSoraniAnalyzer();
+    try {
+      // Index-time chain (tokenizer + normalization + stemming): marked and unmarked word differ.
+      check(
+          false,
+          &quot;SoraniAnalyzer.tokenStream(word+RLM) vs (word)&quot;,
+          analyze(a, WORD).toString(),
+          analyze(a, WORD + &quot;\u200F&quot;).toString());
+      // Query-time Analyzer.normalize (added in 6.2.0); absent in older releases.
+      Method normalize = null;
+      try {
+        normalize = Analyzer.class.getMethod(&quot;normalize&quot;, String.class, String.class);
+      } catch (NoSuchMethodException e) {
+        System.out.println(&quot;SKIP SoraniAnalyzer.normalize: Analyzer.normalize(String,String) absent&quot;);
+      }
+      if (normalize != null) {
+        String plain = ((BytesRef) normalize.invoke(a, &quot;f&quot;, WORD)).utf8ToString();
+        String marked = ((BytesRef) normalize.invoke(a, &quot;f&quot;, WORD + &quot;\u200F&quot;)).utf8ToString();
+        check(false, &quot;SoraniAnalyzer.normalize(word+RLM) vs (word)&quot;, hex(plain), hex(marked));
+      }
+    } finally {
+      a.close();
+    }
+
+    System.out.println(&quot;RESULT bugs=&quot; + bugs + &quot; controlFailures=&quot; + controlFailures);
+    if (controlFailures &gt; 0) System.exit(3);
+    if (bugs &gt; 0) System.exit(1);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>javac -d out -cp lucene-core.jar:lucene-analysis-common.jar SoraniFinalHehAcrossVersions.java
+java -cp out:lucene-core.jar:lucene-analysis-common.jar org.apache.lucene.analysis.ckb.SoraniFinalHehAcrossVersions   # exit 1 = bug reproduced
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestSoraniFinalHehRule.java (the finder&#x27;s JUnit)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Five tests (one control): 4 of 5 fail on main (assertions on and off), 10.5.2 and 9.12.3; 5 of 5 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestSoraniFinalHehRule.java (the finder&#x27;s JUnit)</span><span class='meta'>88 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.ckb;
+
+import java.io.IOException;
+import java.io.StringReader;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * SoraniNormalizer documents that a word-final HEH (U+0647) becomes AE (U+06D5) and that &quot;formatting
+ * characters such as directional controls are removed&quot;. The word-final test is made when the HEH is
+ * reached, before a trailing directional control is deleted, so a word that ends in HEH followed by
+ * an invisible directional mark (RLM, LRM, ALM) keeps HEH, while the same word without the mark gets
+ * AE. The marks do not change how the word is displayed or joined.
+ *
+ * &lt;p&gt;Not claimed here: HEH followed by harakat or tatweel (a vowel mark or a forced joining form can
+ * mark HEH as the consonant h; the upstream vocabulary data expects HEH + TATWEEL to stay HEH), or
+ * by ZERO WIDTH JOINER (also forces a joining form).
+ */
+public class TestSoraniFinalHehRule extends BaseTokenStreamTestCase {
+
+  private static String hex(String s) {
+    StringBuilder b = new StringBuilder();
+    for (int i = 0; i &lt; s.length(); i++) b.append(String.format(&quot;U+%04X &quot;, (int) s.charAt(i)));
+    return b.toString().trim();
+  }
+
+  /** Runs the filter alone on a single keyword token and returns the term. */
+  private static String normalizeWithFilter(String in) throws IOException {
+    Tokenizer t = new KeywordTokenizer();
+    t.setReader(new StringReader(in));
+    try (TokenStream ts = new SoraniNormalizationFilter(t)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      assertTrue(ts.incrementToken());
+      String s = term.toString();
+      assertFalse(ts.incrementToken());
+      ts.end();
+      return s;
+    }
+  }
+
+  // KHAH ALEF NOON HEH (&quot;house&quot;, final vowel typed with HEH)
+  static final String WORD = &quot;خانه&quot;;
+  static final String EXPECTED = &quot;خانە&quot;;
+
+  public void testControlWordFinalHeh() throws IOException {
+    assertEquals(hex(EXPECTED), hex(normalizeWithFilter(WORD))); // passes: documented rule applies
+  }
+
+  public void testWordFinalHehFollowedByRightToLeftMark() throws IOException {
+    assertEquals(hex(EXPECTED), hex(normalizeWithFilter(WORD + &quot;\u200F&quot;)));
+  }
+
+  public void testWordFinalHehFollowedByLeftToRightMark() throws IOException {
+    assertEquals(hex(EXPECTED), hex(normalizeWithFilter(WORD + &quot;\u200E&quot;)));
+  }
+
+  public void testWordFinalHehFollowedByArabicLetterMark() throws IOException {
+    assertEquals(hex(EXPECTED), hex(normalizeWithFilter(WORD + &quot;\u061C&quot;)));
+  }
+
+  /** Query-side impact through SoraniAnalyzer.normalize. */
+  public void testSoraniAnalyzerNormalize() throws IOException {
+    try (SoraniAnalyzer a = new SoraniAnalyzer()) {
+      String plain = a.normalize(&quot;f&quot;, WORD).utf8ToString();
+      assertEquals(hex(plain), hex(a.normalize(&quot;f&quot;, WORD + &quot;\u200F&quot;).utf8ToString()));
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>Lfv668Probe.java (the dump behind the numbers)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Filter output for HEH plus 13 tails, the <code>StandardTokenizer</code> tokens, <code class='nw'>SoraniAnalyzer</code> terms and stems, <code class='nw'>normalize()</code> and the three-document search, public API only.</p><figure class='code'><figcaption><span class='fname'>Lfv668Probe.java (the dump behind the numbers)</span><span class='meta'>120 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.ckb.SoraniAnalyzer;
+import org.apache.lucene.analysis.ckb.SoraniNormalizationFilter;
+import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.QueryBuilder;
+
+/** Prints the Sorani normalization of HEH + trailing characters and a 3-document search (public API). */
+public class Lfv668Probe {
+  static final String HOUSE_HEH = &quot;\u062E\u0627\u0646\u0647&quot;;
+  static final String HOUSE_AE = &quot;\u062E\u0627\u0646\u06D5&quot;;
+  static final String IS_BIG = &quot;\u06AF\u06D5\u0648\u0631\u06D5\u06CC\u06D5&quot;;
+
+  static String hex(String s) {
+    StringBuilder b = new StringBuilder();
+    for (int i = 0; i &lt; s.length(); i++) {
+      if (i &gt; 0) b.append(&#x27; &#x27;);
+      b.append(String.format(&quot;%04X&quot;, (int) s.charAt(i)));
+    }
+    return b.toString();
+  }
+
+  static List&lt;String&gt; terms(Analyzer a, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;body&quot;, text)) {
+      CharTermAttribute t = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) out.add(&quot;[&quot; + hex(t.toString()) + &quot;]&quot;);
+      ts.end();
+    }
+    return out;
+  }
+
+  public static void main(String[] args) throws Exception {
+    Analyzer filter =
+        new Analyzer() {
+          @Override
+          protected TokenStreamComponents createComponents(String f) {
+            Tokenizer t = new KeywordTokenizer();
+            return new TokenStreamComponents(t, new SoraniNormalizationFilter(t));
+          }
+        };
+    Analyzer std =
+        new Analyzer() {
+          @Override
+          protected TokenStreamComponents createComponents(String f) {
+            Tokenizer t = new StandardTokenizer();
+            return new TokenStreamComponents(t, t);
+          }
+        };
+    String[][] tails = {
+      {&quot;none&quot;, &quot;&quot;}, {&quot;RLM 200F&quot;, &quot;\u200F&quot;}, {&quot;LRM 200E&quot;, &quot;\u200E&quot;}, {&quot;ALM 061C&quot;, &quot;\u061C&quot;},
+      {&quot;PDF 202C&quot;, &quot;\u202C&quot;}, {&quot;RLO 202E&quot;, &quot;\u202E&quot;}, {&quot;PDI 2069&quot;, &quot;\u2069&quot;},
+      {&quot;RLM RLM&quot;, &quot;\u200F\u200F&quot;}, {&quot;ZWNJ 200C&quot;, &quot;\u200C&quot;}, {&quot;ZWJ 200D&quot;, &quot;\u200D&quot;},
+      {&quot;TATWEEL 0640&quot;, &quot;\u0640&quot;}, {&quot;FATHA 064E&quot;, &quot;\u064E&quot;}, {&quot;RLM ZWJ&quot;, &quot;\u200F\u200D&quot;}
+    };
+    for (String[] tl : tails) {
+      System.out.println(
+          &quot;FILTER heh+&quot; + tl[0] + &quot; in=[&quot; + hex(HOUSE_HEH + tl[1]) + &quot;] out=&quot; + terms(filter, HOUSE_HEH + tl[1]));
+    }
+    System.out.println(&quot;FILTER leading RLM + REH WAW: out=&quot; + terms(filter, &quot;\u200F\u0631\u0648&quot;));
+    System.out.println(&quot;STD tokens of HEH+RLM+space+IS_BIG: &quot; + terms(std, HOUSE_HEH + &quot;\u200F &quot; + IS_BIG));
+    try (SoraniAnalyzer a = new SoraniAnalyzer()) {
+      System.out.println(&quot;ANALYZER terms AE      : &quot; + terms(a, HOUSE_AE + &quot; &quot; + IS_BIG));
+      System.out.println(&quot;ANALYZER terms HEH     : &quot; + terms(a, HOUSE_HEH + &quot; &quot; + IS_BIG));
+      System.out.println(&quot;ANALYZER terms HEH+RLM : &quot; + terms(a, HOUSE_HEH + &quot;\u200F &quot; + IS_BIG));
+      String kurdish = &quot;\u06A9\u0648\u0631\u062F\u06CC\u06CC\u0647&quot;;
+      System.out.println(&quot;ANALYZER stem KWRDYYH     : &quot; + terms(a, kurdish));
+      System.out.println(&quot;ANALYZER stem KWRDYYH+RLM : &quot; + terms(a, kurdish + &quot;\u200F&quot;));
+      System.out.println(
+          &quot;NORMALIZE AE=[&quot; + hex(a.normalize(&quot;body&quot;, HOUSE_AE).utf8ToString())
+              + &quot;] HEH+RLM=[&quot; + hex(a.normalize(&quot;body&quot;, HOUSE_HEH + &quot;\u200F&quot;).utf8ToString()) + &quot;]&quot;);
+      try (Directory dir = new ByteBuffersDirectory()) {
+        String[][] docs = {{&quot;ae&quot;, HOUSE_AE}, {&quot;heh&quot;, HOUSE_HEH}, {&quot;heh+rlm&quot;, HOUSE_HEH + &quot;\u200F&quot;}};
+        try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+          for (String[] d : docs) {
+            Document doc = new Document();
+            doc.add(new StringField(&quot;id&quot;, d[0], Field.Store.YES));
+            doc.add(new TextField(&quot;body&quot;, d[1] + &quot; &quot; + IS_BIG, Field.Store.NO));
+            w.addDocument(doc);
+          }
+        }
+        try (DirectoryReader r = DirectoryReader.open(dir)) {
+          IndexSearcher s = new IndexSearcher(r);
+          StoredFields sf = s.storedFields();
+          QueryBuilder qb = new QueryBuilder(a);
+          String[][] queries = {{&quot;AE&quot;, HOUSE_AE}, {&quot;HEH&quot;, HOUSE_HEH}, {&quot;HEH+RLM&quot;, HOUSE_HEH + &quot;\u200F&quot;}};
+          for (String[] q : queries) {
+            Query query = qb.createBooleanQuery(&quot;body&quot;, q[1]);
+            List&lt;String&gt; ids = new ArrayList&lt;&gt;();
+            for (ScoreDoc sd : s.search(query, 10).scoreDocs) ids.add(sf.document(sd.doc).get(&quot;id&quot;));
+            java.util.Collections.sort(ids);
+            System.out.println(&quot;SEARCH query &quot; + q[0] + &quot; -&gt; &quot; + ids.size() + &quot; of 3 &quot; + ids);
+          }
+        }
+      }
+    }
+    filter.close();
+    std.close();
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT), 10.5.2 and 9.12.3: reproduced with the JUnit; 4.7.0, 4.10.4, 5.0.0, 5.5.5, 6.6.6, 7.0.0, 7.7.3, 8.11.4, 9.0.0 and 10.0.0: reproduced with the main()</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64 (pure Java logic; nothing platform-specific)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestSoraniFinalHehDirectionalMark.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests TestSoraniFinalHehDirectionalMark -Ptests.seed=66800030 -Ptests.asserts=true
+# the same 5 failures with -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, seed 66800030, assertions on (off: the same 5)
+TestSoraniFinalHehDirectionalMark &gt; testFinalHehBeforeArabicLetterMark FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;خان[ە]&gt; but was:&lt;خان[ه]&gt;
+TestSoraniFinalHehDirectionalMark &gt; testSearchFindsAllThreeSpellings FAILED
+    java.lang.AssertionError: expected:&lt;3&gt; but was:&lt;2&gt;
+TestSoraniFinalHehDirectionalMark &gt; testFinalHehBeforeRightToLeftMark FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;خان[ە]&gt; but was:&lt;خان[ه]&gt;
+TestSoraniFinalHehDirectionalMark &gt; testAnalyzerNormalize FAILED
+    org.junit.ComparisonFailure: expected:&lt;خان[ە]&gt; but was:&lt;خان[ه]&gt;
+TestSoraniFinalHehDirectionalMark &gt; testFinalHehBeforeLeftToRightMark FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;خان[ە]&gt; but was:&lt;خان[ه]&gt;
+7 tests completed, 5 failed
+
+# probe, stock main
+STD tokens of HEH+RLM+space+IS_BIG: [[062E 0627 0646 0647 200F], [06AF 06D5 0648 0631 06D5 06CC 06D5]]
+ANALYZER terms AE      : [[062E 0627 0646 06D5], [06AF 06D5 0648 0631 06D5]]
+ANALYZER terms HEH+RLM : [[062E 0627 0646 0647], [06AF 06D5 0648 0631 06D5]]
+ANALYZER stem KWRDYYH     : [[06A9 0648 0631 062F 06CC 06CC]]
+ANALYZER stem KWRDYYH+RLM : [[06A9 0648 0631 062F 06CC 06CC 0647]]
+SEARCH query AE -&gt; 2 of 3 [ae, heh]
+SEARCH query HEH+RLM -&gt; 1 of 3 [heh+rlm]
+# with the fix: HEH+RLM -&gt; [062E 0627 0646 06D5]; every query -&gt; 3 of 3</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The class javadoc: "word-final 0647" is converted to AE, and "directional controls are removed" (<code>SoraniNormalizer.java:29</code>, <code class='nw'>:33</code>).</li><li>Its word-initial rule ignores a removed mark: a leading RLM before REH still gives RREH. Only the trailing case breaks.</li><li>No test keeps HEH before a mark; the upstream vocabulary treats its 11 words with a trailing mark as if it were absent.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>356 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> The class javadoc (<code>SoraniNormalizer.java:21-35</code>): "Alternate forms of vowel 'e' (0647+200C, word-final 0647, 0629) are converted to 06D5 (AE)" (<code class='nw'>:29</code>) and "Harakat, tatweel, and formatting characters such as directional controls are removed." (<code class='nw'>:33</code>). The public <code>SoraniNormalizationFilter</code> is "A TokenFilter that applies SoraniNormalizer to normalize the orthography" (<code>SoraniNormalizationFilter.java:24</code>). <code class='nw'>SoraniNormalizer</code> was a public class, with this rule list in its published javadoc, from 4.7.0 to 9.12.x (javap of the 4.7.0 and 9.12.3 jars; Lucene renders javadoc with <code class='nw'>-protected</code>); it is package-private only since 10.0.0 (LUCENE-10561). The javadoc states no order of operations and no general "removed characters never change the result" rule, so the claim is that this order leaves two documented rules in tension, not that a stated invariant is broken.</li><li><strong>The rule's reason.</strong> <code class='nw'>testFinalH</code>: "always (and in final form by def), so frequently omitted" (<code>TestSoraniNormalizationFilter.java:70-73</code>). The rule is about the final letter form; RLM, LRM, ALM, PDF and RLO have Unicode joining type Transparent (PDI: Non_Joining), so a HEH before them is still drawn in final form.</li><li><strong>The class's own symmetry.</strong> A leading RLM, LRM, ALM, RLE or TATWEEL before REH still gives word-initial RREH, and the ZWNJ rule looks past a mark (HEH + RLM + ZWNJ gives AE). Only the trailing check runs before the deletion.</li><li><strong>Upstream data.</strong> The vocabulary of <code>TestSoraniStemFilter.testVocabulary</code> (8,272 rows) has 11 words ending in U+202E whose expected output drops the mark and normalizes and stems as if it were absent (none of them ends in a HEH). Of its words ending in a HEH before characters the class removes, 320 end in HEH + ZWNJ (made AE by the ZWNJ rule) and one is HEH + TATWEEL -&gt; HEH, which is not claimed (TATWEEL forces a joining form) and which the fix keeps; none has a HEH before a direction mark.</li><li><strong>History.</strong> Both rules came in the first commit, in today's order (LUCENE-5379, 2014); the four later commits on the file change only the license header, formatting, array syntax and visibility (package-private from 10.0.0). No test, comment, commit message, CHANGES or MIGRATE entry mentions trailing marks.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>296 words</span></summary><div class='body'><p>The intended-behaviour checker and the cross-model intended lens (which rated it moderate) built the strongest case: the javadoc is an unordered list of independent rules, and "word-final" can be read literally as "the last character of the token as given"; the upstream vocabulary pins HEH + TATWEEL -&gt; HEH, so a trailing removable character can block the rule on purpose; the class is package-private, so its javadoc is no published contract; the behaviour has been stable for 12 years; and a fix forces a reindex.</p><p>The answer: the same class treats removed characters as absent for its word-initial rule and its ZWNJ rule; the stated reason is the final letter form, which the marks do not change, while TATWEEL and ZWJ do, so the pinned row agrees with the narrow claim and the narrow fix keeps it; the class promises to remove direction controls itself and the stock tokenizer hands them over inside the token; the project's own vocabulary expects trailing marks to be ignored; no record supports the literal reading. The package-private point does not hold for most of the bug's life: the class was public, with this list in its published javadoc, from 4.7.0 to 9.12.x; and a reindex is the usual cost of an analyzer fix.</p><p>Limits of the answer: the javadoc states no order of operations; the leading-mark case shows what the loop order allows, not what the authors meant for trailing marks; the 11 vocabulary words with a trailing mark do not end in a HEH; no Sorani reference is cited. <strong>Verdict: a real, narrow order-of-operations defect, best presented as an inconsistency between two documented rules that appears unintended, with the compatibility cost acknowledged.</strong> Do not argue idempotence: it is not documented, and HEH + TATWEEL stays non-idempotent with the fix.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Treat the HEH as word-final when only formatting characters other than ZWNJ and ZWJ follow it</strong></p><p class='short'>In <code class='nw'>SoraniNormalizer</code>, count the HEH as word-final when only formatting characters that the class deletes follow it (any <code class='nw'>Character.FORMAT</code> character except ZWNJ and ZWJ; +15/-1). Validated with gradle: the new test and all 30 upstream Sorani tests pass, assertions on and off, plus format and lint checks. Affected fields need a reindex.</p><pre class='snippet' tabindex='0'><code>static final char ZWJ = &#x27;\u200D&#x27;;                      // new constant
+case HEH:
+  if (isWordFinal(s, i, len)) {                       // was: if (i == len - 1)
+    s[i] = AE;
+  }
+  break;
+private static boolean isWordFinal(char[] s, int pos, int len) {
+  for (int i = pos + 1; i &lt; len; i++) {
+    if (s[i] == ZWNJ || s[i] == ZWJ || Character.getType(s[i]) != Character.FORMAT) {
+      return false;
+    }
+  }
+  return true;
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 1,249 words</span></summary><div class='body'><p>Two equivalent fixes were built and validated with gradle in a scratch worktree at <code class='nw'>a9779ef3c193</code>; A has the same condition as the finder's fix, which every verifier also ran. A wider fix fails the upstream vocabulary. Until a fix ships, a <code class='nw'>patternReplace</code> char filter that deletes the direction marks in front of the tokenizer works around it (executed: 3 of 3 hits).</p><div class="hd hd-3"><h3 id='fix-look-past-trailing-marks'>Treat the HEH as word-final when only formatting characters other than ZWNJ and ZWJ follow it <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-look-past-trailing-marks" target="_self" aria-label="Link to this section" aria-describedby="fix-look-past-trailing-marks"><span aria-hidden="true">#</span></a></div><p><code>case HEH</code> calls a helper instead of <code>i == len - 1</code>: the HEH is word-final if every character after it is a <code class='nw'>Character.FORMAT</code> character other than ZWNJ and ZWJ (+15/-1 in <code>SoraniNormalizer.java</code>, with a new <code class='nw'>ZWJ</code> constant). It tests no Unicode joining property: on JDK 25 it admits 41 BMP characters, every format character the class deletes except ZWNJ and ZWJ (see the validation). The helper's javadoc in the diff ("does not change joining") is a draft; more exact: "a formatting character that normalize deletes, other than ZWNJ (handled by its own case) and ZWJ (which joins the HEH to what follows)". The code below is an excerpt; the full diff:</p><pre><code>--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizer.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizer.java
+@@ -45,6 +45,7 @@
+   static final char HEH = &#x27;\u0647&#x27;;
+   static final char AE = &#x27;\u06D5&#x27;;
+   static final char ZWNJ = &#x27;\u200C&#x27;;
++  static final char ZWJ = &#x27;\u200D&#x27;;
+   static final char HEH_DOACHASHMEE = &#x27;\u06BE&#x27;;
+   static final char TEH_MARBUTA = &#x27;\u0629&#x27;;
+ 
+@@ -87,7 +88,7 @@
+           i--;
+           break;
+         case HEH:
+-          if (i == len - 1) {
++          if (isWordFinal(s, i, len)) {
+             s[i] = AE;
+           }
+           break;
+@@ -126,4 +127,17 @@
+     }
+     return len;
+   }
++
++  /**
++   * Returns true if every char after {@code pos} is a formatting character that {@link #normalize}
++   * removes and that does not change joining (not ZWNJ or ZWJ), such as a directional mark.
++   */
++  private static boolean isWordFinal(char[] s, int pos, int len) {
++    for (int i = pos + 1; i &lt; len; i++) {
++      if (s[i] == ZWNJ || s[i] == ZWJ || Character.getType(s[i]) != Character.FORMAT) {
++        return false;
++      }
++    }
++    return true;
++  }
+ }</code></pre><pre class='snippet' tabindex='0'><code>static final char ZWJ = &#x27;\u200D&#x27;;                      // new constant
+case HEH:
+  if (isWordFinal(s, i, len)) {                       // was: if (i == len - 1)
+    s[i] = AE;
+  }
+  break;
+private static boolean isWordFinal(char[] s, int pos, int len) {
+  for (int i = pos + 1; i &lt; len; i++) {
+    if (s[i] == ZWNJ || s[i] == ZWJ || Character.getType(s[i]) != Character.FORMAT) {
+      return false;
+    }
+  }
+  return true;
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Existing indexes keep the old term for affected words until reindexed; worth a CHANGES line.</li><li>Cost: a forward scan from a HEH that stops at the first other character. The extra scan reads each character at most once per token, so the fix adds only linear work. (<code class='nw'>normalize()</code> itself is not linear today: every deletion shifts the rest of the buffer, <code>StemmerUtil.delete</code>.)</li><li>Breadth: it admits every format character the class deletes, not only the direction marks. If maintainers want only the direction marks and the soft hyphen, the helper can test an explicit list instead (not built or tested).</li><li>Index-time and query-time analysis must change together during the rollout.</li><li>Unchanged by design: HEH + TATWEEL, ZWJ or a vowel mark stays HEH; HEH + ZWNJ was already AE.</li><li>Only main was built and tested with gradle; <code class='nw'>normalize()</code> is the same, ignoring whitespace, from 4.7.0 on, so a backport should need at most context changes.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, JDK 25, scratch worktree at <code class='nw'>a9779ef3c193</code>: the new test fails 5 of 7 on stock (assertions on and off) and passes 7 of 7 with the fix; every test in <code>org.apache.lucene.analysis.ckb</code> passes: 6 suites, 37 tests (30 upstream, including <code class='nw'>checkRandomData</code> over <code class='nw'>SoraniAnalyzer</code> and the 8,272-row vocabulary, plus the 7 new), 0 skipped, assertions on and off.</li><li><code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code>, <code>forbiddenApisMain</code> and <code>forbiddenApisTest</code> of <code>lucene/analysis/common</code> pass.</li><li>Exhaustive, all 1,118,481 strings of length 0 to 5 over a 16-character alphabet: within that alphabet it changes exactly the 31,420 inputs whose last HEH is followed only by RLM, LRM, ALM, PDF or soft hyphen, and only that HEH, from U+0647 to U+06D5.</li><li>Every BMP character after <code class='nw'>خانه</code> (surrogates skipped): the output changes for exactly 41 characters, each from <code class='nw'>..0647</code> to <code class='nw'>..06D5</code>: the direction marks and controls (U+200E, U+200F, U+061C, U+202A-U+202E, U+2066-U+2069), U+00AD, U+200B, U+2060-U+2064, U+FEFF, U+206A-U+206F (deprecated format controls, including INHIBIT and ACTIVATE ARABIC FORM SHAPING), U+180E, U+FFF9-U+FFFB and the prepended concatenation marks (U+0600-U+0605, U+06DD, U+070F, U+0890, U+0891, U+08E2). ICU 78.3: 26 Transparent, 15 Non_Joining, none join-causing. Through <code>StandardTokenizer</code> 38 of them stay in the token; U+200B, U+0890 and U+0891 do not. Fix B gives the same output.</li><li>The finder's fix has the same condition; with it every verifier's claim tests passed (finder 5 of 5, the independent reproduction 12 of 12, adjudication 10 of 10), as did the 28 (finder) and 30 (refute reviewer) upstream tests they ran.</li></ul><div class="hd hd-3"><h3 id='fix-pretrim-trailing-marks'>Trim trailing formatting characters other than ZWNJ and ZWJ before the loop (equivalent) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-pretrim-trailing-marks" target="_self" aria-label="Link to this section" aria-describedby="fix-pretrim-trailing-marks"><span aria-hidden="true">#</span></a></div><p>Before the loop, drop trailing <code class='nw'>Character.FORMAT</code> characters other than ZWNJ and ZWJ (+10):</p><pre><code>--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizer.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizer.java
+@@ -45,6 +45,7 @@
+   static final char HEH = &#x27;\u0647&#x27;;
+   static final char AE = &#x27;\u06D5&#x27;;
+   static final char ZWNJ = &#x27;\u200C&#x27;;
++  static final char ZWJ = &#x27;\u200D&#x27;;
+   static final char HEH_DOACHASHMEE = &#x27;\u06BE&#x27;;
+   static final char TEH_MARBUTA = &#x27;\u0629&#x27;;
+ 
+@@ -70,6 +71,11 @@
+    * @return length of input buffer after normalization
+    */
+   int normalize(char[] s, int len) {
++    // remove trailing formatting characters that do not change joining (such as directional marks)
++    // first, so that they do not hide a word-final HEH
++    while (len &gt; 0 &amp;&amp; isTrailingRemovable(s[len - 1])) {
++      len--;
++    }
+     for (int i = 0; i &lt; len; i++) {
+       switch (s[i]) {
+         case YEH:
+@@ -126,4 +132,8 @@
+     }
+     return len;
+   }
++
++  private static boolean isTrailingRemovable(char ch) {
++    return ch != ZWNJ &amp;&amp; ch != ZWJ &amp;&amp; Character.getType(ch) == Character.FORMAT;
++  }
+ }</code></pre><p class='k'>Trade-offs</p><p>Reads as "strip trailing invisible marks first" and touches no case of the switch; A keeps the change inside the HEH rule. Choose by taste.</p><p class='k'>What the checks validated</p><ul><li>The same output as A on all 1,118,481 inputs of the exhaustive run (identical output digests).</li><li>Gradle: the new test and the 30 upstream <code class='nw'>ckb</code> tests pass (assertions on), and <code>checkGoogleJavaFormat</code> passes; standalone: the new test 7 of 7.</li><li>The same output as A for every BMP character after <code class='nw'>خانه</code> (the 41-character scan).</li></ul><div class="hd hd-3"><h3 id='fix-wider-lookahead'>Also look past harakat and TATWEEL (rejected)</h3><a class="hlink" href="#fix-wider-lookahead" target="_self" aria-label="Link to this section" aria-describedby="fix-wider-lookahead"><span aria-hidden="true">#</span></a></div><p>The finder's first fix also skipped harakat and TATWEEL after the HEH.</p><p class='k'>Trade-offs</p><p>Fails the upstream vocabulary test (<code class='nw'>هـ</code> expected <code class='nw'>ه</code>, got <code class='nw'>ە</code>; 1 of 28 fails): TATWEEL forces a joining form, and a vowel mark can mark the HEH as the consonant h. A post-pass "if the output ends in HEH, make it AE" would change the same HEH + tail inputs and fail the same row, and more: a word ending in HEH DOACHASHMEE (U+06BE), which the class rewrites to HEH, would also become AE (reasoning).</p><div class="hd hd-3"><h3 id='fix-document-only'>Document that word-final means the last character as given (rejected)</h3><a class="hlink" href="#fix-document-only" target="_self" aria-label="Link to this section" aria-describedby="fix-document-only"><span aria-hidden="true">#</span></a></div><p>Change the javadoc instead of the code.</p><p class='k'>Trade-offs</p><p>Keeps the two documented rules in tension (a removed mark would still change the result), unlike the word-initial rule, and leaves two spellings of the same word unmatched.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream, a deny or moderation rule written as an analyzed Sorani term query could miss a document whose word carries the invisible mark; servers with a built-in Sorani analyzer on this filter inherit the mismatch.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Semi-formal. A bounded-exhaustive check ran the stock filter on all 732,541 strings of up to 4 characters over a 29-character alphabet against rules taken from the javadoc. "Deleting a character the class removes must not change the result" failed on 23,190 inputs, all a HEH followed only by removable characters; the claim was then narrowed to direction marks.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>153 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation of the script normalizers against their documented rules</strong> (the hunt's "semi-formal" tier), 2026-10-27.</p><ul><li>The harness (<code>NormalizerTV.java</code>) ran the stock <code>SoraniNormalizationFilter</code> on every string of length up to 4 over a 29-character alphabet (letters including ZWNJ and TATWEEL, the harakat and 6 format characters), 732,541 inputs, and compared it with oracles derived from the class javadoc.</li><li>The deletion-invariance oracle (deleting a character that the javadoc says is removed must not change the result) failed on 23,190 inputs, all a HEH followed only by removable characters at the end. A residual run that excluded that shape found 0 other violations.</li><li>The upstream vocabulary pins HEH + TATWEEL -&gt; HEH, and a wider fix failed it, so the finder narrowed the claim to trailing format characters other than ZWNJ and ZWJ and wrote the public-API JUnit on the stock jars.</li><li>Independent verifiers then reproduced and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: two scripted prior-report search runs (68 and 33 queries), 57 manual GitHub, downstream and JIRA searches, the OSS-Fuzz feed, the files of all 409 open PRs and the introducing issue, searched 2026-10-27. Related only: a withdrawn fuzzer crash and a scanner advisory, both about exceptions in the same method.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>No issue, PR, JIRA ticket, list thread, downstream issue or web page reports a word-final HEH left unconverted before a direction mark, or the order of the HEH test and the format-character deletion; nothing is by the owner. Searches are lexical and PR review threads are not indexed, so this is "no report found".</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene)</th><td class='when'>2026-10-27</td><td>a scripted prior-report search (22 issue and PR queries, 3 commit queries), 27 manual searches for the class names, code points, mark names, Character.FORMAT, ZWNJ and the sibling normalizers, the introducing issue's body and comments, the file's full history; a later read-only re-check</td><td>only the introducing issue #6442 (LUCENE-5379); unrelated hits such as #7426 (package naming) and PR #540 (a remark on the ZWNJ constant)</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>the changed files of all 409 open apache/lucene PRs</td><td>only #16911 touches <code class='nw'>ckb</code> (it decommissions branch_10x)</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-27</td><td>56 list queries over dev@, java-user@, issues@ and commits@ (two tool runs, including RLM, 200F, 200E, 061C, "directional marks" and "bidi"); 11 tool and 7 manual JIRA queries (LUCENE, SOLR, LUCENENET)</td><td>a java-user@ thread on scanner advisory sonatype-2025-002284, about an exception from invalid buffer or length input: not this bug</td></tr><tr><th scope='row'>Downstream, the web and fuzzing feeds</th><td class='when'>2026-10-27</td><td>3 tool and 23 manual searches in Elasticsearch, OpenSearch, Solr, lucene-solr and Lucene.NET; 6 web queries; the OSV feed of OSS-Fuzz findings for Lucene</td><td>OSV-2025-253, a withdrawn fuzzer crash inside the same method (an exception, not this bug); #7048 (LUCENE-5986), a declined request about the Arabic normalizer; no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since the Sorani analyzer was added: LUCENE-5379 (<code class='nw'>2140f4368ad</code>, backport <code class='nw'>a670b8d5b22</code>, 2014-01-04), first released in 4.7.0. It fails on all 12 releases run from 4.7.0 to 10.5.2 and on main; 4.6.1 has no Sorani API. Not a regression, and not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-5379 ("Kurdish Analyzer", issue #6442; author rmuir): <code class='nw'>2140f4368ad</code> on trunk and the same-day branch_4x backport <code class='nw'>a670b8d5b22</code>, which shipped in 4.7.0 (tagged 2014-02-25). A Subversion commit, no PR. Both rules arrived together, in today's order. The four later commits on the file (<code class='nw'>813ca77250d</code> LUCENE-7013 license header, <code class='nw'>8ef6a0da568</code> LUCENE-9570 reformat, <code class='nw'>8ac26737913</code> LUCENE-10003 array syntax, <code class='nw'>694d797526a</code> LUCENE-10561 package-private, first released in 10.0.0) do not change the logic; ignoring whitespace and the signature, <code class='nw'>normalize()</code> is identical from 4.7.0 to main. <strong>Not fixed upstream</strong>: main <code class='nw'>a95c754ee003</code> (2026-10-26) still tests <code>i == len - 1</code>. Every run used JDK 25.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 5 of 7 fail (gradle and standalone, assertions on and off); the finder's 4 of 5; the independent reproduction's 6 of 10; the main() 5 of 5 checks</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 5 of 7 fail; the main() 5 of 5 checks (10.5.2 also with plain javac and java)</td></tr><tr><th scope='row'>6.6.6, 7.0.0, 7.7.3, 8.11.4, 9.0.0, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> main()</span></td><td>5 of 5 checks fail; both controls pass</td></tr><tr><th scope='row'>4.7.0, 4.10.4, 5.0.0, 5.5.5</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> main()</span></td><td>4 of 4 checks fail (<code>Analyzer.normalize</code> exists only from 6.2.0); both controls pass</td></tr><tr><th scope='row'>4.6.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>no Sorani analysis classes: the repro does not compile</td></tr><tr><th scope='row'>main + the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>every check passes; 37 <code class='nw'>ckb</code> tests pass with gradle</td></tr><tr><th scope='row'>upstream main <code class='nw'>a95c754ee003</code>, branch_10x</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> read</span></td><td>still <code>if (i == len - 1)</code> in <code>case HEH</code></td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate, an adjudication and a credibility audit, plus two executed reviews by another model family (OpenAI GPT-5.6, refute and intended-behaviour lenses), all found it real with their own runs on main, assertions on and off. This doc's own test, exhaustive comparison and gradle runs agree.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>387 words</span></summary><div class='body'><p>Every verifier wrote or ran its own tests against the stock jars; each verdict below names what it ran.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>JUnit fails 4 of 5 on main (assertions on and off), 10.5.2 and 9.12.3; 5 of 5 with the narrow fix; the 28 upstream tests it ran pass with the narrow fix, 1 fails with the wider one.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit from the claim: 6 of 10 fail on main (on and off), 10.5.2 and 9.12.3; 4 controls pass; only the trailing position of a mark changes the output; impact JUnit 2 of 2 fail (sentence, stem); 12 of 12 pass with the fix.</td></tr><tr><th scope='row'>Cross-model review, refute lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6, executed mode, on <code class='nw'>ea57360912ed</code> with identical analysis sources): own JUnits fail through the filter, <code class='nw'>normalize()</code> and the full indexing chain; the 30-test <code class='nw'>ckb</code> suite passes with the fix.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high); intended-behaviour argument moderate</span></td><td>Its expected-semantics test fails on main, 10.5.2 and 9.12.3 and passes with the fix; the review step re-ran it on <code class='nw'>a9779ef3c193</code> (1 of 6 fail, assertions on and off).</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high), low impact</span></td><td>Built the strongest intended case and showed why it fails; probe: HEH kept before RLM, LRM, ALM, PDF, RLO and PDI; a leading mark before REH is ignored; the fix keeps HEH before TATWEEL, ZWJ and DAMMA.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's JUnit (6 of 10 fail, assertions on and off) and the independent reproduction's JUnit with the fix (10 of 10 pass); class silent wrong results, tier Low.</td></tr><tr><th scope='row'>Follow-up</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> history, prior art, security</span></td><td>12 releases plus main executed; prior-report verdict new; security none after an executed probe.</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's JUnit (4 of 5 fail, on and off) and an own end-to-end <code class='nw'>TermQuery</code> test: the document with HEH + RLM in running text is missed (2 of 3 fail, on and off).</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>The new test 5 of 7 fail on main (gradle and standalone, on and off), 10.5.2 and 9.12.3; the fix passes it and the 30 upstream <code class='nw'>ckb</code> tests; the exhaustive run shows the fix changes only the bug's inputs.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-668/bug.png' download='sorani-final-heh-trailing-bidi-mark-bug.png' target='_self'>PNG</a> <span class='n'>437 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,524 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-668, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>SoraniNormalizer checks for a word-final HEH before it removes trailing directional marks, so a word ending in HEH followed by RLM, LRM or ALM keeps HEH (U+0647) instead of becoming AE (U+06D5) as the class javadoc says</dd></div><div><dt>Area</dt><dd>analysis-common / Sorani normalizer (SoraniNormalizer.normalize; SoraniNormalizationFilter, SoraniAnalyzer and the 'soraniNormalization' factory)</dd></div><div><dt>Priority</dt><dd>Medium, rank 137: The stock SoraniAnalyzer silently indexes a different term for a word ending in HEH plus an invisible RLM, LRM or ALM, but only that rare input shape in one niche language triggers it.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Search quality only, with no error: applications that analyze Sorani Kurdish text with SoraniAnalyzer (default constructor included), SoraniNormalizationFilter or the 'soraniNormalization' factory, on every release from 4.7.0 through 10.5.2 and on main, index and query a word whose final vowel is typed as HEH and that carries an invisible trailing RLM, LRM or ALM (StandardTokenizer keeps it inside the token) as a different term from the same word without the mark ([..U+0647] vs [..U+06D5]; the stemmed term can differ too), so the two visually identical spellings do not match each other; no scale is needed, -ea and -da behave the same, the mark must sit directly after the final HEH, and because a fix changes indexed terms, affected fields need reindexing after it.</dd></div><div><dt>Summary</dt><dd>You analyze Sorani Kurdish text with the stock SoraniAnalyzer or SoraniNormalizationFilter. The normalizer's javadoc says a word-final HEH (U+0647) is converted to AE (U+06D5) and that formatting characters such as directional controls are removed, so خانه ('house') followed by an invisible right-to-left mark should normalize like خانه itself, to خانە. Instead the HEH rule asks 'is this the last character?' while the trailing mark is still in the buffer, and the mark is deleted only later in the same pass, so خانه+RLM (and +LRM, +ALM) becomes خانه with a plain HEH and no longer matches خانە, with no error.</dd></div><div><dt>Introduced</dt><dd>2140f4368ade00f1d3b6f2bb25ecaf257c639c3d (trunk, Subversion r1555359, 'LUCENE-5379: Kurdish Analyzer' by rmuir; JIRA LUCENE-5379, migrated as apache/lucene#6442; no PR, pre-GitHub) with its same-day branch_4x backport a670b8d5b22 (r1555360), the copy that shipped in 4.7.0 [read: git log --follow and a whitespace-insensitive compare of normalize() across release tags in the history clone]: the 'case HEH: if (i == len - 1)' test and the later FORMAT deletion in the default branch arrived together, in today's order. Not a regression: the four later commits on the file (813ca77250d LUCENE-7013 license header, 8ef6a0da568 LUCENE-9570 reformat, 8ac26737913 LUCENE-10003 array syntax, 694d797526a LUCENE-10561 package-private) do not change the logic. (2014-01-04 (trunk and branch_4x; first released in 4.7.0, tagged 2014-02-25))</dd></div><div><dt>First affected version</dt><dd>4.7.0 [exec] (the first release with the org.apache.lucene.analysis.ckb package; the follow-up's cross-version main() repro fails all 4 filter and analyzer checks there, Analyzer.normalize being absent before 6.2.0, and both controls pass). 4.6.1, the last release before it, has no Sorani analysis API [exec: the repro does not compile], so no release ever applied the rule across a trailing mark.</dd></div><div><dt>Affected versions</dt><dd>Every release that ships the Sorani analysis API, 4.7.0 through 10.5.2, and main a9779ef3c193; not fixed. [exec] the follow-up's version-independent public-API repro (SoraniNormalizationFilter with a trailing RLM, LRM and ALM, the SoraniAnalyzer token stream and, from 6.2.0, SoraniAnalyzer.normalize; 2 controls) fails on 4.7.0, 4.10.4, 5.0.0, 5.5.5, 6.6.6, 7.0.0, 7.7.3, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 (-ea and -da) and main (-ea and -da), with both controls passing, and passes on main with the fix shadowed; the finder's JUnit fails 4 of 5 on 9.12.3, 10.5.2 and main (-ea and -da) (it needs org.apache.lucene.tests.analysis, so it does not compile on 9.0.0); the independent reproduction's JUnit fails 6 of 10 on 9.12.3, 10.5.2 and main. [read] the normalize() body is identical, ignoring whitespace and the signature, from 4.7.0 to main, and upstream main a95c754ee003 (2026-10-26) and branch_10x still contain 'case HEH: if (i == len - 1)' (read 2026-10-27). All runs used JDK 25.0.3; ALM (U+061C, Unicode 6.3) is not a FORMAT character on JDKs with older Unicode tables (Java 8), where the ALM would stay in the term and the HEH would still stay HEH (not executed).</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27, read-only; the prior-report record, verdict new): a scripted prior-report search merged run (22 GitHub issue/PR queries on apache/lucene, 3 commit, 3 downstream-repository, 28 mailing-list queries over the dev, java-user, issues and commits lists, 6 JIRA, 6 web; 0 errors) plus a second run (28 list and 5 JIRA queries for RLM, 200F, 200E, 061C, 'directional marks' and 'bidi'), 27 manual apache/lucene searches (code points, mark names, Character.FORMAT, ZWNJ, sibling normalizers, OSS-Fuzz, Sonatype), 23 manual downstream searches (Elasticsearch, OpenSearch, Solr, lucene-solr, Lucene.NET), 7 manual JIRA queries (SOLR, LUCENE, LUCENENET), the OSV OSS-Fuzz feed for Lucene, the changed files of all 409 open apache/lucene PRs, the introducing issue gh#6442 (LUCENE-5379; body and all 3 comments) and the file's full git history; the finder's run (23 queries) and the intended-behaviour check's list and JIRA run (23 queries) found only LUCENE-5379. No issue, PR, JIRA ticket, list thread, downstream issue or web page reports a word-final HEH left unconverted before a directional mark, or the order of the HEH test and the format-character deletion. Related, not the same bug: OSV-2025-253 (OSS-Fuzz 407477665, an exception inside SoraniNormalizer.normalize after WordDelimiterGraphFilter; published 2025-04-03, withdrawn 2026-10-01) and a java-user@ thread on scanner advisory sonatype-2025-002284 (2025-09-01, an exception from invalid buffer or length input): both report an exception, while this bug throws nothing and its fix touches only the HEH condition; gh#7048 (LUCENE-5986, a declined request to stop folding word-final TEH MARBUTA in ArabicNormalizer); gh#11597 (LUCENE-10561, visibility only). Not fixed upstream: main a95c754ee003 and branch_10x unchanged; the only open PR that touches ckb is #16911 (decommissions branch_10x). Gaps: the OSS-Fuzz tracker entry was not readable; PR review threads are not search-indexed (PR #540's were read by hand).</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the release jars 10.5.2 and 9.12.3 with the same test; the follow-up's version-independent repro on 12 releases from 4.7.0 to 10.5.2 (4.6.1 has no Sorani API); the cross-model reviews on <code class='nw'>ea57360912ed</code>, whose <code class='nw'>lucene/analysis</code> sources equal <code class='nw'>a9779ef3c193</code>. The fix was validated in the scratch worktree: the new test, all 30 upstream <code class='nw'>ckb</code> tests with assertions on and off, and the module's format, ecj-lint and forbidden-API checks; an exhaustive run over 1,118,481 strings shows it changes only the bug's inputs.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizer.java:21-35 (at a9779ef3c193) (class javadoc; package-private class at :36), :29 (&#x27;Alternate forms of vowel &#x27;e&#x27; (0647+200C, word-final 0647, 0629) are converted to 06D5 (AE)&#x27;), :33 (&#x27;Harakat, tatweel, and formatting characters such as directional controls are removed.&#x27;), :72-73 (single left-to-right loop), :82-88 (case ZWNJ rewrites the previous HEH), :89-93 (case HEH: if (i == len - 1) s[i] = AE), :100-104 (case REH: word-initial RREH), :120-124 (default: Character.FORMAT deleted)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizationFilter.java:24-37 (at a9779ef3c193) (public filter applying the normalizer to the term buffer); SoraniNormalizationFilterFactory.java:40 (SPI name &#x27;soraniNormalization&#x27;); SoraniAnalyzer.java:78 (default constructor), :114-115 (StandardTokenizer then SoraniNormalizationFilter), :125-126 (normalize applies the same filter)</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.jflex:83-85 (at a9779ef3c193) (UAX#29 WB4: Format characters stay attached to the preceding token); lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/TestSoraniNormalizationFilter.java:70-73 (testFinalH: &#x27;always (and in final form by def), so frequently omitted&#x27;)</code></li><li><code>GitHub, read-only (2026-10-27): apache/lucene #6442 (LUCENE-5379), #7048 (LUCENE-5986), #11597 (LUCENE-10561), PR #540, PR #16911; apache/lucene main a95c754ee003 and branch_10x SoraniNormalizer.java (condition unchanged); osv.dev OSV-2025-253; lists.apache.org java-user@ thread x0l9sdfftmsnbng82bd19no9vzjq5d67</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizer.java:21-35 (at a9779ef3c193) (class javadoc), :29, :33, :72-128 (normalize), :82-88 (ZWNJ), :89-93 (HEH), :100-104 (REH), :120-124 (FORMAT deletion)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniAnalyzer.java:113-130 (at a9779ef3c193)</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.jflex:83-85 (at a9779ef3c193) (UAX#29 WB4)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/TestSoraniNormalizationFilter.java:70-73 (at a9779ef3c193) (testFinalH)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniAnalyzer.java:78-101 (at a9779ef3c193) (constructors), :113-130</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizationFilterFactory.java:26-32 (at a9779ef3c193) (Solr example), :40 (SPI name)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/ckbtestdata.zip (at a9779ef3c193) (8,272 rows; 11 trailing U+202E; read 2026-10-27)</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/standard/StandardTokenizerImpl.jflex:42 (at a9779ef3c193) (%unicode 12.1)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizer.java:21-36, (at a9779ef3c193) :29, :33, :82-88, :100-104</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ckb/SoraniNormalizationFilter.java:24 (at a9779ef3c193)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/TestSoraniNormalizationFilter.java:70-73 (at a9779ef3c193)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/ckb/TestSoraniStemFilter.java:107 (at a9779ef3c193) (testVocabulary), ckbtestdata.zip</code></li><li><code>lucene/CHANGES.txt:2179 (at a9779ef3c193) (LUCENE-10561, under the 10.0.0 header at :2155), :12736 (LUCENE-5379)</code></li><li><code>Lucene main a9779ef3c193 build-tools/build-infra/src/main/java/org/apache/lucene/gradle/plugins/java/RenderJavadocPlugin.java:464 (-protected)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/util/StemmerUtil.java:85-90 (at a9779ef3c193) (delete shifts the buffer)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestSoraniFinalHehDirectionalMark.java (lucene/analysis/common, public API): <a href='../repro/LFV-668/TestSoraniFinalHehDirectionalMark.java'><code>repro/LFV-668/TestSoraniFinalHehDirectionalMark.java</code></a> (116 lines)</li><li>SoraniFinalHehAcrossVersions.java (version-independent main(), 4.7.0 to main): <a href='../repro/LFV-668/SoraniFinalHehAcrossVersions.java'><code>repro/LFV-668/SoraniFinalHehAcrossVersions.java</code></a> (190 lines)</li><li>TestSoraniFinalHehRule.java (the finder&#x27;s JUnit): <a href='../repro/LFV-668/TestSoraniFinalHehRule.java'><code>repro/LFV-668/TestSoraniFinalHehRule.java</code></a> (88 lines)</li><li>Lfv668Probe.java (the dump behind the numbers): <a href='../repro/LFV-668/Lfv668Probe.java'><code>repro/LFV-668/Lfv668Probe.java</code></a> (120 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from executed probes on main <code class='nw'>a9779ef3c193</code> (stock and with the fix) and on 10.5.2. The PNG is the summary frame. Its "28 of 28" upstream tests is the finder's run, which left out one factory suite; the gradle run of the whole <code class='nw'>ckb</code> package counts 30 upstream tests, all passing.</p><ul class='paths'><li><a href='../assets/LFV-668/bug.png'><code>assets/LFV-668/bug.png</code></a> (437 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

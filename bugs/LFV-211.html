@@ -1,0 +1,856 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>FunctionScoreQuery&#x27;s max score is 0 when it wraps a TermQuery, so a BooleanQuery around it can skip the best hit</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-211 &middot; functionscorequery-maxscore-uses-nonscoring-inner-bound</p><h1 id='top'>FunctionScoreQuery&#x27;s max score is 0 when it wraps a TermQuery, so a BooleanQuery around it can skip the best hit</h1><p class='tldr'>On Lucene main, <code>FunctionScoreQuery(TermQuery, fromLongField(f))</code> over a skip-indexed field reports a block-max score of 0: it multiplies by the max score of its wrapped <code class='nw'>TermQuery</code>, which it runs without scoring. Inside a <code class='nw'>BooleanQuery</code>, <code>search(q, 1)</code> then returns doc 0 (score 4.69) instead of doc 4999 (score 100); unreleased, from #16431.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 91</span><span class='sub'>On main since #16431 FunctionScoreQuery&#x27;s block-max bound multiplies by the wrapped TermQuery&#x27;s no-score max of 0, so a BooleanQuery with a skip-indexed function clause silently loses its true top hits with ordinary values, the new feature&#x27;s main use case, to fix before 11.0.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>#16431 on main (unreleased)<span class='sub'>introduced 2026-08-22</span></dd></div><div><dt>Affected</dt><dd>main (11.0.0-SNAPSHOT) only; 10.x releases are correct</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>modelling the bound, an SMT check and a top-k differential</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>FunctionScoreQuery(q, DoubleValuesSource.fromLongField(f))</code> scores each match of <code class='nw'>q</code> by the value of field <code class='nw'>f</code>. Since #16431 it also reports each block's maximum score so that top-k search can skip blocks. With a <code class='nw'>TermQuery</code> as <code class='nw'>q</code> and a skip index on <code class='nw'>f</code>, that maximum is 0.</p><figure class='visual' id='functionscorequery-maxscore-uses-nonscoring-inner-bound-short-visual'><div class='frame'><a class='still' href='../assets/LFV-211/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-211/bug.png' alt='Summary card: Apache Lucene main, 5,000 docs, one segment, searcher.search(q, 1) with q = SHOULD FunctionScoreQuery(TermQuery body:a, fromLongField(&quot;popularity&quot;)) + SHOULD TermQuery body:b. 1: fromLongField needs no scores, so the wrapped TermQuery is weighted with COMPLETE_NO_SCORES; its dummy SimScorer returns 0f, so its max score is 0.0, while score() (popularity times boost) never reads it: doc 4999 scores 100.0. 2: getMaxScore returns innerMaxScore x valueMaxScore x boost = 0.0 x 100.0 x 1.0 = 0.0 for doc 4999&#x27;s range. 3: after 1,000 hits the min competitive score is Math.nextUp(4.6875415) = 4.687542, and MaxScoreBulkScorer skips every range whose clause bounds sum to less. 4: doc 4999&#x27;s range has the bound 0.0, so it is never scored. Expected (exhaustive search): doc 4999, 100.0. Actual: doc 0, 4.6875415, no error. Fix: innerMaxScore = 1 if the source needs no scores: doc 4999 first.' width='1920' height='1080'></a></div><figcaption>The repro step by step: the function query scores by popularity, its bound multiplies by the unscored <code class='nw'>TermQuery</code>'s 0, and after 1,000 hits the searcher skips every range whose bounds sum below 4.687542, including doc 4999's. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index 5,000 documents that all contain <code class='nw'>body:a</code>; only doc 0 also contains <code class='nw'>body:b</code>. A <code class='nw'>popularity</code> field with a skip index (<code>NumericDocValuesField.indexedField</code>) is 1 everywhere and 100 on doc 4999.</span></li><li><span>Search <code>BooleanQuery(SHOULD FunctionScoreQuery(TermQuery(body:a), fromLongField("popularity")), SHOULD TermQuery(body:b))</code> with <code>search(query, 1)</code>. You expect doc 4999 (score 100), which a search that scores every match returns.</span></li><li><span>You get doc 0 (score 4.69 = popularity 1 + 3.69 for <code class='nw'>body:b</code>). No error, with assertions on or off.</span></li><li><span>Why: the function query tells the searcher that no document in a block scores more than (wrapped query's max score) × (max popularity). It runs the <code class='nw'>TermQuery</code> without scores, so that max score is 0 and the claim is 0, although its documents score 1 to 100.</span></li><li><span>After 1,000 hits only scores above 4.69 can compete, and a clause that claims 0 cannot reach that. From doc 4096 on the searcher scores nothing that only the function clause matches, so doc 4999 is never looked at.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications on unreleased main that put a skip index on a ranking field (<code>NumericDocValuesField.indexedField</code>), wrap a <code class='nw'>TermQuery</code> or similar in <code>FunctionScoreQuery</code> with <code class='nw'>fromLongField</code>, <code class='nw'>fromIntField</code>, <code class='nw'>fromFloatField</code>, <code class='nw'>fromDoubleField</code> or a monotonic <code class='nw'>fromField</code>, and use it as a scoring clause of a <code class='nw'>BooleanQuery</code>. <code class='nw'>boostByValue</code>, <code class='nw'>boostByQuery</code> and a top-level <code>FunctionScoreQuery</code> are not affected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>687 words</span></summary><div class='body'><p><code>FunctionScoreQuery(q, DoubleValuesSource.fromLongField(f))</code> scores each match of <code class='nw'>q</code> by the value of <code class='nw'>f</code>; its <code class='nw'>score()</code> is the value times the boost and never reads <code class='nw'>q</code>'s score. Since #16431 (main, 2026-08-22) its scorer also reports a per-block maximum score so that top-k search can skip blocks, computed as <code>innerMaxScore * valueMaxScore * boost</code>. Because the field source does not need scores, the wrapped query was weighted with <code>COMPLETE_NO_SCORES</code>, and a <code class='nw'>TermQuery</code> weighted that way reports a max score of 0. So on a field with a doc-values skip index every block with a finite bound claims 0, and a <code class='nw'>BooleanQuery</code> that uses the function query as a scoring clause can stop scoring the documents only that clause makes competitive: in the repro, <code>search(query, 1)</code> returns doc 0 (4.6875415) instead of doc 4999 (100). No released version is affected.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Block-max pruning.</strong> For top-k search, each scoring clause reports, for a range of documents, the highest score any of them can have (<code>Scorer#getMaxScore</code>). Once the collector knows the k-th best score so far, the searcher skips ranges whose bounds cannot beat it, without scoring their documents.</li><li><strong>Skip index.</strong> <code>NumericDocValuesField.indexedField(name, value)</code> adds a doc-values skip index: the minimum and maximum value per interval of documents. #16431 uses it to bound <code>FunctionScoreQuery</code>'s scores per block.</li><li><strong>Unscored wrapped query.</strong> <code>FunctionScoreQuery</code> needs its wrapped query only to pick the matching documents when the value source does not read scores, so it creates the wrapped query's weight with <code>ScoreMode.COMPLETE_NO_SCORES</code> ("scores won't be available").</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>createWeight</code> weights the wrapped query with <code>COMPLETE_NO_SCORES</code> unless the caller and the source both need scores (<code>FunctionScoreQuery.java:109-117</code>). Every field source (<code class='nw'>fromLongField</code>, <code class='nw'>fromIntField</code>, <code class='nw'>fromFloatField</code>, <code class='nw'>fromDoubleField</code>, <code class='nw'>fromField</code>) does not need scores.</li><li>A <code class='nw'>TermQuery</code> weighted that way gets a dummy <code class='nw'>SimScorer</code> that returns <code class='nw'>0f</code>, "not expected to be called since scores are not needed" (<code>TermQuery.java:77-91</code>). Its max score is 0.0.</li><li><code class='nw'>score()</code> returns <code>(float) (value * boost)</code> for a non-negative value, else 0 (<code>FunctionScoreQuery.java:243-252</code>). The wrapped score is never read.</li><li><code>getMaxScore(upTo)</code> returns <code>innerMaxScore * valueMaxScore * boost</code> with <code>innerMaxScore = in.getMaxScore(upTo)</code> (<code class='nw'>:262-269</code>). <code class='nw'>valueMaxScore</code> is the skip index's maximum for the range (1.0 for docs 0-4998, 100.0 for doc 4999 in the repro), so the bound is 0.0 for both ranges, i.e. wherever the skip index gives a finite bound (a range past the current interval gets <code class='nw'>+Infinity</code>). Without a skip index the value bound is <code class='nw'>+Infinity</code> and the method returns <code class='nw'>+Infinity</code>, which is why the skip index is part of the trigger.</li><li><code>search(query, n)</code> asks for <code class='nw'>TOP_SCORES</code> from the start and counts the first 1,000 hits exactly; after that it raises the minimum competitive score to just above the lowest score in its top-n queue, the best score so far for n = 1 (<code>IndexSearcher.java:100</code>, <code>TopScoreDocCollector.java:58-59</code>, <code class='nw'>:154-170</code>): 4.687542 after hit 1,001. <code>MaxScoreBulkScorer</code> then treats every clause whose summed bounds stay below that as non-essential and only iterates essential clauses (<code>MaxScoreBulkScorer.java:494-510</code>). From doc 4096 on, the function clause claims 0.0 and <code class='nw'>body:b</code>, which has no documents left there, counts as 0 (<code class='nw'>:441-442</code>); the sum, 0.0, is below 4.687542, so nothing in docs 4096-4999 is scored. The 4096 is the bulk scorer's inner window (<code>INNER_WINDOW_SIZE = 1 &lt;&lt; 12</code>, <code class='nw'>:28</code>): docs 0-4095 had been filled before the threshold was reached.</li><li>A top-level <code>FunctionScoreQuery</code> alone is not pruned: its <code class='nw'>FilterScorer</code> inherits the no-op <code>setMinCompetitiveScore</code> (<code>Scorable.java:45-54</code>). Its exposed <code class='nw'>getMaxScore</code> is still 0.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>An instrumented run of the repro index on main (assertions on and off) shows: doc 0 scores 1.0 + 3.6875415 = 4.6875415, docs 1-4998 score 1.0, doc 4999 scores 100.0; the function scorer's <code class='nw'>getMaxScore</code> is 0.0 for docs 0-4998 and for doc 4999; <code>setMinCompetitiveScore(4.687542)</code> after 1,001 collected hits; collection stops after 4,096 documents; <code>search(query, 1)</code> returns doc 0, and <code>search(query, 3)</code> docs 0, 1 and 2, all with total hits "4096+". With the finder's fix the bounds are 1.0 and 100.0 and <code>search(query, 1)</code> returns doc 4999 while still counting only "4097+" hits, so pruning still skips docs 4096-4998 (not benchmarked).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>351 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> All of: unreleased main (11.0.0-SNAPSHOT) since #16431; a numeric doc-values field with a skip index; a score-independent field source with a finite bound; a wrapped query whose unscored max score is below 1; and the function query as a scoring clause of a <code class='nw'>BooleanQuery</code> under the default <code>search(query, n)</code>.</li><li><strong>Wrapped queries.</strong> A <code class='nw'>TermQuery</code> reports 0. The finder's randomized differential also lost top hits with a <code>ConstantScoreQuery</code> and with <code class='nw'>BooleanQuery</code> disjunctions and conjunctions of terms as the wrapped query. <code>MatchAllDocsQuery</code> reports 1 and is not affected.</li><li><strong>Compositions.</strong> A <code class='nw'>SHOULD</code> clause next to another clause failed in every executed index shape. A <code class='nw'>MUST</code> clause next to another scoring <code class='nw'>MUST</code> clause failed in two independent tests, but whether it fails depends on how scoring windows line up with skip-index intervals.</li><li><strong>Default or opt-in.</strong> The search side is all default (<code class='nw'>IndexSearcher</code>, BM25, <code>search(query, n)</code>). The repro opts into a skip index on the value field, a schema-time choice, and forces one segment (<code class='nw'>forceMerge(1)</code>) to keep the index shape fixed. The skip index is exactly what #16431's speed-up relies on (<code class='nw'>CHANGES.txt</code>: "Block-Max WAND dynamic score skipping in FunctionScoreQuery and DoubleValuesSource using DocValuesSkipper"), so the exposed applications are those that adopt the new feature as advertised and also use the query shape above.</li><li><strong>Scale.</strong> A few thousand documents suffice (5,000 in the repro; 8,203 and 10,000 in the reviewers' tests); the exposed bound is 0 at any size for every finite skip-index bound. The values are ordinary non-negative integers.</li><li><strong>Not affected.</strong> A caller that needs no scores (then <code class='nw'>createWeight</code> returns the wrapped weight itself, <code>FunctionScoreQuery.java:118-120</code>); <code class='nw'>boostByValue</code> and <code class='nw'>boostByQuery</code> (their source needs scores, so the bound stays <code class='nw'>+Infinity</code>); a top-level <code>FunctionScoreQuery</code> alone (right hits, wrong exposed bound); fields without a skip index; every released version.</li><li><strong>What the damage looks like.</strong> Silent in the plain repro (only a test that wraps the inner query itself in <code class='nw'>AssertingQuery</code> fails an assertion): the returned hits are real matches with correct scores, but the best ones are missing, and the total hit count is the usual lower bound ("4096+").</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test for the queries module, public API only: default <code>IndexWriterConfig</code>, plain <code class='nw'>IndexSearcher</code>, one segment of 5,000 documents. It compares <code>search(query, 1)</code> with a search that scores every match and checks the exposed bound. It failed 2 of 2 in every archived run (several seeds, assertions on and off) and passes on 10.5.2.</p><figure class='code'><figcaption><span class='fname'>TestFunctionScoreQuerySkipIndexBound.java (2 tests)</span><span class='meta'>114 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.function;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopScoreDocCollectorManager;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/** FunctionScoreQuery over a skip-indexed field must report a max score that bounds its scores. */
+public class TestFunctionScoreQuerySkipIndexBound extends LuceneTestCase {
+
+  private static final int NUM_DOCS = 5000;
+
+  /** All docs match body:a, only doc 0 matches body:b, only the last doc has popularity 100. */
+  private static Directory index() throws IOException {
+    Directory dir = newDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (int i = 0; i &lt; NUM_DOCS; i++) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;body&quot;, &quot;a&quot;, Field.Store.NO));
+        if (i == 0) {
+          doc.add(new StringField(&quot;body&quot;, &quot;b&quot;, Field.Store.NO));
+        }
+        // indexedField = numeric doc values with a skip index
+        doc.add(NumericDocValuesField.indexedField(&quot;popularity&quot;, i == NUM_DOCS - 1 ? 100 : 1));
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+    return dir;
+  }
+
+  /** Scores each doc matching body:a by its popularity. */
+  private static Query popularityOfA() {
+    return new FunctionScoreQuery(
+        new TermQuery(new Term(&quot;body&quot;, &quot;a&quot;)), DoubleValuesSource.fromLongField(&quot;popularity&quot;));
+  }
+
+  public void testTopHitOfBooleanQuery() throws IOException {
+    try (Directory dir = index();
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      Query query =
+          new BooleanQuery.Builder()
+              .add(popularityOfA(), Occur.SHOULD)
+              .add(new TermQuery(new Term(&quot;body&quot;, &quot;b&quot;)), Occur.SHOULD)
+              .build();
+      // exhaustive scoring (no pruning): the last doc wins with score 100
+      ScoreDoc exhaustive =
+          searcher.search(query, new TopScoreDocCollectorManager(1, Integer.MAX_VALUE))
+              .scoreDocs[0];
+      assertEquals(NUM_DOCS - 1, exhaustive.doc);
+      assertEquals(100f, exhaustive.score, 0f);
+      // the default search(query, n) prunes with block-max bounds after 1,000 hits
+      ScoreDoc top = searcher.search(query, 1).scoreDocs[0];
+      assertEquals(&quot;search(query, 1) top hit has score &quot; + top.score, NUM_DOCS - 1, top.doc);
+    }
+  }
+
+  public void testMaxScoreIsAnUpperBound() throws IOException {
+    try (Directory dir = index();
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      Scorer scorer =
+          searcher
+              .createWeight(searcher.rewrite(popularityOfA()), ScoreMode.TOP_SCORES, 1f)
+              .scorer(reader.leaves().get(0));
+      int upTo = scorer.advanceShallow(0);
+      float maxScore = scorer.getMaxScore(upTo);
+      DocIdSetIterator it = scorer.iterator();
+      for (int doc = it.nextDoc();
+          doc != DocIdSetIterator.NO_MORE_DOCS &amp;&amp; doc &lt;= upTo;
+          doc = it.nextDoc()) {
+        float score = scorer.score();
+        assertTrue(
+            &quot;doc &quot; + doc + &quot; scores &quot; + score + &quot; &gt; getMaxScore(&quot; + upTo + &quot;) = &quot; + maxScore,
+            score &lt;= maxScore);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at ea57360912ed (or later main, while FunctionScoreQuery.java is unchanged)
+cp $REPRO/TestFunctionScoreQuerySkipIndexBound.java lucene/queries/src/test/org/apache/lucene/queries/function/
+./gradlew :lucene:queries:test --tests org.apache.lucene.queries.function.TestFunctionScoreQuerySkipIndexBound -Ptests.seed=DEADBEEF
+# assertions off: add -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>search(query, 1)</code> returns doc 4999 (score 100), like the search that scores every match.</dd></div><div class='got'><dt>Observed</dt><dd>It returns doc 0 (score 4.6875415), and the function query's <code>getMaxScore(4998)</code> is 0.0 while doc 0 scores 1.0.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-211/'>repro/LFV-211/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (406 lines) · 2,106 words</span></summary><div class='body'><p>The test uses a plain <code class='nw'>IndexSearcher</code>, not <code class='nw'>newSearcher</code>: <code class='nw'>newSearcher</code> randomizes the similarity, the reader wrapping and the concurrency (<code>LuceneTestCaseParent.java:2602-2683</code>), so scores and messages change, and with assertions on its <code class='nw'>AssertingScorer</code> stops the bound test at its own <code>score &lt;= getMaxScore</code> check (<code>AssertingScorer.java:130</code>). The bug shows under <code class='nw'>newSearcher</code> too: 5 of 6 fail over 3 iterations, the wrong top hit in 2 of 3 (fact-check run). The codec is the test framework's random choice (seed DEADBEEF: <code>Asserting(Lucene104)</code>); the independent reproducer pinned the default codec and saw the same failures. Five iterations of a random seed with assertions off failed 10 of 10.</p><p>Below it: the finder's original 3-test version, which also runs #16431's own skip-index test with a skip index added ("maxScore=0.0"), and the independent reproducer's test (10,000 documents, default codec pinned; <code class='nw'>SHOULD</code> and <code class='nw'>MUST</code> + <code class='nw'>MUST</code> compositions, <code>CheckHits.checkTopScores</code>, and two controls that pass).</p><div class="hd hd-3"><h3 id='code-2-h'>Finder&#x27;s test: TestFunctionScoreQueryNonScoringInnerMaxScore.java (3 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails 3 of 3 on main with assertions on and off (also on main <code class='nw'>a9779ef3c193</code>); on 10.5.2 only the finite-bound assertion of <code>testUpstreamDelegationTestWithSkipIndex</code> fails, because 10.5.2 always returns <code class='nw'>+Infinity</code>.</p><figure class='code'><figcaption><span class='fname'>Finder&#x27;s test: TestFunctionScoreQueryNonScoringInnerMaxScore.java (3 tests)</span><span class='meta'>165 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.function;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TopScoreDocCollectorManager;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * FunctionScoreQuery&#x27;s block-max bound (#16431) multiplies the value source&#x27;s bound by the max
+ * score of the wrapped query. When the source does not need scores, the wrapped query is weighted
+ * with COMPLETE_NO_SCORES, and e.g. a TermQuery weighted that way reports a max score of 0, so the
+ * bound becomes 0 although the documents score up to the largest field value.
+ */
+public class TestFunctionScoreQueryNonScoringInnerMaxScore extends LuceneTestCase {
+
+  // more than one 4096-doc scoring window, so that dynamic pruning kicks in before the best doc
+  private static final int NUM_DOCS = 5_000;
+
+  private static Directory indexDocs() throws Exception {
+    Directory dir = newDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (int i = 0; i &lt; NUM_DOCS; i++) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;body&quot;, &quot;a&quot;, Field.Store.NO));
+        if (i == 0) {
+          doc.add(new StringField(&quot;body&quot;, &quot;b&quot;, Field.Store.NO));
+        }
+        // a numeric doc-values field with a skip index, the input #16431 uses for block-max bounds;
+        // the last document is the most popular one
+        long popularity = i == NUM_DOCS - 1 ? 100 : 1;
+        doc.add(NumericDocValuesField.indexedField(&quot;popularity&quot;, popularity));
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+    return dir;
+  }
+
+  private static Query functionScore() {
+    return new FunctionScoreQuery(
+        new TermQuery(new Term(&quot;body&quot;, &quot;a&quot;)), DoubleValuesSource.fromLongField(&quot;popularity&quot;));
+  }
+
+  /** TOP_SCORES must return the same top hit as COMPLETE. */
+  public void testTopHitWithDynamicPruning() throws Exception {
+    try (Directory dir = indexDocs();
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      Query query =
+          new BooleanQuery.Builder()
+              .add(functionScore(), Occur.SHOULD)
+              .add(new TermQuery(new Term(&quot;body&quot;, &quot;b&quot;)), Occur.SHOULD)
+              .build();
+      TopDocs complete =
+          searcher.search(query, new TopScoreDocCollectorManager(1, null, Integer.MAX_VALUE));
+      TopDocs topScores = searcher.search(query, new TopScoreDocCollectorManager(1, null, 1));
+      // the last doc (popularity 100) is the best hit
+      assertEquals(NUM_DOCS - 1, complete.scoreDocs[0].doc);
+      assertEquals(
+          &quot;TOP_SCORES top hit (score &quot; + topScores.scoreDocs[0].score + &quot;) differs from COMPLETE&quot;,
+          complete.scoreDocs[0].doc,
+          topScores.scoreDocs[0].doc);
+    }
+  }
+
+  /**
+   * TestFunctionScoreQuery#testMaxScoreDelegationWithDocValuesSkipper with two changes: the field
+   * gets a skip index (upstream it has none, so the branch that checks the bound never runs), and
+   * upTo is the last doc ID instead of maxDoc (since #16697 a range that extends past the skipper&#x27;s
+   * last interval gets an infinite bound).
+   */
+  public void testUpstreamDelegationTestWithSkipIndex() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig conf = newIndexWriterConfig();
+      try (IndexWriter indexWriter = new IndexWriter(dir, conf)) {
+        for (int i = 1; i &lt;= 500; i++) {
+          Document doc = new Document();
+          doc.add(new org.apache.lucene.document.TextField(&quot;text&quot;, &quot;test doc&quot;, Field.Store.NO));
+          doc.add(NumericDocValuesField.indexedField(&quot;val&quot;, i * 10)); // upstream: new NumericDocValuesField
+          indexWriter.addDocument(doc);
+        }
+        indexWriter.commit();
+      }
+
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        DoubleValuesSource valueSource = DoubleValuesSource.fromLongField(&quot;val&quot;);
+        Query q = new FunctionScoreQuery(new TermQuery(new Term(&quot;text&quot;, &quot;test&quot;)), valueSource);
+
+        org.apache.lucene.search.Weight weight = searcher.createWeight(q, ScoreMode.TOP_SCORES, 1f);
+        LeafReaderContext ctx = reader.leaves().get(0);
+        var scorerSupplier = weight.scorerSupplier(ctx);
+        assertNotNull(scorerSupplier);
+        var scorer = scorerSupplier.get(Long.MAX_VALUE);
+        assertNotNull(scorer);
+
+        int maxDoc = ctx.reader().maxDoc();
+        int shallowEnd = scorer.advanceShallow(0);
+        assertTrue(shallowEnd &gt;= 0);
+
+        float maxScore = scorer.getMaxScore(maxDoc - 1); // upstream: getMaxScore(maxDoc)
+        assertNotNull(ctx.reader().getDocValuesSkipper(&quot;val&quot;));
+        assertFalse(Float.isInfinite(maxScore));
+        assertTrue(&quot;maxScore=&quot; + maxScore, maxScore &gt;= 5000f);
+      }
+    }
+  }
+
+  /** Scorer#getMaxScore must be an upper bound of every score up to upTo. */
+  public void testMaxScoreIsUpperBound() throws Exception {
+    try (Directory dir = indexDocs();
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      LeafReaderContext leaf = reader.leaves().get(0);
+      Scorer scorer =
+          searcher
+              .createWeight(searcher.rewrite(functionScore()), ScoreMode.TOP_SCORES, 1f)
+              .scorer(leaf);
+      int upTo = scorer.advanceShallow(0);
+      float maxScore = scorer.getMaxScore(upTo);
+      for (int doc = scorer.iterator().nextDoc();
+          doc != DocIdSetIterator.NO_MORE_DOCS &amp;&amp; doc &lt;= upTo;
+          doc = scorer.iterator().nextDoc()) {
+        float score = scorer.score();
+        assertTrue(
+            &quot;doc &quot; + doc + &quot; scores &quot; + score + &quot; &gt; getMaxScore(&quot; + upTo + &quot;) = &quot; + maxScore,
+            score &lt;= maxScore);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>Independent reproducer: TestFsqNonScoringInnerBoundV1.java</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only. Fails 4 of 6 on main with assertions on and off (the two controls pass: no skip index, and the function query alone); passes 6 of 6 on 10.5.2.</p><figure class='code'><figcaption><span class='fname'>Independent reproducer: TestFsqNonScoringInnerBoundV1.java</span><span class='meta'>241 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.function;
+
+import java.io.IOException;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.ScorerSupplier;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TopScoreDocCollectorManager;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.search.CheckHits;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Independent check: FunctionScoreQuery(TermQuery, fromLongField) over a numeric doc-values field
+ * with a skip index. The score of a hit is the field value (FunctionScoreQuery#score), and the
+ * wrapped TermQuery is weighted without scores, so its own max score must not cap the bound.
+ *
+ * &lt;p&gt;Public API only. One segment, default codec, BM25 (plain IndexSearcher).
+ */
+public class TestFsqNonScoringInnerBoundV1 extends LuceneTestCase {
+
+  private static final int NUM_DOCS = 10000;
+  // even doc: matches both &quot;alpha&quot; and &quot;beta&quot;; lies inside the second 4096-doc skip-index
+  // interval [4096, 8191], and inside a full 128-doc postings block of &quot;beta&quot;, so that the
+  // conjunction&#x27;s scoring window around it does not reach past the interval
+  private static final int BIG_DOC = 5000;
+  private static final long BIG_VALUE = 1000;
+
+  private static DirectoryReader buildIndex(Directory dir, boolean skipIndex) throws IOException {
+    IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer());
+    iwc.setCodec(TestUtil.getDefaultCodec());
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int i = 0; i &lt; NUM_DOCS; i++) {
+        Document d = new Document();
+        d.add(new TextField(&quot;body&quot;, (i % 2 == 0) ? &quot;alpha beta&quot; : &quot;alpha&quot;, Field.Store.NO));
+        // values vary from doc to doc, so the skip index closes its level-0 intervals at exactly
+        // 4096 docs ([0, 4095], [4096, 8191], [8192, 9999]); a run of equal values would
+        // extend an interval
+        long v = (i == BIG_DOC) ? BIG_VALUE : 1 + (i % 7);
+        d.add(
+            skipIndex
+                ? NumericDocValuesField.indexedField(&quot;val&quot;, v)
+                : new NumericDocValuesField(&quot;val&quot;, v));
+        w.addDocument(d);
+      }
+      w.forceMerge(1);
+    }
+    return DirectoryReader.open(dir);
+  }
+
+  private static Query fsq() {
+    return new FunctionScoreQuery(
+        new TermQuery(new Term(&quot;body&quot;, &quot;alpha&quot;)), DoubleValuesSource.fromLongField(&quot;val&quot;));
+  }
+
+  private static IndexSearcher searcher(DirectoryReader r) {
+    IndexSearcher s = new IndexSearcher(r);
+    s.setQueryCache(null);
+    return s;
+  }
+
+  /** Returns null when every block bound is &gt;= every score in its block, else a message. */
+  private static String firstBoundViolation(IndexSearcher s, Query q) throws IOException {
+    Weight w = s.createWeight(s.rewrite(q), ScoreMode.TOP_SCORES, 1f);
+    for (LeafReaderContext ctx : s.getIndexReader().leaves()) {
+      ScorerSupplier ss = w.scorerSupplier(ctx);
+      if (ss == null) continue;
+      Scorer sc = ss.get(Long.MAX_VALUE);
+      DocIdSetIterator it = sc.iterator();
+      int doc = it.nextDoc();
+      while (doc != DocIdSetIterator.NO_MORE_DOCS) {
+        int upTo = sc.advanceShallow(doc);
+        float bound = sc.getMaxScore(upTo);
+        for (; doc != DocIdSetIterator.NO_MORE_DOCS &amp;&amp; doc &lt;= upTo; doc = it.nextDoc()) {
+          float score = sc.score();
+          if (score &gt; bound) {
+            return &quot;doc &quot;
+                + doc
+                + &quot; score &quot;
+                + score
+                + &quot; &gt; getMaxScore(&quot;
+                + upTo
+                + &quot;)=&quot;
+                + bound
+                + &quot; (block from advanceShallow(&quot;
+                + doc
+                + &quot;))&quot;;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  private static void assertTop1Equal(IndexSearcher s, Query q) throws IOException {
+    TopDocs complete = s.search(q, new TopScoreDocCollectorManager(1, null, Integer.MAX_VALUE));
+    TopDocs topScores = s.search(q, new TopScoreDocCollectorManager(1, null, 1));
+    TopDocs plain = s.search(q, 1);
+    String msg =
+        &quot;COMPLETE top=&quot;
+            + complete.scoreDocs[0].doc
+            + &quot;/&quot;
+            + complete.scoreDocs[0].score
+            + &quot; TOP_SCORES top=&quot;
+            + topScores.scoreDocs[0].doc
+            + &quot;/&quot;
+            + topScores.scoreDocs[0].score
+            + &quot; search(q,1) top=&quot;
+            + plain.scoreDocs[0].doc
+            + &quot;/&quot;
+            + plain.scoreDocs[0].score;
+    System.out.println(q + &quot; :: &quot; + msg);
+    assertEquals(&quot;sanity: COMPLETE finds the big-value doc&quot;, BIG_DOC, complete.scoreDocs[0].doc);
+    assertEquals(&quot;TOP_SCORES vs COMPLETE: &quot; + msg, complete.scoreDocs[0].doc, topScores.scoreDocs[0].doc);
+    assertEquals(
+        &quot;TOP_SCORES vs COMPLETE score: &quot; + msg,
+        complete.scoreDocs[0].score,
+        topScores.scoreDocs[0].score,
+        0f);
+    assertEquals(&quot;search(q,1) vs COMPLETE: &quot; + msg, complete.scoreDocs[0].doc, plain.scoreDocs[0].doc);
+  }
+
+  /** Scorer#getMaxScore(upTo) must be &gt;= the score of every doc in [shallow target, upTo]. */
+  public void testExposedBoundIsUpperBound() throws IOException {
+    try (Directory dir = newDirectory();
+        DirectoryReader r = buildIndex(dir, true)) {
+      assertNotNull(&quot;precondition: skip index present&quot;, r.leaves().get(0).reader().getDocValuesSkipper(&quot;val&quot;));
+      String v = firstBoundViolation(searcher(r), fsq());
+      System.out.println(&quot;bound check (skip index): &quot; + (v == null ? &quot;OK&quot; : v));
+      assertNull(v, v);
+    }
+  }
+
+  /** FSQ as a SHOULD clause next to a scoring term clause: TOP_SCORES must equal COMPLETE. */
+  public void testShouldClauseTopHit() throws IOException {
+    try (Directory dir = newDirectory();
+        DirectoryReader r = buildIndex(dir, true)) {
+      Query q =
+          new BooleanQuery.Builder()
+              .add(fsq(), Occur.SHOULD)
+              .add(new TermQuery(new Term(&quot;body&quot;, &quot;beta&quot;)), Occur.SHOULD)
+              .build();
+      assertTop1Equal(searcher(r), q);
+    }
+  }
+
+  /** FSQ as a MUST clause next to a scoring MUST term clause: TOP_SCORES must equal COMPLETE. */
+  public void testMustClauseTopHit() throws IOException {
+    try (Directory dir = newDirectory();
+        DirectoryReader r = buildIndex(dir, true)) {
+      Query q =
+          new BooleanQuery.Builder()
+              .add(fsq(), Occur.MUST)
+              .add(new TermQuery(new Term(&quot;body&quot;, &quot;beta&quot;)), Occur.MUST)
+              .build();
+      assertTop1Equal(searcher(r), q);
+    }
+  }
+
+  /** Lucene&#x27;s own TOP_SCORES oracle (test-framework CheckHits) on the plain FSQ. */
+  public void testCheckHitsOracleOnFsq() throws IOException {
+    try (Directory dir = newDirectory();
+        DirectoryReader r = buildIndex(dir, true)) {
+      CheckHits.checkTopScores(random(), fsq(), searcher(r));
+    }
+  }
+
+  /** Control: no skip index -&gt; the bound is +Inf; everything must pass. */
+  public void testControlNoSkipIndex() throws IOException {
+    try (Directory dir = newDirectory();
+        DirectoryReader r = buildIndex(dir, false)) {
+      IndexSearcher s = searcher(r);
+      assertNull(firstBoundViolation(s, fsq()));
+      assertTop1Equal(
+          s,
+          new BooleanQuery.Builder()
+              .add(fsq(), Occur.SHOULD)
+              .add(new TermQuery(new Term(&quot;body&quot;, &quot;beta&quot;)), Occur.SHOULD)
+              .build());
+      assertTop1Equal(
+          s,
+          new BooleanQuery.Builder()
+              .add(fsq(), Occur.MUST)
+              .add(new TermQuery(new Term(&quot;body&quot;, &quot;beta&quot;)), Occur.MUST)
+              .build());
+    }
+  }
+
+  /** Control: the FSQ alone at top level (its scorer does not prune) still finds the top hit. */
+  public void testControlTopLevelAlone() throws IOException {
+    try (Directory dir = newDirectory();
+        DirectoryReader r = buildIndex(dir, true)) {
+      IndexSearcher s = searcher(r);
+      TopDocs complete =
+          s.search(fsq(), new TopScoreDocCollectorManager(1, null, Integer.MAX_VALUE));
+      TopDocs topScores = s.search(fsq(), new TopScoreDocCollectorManager(1, null, 1));
+      System.out.println(
+          &quot;top-level alone: COMPLETE=&quot;
+              + complete.scoreDocs[0].doc
+              + &quot; TOP_SCORES=&quot;
+              + topScores.scoreDocs[0].doc);
+      assertEquals(BIG_DOC, complete.scoreDocs[0].doc);
+      assertEquals(BIG_DOC, topScores.scoreDocs[0].doc);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed (11.0.0-SNAPSHOT): affected; main a9779ef3c193: affected; 10.5.2 and 10.0.0: not affected; 9.12.3: not applicable (no skip index API)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock ea57360912ed, the gradle command above, seed DEADBEEF; identical with -Ptests.asserts=false
+TestFunctionScoreQuerySkipIndexBound &gt; testTopHitOfBooleanQuery FAILED
+    java.lang.AssertionError: search(query, 1) top hit has score 4.6875415 expected:&lt;4999&gt; but was:&lt;0&gt;
+TestFunctionScoreQuerySkipIndexBound &gt; testMaxScoreIsAnUpperBound FAILED
+    java.lang.AssertionError: doc 0 scores 1.0 &gt; getMaxScore(4998) = 0.0
+2 tests completed, 2 failed
+
+# standalone harness: the same 2 failures with -ea and -da; 5 iterations of random seed FD43E5529FD01304: 10 of 10 fail
+# 10.5.2 (-ea and -da): 2 of 2 pass
+# with the recommended fix: 2 of 2 pass (-ea and -da)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>score()</code> never reads the wrapped score, yet the bound multiplies by it: 0.0 for documents scoring 1 to 100, against the <code>Scorer#getMaxScore</code> contract.</li><li>#16431's own test expects <code>maxScore &gt;= 5000f</code> for this shape, but its field has no skip index, so the check never ran; made live, it fails.</li><li><code class='nw'>IndexSearcher</code> promises that <code class='nw'>scoreDocs</code> "is always accurate".</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>292 words</span></summary><div class='body'><ul><li><strong>Contracts.</strong> <code>Scorer#getMaxScore</code>: "Return the maximum score that documents between the last target that this iterator was shallow-advanced to included and upTo included" (<code>Scorer.java:75-79</code>). <code>Scorable#setMinCompetitiveScore</code>: the scorer "may safely ignore all documents whose score is less than the given minScore" (<code>Scorable.java:45-54</code>); doc 4999 scores 100 and was ignored at 4.687542. <code class='nw'>IndexSearcher</code>: "The TopDocs#scoreDocs array is always accurate however" (<code>IndexSearcher.java:59-64</code>). <code>DoubleValues#getMaxScore</code>: "the maximum score that documents ... can produce" (<code>DoubleValues.java:55-61</code>), i.e. the value bound already is the score bound.</li><li><strong>The test framework enforces it.</strong> <code class='nw'>AssertingScorer</code> asserts <code>score &lt;= getMaxScore(docID())</code> (<code>AssertingScorer.java:130</code>), <code>CheckHits.checkTopScores</code> asserts <code>score &lt;= maxScore</code> (<code>CheckHits.java:766</code>), and <code class='nw'>AssertingScorer</code> asserts that scores are needed when <code class='nw'>advanceShallow</code> or <code class='nw'>getMaxScore</code> is called (<code class='nw'>:100</code>, <code class='nw'>:116</code>; LUCENE-8314), so asking the unscored wrapped scorer for bounds is itself off-contract.</li><li><strong>Same-PR tests.</strong> <code>testMaxScoreDelegationWithDocValuesSkipper</code> (<code>&gt;= 5000f</code>), <code>testMaxScoreMonotonicDecreasingFunction</code> (<code>&gt;= 1000f</code>) and <code>testCustomHomemadeIncreasingAndDecreasingFunction</code> (<code>&gt;= 22.3f</code>) all wrap a <code class='nw'>TermQuery</code> and expect a bound of at least the largest value, but only when a skip index exists, and none of their fields has one (<code>TestFunctionScoreQuery.java:385-420</code>, <code class='nw'>:484-487</code>, <code class='nw'>:583-586</code>). With the field switched to <code class='nw'>indexedField</code> (plus <code class='nw'>forceMerge(1)</code> and <code>upTo = maxDoc - 1</code>), all three fail on main, e.g. "Expected maxScore &gt;= 1000f but got 0.0", and pass with the fix.</li><li><strong>Review history.</strong> The #16431 review (19 comments, 14 inline comments, 15 reviews) discussed value monotonicity, naming and constant functions; nobody mentioned the wrapped query's factor or its unscored weight. Before #16431 the bound was always <code class='nw'>+Infinity</code>, which is correct; 10.5.2 still returns the right hit.</li><li><strong>Legal trigger.</strong> <code>NumericDocValuesField.indexedField</code>, the field sources, <code>FunctionScoreQuery</code> and <code class='nw'>BooleanQuery</code> are public and not experimental, and nothing documents a limitation.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>169 words</span></summary><div class='body'><p>The strongest case for "intended": the product is deliberate. A comment in <code>testConstantLambdaMonotonicity</code> says the bound is "(5.0 * innerMaxScore)" (<code>TestFunctionScoreQuery.java:705-707</code>), and the unscored wrapped weight is deliberate too: it saves work and <code class='nw'>testScoreMode</code> requires it (<code class='nw'>:303-323</code>).</p><p>Why it fails: both choices can be deliberate and still not combine. <code class='nw'>score()</code> never multiplies by the wrapped score, so with an unscored <code class='nw'>TermQuery</code> the comment's own formula gives <code>5.0 * 0 = 0</code>, below the 5.0 the test's documents score. Three assertions in the same PR expect a bound of at least the largest value with a <code class='nw'>TermQuery</code>; they simply never ran. No javadoc, <code class='nw'>CHANGES</code> or <code class='nw'>MIGRATE.md</code> text restricts the query to a top-level position, to <code>MatchAllDocsQuery</code>, or to fields without a skip index, and the default <code>search(query, 1)</code> returns the wrong hit. <strong>Verdict: a defect</strong> (the cross-model review, the intended-behaviour check and the adjudication). Scope, not intent: a top-level function query returns the right hits, and the <code class='nw'>MUST</code> + <code class='nw'>MUST</code> case depends on window alignment.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: do not consult the unscored wrapped scorer</strong></p><p class='short'>When the value source does not need scores, stop consulting the unscored wrapped scorer: <code class='nw'>advanceShallow</code> uses only the value source and <code class='nw'>getMaxScore</code> uses a factor of 1 (+9/-2, <code>FunctionScoreQuery.java</code>). The repro, the finder's and reviewers' tests and the queries module pass (514 tests, 0 failures; six logged runs, assertions on and off); the trace still prunes.</p><pre class='snippet' tabindex='0'><code>final boolean innerScores = valueSource.needsScores();
+// advanceShallow
+int scoreShallow = scores.advanceShallow(target);
+if (innerScores == false) {
+  return scoreShallow;
+}
+return Math.min(in.advanceShallow(target), scoreShallow);
+// getMaxScore, after the +Infinity check
+float innerMaxScore = innerScores ? in.getMaxScore(upTo) : 1f;
+return innerMaxScore * valueMaxScore * boost;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 644 words</span></summary><div class='body'><p>Three variants were run; all fix the repro. They differ in what they do with the unscored wrapped scorer and with score-reading sources. A regression test for the PR is in the first option's notes. A over B is clear; A over C is a judgement about custom score-reading sources.</p><div class="hd hd-3"><h3 id='fix-skip-unscored-inner'>A: do not consult the unscored wrapped scorer <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-skip-unscored-inner" target="_self" aria-label="Link to this section" aria-describedby="fix-skip-unscored-inner"><span aria-hidden="true">#</span></a></div><p><code>innerScores = valueSource.needsScores()</code>; when false, <code class='nw'>advanceShallow</code> returns the value source's boundary and <code class='nw'>getMaxScore</code> multiplies by 1 instead of the wrapped scorer's max score. Score-reading sources (<code class='nw'>boostByValue</code>, <code class='nw'>boostByQuery</code>, <code>DoubleValuesSource.SCORES</code>) keep today's behaviour. Regression test: the test above as a new class, and six skip-index tests of #16431 in <code>TestFunctionScoreQuery</code> switched to a skip-indexed, single-segment field (<code>NumericDocValuesField.indexedField</code>, <code class='nw'>forceMerge(1)</code>; <code>getMaxScore(maxDoc - 1)</code> in five of them), which makes its three dead assertions live.</p><pre class='snippet' tabindex='0'><code>final boolean innerScores = valueSource.needsScores();
+// advanceShallow
+int scoreShallow = scores.advanceShallow(target);
+if (innerScores == false) {
+  return scoreShallow;
+}
+return Math.min(in.advanceShallow(target), scoreShallow);
+// getMaxScore, after the +Infinity check
+float innerMaxScore = innerScores ? in.getMaxScore(upTo) : 1f;
+return innerMaxScore * valueMaxScore * boost;</code></pre><p class='k'>Trade-offs</p><ul><li>The decision reads the rewritten source's <code class='nw'>needsScores()</code>, while <code class='nw'>createWeight</code> used the original source's; they agree for every source in Lucene, but passing the inner score mode into the weight would make the link explicit.</li><li>The live #16431 assertions need <code class='nw'>forceMerge(1)</code>: they read only the first leaf, and with a random seed (<code class='nw'>513883939B3B8CD</code>) <code>newIndexWriterConfig()</code> made several segments, so one failed even with the fix. <code>upTo = maxDoc</code> lies past the last document and always yields <code class='nw'>+Infinity</code> since #16697, hence <code>maxDoc - 1</code>.</li></ul><p class='k'>What the checks validated</p><ul><li>Standalone harness, patched class on the stock jars: this repro 2/2 (assertions on and off), the finder's repro 3/3, the independent reproduction's tests 6/6 (on and off), the GPT-5.6 reviewers' tests 4/4 each, the intended-behaviour check's class 5/5 including its <code class='nw'>AssertingQuery</code> probe.</li><li>gradle, scratch worktree of <code class='nw'>ea57360912ed</code> with the fix's test changes: without the fix 5 tests fail (this repro's 2, the 3 live #16431 assertions); with it <code>:lucene:queries:test</code> reports 514 tests, 0 failures (5-6 skipped) for seeds <code class='nw'>513883939B3B8CD</code> and <code class='nw'>DEADBEEF</code> (assertions on and off) and two random seeds: six logged runs (a seventh is recorded without its log; the fact check re-ran two more); <code>:lucene:queries:check -x test</code> passes (google-java-format, ecjLint, forbiddenApis).</li><li>The diagram probe with the finder's variant (same bounds here): bounds 1.0 and 100.0; <code>search(query, 1)</code> returns doc 4999 and still counts only "4097+" hits.</li></ul><div class="hd hd-3"><h3 id='fix-factor-only'>B: factor 1 in getMaxScore only (the finder's fix) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-factor-only" target="_self" aria-label="Link to this section" aria-describedby="fix-factor-only"><span aria-hidden="true">#</span></a></div><p><code>float innerMaxScore = valueSource.needsScores() ? in.getMaxScore(upTo) : 1f;</code> and nothing else.</p><p class='k'>Trade-offs</p><p><code class='nw'>advanceShallow</code> still calls the unscored wrapped scorer, which <code>AssertingScorer.advanceShallow</code> rejects (<code>assert canScore</code>): the intended-behaviour check's <code class='nw'>AssertingQuery</code> probe fails 1 of 5 with it. Only visible with assertions on and when the wrapped query is itself an <code class='nw'>AssertingQuery</code> (<code class='nw'>newSearcher</code> does not do that: the test above under <code class='nw'>newSearcher</code> passes 10 of 10 with this option), but a reviewer will likely ask for the first option.</p><p class='k'>What the checks validated</p><p>The finder's repro 3/3, the independent reproducer's tests through an equivalent one-line variant of the change (its root-cause shadow), the GPT-5.6 reviewers' tests, upstream <code>TestFunctionScoreQuery</code> 17/17 and <code>TestDoubleValuesSource</code> 11/11; the registry re-run 3/3.</p><div class="hd hd-3"><h3 id='fix-drop-factor'>C: drop the wrapped factor altogether <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-drop-factor" target="_self" aria-label="Link to this section" aria-describedby="fix-drop-factor"><span aria-hidden="true">#</span></a></div><p><code class='nw'>advanceShallow</code> returns <code>scores.advanceShallow(target)</code> and <code class='nw'>getMaxScore</code> returns <code>valueMaxScore * boost</code>, following <code class='nw'>score()</code> and the <code>DoubleValues#getMaxScore</code> javadoc literally.</p><p class='k'>Trade-offs</p><p>For a score-reading source with a finite bound it trusts the source's own bound instead of multiplying. No source in Lucene reports a finite bound while needing scores (only <code>FieldValuesSource</code> computes a finite bound in core, and it needs no scores; <code>DoubleValues.withDefault</code> only delegates), so the change is invisible today but is a semantic decision for custom sources.</p><p class='k'>What the checks validated</p><p>This repro 2/2, the intended-behaviour check's class 5/5, <code>:lucene:queries:test</code> 514/514 for two seeds (assertions on and off).</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An AI tool formed the hypothesis while modelling <code>FunctionScoreQuery</code>'s bound: the wrapped factor in <code class='nw'>getMaxScore</code> has no counterpart in <code class='nw'>score()</code>, and the wrapped weight is unscored. An SMT check confirmed the arithmetic, a randomized top-k-versus-exhaustive differential found 3,946 mismatching query configurations, and a public-API JUnit reproduced it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>207 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (a hunt unit, function queries and block-max pruning, 2026-10-26).</p><ul><li><strong>Model.</strong> Writing the model's file:line table for <code>FunctionScoreQuery</code>'s scorer showed that <code class='nw'>getMaxScore</code> multiplies by <code>in.getMaxScore(upTo)</code> while <code class='nw'>score()</code> never reads the wrapped score, and that <code class='nw'>createWeight</code> weights the wrapped query without scores for field sources.</li><li><strong>SMT.</strong> z3 4.12.2 and cvc5 1.4.2 (floating-point theory; versions as declared by the hunt and printed by the installed solvers) found the bound unsound when the wrapped max score is 0 (query Q1a: sat). The 0 was an input taken from reading <code class='nw'>TermQuery</code>, so this step checked the arithmetic, not where the 0 comes from.</li><li><strong>Differential.</strong> A randomized harness compared <code class='nw'>TOP_SCORES</code> with exhaustive top-k for k = 1, 10, 50 and checked <code>score &lt;= getMaxScore</code> over random indexes: 3,946 mismatching top-k query configurations on stock main (450 complete indexes), 554 with this fix alone (450); the remaining mismatches have other causes; one job each of the first two levels was cut by the job timeout; none without a skip index or for <code class='nw'>boostByValue</code>/<code class='nw'>boostByQuery</code>.</li><li><strong>Repro.</strong> A directed public-API JUnit then failed on the stock main jars with assertions on and off. A cross-model refute review (OpenAI GPT-5.6) reproduced it with its own tests before the candidate was written.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-26): 165 logged queries over Lucene issues, PRs, commits, mailing lists, JIRA, Elasticsearch, OpenSearch, Solr and the web, plus a full read of every apache/lucene issue, PR and comment since the code was written; 23 hits read, none is this bug. No open PR touches the code.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>The code exists only since 2026-08-22, so the full read of GitHub activity since then covers every place a GitHub report could be. The only on-topic items are the feature request #16429, the introducing PR #16431 and the follow-up #16697; none mentions the wrapped query's factor.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene); Elasticsearch, OpenSearch, Solr</th><td class='when'>2026-10-26</td><td>a scripted prior-report search in three passes (class and method names; symptoms and trigger API such as indexedField, fromLongField, "getMaxScore returns 0"; the composition angle such as MaxScoreBulkScorer, setMinCompetitiveScore, non-scoring wrapped query) plus manual searches</td><td>no report; on-topic only #16429, #16431, #16697</td></tr><tr><th scope='row'>GitHub, full read through the API</th><td class='when'>2026-10-26</td><td>all 570 apache/lucene issues and PRs updated since 2026-08-15, all 1,038 issue comments and 689 review comments since 2026-08-20, the changed files of all 167 open PRs updated since 2026-08-22</td><td>no report; no open PR touches FunctionScoreQuery.java, DoubleValuesSource.java, DoubleValues.java or their tests</td></tr><tr><th scope='row'>PR conversations</th><td class='when'>2026-10-26</td><td>#16429 (body, 3 comments), #16431 (body, 19 comments, 14 inline comments, 15 reviews), #16697 (body, 2 comments)</td><td>review covered monotonicity, naming and constant functions; nothing on the wrapped factor</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@)</th><td class='when'>2026-10-26</td><td>FunctionScoreQuery, getMaxScore, DoubleValuesSource, boostByValue, block-max over 2026-07-15 to 2026-10-27</td><td>only notification mirrors of the on-topic items and unrelated items</td></tr><tr><th scope='row'>JIRA archive and the web</th><td class='when'>2026-10-26</td><td>the tool's JIRA queries; 21 web queries</td><td>context only: LUCENE-9393 (#10433), #12297/#12383 (the 0 dummy scorer), LUCENE-8314 (#9361)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced on main by #16431 (<code class='nw'>0d4f93a9ff9</code>, 2026-08-22), which replaced the <code class='nw'>+Infinity</code> bound with the product; the wrong top hit is visible end to end since #16697 (<code class='nw'>d150ba27d11</code>, 2026-10-09), which fixed an exception in front of it. No release is affected; still present on main <code class='nw'>a9779ef3c193</code> (2026-10-26).</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> apache/lucene#16431 "Enable Block-Max WAND dynamic pruning for FunctionScoreQuery via DocValuesSkipper (+422% QPS)" (<code class='nw'>0d4f93a9ff9</code>, by @rajat315315 with @uschindler as co-author, related issue #16429, merged 2026-08-22). The unscored wrapped weight is older (LUCENE-7623, 2017, which created the class; its <code class='nw'>ScoreMode</code> form from LUCENE-4100, 2017; the current lines from LUCENE-9393, 2020), and so is the 0 max score of an unscored <code class='nw'>TermQuery</code> (#12383, 2023); neither is a bug on its own. From the introducing commit until #16697 (<code class='nw'>d150ba27d11</code>, by @easyice, 2026-10-09) the tested <code class='nw'>SHOULD</code> query threw inside the skipper first (a separate <code class='nw'>advanceShallow</code> defect that #16697 fixed), although the bound was already 0; other query shapes in that window were not run. <code class='nw'>CHANGES.txt</code> lists both under Lucene 11.0.0; <code class='nw'>branch_10x</code>, <code class='nw'>branch_10_6</code> and <code class='nw'>branch_10_5</code> do not contain #16431. The commit-level runs are plain <code class='nw'>javac</code> builds on the class path, not gradle builds; at <code class='nw'>d150ba27d11</code> they match the gradle-built main jars message for message.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code>, <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>wrong top hit and bound 0.0 (<code class='nw'>ea57360912ed</code>: assertions on and off; <code class='nw'>a9779ef3c193</code>: the finder's test, assertions on)</td></tr><tr><th scope='row'><code class='nw'>d150ba27d11</code> (#16697)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>same messages as main</td></tr><tr><th scope='row'><code class='nw'>0d4f93a9ff9</code> (#16431)</th><td><span class='v warn'><span aria-hidden='true'>&#9650;</span> introducing commit</span></td><td>bound 0.0; the tested query threw in the skipper (AssertionError with -ea, EOFException with -da); with #16697's change shadowed on top, the silent wrong hit appears, and the fix makes it pass</td></tr><tr><th scope='row'><code class='nw'>a1fcd50799f</code> (parent of #16431)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> bisect</span></td><td>bound +Infinity, right top hit</td></tr><tr><th scope='row'>10.0.0, 10.5.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>bound +Infinity, right top hit</td></tr><tr><th scope='row'>9.12.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not applicable</span></td><td>no NumericDocValuesField.indexedField (compile error)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and OpenAI GPT-5.6 reviewers each reproduced it on main with their own tests and found the "intended" case weak; an adjudication re-ran the independent reproduction's tests and the finder's repro and confirmed it with high confidence. This doc's fix validation found that the live #16431 assertions need <code class='nw'>forceMerge(1)</code>.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>383 words</span></summary><div class='body'><p>Every check ran its own code on the stock main jars; all controls (no skip index, <code>MatchAllDocsQuery</code> as the wrapped query, the function query alone) passed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder (a hunt unit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>SMT check and differential; the directed JUnit fails 3/3 on main with assertions on and off; its fix passes 3/3.</td></tr><tr><th scope='row'>Refute review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Own tests on 137 and 8,203 documents: "bound 0.0 must cover actual score 146.0", and a <code class='nw'>MUST</code> conjunction whose top hit is doc 0 instead of doc 8202; controls and 10.5.2 pass; the fix passes.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own tests on 10,000 documents, default codec pinned: 4 of 6 fail with assertions on and off (bound, CheckHits, SHOULD, MUST + MUST); 20 of 30 over 5 random-seed iterations; 10.5.2 6/6 pass.</td></tr><tr><th scope='row'>Intended-behaviour review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high); intended weak</span></td><td>Own bound and default-API tests fail on main (<code>search(query, 1)</code> returns doc 0 instead of doc 4999); re-run separately with the same results.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>No intended, documented or misuse argument survives; three #16431 assertions made live fail on main and pass with the fix.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's tests with a fresh seed and assertions off (4 of 6 fail) and the finder's repro (3/3 fail); corrected the <code class='nw'>MUST</code> + <code class='nw'>MUST</code> wording.</td></tr><tr><th scope='row'>Follow-up and registry re-run</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> new; security none</span></td><td>History sweep (25 runs), prior-report search, security assessment; fresh re-runs fail 3/3 on main and pass with the fix; also reproduces on main <code class='nw'>a9779ef3c193</code>.</td></tr><tr><th scope='row'>This doc's fix validation</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> fix validated; test corrected</span></td><td>The recommended fix passes the queries module (514 tests, 0 failures) in six logged runs, plus a seventh recorded without its log; the live #16431 assertions failed once with the fix under a multi-segment random seed until <code class='nw'>forceMerge(1)</code> was added.</td></tr><tr><th scope='row'>Fact checks and diagram check</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> text corrected; bug confirmed</span></td><td>A Claude fact check re-ran the repro through gradle and the runner and found two text errors (<code class='nw'>body:b</code>'s bound after doc 4096 is 0, not 3.6875415; the reason given for avoiding <code class='nw'>newSearcher</code> was wrong). An OpenAI GPT-5.6 fact check found no error that changes the conclusion. The diagram check passed. All corrections are on this page.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-211/bug.png' download='functionscorequery-maxscore-uses-nonscoring-inner-bound-bug.png' target='_self'>PNG</a> <span class='n'>622 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,439 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-211, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>FunctionScoreQuery's block-max bound multiplies by the wrapped query's no-score max score (0 for a TermQuery), so a BooleanQuery that contains it can drop the true top hits</dd></div><div><dt>Area</dt><dd>queries / FunctionScoreQuery block-max pruning (#16431)</dd></div><div><dt>Priority</dt><dd>Medium, rank 91: On main since #16431 FunctionScoreQuery&#x27;s block-max bound multiplies by the wrapped TermQuery&#x27;s no-score max of 0, so a BooleanQuery with a skip-indexed function clause silently loses its true top hits with ordinary values, the new feature&#x27;s main use case, to fix before 11.0.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications on unreleased main (11.0.0-SNAPSHOT, since #16431) that build FunctionScoreQuery(q, fromLongField, fromIntField, fromFloatField, fromDoubleField or fromField with INCREASING/DECREASING) around a wrapped query whose no-score max score is below 1 (TermQuery reports 0; a ConstantScoreQuery or BooleanQuery of such clauses too), on a numeric field indexed with the opt-in doc-values skip index (NumericDocValuesField.indexedField), and use it as a scoring clause of a BooleanQuery: the default IndexSearcher.search(q, n) silently returns wrong top hits (5,000 docs: doc 0 with score 4.69 instead of doc 4999 with score 100), with the default codec and searcher, -ea or -da, at a few thousand documents and with ordinary non-negative values; a top-level FunctionScoreQuery alone still returns the right hits (only its exposed getMaxScore is 0), MatchAllDocsQuery as the wrapped query and the boostByValue/boostByQuery helpers are not affected, and no released version is affected.</dd></div><div><dt>Summary</dt><dd>You index a popularity field with a skip index (NumericDocValuesField.indexedField("popularity", v)) and search BooleanQuery(SHOULD FunctionScoreQuery(TermQuery(body:a), DoubleValuesSource.fromLongField("popularity")), SHOULD TermQuery(body:b)) for the top hit, expecting the same hit as an exhaustive search, because the function query scores each matching document by its popularity value. Instead, with 5,000 documents that all match body:a, where only doc 4999 has popularity 100 (all others 1) and only doc 0 matches body:b, TOP_SCORES and the plain IndexSearcher.search(q, 1) return doc 0 (score 4.69) instead of doc 4999 (score 100). The cause is that the scorer's getMaxScore returns innerMaxScore * valueMaxScore * boost, where innerMaxScore is the max score of the wrapped TermQuery, which FunctionScoreQuery itself weighted without scores (so it reports 0), although score() is value * boost and never reads the wrapped score; every block therefore reports a bound of 0, and MaxScoreBulkScorer stops scoring documents that only the function clause makes competitive.</dd></div><div><dt>Introduced</dt><dd>0d4f93a9ff93ccc396c1323f26416b57d8dc08d9 on main (apache/lucene#16431 'Enable Block-Max WAND dynamic pruning for FunctionScoreQuery via DocValuesSkipper (+422% QPS)', by rajat315315 with uschindler as co-author, related issue #16429, merged 2026-08-22) [exec: the follow-up history sweep shows the 0.0 bound at 0d4f93a9ff9, d150ba27d11 and main with -ea and -da, while the parent a1fcd50799f, 10.0.0 and 10.5.2 report +Infinity and return the right top hit; read: git log -S innerMaxScore on FunctionScoreQuery.java returns only 0d4f93a9ff9, and git blame of FunctionScoreQuery.java:254-268 is that commit]; it replaced the scorer's +Infinity bound with innerMaxScore * valueMaxScore * boost, where the inner scorer comes from the COMPLETE_NO_SCORES weight that createWeight has used for score-independent sources since LUCENE-4100 (4fc5a872ded, 2017; the current lines 111-117 are from LUCENE-9393, e1a97a0f1ea, 2020), and a TermQuery weighted that way has reported a max score of 0 since #12383 (40ee6e583e1, 2023, a dummy no-score SimScorer); the silent wrong top hit became reachable end to end with #16697 (d150ba27d11, by easyice, 2026-10-09), which fixed a separate advanceShallow defect that made the tested SHOULD query throw first [exec: #16697's DoubleValuesSource change shadowed onto 0d4f93a9ff9 gives main's wrong top hit, and adding the fix makes all 3 tests pass] (2026-08-22 (0d4f93a9ff9 on main); silent wrong top hit reachable end to end from 2026-10-09 (d150ba27d11, #16697) for the executed SHOULD query shape)</dd></div><div><dt>First affected version</dt><dd>unreleased (main only; 11.0.0 would be the first release with it) [exec: 10.0.0 and 10.5.2 correct; read: no release tag contains 0d4f93a9ff9, and branch_10x, branch_10_6 and branch_10_5 do not contain #16431]</dd></div><div><dt>Affected versions</dt><dd>main (11.0.0-SNAPSHOT) from 0d4f93a9ff9 (2026-08-22) through ea57360912ed (upstream main HEAD, checked 2026-10-26) [exec: Scorer#getMaxScore 0.0 at 0d4f93a9ff9, d150ba27d11 and main, -ea and -da; silently wrong TOP_SCORES top hit at d150ba27d11 and main, and at 0d4f93a9ff9 only with #16697's change shadowed, because before #16697 the tested SHOULD query threw in the skipper first (AssertionError with -ea, EOFException with -da)]; not affected: 10.0.0 [exec, -ea] and 10.5.2 [exec, -ea and -da] (FunctionScoreQuery's bound is +Infinity there) and the parent commit a1fcd50799f [exec]; not applicable: 9.12.3 [exec: compile error, no NumericDocValuesField.indexedField; the bound is +Infinity, read]; unreleased branch_10x, branch_10_6 and branch_10_5 do not contain #16431 [read]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, the prior-report record: 165 logged read-only queries, 121 through a scripted prior-report search over apache/lucene issues and PRs, commits, the dev@, java-user@, issues@ and commits@ lists, the LUCENE JIRA archive, the Elasticsearch, OpenSearch and Solr repositories and the web, and 44 manual ones; plus a full read through the GitHub core API of all 570 apache/lucene issues and PRs updated since 2026-08-15, all 1,038 issue comments and 689 review comments since 2026-08-20, and the changed-file lists of all 167 open PRs updated since 2026-08-22; 23 hits read, none of them this bug; the finder's scripted prior-report search and manual searches and the independent reproduction's and the intended-behaviour check's searches found nothing either); not fixed on upstream main (HEAD ea57360912ed on 2026-10-26: FunctionScoreQuery.java is byte-identical to the tested worktree and getMaxScore still returns innerMaxScore * valueMaxScore * boost; no open PR touches FunctionScoreQuery.java, DoubleValuesSource.java, DoubleValues.java or their tests); origin: #16431 (related issue #16429; its review discussed value-function monotonicity, naming and constant functions, and nobody mentioned the innerMaxScore factor or the COMPLETE_NO_SCORES inner weight); #16697 (easyice) fixed other defects of the same feature in DoubleValuesSource and does not touch FunctionScoreQuery; context, not reports: #10433 (LUCENE-9393, the inner weight's score mode), #12297 and #12383 (TermQuery's no-score dummy scorer that returns 0), #9361 (LUCENE-8314, AssertingScorer checks that scores are needed when advanceShallow and getMaxScore are called)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (2026-10-24; tested 2026-10-26), seed DEADBEEF and random seeds, assertions on and off, through gradle and through a standalone JUnit harness; main <code class='nw'>a9779ef3c193</code> (2026-10-26, same <code>FunctionScoreQuery.java</code>); 10.5.2, 10.0.0 and 9.12.3 jars; the introducing commit <code class='nw'>0d4f93a9ff9</code>, its parent and <code class='nw'>d150ba27d11</code> (commit-level builds); the fix in a scratch worktree of <code class='nw'>ea57360912ed</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:84-85 (boostByValue uses MultiplicativeBoostValuesSource, needsScores true at :310), :111-117 (createWeight weights the wrapped query with COMPLETE_NO_SCORES unless both the caller and the source need scores), :243-252 (score() returns (float) (value * boost), never the wrapped score), :254-259 (advanceShallow), :262-268 (getMaxScore returns innerMaxScore * valueMaxScore * boost)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/TermQuery.java:75-92 (no-score TermWeight: dummy SimScorer returning 0f, &#x27;not expected to be called since scores are not needed&#x27;); lucene/core/src/java/org/apache/lucene/search/DoubleValuesSource.java (FieldValuesSource.getMaxScore returns the decoded skipper bound; needsScores false)</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/search/Scorer.java:75-79 (getMaxScore contract), Scorable.java:44-53 (setMinCompetitiveScore: may ignore documents scoring below minScore; no-op by default, which FilterScorer inherits), MaxScoreBulkScorer.java:498-504 (clauses become non-essential while the summed bounds stay below minCompetitiveScore), BlockMaxConjunctionBulkScorer.java:160-166 (a window whose bound is below minCompetitiveScore is skipped), IndexSearcher.java:100 (TOTAL_HITS_THRESHOLD = 1000)</code></li><li><code>a Lucene main checkout lucene/queries/src/test/org/apache/lucene/queries/function/TestFunctionScoreQuery.java:385-417 (testMaxScoreDelegationWithDocValuesSkipper: &#x27;assertTrue(maxScore &gt;= 5000f)&#x27; only inside &#x27;if (getDocValuesSkipper(&quot;val&quot;) != null)&#x27;, on a field without a skip index), :635 and :707 (testConstantLambdaMonotonicity comment &#x27;(5.0 * innerMaxScore)&#x27;); lucene/test-framework/src/java/org/apache/lucene/tests/search/CheckHits.java:766 and AssertingScorer.java:100 and :130 (canScore and score &lt;= maxScore oracles); lucene/CHANGES.txt:223 (Lucene 11.0.0: GITHUB#16431, GITHUB#16697)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:109-117 (createWeight), :241 (FilterScorer), :243-252 (score), :262-269 (getMaxScore)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/TermQuery.java:77-91; DoubleValuesSource.java:572-584 and :603-606; ScoreMode.java:25-26</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:100, :598-599; TopScoreDocCollector.java:154-170; TopScoreDocCollector.java:58-59; MaxScoreBulkScorer.java:28, :36-39, :441-442, :487-493, :494-510; Scorable.java:45-54</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/queries/src/java/org/apache/lucene/queries/function/FunctionScoreQuery.java:84-86, :309-312 (MultiplicativeBoostValuesSource needs scores)</code></li><li><code>Lucene main ea57360912ed: lucene/CHANGES.txt:223-224 (Lucene 11.0.0)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/Scorer.java:75-79; Scorable.java:45-54; IndexSearcher.java:59-64; DoubleValues.java:55-61</code></li><li><code>Lucene main ea57360912ed: lucene/test-framework/src/java/org/apache/lucene/tests/search/AssertingScorer.java:100, :116, :130; CheckHits.java:766</code></li><li><code>Lucene main ea57360912ed: lucene/queries/src/test/org/apache/lucene/queries/function/TestFunctionScoreQuery.java:303-323, :385-420, :484-487, :583-586, :705-707</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/DoubleValuesSource.java:556-569 (getLevel), :572-584</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/CHANGES.txt:223-224</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestFunctionScoreQuerySkipIndexBound.java (2 tests): <a href='../repro/LFV-211/TestFunctionScoreQuerySkipIndexBound.java'><code>repro/LFV-211/TestFunctionScoreQuerySkipIndexBound.java</code></a> (114 lines)</li><li>Finder&#x27;s test: TestFunctionScoreQueryNonScoringInnerMaxScore.java (3 tests): <a href='../repro/LFV-211/TestFunctionScoreQueryNonScoringInnerMaxScore.java'><code>repro/LFV-211/TestFunctionScoreQueryNonScoringInnerMaxScore.java</code></a> (165 lines)</li><li>Independent reproducer: TestFsqNonScoringInnerBoundV1.java: <a href='../repro/LFV-211/TestFsqNonScoringInnerBoundV1.java'><code>repro/LFV-211/TestFsqNonScoringInnerBoundV1.java</code></a> (241 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the 5,000 documents along a doc-id axis with the two clauses, the skip index's ranges, the collector's threshold after 1,000 hits and the windows <code>MaxScoreBulkScorer</code> scores or skips; every number is taken from the instrumented run of the repro index. The PNG is the final summary card.</p><ul class='paths'><li><a href='../assets/LFV-211/bug.png'><code>assets/LFV-211/bug.png</code></a> (622 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

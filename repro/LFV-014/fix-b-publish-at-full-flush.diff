@@ -1,0 +1,183 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+index 45b59fa46dd..36a486673ce 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+@@ -3112,12 +3112,8 @@ public class IndexWriter
+     long seqNo;
+ 
+     try {
+-      if (infoStream.isEnabled("IW")) {
+-        infoStream.message("IW", "flush at addIndexes(Directory...)");
+-      }
+-
+-      flush(false, true);
+-
++      // No up-front flush: publishAddedSegments runs the full flush that orders this call against
++      // buffered deletes and updates (LUCENE-2996) and against concurrent ones.
+       List<SegmentCommitInfo> infos = new ArrayList<>();
+ 
+       // long so we can detect int overflow:
+@@ -3191,24 +3187,7 @@ public class IndexWriter
+         throw t;
+       }
+ 
+-      synchronized (this) {
+-        try {
+-          ensureOpen();
+-
+-          // Now reserve the docs, just before we update SIS:
+-          reserveDocs(totalMaxDoc);
+-
+-          seqNo = docWriter.getNextSequenceNumber();
+-        } catch (Throwable t) {
+-          for (SegmentCommitInfo sipc : infos) {
+-            // Safe: these files must exist
+-            deleteNewFiles(sipc.files());
+-          }
+-          throw t;
+-        }
+-        segmentInfos.addAll(infos);
+-        checkpoint();
+-      }
++      seqNo = publishAddedSegments(infos, totalMaxDoc);
+     } catch (Throwable t) {
+       try {
+         if (t instanceof Error) {
+@@ -3225,6 +3204,72 @@ public class IndexWriter
+     return seqNo;
+   }
+ 
++  /**
++   * Publishes the segments that addIndexes copied or merged, at a full-flush boundary, the same way
++   * {@link #prepareCommit} cuts a commit point. Every delete and update buffered so far, including
++   * the ones that arrived while the segments were copied or merged, has a smaller sequence number
++   * than this call: the full flush gives them their delete generation first, and the added segments
++   * get the next one, so those packets skip the added segments while later ones apply to them.
++   * Holding {@code fullFlushLock} also orders the publication against a concurrent commit or NRT
++   * reader. Returns the boundary as this call's sequence number.
++   */
++  private long publishAddedSegments(List<SegmentCommitInfo> infos, long totalDocs)
++      throws IOException {
++    assert Thread.holdsLock(this) == false;
++    if (infoStream.isEnabled("IW")) {
++      infoStream.message("IW", "addIndexes: flush and publish " + infos.size() + " segments");
++    }
++    boolean published = false;
++    try {
++      doBeforeFlush();
++      testPoint("startDoFlush");
++      synchronized (fullFlushLock) {
++        boolean flushSuccess = false;
++        try {
++          long seqNo = docWriter.flushAllThreads();
++          if (seqNo < 0) {
++            seqNo = -seqNo;
++          } else {
++            // flushCount is incremented in flushAllThreads only if it flushed something
++            flushCount.incrementAndGet();
++          }
++          publishFlushedSegments(true);
++          flushSuccess = true;
++          synchronized (this) {
++            ensureOpen();
++            if (infos.isEmpty() == false) {
++              // Now reserve the docs, just before we update SIS:
++              reserveDocs(totalDocs);
++              // All packets frozen so far are older than this call; later ones are newer:
++              final long gen = bufferedUpdatesStream.getNextGen();
++              bufferedUpdatesStream.finishedSegment(gen);
++              for (SegmentCommitInfo info : infos) {
++                // keep the commit id that addIndexes(Directory...) copied from the source segment
++                info.setBufferedDeletesGenKeepId(gen);
++              }
++              segmentInfos.addAll(infos);
++              checkpoint();
++            }
++            published = true;
++          }
++          return seqNo;
++        } finally {
++          assert Thread.holdsLock(fullFlushLock);
++          docWriter.finishFullFlush(flushSuccess);
++          processEvents(false);
++          doAfterFlush();
++        }
++      }
++    } finally {
++      if (published == false) {
++        for (SegmentCommitInfo sipc : infos) {
++          // Safe: these files must exist
++          deleteNewFiles(sipc.files());
++        }
++      }
++    }
++  }
++
+   private void validateMergeReader(CodecReader leaf) {
+     LeafMetaData segmentMeta = leaf.getMetaData();
+     if (segmentInfos.getIndexCreatedVersionMajor() != segmentMeta.createdVersionMajor()) {
+@@ -3280,10 +3325,8 @@ public class IndexWriter
+     long seqNo;
+ 
+     try {
+-      if (infoStream.isEnabled("IW")) {
+-        infoStream.message("IW", "flush at addIndexes(CodecReader...)");
+-      }
+-      flush(false, true);
++      // No up-front flush: publishAddedSegments runs the full flush that orders this call against
++      // buffered deletes and updates (LUCENE-2996) and against concurrent ones.
+ 
+       // Best effort up front validations
+       for (CodecReader leaf : readers) {
+@@ -3347,27 +3390,7 @@ public class IndexWriter
+           }
+         }
+ 
+-        synchronized (this) {
+-          if (infos.isEmpty() == false) {
+-            boolean registerSegmentSuccess = false;
+-            try {
+-              ensureOpen();
+-              // Reserve the docs, just before we update SIS:
+-              reserveDocs(totalDocs);
+-              registerSegmentSuccess = true;
+-            } finally {
+-              if (registerSegmentSuccess == false) {
+-                for (SegmentCommitInfo sipc : infos) {
+-                  // Safe: these files must exist
+-                  deleteNewFiles(sipc.files());
+-                }
+-              }
+-            }
+-            segmentInfos.addAll(infos);
+-            checkpoint();
+-          }
+-          seqNo = docWriter.getNextSequenceNumber();
+-        }
++        seqNo = publishAddedSegments(infos, totalDocs);
+       } else {
+         if (infoStream.isEnabled("IW")) {
+           infoStream.message(
+diff --git a/lucene/core/src/java/org/apache/lucene/index/SegmentCommitInfo.java b/lucene/core/src/java/org/apache/lucene/index/SegmentCommitInfo.java
+index 7a04ed6b99e..a769366ea26 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/SegmentCommitInfo.java
++++ b/lucene/core/src/java/org/apache/lucene/index/SegmentCommitInfo.java
+@@ -316,6 +316,18 @@ public class SegmentCommitInfo {
+     }
+   }
+ 
++  /**
++   * Like {@link #setBufferedDeletesGen} but does not advance the commit id: segments that
++   * IndexWriter#addIndexes copies from another directory keep the id of their source segment.
++   */
++  void setBufferedDeletesGenKeepId(long v) {
++    if (bufferedDeletesGen == -1) {
++      bufferedDeletesGen = v;
++    } else {
++      throw new IllegalStateException("buffered deletes gen should only be set once");
++    }
++  }
++
+   /** Returns true if there are any deletions for the segment at this commit. */
+   public boolean hasDeletions() {
+     return delGen != -1;

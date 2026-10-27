@@ -1,0 +1,691 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>SmartChineseAnalyzer.normalize skips the tokenizer&#x27;s full-width folding, so full-width prefix, wildcard, fuzzy and range queries can miss</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-565 &middot; smartchinese-normalize-skips-fullwidth-folding</p><h1 id='top'>SmartChineseAnalyzer.normalize skips the tokenizer&#x27;s full-width folding, so full-width prefix, wildcard, fuzzy and range queries can miss</h1><p class='tldr'><code>SmartChineseAnalyzer</code> indexes full-width letters and digits as plain ASCII (<code class='nw'>Ｌｕｃｅｎｅ</code> as <code class='nw'>lucen</code>), but its <code class='nw'>normalize()</code> only lower-cases, so prefix, wildcard, fuzzy, regexp and range queries with full-width letters or digits can miss: <code class='nw'>Ｌｕｃ*</code> finds 0 documents, <code class='nw'>Luc*</code> finds 1. Every release since 6.2.0 has it.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 116</span><span class='sub'>The stock SmartChineseAnalyzer silently misses full-width multi-term query terms, the same normalize() gap as LFV-557 and LFV-534 but with an audit-downgraded rare trigger, so it closes that group.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>6.2.0 (LUCENE-7355, committed 2016-07-12)<span class='sub'>introduced 2016-07-12 &middot; over 10 years</span></dd></div><div><dt>Affected</dt><dd>6.2.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive metamorphic scan: normalize() vs the indexed token</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Chinese text can contain full-width Latin letters and digits (<code class='nw'>Ｌｕｃｅｎｅ</code>, <code class='nw'>２０２６</code>). <code>SmartChineseAnalyzer</code> indexes them as plain ASCII, but the query-time shortcut that the parsers use for partial words leaves that step out.</p><ol class='steps'><li><span>Index <code class='nw'>我们使用Ｌｕｃｅｎｅ</code> ("we use Lucene", the Latin word in full-width letters, which Chinese text can contain) with the stock <code>new SmartChineseAnalyzer()</code>. Its tokenizer turns full-width letters and digits into ASCII and lower-cases them, so the index holds <code class='nw'>我们</code>, <code class='nw'>使用</code> and <code class='nw'>lucen</code> (Porter-stemmed).</span></li><li><span>Search <code class='nw'>Ｌｕｃ*</code> with <code class='nw'>QueryParser</code>. A partial word cannot go through the full analyzer, so the parser calls <code>Analyzer.normalize</code>, documented to return "the representation that it would have in the index".</span></li><li><span>You expect 1 hit, the same as <code class='nw'>Luc*</code> and the plain term query <code class='nw'>Ｌｕｃｅｎｅ</code> get.</span></li><li><span>You get 0 hits, no error. <code>SmartChineseAnalyzer.normalize</code> only lower-cases, so the query becomes <code class='nw'>ｌｕｃ*</code>, still full-width, and no indexed term starts with it. Called directly, <code class='nw'>normalize("ＡＢＣ")</code> returns <code class='nw'>ａｂｃ</code> and <code class='nw'>normalize("１２３")</code> returns <code class='nw'>１２３</code>, while the index holds <code class='nw'>abc</code> and <code class='nw'>123</code>.</span></li><li><span>The same miss shows for wildcard (<code class='nw'>Ｌｕ?ｅｎ</code>), fuzzy (<code class='nw'>Ｌｕｃｅｎ~1</code>), regexp and range (<code>[Ｌｕａ TO Ｌｕｚ]</code>) terms in the classic and flexible parsers and for the simple parser's prefix and fuzzy terms, whichever width the document used; fuzzy terms can still hit when the edit distance absorbs the width difference. Parsed term and phrase queries run the full analyzer and are unaffected.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that index Chinese or mixed Chinese-English text with the stock <code>SmartChineseAnalyzer</code> and accept prefix, wildcard, fuzzy, regexp or range syntax through Lucene's query parsers. The query term must hold full-width letters or digits next to an ASCII operator, for example pasted full-width text plus an added <code class='nw'>*</code>. The only symptom is silently fewer hits.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>739 words</span></summary><div class='body'><p><code>SmartChineseAnalyzer</code> does its case and width handling inside the tokenizer: <code>HMMChineseTokenizer</code>'s <code class='nw'>SegTokenFilter</code> turns full-width Latin letters and digits into ASCII and lower-cases A-Z (<code>SegTokenFilter.java:39-62</code>), and <code class='nw'>createComponents</code> has no <code class='nw'>LowerCaseFilter</code> (<code>SmartChineseAnalyzer.java:124-134</code>). So <code class='nw'>我们使用Ｌｕｃｅｎｅ</code> is indexed as <code class='nw'>我们</code>, <code class='nw'>使用</code>, <code class='nw'>lucen</code>. <code>SmartChineseAnalyzer.normalize()</code>, which the classic and flexible query parsers use for prefix terms, wildcard chunks, fuzzy terms, regexps and range bounds (the simple parser for its prefix and fuzzy terms), returns only <code>new LowerCaseFilter(in)</code> (<code class='nw'>:137-140</code>), although <code>Analyzer#normalize</code> is documented to give "the representation that it would have in the index", without tokenizing or stemming (<code>Analyzer.java:203-208</code>). The result: <code class='nw'>Ｌｕｃ*</code>, <code class='nw'>Ｌｕｃｅｎ~1</code> and <code>[Ｌｕａ TO Ｌｕｚ]</code> find nothing while <code class='nw'>Luc*</code> and the term query <code class='nw'>Ｌｕｃｅｎｅ</code> find the document, and <code class='nw'>normalize("ＡＢＣ")</code> returns <code class='nw'>ａｂｃ</code> while the index holds <code class='nw'>abc</code>. A secondary, narrower direction: <code class='nw'>normalize</code> lower-cases non-ASCII capitals such as <code class='nw'>É</code> that the index keeps. Parsed term and phrase queries and the indexed data are unaffected. Every release from 6.2.0 to 10.5.2 and main has it. The fix makes <code class='nw'>normalize()</code> apply the tokenizer's folding; it changes only the query side, so no reindex is needed.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Full-width forms</strong>: the letters <code class='nw'>Ａ</code>-<code class='nw'>Ｚ</code>, <code class='nw'>ａ</code>-<code class='nw'>ｚ</code> (U+FF21-U+FF3A, U+FF41-U+FF5A) and digits <code class='nw'>０</code>-<code class='nw'>９</code> (U+FF10-U+FF19), each as wide as a Chinese character. Chinese input methods produce them in full-width mode, giving mixed text such as <code class='nw'>我们使用Ｌｕｃｅｎｅ</code> or <code class='nw'>２０２６年</code>.</li><li><strong><code class='nw'>SegTokenFilter</code></strong>: part of <code>HMMChineseTokenizer</code>, so it runs inside the tokenizer, not as a token filter. For full-width tokens it subtracts <code class='nw'>0xFEE0</code> from each character (full-width to ASCII) and then lower-cases A-Z; for ASCII tokens it lower-cases A-Z (<code>SegTokenFilter.java:39-62</code>; javadoc "Full-width latin will be converted to half-width, then all latin will be lowercased"). <code class='nw'>createComponents</code> adds no <code class='nw'>LowerCaseFilter</code>: "LowerCaseFilter is not needed, as SegTokenFilter lowercases Basic Latin text" (<code>SmartChineseAnalyzer.java:128</code>).</li><li><strong><code>Analyzer.normalize(field, text)</code></strong>: what the query parsers call for a partial word, because the full analyzer would tokenize or stem it. It runs the analyzer's <code>normalize(String, TokenStream)</code> override, which should hold the normalizing steps and leave out the tokenizer and the stemmer (<code>Analyzer.java:53-58</code>, <code class='nw'>:203-212</code>).</li><li><strong>Multi-term queries</strong>: prefix (<code class='nw'>Ｌｕｃ*</code>), wildcard (<code class='nw'>Ｌｕ?ｅｎ</code>), fuzzy (<code class='nw'>Ｌｕｃｅｎ~1</code>), regexp (<code class='nw'>/ｌｕｃ.*/</code>) and range (<code>[Ｌｕａ TO Ｌｕｚ]</code>). Parsed term and phrase queries run the full analyzer and are not affected.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>SmartChineseAnalyzer.normalize()</code> is <code>return new LowerCaseFilter(in);</code> (<code>SmartChineseAnalyzer.java:137-140</code>). Because the folding lives in the tokenizer, which <code class='nw'>normalize</code> skips, it is lost.</li><li>The classic parser passes the prefix through it (<code>QueryParserBase.java:712</code>, <code>BytesRef term = getAnalyzer().normalize(field, termStr);</code>), and likewise the fuzzy term (<code class='nw'>:729</code>), the regexp (<code class='nw'>:683</code>), each wildcard chunk (<code class='nw'>:646</code>, <code class='nw'>:656</code>) and the range bounds (<code class='nw'>:550</code>, <code class='nw'>:556</code>; an open <code class='nw'>*</code> bound is skipped, <code class='nw'>:547-557</code>). The flexible parser's processors do the same (range bounds only when they do not parse as dates, <code>TermRangeQueryNodeProcessor.java:100-139</code>). The simple parser has only prefix and fuzzy syntax and normalizes both (<code>SimpleQueryParser.java:573</code>, <code class='nw'>:605</code>).</li><li><code class='nw'>Ｌｕｃ*</code> therefore becomes <code class='nw'>body:ｌｕｃ*</code>. The index holds <code class='nw'>lucen</code>, so the prefix cannot match any term. <code class='nw'>LowerCaseFilter</code> also applies <code>Character.toLowerCase</code> to every code point, while the index lower-cases only A-Z, so <code class='nw'>normalize("É")</code> is <code class='nw'>é</code> but the index keeps <code class='nw'>É</code>. This secondary direction matters for single-letter terms, because the tokenizer emits such letters one per token, and for range bounds: <code>[Аz TO Яz]</code> (Cyrillic capitals) built from <code class='nw'>normalize</code> admits <code class='nw'>б</code> instead of the indexed <code class='nw'>Б</code>.</li><li>The sibling analyzers fold width in normalization: <code>CJKAnalyzer.normalize</code> is <code class='nw'>CJKWidthFilter</code> + <code class='nw'>LowerCaseFilter</code> (<code>CJKAnalyzer.java:101-106</code>), and <code class='nw'>JapaneseAnalyzer</code> applies <code>CJKWidthCharFilter</code> in <code>initReaderForNormalization</code> (<code>JapaneseAnalyzer.java:130-133</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>One document <code class='nw'>我们使用Ｌｕｃｅｎｅ</code>, default <code>SmartChineseAnalyzer</code>, classic <code class='nw'>QueryParser</code>: <code class='nw'>Ｌｕｃ*</code> and <code class='nw'>Ｌｕｃｅｎ~1</code> find <strong>0</strong> documents; <code class='nw'>Luc*</code>, <code class='nw'>Lucen~1</code> and the term query <code class='nw'>Ｌｕｃｅｎｅ</code> find <strong>1</strong>. <code class='nw'>normalize("ＡＢＣ")</code> = <code class='nw'>ａｂｃ</code> (index <code class='nw'>abc</code>), <code class='nw'>normalize("１２３")</code> = <code class='nw'>１２３</code> (index <code class='nw'>123</code>). The hunt's scan found 76 of 285 single-token words that disagree; every one of the 73 that the parser scan checked (the other 3 were not in its word set) was missed by classic and flexible prefix, wildcard, regexp and range queries and by simple-parser prefix queries, while fuzzy still hit 61 within the edit distance. An exhaustive scan of every BMP character indexed as one token found 1,141 of 61,527 disagreeing (the 62 full-width letters and digits and 1,079 non-ASCII capitals) and all 2,704 two-letter full-width words.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>410 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications that use the stock <code>SmartChineseAnalyzer</code>, the default constructor included, and pass user text through <code class='nw'>QueryParser</code>, <code>StandardQueryParser</code> or <code>SimpleQueryParser</code> (prefix and fuzzy only), or call <code>Analyzer.normalize</code> themselves. Analyzer wrappers delegate <code class='nw'>normalize</code> to the wrapped analyzer (<code>AnalyzerWrapper.java:123-127</code>), so wrapped uses inherit it unless the wrapper adds its own normalization step (as the workaround below does). The class targets "Chinese or mixed Chinese-English text" (<code>SmartChineseAnalyzer.java:33</code>).</li><li><strong>Default, not opt-in.</strong> Default analyzer and default parser settings. The only choices involved are the smartcn analyzer (an optional module, marked <code>@lucene.experimental</code>) and multi-term syntax.</li><li><strong>What it takes.</strong> Full-width letters or digits in the query term next to an ASCII <code class='nw'>*</code>, <code class='nw'>?</code>, <code class='nw'>~</code>, <code class='nw'>/</code> or range syntax: mixed-width input, or an application that appends <code class='nw'>*</code> or builds a range around user text. By the classic grammar, a full-width <code class='nw'>＊</code> is an ordinary character, so <code class='nw'>Ｌｕｃ＊</code> typed entirely in full-width mode becomes the plain term query <code class='nw'>body:luc</code>, not a prefix query, and does not match <code class='nw'>lucen</code> (<code>QueryParser.jj:183-187</code>, <code class='nw'>:208-211</code>; executed). Documents written in full width are still found by half-width queries that fit the stemmed term: <code class='nw'>Luc*</code> finds both widths, <code class='nw'>Lucene*</code> neither, because the index holds <code class='nw'>lucen</code>. The registry rates the likelihood rare; no report was found in the searched public sources.</li><li><strong>What the damage looks like.</strong> Prefix terms, and wildcard or regexp literals, that require a full-width letter or digit cannot match any indexed term: 0 hits, no error, whichever width the document used. Range bounds compare in the wrong form and can drop or add terms (<code>[a TO ｚ]</code> admitted 7 of 8 probe documents; the indexed-form <code>[a TO z]</code> admits 3). Fuzzy terms can still hit within the edit distance, so say "miss", not "never match".</li><li><strong>Scale.</strong> One document and one query are enough. All 62 full-width letters and digits and all 2,704 two-letter full-width words normalize differently from how they are indexed.</li><li><strong>Downstream (code reading only, nothing run).</strong> Elasticsearch's analysis-smartcn plugin registers the stock analyzer, and its <code class='nw'>query_string</code> parser normalizes range, fuzzy, prefix and wildcard terms with the field's analyzer, so it would inherit the miss; another downstream server's smartcn plugin also registers the stock class.</li><li><strong>Limit.</strong> After the fix, prefixes that run past the Porter stem stay best effort, as with every stemming analyzer (<code class='nw'>Ｌｕ?ｅｎｅ</code> misses even with the fix, because <code class='nw'>Lucene</code> is indexed as <code class='nw'>lucen</code>). This bug is only the width and case mismatch.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code>lucene/analysis/smartcn</code>, public API only. The first test compares <code class='nw'>normalize()</code> with the indexed form of <code class='nw'>ＡＢＣ</code> and <code class='nw'>１２３</code>. The second indexes <code class='nw'>我们使用Ｌｕｃｅｎｅ</code> and counts prefix, fuzzy and range queries built as the classic query parser builds them with default settings, with <code class='nw'>Luc*</code> as the control.</p><figure class='code'><figcaption><span class='fname'>TestSmartChineseAnalyzerNormalize.java (lucene/analysis/smartcn, public API)</span><span class='meta'>80 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.cn.smart;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.FuzzyQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.PrefixQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+
+/** SmartChineseAnalyzer#normalize must return the form that indexing stores. */
+public class TestSmartChineseAnalyzerNormalize extends BaseTokenStreamTestCase {
+
+  /** The tokenizer folds full-width letters and digits to half-width (see testFullWidth). */
+  public void testNormalizeFoldsFullWidthLikeIndexing() throws IOException {
+    try (Analyzer a = new SmartChineseAnalyzer()) {
+      checkOneTerm(a, &quot;ＡＢＣ&quot;, &quot;abc&quot;); // what the index holds
+      checkOneTerm(a, &quot;１２３&quot;, &quot;123&quot;);
+      assertEquals(&quot;abc&quot;, a.normalize(&quot;f&quot;, &quot;ＡＢＣ&quot;).utf8ToString());
+      assertEquals(&quot;123&quot;, a.normalize(&quot;f&quot;, &quot;１２３&quot;).utf8ToString());
+    }
+  }
+
+  /**
+   * The query parsers build &quot;Ｌｕｃ*&quot; as new PrefixQuery(new Term(field, normalize(field, &quot;Ｌｕｃ&quot;))),
+   * &quot;Ｌｕｃｅｎ~1&quot; as a FuzzyQuery on normalize(field, &quot;Ｌｕｃｅｎ&quot;) and range bounds with normalize.
+   */
+  public void testMultiTermQueriesFindTheDocument() throws IOException {
+    try (Analyzer a = new SmartChineseAnalyzer();
+        Directory dir = newDirectory();
+        RandomIndexWriter w = new RandomIndexWriter(random(), dir, a)) {
+      Document doc = new Document();
+      doc.add(new TextField(&quot;body&quot;, &quot;我们使用Ｌｕｃｅｎｅ&quot;, Field.Store.NO)); // indexed: 我们, 使用, lucen
+      w.addDocument(doc);
+      try (IndexReader r = w.getReader()) {
+        IndexSearcher s = newSearcher(r);
+        Query[] queries = {
+          new PrefixQuery(new Term(&quot;body&quot;, a.normalize(&quot;body&quot;, &quot;Luc&quot;))), // control
+          new PrefixQuery(new Term(&quot;body&quot;, a.normalize(&quot;body&quot;, &quot;Ｌｕｃ&quot;))),
+          new FuzzyQuery(new Term(&quot;body&quot;, a.normalize(&quot;body&quot;, &quot;Ｌｕｃｅｎ&quot;)), 1),
+          new TermRangeQuery(
+              &quot;body&quot;, a.normalize(&quot;body&quot;, &quot;Ｌｕａ&quot;), a.normalize(&quot;body&quot;, &quot;Ｌｕｚ&quot;), true, true)
+        };
+        List&lt;String&gt; misses = new ArrayList&lt;&gt;();
+        for (Query q : queries) {
+          if (s.count(q) != 1) {
+            misses.add(q.toString());
+          }
+        }
+        assertEquals(&quot;queries that miss the document&quot;, List.of(), misses);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestSmartChineseAnalyzerNormalize.java $LUCENE/lucene/analysis/smartcn/src/test/org/apache/lucene/analysis/cn/smart/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:smartcn:test --tests TestSmartChineseAnalyzerNormalize -Ptests.seed=5EED0565
+# also with -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>normalize("ＡＢＣ")</code> returns <code class='nw'>abc</code>, and <code class='nw'>Ｌｕｃ*</code>, <code class='nw'>Ｌｕｃｅｎ~1</code> and <code>[Ｌｕａ TO Ｌｕｚ]</code> each find the document, as the control <code class='nw'>Luc*</code> does.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>normalize("ＡＢＣ")</code> returns <code class='nw'>ａｂｃ</code>, and <code class='nw'>body:ｌｕｃ*</code>, <code class='nw'>body:ｌｕｃｅｎ~1</code> and <code>body:[ｌｕａ TO ｌｕｚ]</code> find 0 documents; the control finds 1.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-565/'>repro/LFV-565/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (247 lines) · 1,555 words</span></summary><div class='body'><p>The paste-ready test needs no query parser: the smartcn module has no <code>lucene/queryparser</code> test dependency (<code>lucene/analysis/smartcn/build.gradle:26</code> lists only <code class='nw'>test-framework</code>) and the test avoids adding one, so the second test builds <code>new PrefixQuery(new Term(field, normalize(field, prefix)))</code>, <code>new FuzzyQuery(new Term(field, normalize(field, term)), 1)</code> and a <code class='nw'>TermRangeQuery</code> on normalized bounds, which is what the classic parser's <code class='nw'>getPrefixQuery</code>, <code class='nw'>getFuzzyQuery</code> and <code class='nw'>getRangeQuery</code> do with default settings (<code>QueryParserBase.java:712</code>, <code class='nw'>:729</code>, <code class='nw'>:550</code>, <code class='nw'>:556</code>). The inputs are fixed; the test framework randomizes the rest (directory, writer config, searcher, codec, similarity, locale, time zone). The module's <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLint</code> and <code class='nw'>forbiddenApis</code> pass with it. In the first test the two <code class='nw'>checkOneTerm</code> lines pass (the index holds <code class='nw'>abc</code> and <code class='nw'>123</code>) and the <code class='nw'>normalize</code> line fails.</p><p>The second file runs the same document through the real classic <code class='nw'>QueryParser</code> and also asserts the secondary <code class='nw'>É</code> direction; it needs <code>lucene/queryparser</code> on the test classpath, so it ran with the hunt's standalone JUnit runner rather than gradle. The third file is the independent reproducer's version: full-width digits, a fuzzy query, the full-width term query and a half-width control.</p><div class="hd hd-3"><h3 id='code-2-h'>TestSmartChineseNormalize.java (the same through the classic QueryParser)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Needs <code>lucene-analysis-smartcn</code>, <code>lucene-queryparser</code> and <code>lucene-test-framework</code> on the test classpath. The prefix test checks the control <code class='nw'>Luc*</code> (1 hit) first. 3 of 3 fail on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestSmartChineseNormalize.java (the same through the classic QueryParser)</span><span class='meta'>98 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.cn.smart;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * SmartChineseAnalyzer#normalize applies LowerCaseFilter, but the analyzer&#x27;s own case handling is
+ * done by the tokenizer (SegTokenFilter): full-width Latin letters and digits are converted to
+ * half-width and only Basic Latin A-Z is lower-cased. The two disagree in both directions.
+ */
+public class TestSmartChineseNormalize extends LuceneTestCase {
+
+  private static BytesRef singleToken(Analyzer a, String text) throws Exception {
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      TermToBytesRefAttribute term = ts.addAttribute(TermToBytesRefAttribute.class);
+      ts.reset();
+      assertTrue(ts.incrementToken());
+      BytesRef t = BytesRef.deepCopyOf(term.getBytesRef());
+      assertFalse(&quot;expected a single token for &quot; + text, ts.incrementToken());
+      ts.end();
+      return t;
+    }
+  }
+
+  /** Full-width Latin: indexed as half-width, normalize keeps full-width. */
+  public void testFullWidthNormalizeEqualsIndexedTerm() throws Exception {
+    try (Analyzer a = new SmartChineseAnalyzer()) {
+      for (String w : new String[] {&quot;ＡＢＣ&quot;, &quot;Ｊａｖａ&quot;}) {
+        BytesRef indexed = singleToken(a, w);
+        BytesRef normalized = a.normalize(&quot;f&quot;, w);
+        assertEquals(
+            &quot;normalize(\&quot;&quot; + w + &quot;\&quot;)=&quot; + normalized.utf8ToString() + &quot; but the index holds &quot; + indexed.utf8ToString(),
+            indexed,
+            normalized);
+      }
+    }
+  }
+
+  /** Non-ASCII capital letters: indexed unchanged, normalize lower-cases them. */
+  public void testNonAsciiCapitalNormalizeEqualsIndexedTerm() throws Exception {
+    try (Analyzer a = new SmartChineseAnalyzer()) {
+      for (String w : new String[] {&quot;É&quot;, &quot;Б&quot;}) {
+        BytesRef indexed = singleToken(a, w);
+        BytesRef normalized = a.normalize(&quot;f&quot;, w);
+        assertEquals(
+            &quot;normalize(\&quot;&quot; + w + &quot;\&quot;)=&quot; + normalized.utf8ToString() + &quot; but the index holds &quot; + indexed.utf8ToString(),
+            indexed,
+            normalized);
+      }
+    }
+  }
+
+  /** A prefix of a full-width word, typed as in the document. */
+  public void testFullWidthPrefixQueryFindsDocument() throws Exception {
+    try (Analyzer a = new SmartChineseAnalyzer();
+        Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+        Document doc = new Document();
+        doc.add(new TextField(&quot;body&quot;, &quot;我们使用Ｌｕｃｅｎｅ&quot;, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        QueryParser qp = new QueryParser(&quot;body&quot;, a);
+        assertEquals(1, s.count(qp.parse(&quot;Luc*&quot;))); // control: half-width prefix
+        assertEquals(qp.parse(&quot;Ｌｕｃ*&quot;).toString(), 1, s.count(qp.parse(&quot;Ｌｕｃ*&quot;)));
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestSmartCnNormalizeVsIndex.java (independent reproducer, 5 tests)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim alone. 4 of 5 fail on main, 10.5.2, 9.12.3 and 8.11.4; the half-width control passes.</p><figure class='code'><figcaption><span class='fname'>TestSmartCnNormalizeVsIndex.java (independent reproducer, 5 tests)</span><span class='meta'>149 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.cn.smart;
+
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.BytesRef;
+import org.junit.Test;
+
+/**
+ * Analyzer#normalize(String, String) is documented to return &quot;the representation that it would
+ * have in the index&quot;. For SmartChineseAnalyzer a single full-width Latin word is indexed in
+ * half-width lower case (SegTokenFilter), so normalize must return the same bytes, and a
+ * prefix/fuzzy query built through the classic QueryParser (which calls Analyzer#normalize) must
+ * find the document a plain term query finds.
+ *
+ * &lt;p&gt;Uses only public API; plain JUnit 4 so the same source compiles against older releases.
+ */
+public class TestSmartCnNormalizeVsIndex {
+
+  private static List&lt;String&gt; indexedTerms(Analyzer a, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;body&quot;, text)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    return out;
+  }
+
+  /** Assert the input is one indexed token and that normalize() yields exactly that token. */
+  private static void assertNormalizeMatchesIndex(String input) throws IOException {
+    try (Analyzer a = new SmartChineseAnalyzer()) {
+      List&lt;String&gt; idx = indexedTerms(a, input);
+      // precondition: the whole input is a single indexed token (no tokenization involved)
+      assertEquals(&quot;precondition: single indexed token for &quot; + input, 1, idx.size());
+      BytesRef expected = new BytesRef(idx.get(0));
+      BytesRef actual = a.normalize(&quot;body&quot;, input);
+      assertEquals(
+          &quot;normalize(\&quot;&quot;
+              + input
+              + &quot;\&quot;)=\&quot;&quot;
+              + actual.utf8ToString()
+              + &quot;\&quot; but the indexed term is \&quot;&quot;
+              + idx.get(0)
+              + &quot;\&quot;&quot;,
+          expected,
+          actual);
+    }
+  }
+
+  @Test
+  public void testFullWidthLettersNormalizeToIndexedForm() throws IOException {
+    assertNormalizeMatchesIndex(&quot;ＡＢＣ&quot;); // full-width &quot;ABC&quot;, indexed as &quot;abc&quot;
+  }
+
+  @Test
+  public void testFullWidthDigitsNormalizeToIndexedForm() throws IOException {
+    assertNormalizeMatchesIndex(&quot;１２３&quot;); // full-width &quot;123&quot;, indexed as &quot;123&quot;
+  }
+
+  @Test
+  public void testNonAsciiCapitalNormalizeToIndexedForm() throws IOException {
+    assertNormalizeMatchesIndex(&quot;É&quot;); // LATIN CAPITAL E WITH ACUTE, indexed unchanged
+  }
+
+  @Test
+  public void testHalfWidthControlNormalizeToIndexedForm() throws IOException {
+    // control: Basic Latin is handled identically on both sides; this one must pass
+    assertNormalizeMatchesIndex(&quot;ABC&quot;);
+  }
+
+  private static int count(Directory dir, Query q) throws IOException {
+    try (DirectoryReader r = DirectoryReader.open(dir)) {
+      return new IndexSearcher(r).count(q);
+    }
+  }
+
+  @Test
+  public void testFullWidthPrefixAndFuzzyQueriesFindDocument() throws Exception {
+    try (Analyzer a = new SmartChineseAnalyzer();
+        Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+        Document doc = new Document();
+        // &quot;we use Lucene&quot; with &quot;Lucene&quot; typed in full-width letters
+        doc.add(
+            new TextField(
+                &quot;body&quot;,
+                &quot;我们使用Ｌｕｃｅｎｅ&quot;,
+                Field.Store.NO));
+        w.addDocument(doc);
+      }
+      // preconditions: the indexed term is &quot;lucen&quot; (half-width, lower-cased, Porter-stemmed),
+      // and the same full-width word as a plain term query finds the document
+      assertEquals(1, count(dir, new TermQuery(new Term(&quot;body&quot;, &quot;lucen&quot;))));
+      QueryParser qp = new QueryParser(&quot;body&quot;, a);
+      String fwLucene = &quot;Ｌｕｃｅｎｅ&quot;;
+      assertEquals(&quot;plain full-width term query&quot;, 1, count(dir, qp.parse(fwLucene)));
+      // controls: half-width multi-term queries find the document
+      assertEquals(&quot;control Luc*&quot;, 1, count(dir, qp.parse(&quot;Luc*&quot;)));
+      assertEquals(&quot;control Lucen~1&quot;, 1, count(dir, qp.parse(&quot;Lucen~1&quot;)));
+      // the bug: the same multi-term queries typed in full-width letters
+      Query prefix = qp.parse(&quot;Ｌｕｃ*&quot;); // full-width &quot;Luc*&quot;
+      Query fuzzy = qp.parse(&quot;Ｌｕｃｅｎ~1&quot;); // full-width &quot;Lucen~1&quot;
+      int prefixHits = count(dir, prefix);
+      int fuzzyHits = count(dir, fuzzy);
+      assertEquals(
+          &quot;prefix &quot; + prefix + &quot; hits=&quot; + prefixHits + &quot;, fuzzy &quot; + fuzzy + &quot; hits=&quot; + fuzzyHits,
+          &quot;1/1&quot;,
+          prefixHits + &quot;/&quot; + fuzzyHits);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed (11.0.0-SNAPSHOT), 10.5.2, 9.12.3: reproduced (this test); 6.2.0, 6.6.6, 7.0.0, 7.7.3, 8.8.2 to 8.11.4, 9.0.0, 9.1.0 and 10.0.0: reproduced with the history probes or the finder&#x27;s test; the other releases from 6.2.0 contain the introducing commit (read only); 6.1.0 and earlier: no Analyzer#normalize</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code># $LUCENE = a Lucene checkout of main; JAVA_HOME = a JDK 25
+cp $REPRO/TestSmartChineseAnalyzerNormalize.java $LUCENE/lucene/analysis/smartcn/src/test/org/apache/lucene/analysis/cn/smart/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:smartcn:test --tests TestSmartChineseAnalyzerNormalize -Ptests.seed=5EED0565
+# also with -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main ea57360912ed, seed 5EED0565
+TestSmartChineseAnalyzerNormalize &gt; testNormalizeFoldsFullWidthLikeIndexing FAILED
+    org.junit.ComparisonFailure: expected:&lt;[abc]&gt; but was:&lt;[ａｂｃ]&gt;
+TestSmartChineseAnalyzerNormalize &gt; testMultiTermQueriesFindTheDocument FAILED
+    java.lang.AssertionError: queries that miss the document expected:&lt;[]&gt; but was:&lt;[body:ｌｕｃ*, body:ｌｕｃｅｎ~1, body:[ｌｕａ TO ｌｕｚ]]&gt;
+2 tests completed, 2 failed
+
+# the same two messages through gradle with -Ptests.asserts=false (the fact check&#x27;s run), and through the standalone runner with assertions off (seed 5EED0566) and on the 10.5.2 and 9.12.3 release jars
+
+# classic QueryParser test on main, 3 run, 3 failed
+normalize(&quot;ＡＢＣ&quot;)=ａｂｃ but the index holds abc
+normalize(&quot;É&quot;)=é but the index holds É
+body:ｌｕｃ* expected:&lt;1&gt; but was:&lt;0&gt;
+
+# with fix A: this test 2 of 2 pass (assertions on and off), the QueryParser test 3 of 3, the independent 5-test JUnit 5 of 5, the security probe 11 of 11</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code>Analyzer#normalize</code> must return "the representation that it would have in the index", minus only tokenizing and stemming. Width and case folding are neither.</li><li>The index-side folding is documented and tested: <code class='nw'>testFullWidth</code> asserts <code class='nw'>Ｔｅｓｔｓ</code> becomes <code class='nw'>test</code> and <code class='nw'>１２３４</code> becomes <code class='nw'>1234</code>.</li><li>The same 2016 commit gave <code>CJKAnalyzer.normalize</code> width folding; <code>SmartChineseAnalyzer</code> is the outlier.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>243 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>Analyzer.java:203-208</code>: "Normalize a string down to the representation that it would have in the index. This is typically used by query parsers in order to generate a query on a given term, without tokenizing or stemming". The class example (<code class='nw'>:53-58</code>) keeps a filter that is "about normalization" and drops one that is "about stemming".</li><li><strong>The analyzer documents its folding as index behaviour.</strong> <code class='nw'>SegTokenFilter</code>'s javadoc ("Full-width latin will be converted to half-width") and the <code>SmartChineseAnalyzer.java:128</code> comment; <code>TestSmartChineseAnalyzer.testFullWidth</code> ("Full width alphas and numerics are folded to half-width", <code class='nw'>:160-170</code>) asserts it.</li><li><strong>Design intent.</strong> On LUCENE-7355 (#8409), jpountz, who added <code class='nw'>normalize</code>, described it as applying "all normalization filters (lowercasing, ascii folding, etc.) but not transformations (stop word removal, stemming, etc.)".</li><li><strong>Siblings.</strong> The same commit gave <code>CJKAnalyzer.normalize</code> <code class='nw'>CJKWidthFilter</code> + <code class='nw'>LowerCaseFilter</code> and <code class='nw'>JapaneseAnalyzer</code> width folding (today through <code>initReaderForNormalization</code>). <code>SmartChineseAnalyzer</code>, whose folding is hidden in the tokenizer, got only <code class='nw'>LowerCaseFilter</code>.</li><li><strong>Tests.</strong> No smartcn test calls <code class='nw'>normalize</code>; <code>BaseTokenStreamTestCase</code> only checks that it does not throw (<code class='nw'>:1478</code>). Nothing pins the current output.</li><li><strong>Precedents fixed as bugs.</strong> LUCENE-8186 (#9234, fixed in 7.4 and 8.0): <code class='nw'>CustomAnalyzer</code> with a lower-casing tokenizer did not normalize multi-term queries, fixed so that <code class='nw'>normalize</code> applies the tokenizer's normalization; LUCENE-7606 (#8657, fixed in 6.4 and 7.0): <code>CustomAnalyzer.normalize</code> applied only the last token filter. Separately, in LUCENE-8022 (#9070, closed as Invalid) a maintainer told a user that their analyzer must override <code class='nw'>normalize()</code> to mirror its index-time lower-casing.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>313 words</span></summary><div class='body'><p>The strongest "intended" case (the cross-model reviews rated it moderate; the independent reproducer rated it weak and the devil's-advocate verifier rejected it): <code>SmartChineseAnalyzer</code> is <code>@lucene.experimental</code>; <code class='nw'>normalize</code> deliberately skips tokenization, and here the folding lives in the tokenizer; the classic parser's javadoc says "normal Analyzers are unlikely to work properly with wildcard templates" (<code>QueryParserBase.java:611</code>, <code class='nw'>:696</code>; <code class='nw'>:667</code> says the same of "regular expression templates"), and a comment in its wildcard code calls keeping wildcard and escaped characters away from <code class='nw'>normalize</code> a "best effort" (<code class='nw'>:638</code>); and <code class='nw'>LowerCaseFilter</code> keeps roughly what the parsers did before 6.2 (<code>lowercaseExpandedTerms</code>).</p><p>Why it fails: "experimental" marks API stability, not licence for query and index to disagree; the javadoc excludes tokenizing and stemming, not character folding, and LUCENE-8186 made <code class='nw'>normalize</code> mirror a tokenizer's normalization; the wildcard javadoc predates LUCENE-7355 and is about splitting templates, while the prefix code a few lines below calls <code class='nw'>normalize</code> (<code class='nw'>:712</code>); back-compat with the old lower-casing makes the behaviour long-standing, not intended, since LUCENE-7355 aimed beyond lower-casing and added width folding wherever the index chain visibly folds width. No test, discussion or decision supporting the current output was found. <strong>Verdict: a defect.</strong> What the counter-case gets right: a fix changes long-standing query behaviour; the recommended fix copies the tokenizer's private folding rules into a second place; full-width text next to ASCII operators is unusual input; and the old parser lower-casing (<code>String.toLowerCase(locale)</code>) is close to, not identical with, <code class='nw'>LowerCaseFilter</code> (per-code-point <code>Character.toLowerCase</code>; they differ for locale-sensitive and contextual mappings such as the Turkish dotless i and the Greek final sigma). These argue for a careful, tested change, not for keeping the mismatch. For the secondary <code class='nw'>É</code> direction one could argue the index side deviates (<code class='nw'>SegTokenFilter</code>'s javadoc says "all latin will be lowercased" while the code lower-cases only A-Z), so present that direction as a question.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>normalize() applies the tokenizer's folding (validated)</strong></p><p class='short'>Make <code class='nw'>normalize()</code> apply the tokenizer's folding: full-width letters and digits to ASCII, then lower-case A-Z only (a small private filter replacing <code class='nw'>LowerCaseFilter</code>). It changes only the query side, so no reindex is needed. With it the repro and all 23 smartcn tests pass, and <code class='nw'>normalize</code> agrees with indexing on all 61,527 single-character BMP tokens tested.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 928 words</span></summary><div class='body'><p>Two fixes were built and checked in a scratch worktree of main <code class='nw'>ea57360912ed</code>; A mirrors the index exactly and is recommended. The other options are a larger refactoring and a workaround.</p><div class="hd hd-3"><h3 id='fix-mirror-segtokenfilter'>normalize() applies the tokenizer's folding (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-mirror-segtokenfilter" target="_self" aria-label="Link to this section" aria-describedby="fix-mirror-segtokenfilter"><span aria-hidden="true">#</span></a></div><p>Replace <code>new LowerCaseFilter(in)</code> with a private filter that does what <code class='nw'>SegTokenFilter</code> does at index time, restricted to the three ranges that <code>Utility.getCharType</code> puts in the full-width classes (U+FF10-U+FF19, U+FF21-U+FF3A, U+FF41-U+FF5A). The <code class='nw'>LowerCaseFilter</code> import goes; <code class='nw'>TokenFilter</code> and <code>CharTermAttribute</code> are imported (+36/-2, formatted by <code class='nw'>tidy</code>). Same logic as the finder's fix sketch. A regression test: the repro's class, or its assertions added to <code>TestSmartChineseAnalyzer</code> next to <code class='nw'>testFullWidth</code>.</p><pre class='snippet' tabindex='0'><code>@Override
+protected TokenStream normalize(String fieldName, TokenStream in) {
+  return new SegTokenNormalizationFilter(in);
+}
+
+/**
+ * Applies the case and width folding that SegTokenFilter applies at index time: full-width Latin
+ * letters and digits become half-width, then only Basic Latin A-Z is lower-cased.
+ */
+private static final class SegTokenNormalizationFilter extends TokenFilter {
+  private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
+
+  SegTokenNormalizationFilter(TokenStream in) {
+    super(in);
+  }
+
+  @Override
+  public boolean incrementToken() throws IOException {
+    if (input.incrementToken() == false) {
+      return false;
+    }
+    final char[] buffer = termAtt.buffer();
+    for (int i = 0; i &lt; termAtt.length(); i++) {
+      char c = buffer[i];
+      if ((c &gt;= 0xFF10 &amp;&amp; c &lt;= 0xFF19)
+          || (c &gt;= 0xFF21 &amp;&amp; c &lt;= 0xFF3A)
+          || (c &gt;= 0xFF41 &amp;&amp; c &lt;= 0xFF5A)) {
+        c -= 0xFEE0;
+      }
+      if (c &gt;= &#x27;A&#x27; &amp;&amp; c &lt;= &#x27;Z&#x27;) {
+        c += 0x20;
+      }
+      buffer[i] = c;
+    }
+    return true;
+  }
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Query side only: the index already holds the folded form, so no reindex.</li><li>Behaviour change: the tested full-width multi-term queries now hit (the intent); a full-width <code class='nw'>＊</code> or <code class='nw'>．</code> stays a literal character (<code class='nw'>Ｌｕ＊?</code> becomes <code class='nw'>lu＊?</code>, 0 hits; executed). Non-ASCII capitals are no longer lower-cased in <code class='nw'>normalize</code>, so <code class='nw'>É*</code> matches the indexed <code class='nw'>É</code> instead of <code class='nw'>é</code>; consistent with the index, but worth raising as a question with maintainers.</li><li>Cost: one character loop per normalized query term.</li><li>Maintenance: the filter copies the tokenizer's private folding rules (<code>Utility.getCharType</code>, <code class='nw'>SegTokenFilter</code>), so the two can drift apart again unless a test pins them together.</li><li>The override has not changed since 2016, so the same patch should apply to maintained branches; only main was built and tested.</li><li>Prefixes that run past the Porter stem stay best effort, as with every stemming analyzer.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree at <code class='nw'>ea57360912ed</code>, gradle, JDK 25: the new test fails 2 of 2 on stock and passes with the fix; <code>:lucene:analysis:smartcn:check</code> passes (checkGoogleJavaFormat, ecjLint, forbiddenApis, and 3 suites / 23 tests: <code>TestSmartChineseAnalyzer</code> 19, <code>TestHMMChineseTokenizerFactory</code> 2, the new 2); the module tests pass with assertions off (seed 77AA0565), and the new test 20 iterations (40 tests).</li><li>Standalone runner with the fix shadowed: the new test 2 of 2 (assertions on and off), the QueryParser test 3 of 3, the independent reproducer's 5 of 5, the security probe 11 of 11; the exhaustive scan finds 0 of 61,527 single-character tokens and 0 of 2,704 two-letter full-width words disagreeing, and a scan of U+FF00-U+FFEF 0 of 202 (not scanned: supplementary characters and mixed, escaped, wildcard or regexp inputs). The finder's equivalent sketch passed the upstream <code>TestSmartChineseAnalyzer</code> (19 of 19) earlier.</li><li>These standalone runs shadowed the fix before <code class='nw'>tidy</code> re-wrapped its <code class='nw'>if</code> condition (same logic). The fact check re-ran the new test (assertions on and off), the QueryParser test and the security probe with the final source (<code class='nw'>brief/fix/src-a</code>); all pass.</li></ul><div class="hd hd-3"><h3 id='fix-cjkwidthfilter'>Reuse CJKWidthFilter, as CJKAnalyzer does (validated, not recommended)</h3><a class="hlink" href="#fix-cjkwidthfilter" target="_self" aria-label="Link to this section" aria-describedby="fix-cjkwidthfilter"><span aria-hidden="true">#</span></a></div><p><code>TokenStream result = new CJKWidthFilter(in); result = new LowerCaseFilter(result); return result;</code> (+4/-1). The repro passes and <code>:lucene:analysis:smartcn:check</code> passes (23 tests).</p><pre class='snippet' tabindex='0'><code>TokenStream result = new CJKWidthFilter(in);
+result = new LowerCaseFilter(result);
+return result;</code></pre><p class='k'>Trade-offs</p><p>Smaller and reuses an existing filter, but it does not mirror the index: with it, the exhaustive scan still finds 1,138 of 61,527 single-character tokens disagreeing. That is the 1,079 non-ASCII capitals as before, plus 59 new ones in U+FF65-U+FF9F, which the index keeps half-width: <code class='nw'>CJKWidthFilter</code> maps the half-width katakana and middle dot to their full-width forms, and the two half-width sound marks U+FF9E and U+FF9F to the combining marks U+3099 and U+309A, or merges them into a preceding katakana (<code>CJKWidthFilter.java:67-76</code>). It also folds full-width punctuation (U+FF01-U+FF5E), so a full-width <code class='nw'>＊</code> or <code class='nw'>．</code> inside a wildcard or regexp term becomes an ASCII operator: <code class='nw'>Ｌｕ＊?</code> becomes <code class='nw'>lu*?</code> and <code class='nw'>/Ｌｕｃ．＊/</code> becomes <code class='nw'>/luc.*/</code>, and both match <code class='nw'>lucen</code> (executed). The independent reproducer's <code class='nw'>É</code> test still fails.</p><div class="hd hd-3"><h3 id='fix-split-segtokenfilter'>Move the folding out of the tokenizer into separate filters (not run)</h3><a class="hlink" href="#fix-split-segtokenfilter" target="_self" aria-label="Link to this section" aria-describedby="fix-split-segtokenfilter"><span aria-hidden="true">#</span></a></div><p>The direction of an unmerged 2009 patch on LUCENE-2023 (#3098), written for speed: split <code class='nw'>SegTokenFilter</code>'s lower-casing and full-width conversion into filters, which <code class='nw'>normalize</code> could then reuse.</p><p class='k'>Trade-offs</p><p>By inference (not run): it could change indexed terms for some inputs and would then need a back-compat story (reindex), so it is a larger change than the query-side fix.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround for users until a fix ships (validated)</h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p><code>SmartChineseAnalyzer</code> is <code class='nw'>final</code>, so wrap it: an <code class='nw'>AnalyzerWrapper</code> whose <code>getWrappedAnalyzer</code> returns the stock analyzer and whose <code>wrapTokenStreamForNormalization</code> returns <code>new CJKWidthFilter(in)</code> (it runs after the stock <code class='nw'>LowerCaseFilter</code>). Indexing is unchanged. On the stock main jars, with assertions on and off, <code class='nw'>Ｌｕｃ*</code>, <code class='nw'>Ｌｕｃｅｎ~1</code> and <code>[Ｌｕａ TO Ｌｕｚ]</code> then find the document. Or type multi-term queries in half-width (<code class='nw'>Luc*</code>).</p><p class='k'>Trade-offs</p><p>No reindex. It carries the <code class='nw'>CJKWidthFilter</code> caveats of the previous option (half-width katakana; full-width <code class='nw'>＊</code> and <code class='nw'>．</code> become operators) and leaves the <code class='nw'>É</code> direction as it is, because the stock <code class='nw'>LowerCaseFilter</code> runs first (<code class='nw'>É*</code> becomes <code class='nw'>é*</code>, 0 hits; executed).</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>A restriction written as a parsed multi-term query goes through the same <code class='nw'>normalize()</code>, so a full-width pattern never equals an indexed term, and a <code class='nw'>MUST_NOT</code> rule such as <code class='nw'>-Ｌｕｃ*</code> removes nothing. Lucene's SECURITY.md (lines 28, 50) leaves authorization to the application and promises no untrusted-input guarantee here, so it is out of scope; no exploit is known.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive metamorphic scan of the stock analyzers: <code class='nw'>normalize(w)</code> must equal the single token indexing stores for <code class='nw'>w</code>. <code>SmartChineseAnalyzer</code> disagreed on 76 of 285 single-token words (full-width letters and digits, and capitals such as <code class='nw'>É</code>). A second scan showed the misses through the query parsers, and code reading found the cause.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>227 words</span></summary><div class='body'><p><strong>Method: a bounded-exhaustive metamorphic scan on the stock main jars</strong> (the study's "semi-formal" tier). A hunt unit, "analyzer normalize consistency", 2026-10-26.</p><ul><li>Relation N1: <code>Analyzer.normalize(f, w)</code> equals the single full-span token that indexing produces for <code class='nw'>w</code>, checked over bounded word sets for 99 analyzer configurations (every public stock <code class='nw'>Analyzer</code> with a no-arg constructor in the module jars, 5 hand-built ones, and stemmer-free variants of 38 language analyzers). <code>SmartChineseAnalyzer</code> disagreed on 76 of 285 single-token words: full-width Latin letters and digits, and non-ASCII capitals such as <code class='nw'>É</code>, <code class='nw'>Ø</code>, <code class='nw'>İ</code>, <code class='nw'>ẞ</code>.</li><li>Relation N2 (parser reachability): each disagreeing word, used as a prefix, wildcard, fuzzy, regexp and range query through the classic, flexible and simple parsers, must still find its document. All 73 checked disagreeing words were missed by classic and flexible prefix, wildcard, regexp and range queries and by simple-parser prefix queries; fuzzy still hit 61. Every agreeing word was found. The flexible parser's multi-field mode, which has a separate bug of its own, differs: there prefix and wildcard hit 19 of the 73 and missed 79 agreeing words.</li><li>Code reading then located the cause: the folding lives in the tokenizer's <code class='nw'>SegTokenFilter</code>, which <code class='nw'>normalize</code> skips.</li><li>An AI finder wrote the public-API JUnit; independent AI tools then reproduced and judged it, and an exhaustive scan over every BMP character confirmed the scope (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: 198 queries over GitHub issues, PRs and commits, the mailing lists, the JIRA archive (every smartcn issue title read) and the web in English and Chinese (2026-10-26); 28 hits read, none this bug. Closest: LUCENE-2023 (#3098), an unmerged 2009 speed refactoring of the same folding.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>No issue, PR, commit, JIRA entry, mailing-list thread, downstream issue or web page reports this bug, by anyone, the owner included. #8409 (LUCENE-7355), which added the override, has 34 comments and none mentions smartcn or width folding. None of the 406 open PRs changes <code class='nw'>normalize</code>. Upstream main <code class='nw'>a95c754ee003</code> (2026-10-26) still returns <code>new LowerCaseFilter(in)</code>.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene), commits</th><td class='when'>2026-10-26</td><td>four runs of a scripted prior-report search (160 queries in total, including downstream, list and JIRA queries) plus 7 manual GitHub searches and open-PR lists: class names, normalize with full-width, fullwidth, wildcard, SegTokenFilter, HMMChineseTokenizer, Analyzer#normalize</td><td>no report; #8409 added the code and never mentions smartcn</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the touched paths of all 406 open apache/lucene PRs</td><td>#681 (module-info lint) and #202 (WordDelimiterFilter removal) touch smartcn; neither changes normalize</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>2026-10-26</td><td>6 JQL searches over LUCENE and SOLR; all 56 LUCENE and 16 SOLR smartcn issue titles read</td><td>no report</td></tr><tr><th scope='row'>Mailing lists (lists.apache.org)</th><td class='when'>2026-10-26</td><td>17 manual searches over java-user@, dev@ and issues@ (smartcn, SmartChineseAnalyzer, HMMChineseTokenizer, fullwidth, full-width, halfwidth), all distinct subjects read</td><td>no report</td></tr><tr><th scope='row'>Downstream repositories and the web</th><td class='when'>2026-10-26</td><td>downstream-repository queries; 8 web searches in English and Chinese</td><td>no report; the closest downstream items concern normalizer wildcard escaping and Japanese numbers</td></tr><tr><th scope='row'>Related items (read)</th><td class='when'>2026-10-26</td><td>12 issues read in full</td><td>#3098 (LUCENE-2023, open speed refactoring), #9234 (LUCENE-8186) and LUCENE-7606 (same defect class in CustomAnalyzer, fixed), #9070 (LUCENE-8022, closed as Invalid with a maintainer's answer to a user), #8489 (open, wildcard tokenization), #10453 and #10892 (Japanese width folding)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-7355 (<code class='nw'>7c2e7a0fb80a</code> and <code class='nw'>e92a38af90d1</code>, committed 2016-07-12), which added <code>Analyzer#normalize</code> with this lower-case-only override; first released in 6.2.0, unchanged since. Fails on every release run from 6.2.0 to 10.5.2 and on main. Before 7.0 the default classic parser already missed these queries through its own lower-casing.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-7355 (#8409, "Leverage MultiTermAwareComponent in query parsers"; commit subject "Add Analyzer#normalize() and use it in query parsers"; jpountz; a JIRA patch, no PR): <code class='nw'>7c2e7a0fb80a</code> on branch_6x (first released in 6.2.0) and <code class='nw'>e92a38af90d1</code> on master (first released in 7.0.0), both committed 2016-07-12. The same diff gave <code class='nw'>CJKAnalyzer</code> and <code class='nw'>JapaneseAnalyzer</code> width folding in normalization. <code>git log -S</code> on the override lists only this commit. The index-side folding is from 2009 (<code class='nw'>e01aad89fe2</code>, LUCENE-1629) and unchanged except for reformatting.</p><p><strong>The symptom is older than the defect in the default classic parser.</strong> Before 7.0 that parser lower-cased multi-term text itself (<code>lowercaseExpandedTerms</code>, <code>String.toLowerCase</code>, no width folding), so it missed full-width multi-term queries already on 5.5.5, 6.0.0 and 6.1.0. From 7.0.0, which removed that option and routes every multi-term term through <code>Analyzer#normalize</code>, this override is the cause: the parser probe passes on main with the fix. In 6.2.0 it is a real regression only for <code>AnalyzingQueryParser</code> and <code>setAnalyzeRangeTerms(true)</code>, which ran the full chain, width folding included, before.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 2 of 2 fail (gradle and the standalone runner, assertions on and off); QueryParser test 3 of 3; independent 5-test JUnit 4 of 5, control passes</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 2 of 2, the QueryParser test 3 of 3 and the independent JUnit 4 of 5 fail</td></tr><tr><th scope='row'>9.1.0, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>QueryParser test 3 of 3 fail</td></tr><tr><th scope='row'>6.2.0, 6.6.6, 7.0.0, 7.7.3, 8.11.4, 9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>normalize-vs-index probe 3 of 4 fail; the independent JUnit 4 of 5 on 8.11.4</td></tr><tr><th scope='row'>8.8.2, 8.9.0, 8.10.0, 8.10.1, 8.11.0, 8.11.1, 8.11.2, 8.11.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>normalize-vs-index probe 3 of 4 fail (run on 2026-10-27 for this doc's checks; these releases are not tagged in the history clone)</td></tr><tr><th scope='row'>other tags 6.2.0 to 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> read only</span></td><td>the introducing commits are in every tag from 6.2.0 to 6.6.6, 7.0.0 to 8.8.1 and 9.0.0 to 10.5.2; the untagged 8.8.2 to 8.11.4 were executed</td></tr><tr><th scope='row'>5.5.5, 6.0.0, 6.1.0</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> older parser symptom</span></td><td>no Analyzer#normalize; the default classic parser misses full-width multi-term queries through its own lower-casing (4 of 5 fail), AnalyzingQueryParser finds them (6 of 6 pass on 5.5.5 and 6.1.0; not run on 6.0.0)</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>all repros pass; smartcn check task and 23 tests pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and an adjudication found it real and re-ran it on main with assertions on and off. Reviews by another model family (reading only) agreed on the root cause; one said "not real" only because it could not run code. An audit kept it and lowered the likelihood to rare.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>422 words</span></summary><div class='body'><p>Every verifier wrote or ran its own test against the stock jars; the cross-model reviews could only read code, and the harness re-ran the finder's test for each (3 of 3 fail).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>QueryParser JUnit fails 3 of 3 on main (assertions on and off), 10.5.2 and 9.12.3; the fix sketch passes 3 of 3 and the upstream TestSmartChineseAnalyzer 19 of 19.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real (low), procedural</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6, reading only) could not run code, so its rubric defaulted to not real; it agreed with the root cause, judged the inputs in contract and rated the intended case moderate.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 5-test JUnit fails 4 of 5 on main, 10.5.2, 9.12.3 and 8.11.4, control passes; with the fix 5 of 5 pass. Exhaustive BMP scan: 1,141 of 61,527 characters disagree, 0 with the fix.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>OpenAI GPT-5.6, reading only: the intended-behaviour case is moderate and rejected for full-width Latin. The cross-model review stage's own probe fails 2 of 3 on main; its CJKAnalyzer control passes.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Re-ran the repro on main; its probe shows CJKAnalyzer folds width in normalize and that full-width prefix and fuzzy queries miss documents in either width while the term query finds both; no intended-behaviour argument survives.</td></tr><tr><th scope='row'>security assessment</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> out of scope of SECURITY.md (registry none; the earlier rating is retired)</span></td><td>Deny rules written as full-width parsed prefix, wildcard, regexp or fuzzy terms exclude nothing; 10 of 11 probe checks fail on main, 10.5.2 and 9.12.3, 11 of 11 pass with the fix.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test on main with assertions on and off (4 of 5 fail, control passes) and with the fix (5 of 5 pass).</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> downgrade (kept, likelihood rare)</span></td><td>New seeds on main: the finder's test 3 of 3 fail; an own probe (<code class='nw'>２０２*</code>, flexible <code class='nw'>Ｌｕ?ｅｎ</code>) fails 2 of 3 on main and 10.5.2, passes 3 of 3 with the fix.</td></tr><tr><th scope='row'></th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed; wording fixed</span></td><td>An independent fact check re-ran the gradle command verbatim (assertions on and off: 2 of 2 fail; with fix A smartcn check task and 23 tests pass) and every standalone repro with new seeds; a second fact check by the other model family (reading only) found no error in the root cause. Their wording corrections are applied (see the resolution).</td></tr></tbody></table></div></div></details></div></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources and repro files</span><span class='n'>1,723 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-565, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>SmartChineseAnalyzer.normalize only lower-cases, but indexing folds full-width Latin letters and digits to half-width (in the tokenizer's SegTokenFilter), so full-width prefix, wildcard, regexp, range and fuzzy terms from the query parsers miss documents that the same word as a term query finds</dd></div><div><dt>Area</dt><dd>analysis-smartcn / language analyzers (SmartChineseAnalyzer normalization: Analyzer#normalize vs the width and case folding inside HMMChineseTokenizer's SegTokenFilter, used by the query parsers for multi-term queries)</dd></div><div><dt>Priority</dt><dd>Medium, rank 116: The stock SmartChineseAnalyzer silently misses full-width multi-term query terms, the same normalize() gap as LFV-557 and LFV-534 but with an audit-downgraded rare trigger, so it closes that group.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Every application that indexes Chinese or mixed Chinese-English text with the stock SmartChineseAnalyzer and accepts prefix, wildcard, regexp, range or fuzzy syntax through Lucene's classic, flexible or simple query parser (or calls Analyzer.normalize itself) silently gets no hits whenever the query term contains full-width Latin letters or digits (for example 'Ｌｕｃ*', 'Ｌｕ?ｅ*', '[ｌｕａ TO ｌｕｚ]' or '２０２*'), because the index holds only the half-width, lower-cased form and normalize keeps the full-width one; fuzzy queries can still hit when the edit distance absorbs the difference, single-letter multi-term terms with a non-ASCII capital (É*, Б*) disagree in the other direction, term and phrase queries and the indexed data are unaffected, no setting or scale is needed, every release from 6.2.0 to 10.5.2 and main has it (the default classic parser shows the same miss even before, through its own pre-7.0 lower-casing), and by code reading two downstream search servers' smartcn plugins register the stock class unchanged.</dd></div><div><dt>Summary</dt><dd>You index the text '我们使用Ｌｕｃｅｎｅ' (or '我们使用Lucene') with the stock SmartChineseAnalyzer and search with the classic QueryParser: the term query 'Ｌｕｃｅｎｅ' and the half-width prefix 'Luc*' find the document, so you expect the full-width prefix 'Ｌｕｃ*' to find it too. Instead it finds 0 documents, with no error: the tokenizer's SegTokenFilter folds full-width Latin letters and digits to half-width and lower-cases A-Z, so the index holds 'lucen', but SmartChineseAnalyzer.normalize, which the query parsers apply to prefix, wildcard, regexp, range and fuzzy terms, is only a LowerCaseFilter, so the query term stays full-width ('ｌｕｃ*'). Likewise Analyzer.normalize returns 'ａｂｃ' for 'ＡＢＣ' and '１２３' for '１２３' (the index holds 'abc' and '123') and 'é' for 'É' (the index keeps 'É').</dd></div><div><dt>Introduced</dt><dd>7c2e7a0fb80a5bf733cf710aee6cbf01d02629eb on branch_6x (first released in 6.2.0) and its master twin e92a38af90d12e51390b4307ccbe0c24ac7b6b4e (first released in 7.0.0): LUCENE-7355 'Add Analyzer#normalize() and use it in query parsers' (jpountz; GitHub issue apache/lucene#8409, JIRA patch with 8 versions, no PR), which added SmartChineseAnalyzer.normalize(String, TokenStream) { return new LowerCaseFilter(in); } (main :137-140) while giving CJKAnalyzer and JapaneseAnalyzer CJKWidthFilter + LowerCaseFilter [read: git blame of :137-140 and git log -S 'normalize(String fieldName, TokenStream in)' --follow on the file list only this commit; the later commits c07df196664, 7f8b7ffbcad, 2971f311a2b and cc342ea7407 did not touch normalize]. The index-side folding it fails to mirror dates from 2009 (SegTokenFilter full-width folding e01aad89fe2, LUCENE-1629; the createComponents comment 'SegTokenFilter lowercases Basic Latin text' 5265dc1bb20) and is unchanged except for reformatting (2016-07-12 (commit date of both commits; author date 2016-06-28))</dd></div><div><dt>First affected version</dt><dd>6.2.0 [exec] (the normalize-contract probe fails 3 of 4 on 6.2.0 and does not compile on 6.1.0, which has no Analyzer#normalize). In 6.2.0 it is a regression for AnalyzingQueryParser and QueryParser.setAnalyzeRangeTerms(true), which ran the analyzer's full chain, width folding included, before (probe C passes 6 of 6 on 5.5.5 and 6.1.0 and fails 5 of 6 on 6.2.0 and 6.6.6) [exec]. The default classic parser misses full-width multi-term queries already on 5.5.5, 6.0.0 and 6.1.0 through its own lowercaseExpandedTerms (String.toLowerCase, no width folding), a limitation of that parser rather than this defect; from 7.0.0, which removed that option and routes every multi-term term through Analyzer#normalize, this override is the cause (probe B passes 5 of 5 on main with the fix shadowed) [exec]</dd></div><div><dt>Affected versions</dt><dd>Every release 6.2.0 to 10.5.2 and main ea57360912ed (unreleased 10.6 and 11.0). [exec] probe A (normalize vs the indexed token for 'ＡＢＣ', '１２３' and 'É', with a half-width control) fails 3 of 4 on 6.2.0, 6.6.6, 7.0.0, 7.7.3, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da) and passes 4 of 4 on main with the fix; probe B (default classic parser end to end: 'Ｌｕｃ*', 'Ｌｕ?ｅｎ', 'Ｌｕｃｅｎ~1', '[Ｌｕａ TO Ｌｕｚ]', with half-width controls) fails 4 of 5 on 5.5.5, 6.0.0, 6.1.0, 6.2.0, 6.6.6, 7.0.0, 8.11.4, 9.12.3, 10.5.2 and main (-ea and -da) and passes 5 of 5 on main with the fix; the finder's JUnit fails 3 of 3 on 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da); the independent reproduction's JUnit fails 4 of 5 on main (-ea and -da), 10.5.2, 9.12.3 and 8.11.4. [read] by tag containment 7c2e7a0fb80 is in the 15 tags 6.2.0 to 6.6.6 and e92a38af90d in the 65 tags 7.0.0 to 8.8.1 and 9.0.0 to 10.5.2; 8.8.2 to 8.11.3 are not tagged in the history clone (between 8.8.1 [read] and 8.11.4 [exec]). Not fixed upstream: the override is unchanged on upstream main a95c754ee003 (2026-10-26), in the local clone, on origin/main a9779ef3c19 and the branch_10x and branch_10_6 tips; no open PR changes it. Not affected: 6.1.0 and earlier (no Analyzer#normalize; for the older classic-parser symptom see first_affected_version). Not executed: x86</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; the prior-report record verdict new, confidence high): 198 queries: a scripted prior-report search 160 (the finder's run 45 and three follow-up runs 115: GitHub issue, PR and commit queries on apache/lucene, downstream-repository queries on Elasticsearch, OpenSearch and Solr, mailing-list queries over dev@, java-user@, issues@ and commits@, JIRA-archive queries), 7 manual GitHub searches and open-PR lists, 6 JQL queries over LUCENE and SOLR (all 56 LUCENE and 16 SOLR smartcn issue titles read), 17 lists.apache.org queries (all distinct subjects read) and 8 web queries in English and Chinese; 12 issues read in full; the touched paths of all 406 open PRs; git history. 28 hits judged, none the same bug. Closest: #3098 (LUCENE-2023, open since 2009, an unmerged patch by rmuir that moves SegTokenFilter's lower-casing and full-width conversion into separate filters for speed, written before Analyzer#normalize existed and saying nothing about queries); #8409 (LUCENE-7355, which added the override; its 34 comments never mention smartcn or width folding). Same defect class in other code, fixed as bugs (precedents, not reports): #9234 (LUCENE-8186, CustomAnalyzer with LowerCaseTokenizerFactory) and LUCENE-7606 (CustomAnalyzer.normalize); #9070 (LUCENE-8022: a user's analyzer must override normalize). Unrelated: #8489 (LUCENE-7437, open, wildcard tokenization), #10453 and #10892 (LUCENE-9413, LUCENE-9853, Japanese width folding), the other smartcn issues (segmentation, stemming, surrogates, offsets, reset, stopwords). Not fixed: upstream main a95c754ee003 (2026-10-26) still returns new LowerCaseFilter(in); SmartChineseAnalyzer.java last changed 2022-01-03; the only open PRs that touch the smartcn module (#681, module-info lint; #202, WordDelimiterFilter removal) do not change normalize. None of the hits is by the owner (shbhar). Gaps: GitHub search reads only the first 50-100 results per query and the broad 'normalize' query only to its first page; web search was a general engine and Chinese-language forums were sampled, not covered; private reports to security@lucene.apache.org are not visible</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (commit of 2026-10-24; tested 2026-10-26) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the Maven Central jars 9.12.3 and 10.5.2 (the doc's test), 9.1.0 and 10.0.0 (the finder's test), 8.11.4 (the independent reproducer's test), and 5.5.5 to 10.5.2 for the history probes (8.8.2 to 8.11.3 added on 2026-10-27 for this doc's checks). Fix A (recommended) and fix B were validated in the scratch worktree with the smartcn module's <code class='nw'>check</code> task.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/SmartChineseAnalyzer.java:47 (at ea57360912ed) (&#x27;@lucene.experimental&#x27;), :124-134 (createComponents: HMMChineseTokenizer -&gt; PorterStemFilter -&gt; [StopFilter]; :128 &#x27;LowerCaseFilter is not needed, as SegTokenFilter lowercases Basic Latin text&#x27;), :137-140 (normalize returns new LowerCaseFilter(in))</code></li><li><code>lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/hhmm/SegTokenFilter.java:22-37 (at ea57360912ed) (javadoc &#x27;Full-width latin will be converted to half-width, then all latin will be lowercased&#x27;), :39-62 (FULLWIDTH_NUMBER and FULLWIDTH_STRING: chars &gt;= U+FF10 minus 0xFEE0, then A-Z lower-cased; STRING: A-Z lower-cased); lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/Utility.java:140-158 (getCharType: U+FF21-U+FF3A and U+FF41-U+FF5A FULLWIDTH_LETTER, U+FF10-U+FF19 FULLWIDTH_DIGIT)</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/Analyzer.java:203-213 (at ea57360912ed) (normalize(String, String): &#x27;the representation that it would have in the index&#x27;, &#x27;without tokenizing or stemming&#x27;); lucene/analysis/common/src/java/org/apache/lucene/analysis/cjk/CJKAnalyzer.java:101-106 (normalize: CJKWidthFilter + LowerCaseFilter); lucene/analysis/kuromoji/src/java/org/apache/lucene/analysis/ja/JapaneseAnalyzer.java:119-133 (normalize LowerCaseFilter; initReaderForNormalization CJKWidthCharFilter); lucene/analysis/smartcn/src/test/org/apache/lucene/analysis/cn/smart/TestSmartChineseAnalyzer.java:160-170 (testFullWidth: &#x27;Ｔｅｓｔｓ&#x27; -&gt; &#x27;test&#x27;, &#x27;１２３４&#x27; -&gt; &#x27;1234&#x27;)</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:550, (at ea57360912ed) :556, :646, :656, :683, :712, :729 (Analyzer.normalize calls for range bounds, wildcard chunks, regexp, prefix, fuzzy; follow-up the security record), :611, :638, :667, :696 (&#x27;normal Analyzers are unlikely to work properly with wildcard templates&#x27;, &#x27;best effort&#x27;); lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj:183-187, :208-211 (only ASCII &#x27;*&#x27; and &#x27;?&#x27; form PREFIXTERM and WILDTERM; reading for the likelihood note)</code></li><li><code>https://github.com/apache/lucene/issues/8409 (LUCENE-7355, introduces Analyzer#normalize and this override), https://github.com/apache/lucene/issues/3098 (LUCENE-2023, closest design context), https://github.com/apache/lucene/issues/9234 (LUCENE-8186, precedent fixed as a bug), https://issues.apache.org/jira/browse/LUCENE-7606 (precedent), https://github.com/apache/lucene/issues/9070 (LUCENE-8022)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/SmartChineseAnalyzer.java:124-134 (chain), :127-128 (comment), :137-140 (normalize)</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/hhmm/SegTokenFilter.java:22-37 (javadoc), :39-62 (filter)</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/Utility.java:140-158 (getCharType)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/analysis/Analyzer.java:53-58 (class example), :203-212 (normalize javadoc)</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:550, :556, :646, :656, :683, :712, :729; lucene/queryparser/src/java/org/apache/lucene/queryparser/simple/SimpleQueryParser.java:573, :605; flexible/standard/processors/WildcardQueryNodeProcessor.java:66, :76, FuzzyQueryNodeProcessor.java:59, RegexpQueryNodeProcessor.java:43, TermRangeQueryNodeProcessor.java:138-139</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/common/src/java/org/apache/lucene/analysis/cjk/CJKAnalyzer.java:101-106; lucene/analysis/kuromoji/src/java/org/apache/lucene/analysis/ja/JapaneseAnalyzer.java:130-133</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:547-557, QueryParser.jj:350-362 (open range bounds); flexible/standard/processors/TermRangeQueryNodeProcessor.java:100-139 (date bounds); simple/SimpleQueryParser.java:108-136 (operators)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/analysis/LowerCaseFilter.java:38; CharacterUtils.java:54-69</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/analysis/AnalyzerWrapper.java:123-127</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj:183-187, :208-211</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/SmartChineseAnalyzer.java:33, :47</code></li></ul></dd></div><div><dt>Minimal repro</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:550, :556, :712, :729</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/smartcn/build.gradle:23-26</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/analysis/Analyzer.java:53-58, :203-208</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/hhmm/SegTokenFilter.java:22-37; lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/SmartChineseAnalyzer.java:47, :128</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/smartcn/src/test/org/apache/lucene/analysis/cn/smart/TestSmartChineseAnalyzer.java:160-170</code></li><li><code>Lucene main ea57360912ed: lucene/test-framework/src/java/org/apache/lucene/tests/analysis/BaseTokenStreamTestCase.java:1478</code></li><li><code>Lucene main ea57360912ed: lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParserBase.java:611, :638, :667, :696, :712</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/common/src/java/org/apache/lucene/analysis/cjk/CJKAnalyzer.java:101-106</code></li><li><code>https://github.com/apache/lucene/issues/8409; https://github.com/apache/lucene/issues/9234; https://github.com/apache/lucene/issues/8657 (LUCENE-7606, fixed 6.4/7.0); https://github.com/apache/lucene/issues/9070 (LUCENE-8022, resolution Invalid)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/SmartChineseAnalyzer.java:50 (final), :137-140; lucene/analysis/smartcn/src/java/org/apache/lucene/analysis/cn/smart/Utility.java:153-156</code></li><li><code>Lucene main ea57360912ed: lucene/analysis/common/src/java/org/apache/lucene/analysis/cjk/CJKWidthFilter.java:67-76</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestSmartChineseAnalyzerNormalize.java (lucene/analysis/smartcn, public API): <a href='../repro/LFV-565/TestSmartChineseAnalyzerNormalize.java'><code>repro/LFV-565/TestSmartChineseAnalyzerNormalize.java</code></a> (80 lines)</li><li>TestSmartChineseNormalize.java (the same through the classic QueryParser): <a href='../repro/LFV-565/TestSmartChineseNormalize.java'><code>repro/LFV-565/TestSmartChineseNormalize.java</code></a> (98 lines)</li><li>TestSmartCnNormalizeVsIndex.java (independent reproducer, 5 tests): <a href='../repro/LFV-565/TestSmartCnNormalizeVsIndex.java'><code>repro/LFV-565/TestSmartCnNormalizeVsIndex.java</code></a> (149 lines)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

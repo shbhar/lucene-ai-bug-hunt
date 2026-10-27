@@ -1,0 +1,833 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>BengaliNormalizer&#x27;s visarga rule copies the next letter before folding it, so নিঃশব্দ and নিঃসব্দ get different terms</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-676 &middot; bengali-visarga-copies-unnormalized-next-char</p><h1 id='top'>BengaliNormalizer&#x27;s visarga rule copies the next letter before folding it, so নিঃশব্দ and নিঃসব্দ get different terms</h1><p class='tldr'>Lucene's Bengali normalizer folds শ and ষ to স and turns a visarga ঃ inside a word into a copy of the next letter, but it copies that letter before folding it: <code class='nw'>নিঃশব্দ</code> ("silent") is indexed as <code class='nw'>নিশসব্দ</code>, <code class='nw'>নিঃসব্দ</code> as <code class='nw'>নিসসব্দ</code>, and the two do not match. Present since 7.1.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 113</span><span class='sub'>The default BengaliAnalyzer silently fails to match variant spellings after a medial visarga, the same kind of relevance miss as its khio sibling LFV-667 with a slightly narrower trigger.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.1.0 (LUCENE-7940, 2017), the first release with Bengali analysis<span class='sub'>introduced 2017-08-24 &middot; about 9 years</span></dd></div><div><dt>Affected</dt><dd>7.1.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive check of the normalizer against its own rules</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Bengali has three s-letters, শ, ষ and স, which Lucene's Bengali normalizer folds to স so that spelling variants match. A visarga ঃ inside a word doubles the next consonant, so the normalizer replaces it by a copy of that letter. It copies the letter before folding it.</p><figure class='visual' id='bengali-visarga-copies-unnormalized-next-char-short-visual'><div class='frame'><a class='still' href='../assets/LFV-676/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-676/bug.png' alt='Summary card. Title: Lucene BengaliNormalizer&#x27;s medial-visarga rule copies the next letter before that letter is folded, so SHA and SSA survive after a visarga. Panel 1, one left-to-right pass over the characters of নিঃশব্দ: at i = 2, line 121 copies s[3] while it is still শ (U+09B6); at i = 3, line 128 folds s[3] to স (U+09B8); the loop never comes back to s[2], so stock main gives নিশসব্দ where নিসসব্দ is expected; Ba-phalaa, the class&#x27;s other gemination, copies from behind the loop and gives বিশ্ব to বিসস. Panel 2, BengaliNormalizationFilter output on stock main for the SHA, SSA and SA spellings against the expected output. Panel 3, the effect on search through BengaliAnalyzer, and the fix that folds the copied letter at line 121.' width='1920' height='1080'></a></div><figcaption>Panel 1: one left-to-right pass over <code class='nw'>নিঃশব্দ</code>, where line 121 copies শ before line 128 folds it and the loop never comes back. Panel 2: the filter output for the three spellings, stock versus expected. Panel 3: the effect on search, and the fix. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index Bengali text with the stock <code>new BengaliAnalyzer()</code> (or <code>BengaliNormalizationFilter</code>). Its normalizer folds the s-letters শ and ষ to স, so <code class='nw'>শব্দ</code> and <code class='nw'>সব্দ</code> both index as <code class='nw'>সব্দ</code>.</span></li><li><span>It also turns a visarga ঃ in the middle of a word into a copy of the next letter. You expect <code class='nw'>নিঃশব্দ</code> ("silent"), <code class='nw'>নিঃষব্দ</code> and <code class='nw'>নিঃসব্দ</code> all to become <code class='nw'>নিসসব্দ</code>, just as the class's other doubling rule turns <code class='nw'>বিশ্ব</code> into <code class='nw'>বিসস</code> in an upstream test.</span></li><li><span>You get <code class='nw'>নিশসব্দ</code>, <code class='nw'>নিষসব্দ</code> and <code class='nw'>নিসসব্দ</code>: three terms. The normalizer is one left-to-right pass, and <code>s[i] = s[i + 1]</code> (<code>BengaliNormalizer.java:121</code>) copies শ before the loop reaches it and folds it to স; the copy is never revisited.</span></li><li><span>In an index with one document per spelling, each spelling's query finds 1 of 3 documents; with the fix, 3 of 3. No error, and identical spellings still match. The other folded characters (ণ, ঙ, ড় U+09DC, ঢ় U+09DD, ৎ, ী, ূ) behave the same way after a visarga.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that index Bengali with the stock <code class='nw'>BengaliAnalyzer</code> (default constructor), <code>BengaliNormalizationFilter</code> or the <code>bengaliNormalization</code> factory, on every release since 7.1.0. A word with a medial visarga before শ, ষ, ণ or another folded character does not match its variant spelling. Identical spellings still match; a fix needs a reindex.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>634 words</span></summary><div class='body'><p><code>BengaliNormalizer</code> (package-private; used by <code>BengaliNormalizationFilter</code>, by <code class='nw'>BengaliAnalyzer</code> at index and query time and by the <code>bengaliNormalization</code> factory) is one left-to-right pass over the term. It folds SHA শ and SSA ষ to SA স everywhere (and NNA, RRA, RHA, khanda-ta, II, UU and NGA one to one), and it turns a medial visarga ঃ into a copy of the next letter: <code>s[i] = s[i + 1]</code> at <code>BengaliNormalizer.java:121</code>. That copy is made before the loop has folded the next letter, and the loop never returns to it, so <code class='nw'>নিঃশব্দ</code> ("silent") becomes <code class='nw'>নিশসব্দ</code> (SHA SA), <code class='nw'>নিঃষব্দ</code> becomes <code class='nw'>নিষসব্দ</code>, and only <code class='nw'>নিঃসব্দ</code> gives <code class='nw'>নিসসব্দ</code>. The class's other gemination, Ba-phalaa, copies an already folded letter (<code class='nw'>বিশ্ব</code> -&gt; <code class='nw'>বিসস</code>, pinned by an upstream test), and the cited paper gives SHA, SSA and SA one code. Through <code class='nw'>BengaliAnalyzer</code> the three spellings get three terms and do not match each other. Every release from 7.1.0 to 10.5.2 and main has it. The fix, <code>s[i] = foldSimple(s[i + 1])</code>, changes indexed terms of the affected words, so those fields need a reindex.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Visarga ঃ</strong> (U+0983): inside a word it doubles the sound of the next consonant, so <code class='nw'>নিঃশব্দ</code> is said like <em>nishshabdo</em>. The normalizer models this as gemination: the visarga becomes a copy of the next letter. A final visarga becomes হ in a short word and is deleted in a longer one.</li><li><strong>The folds</strong>: one-to-one rewrites the class applies at every position: SHA শ U+09B6 and SSA ষ U+09B7 to SA স U+09B8 (<code>// All sh</code>), NNA ণ to NA ন, RRA ড় U+09DC and RHA ঢ় U+09DD to RA র U+09B0, khanda-ta ৎ to TA ত, NGA ঙ to anusvara ং, and the vowel signs II ী to I ি and UU ূ to U ু.</li><li><strong><code>BengaliNormalizer</code></strong>: a left-to-right rewrite of each token, one <code>switch (s[i])</code> case per character. It is package-private and reached through <code>BengaliNormalizationFilter</code>, which <code class='nw'>BengaliAnalyzer</code> uses in its main chain (indexing and analyzed queries) and in <code class='nw'>normalize()</code> (multi-term queries), and through the <code>bengaliNormalization</code> factory. Tokens marked as keywords skip it.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>The visarga case (<code>BengaliNormalizer.java:112-123</code>) runs <code>s[i] = s[i + 1];</code> (<code class='nw'>:121</code>) for a medial visarga.</li><li>At that moment position i + 1 has not been visited, so the copy is the raw letter. The loop then folds the original at i + 1 (<code>// All sh</code>, <code class='nw'>:125-129</code>) and never returns to i. For <code class='nw'>নিঃশব্দ</code>: <code>ন ি ঃ শ ব ্ দ</code> -&gt; <code>ন ি শ শ ব ্ দ</code> -&gt; <code>ন ি শ স ব ্ দ</code>.</li><li>Ba-phalaa, the class's other gemination, copies backwards, <code>s[i - 1] = s[i - 2]</code> (<code class='nw'>:106</code>), from a position already folded: <code class='nw'>বিশ্ব</code> -&gt; <code class='nw'>বিসস</code>. The visarga version of the same doubling, <code class='nw'>বিঃশ</code>, gives <code class='nw'>বিশস</code>.</li><li>The result is not even a fixed point of the class's own rules: normalizing <code class='nw'>নিশসব্দ</code> again gives <code class='nw'>নিসসব্দ</code>.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>input</th><th>as the folds define</th><th>stock filter and <code class='nw'>BengaliAnalyzer</code> term</th></tr></thead><tbody><tr><td><code class='nw'>নিঃশব্দ</code> (SHA)</td><td><code class='nw'>নিসসব্দ</code></td><td><code class='nw'>নিশসব্দ</code></td></tr><tr><td><code class='nw'>নিঃষব্দ</code> (SSA)</td><td><code class='nw'>নিসসব্দ</code></td><td><code class='nw'>নিষসব্দ</code></td></tr><tr><td><code class='nw'>নিঃসব্দ</code> (SA)</td><td><code class='nw'>নিসসব্দ</code></td><td><code class='nw'>নিসসব্দ</code></td></tr><tr><td><code class='nw'>নিঃশেষ</code> (exhausted)</td><td><code class='nw'>নিসসেস</code></td><td><code class='nw'>নিশসেস</code></td></tr><tr><td><code class='nw'>নিঃশ্বাস</code> (breath)</td><td><code class='nw'>নিসসসাস</code></td><td><code class='nw'>নিশসসাস</code></td></tr><tr><td><code class='nw'>দুঃণা</code> vs <code class='nw'>দুঃনা</code> (NNA vs NA, synthetic)</td><td>both <code class='nw'>দুননা</code></td><td><code class='nw'>দুণনা</code> vs <code class='nw'>দুননা</code></td></tr><tr><td><code class='nw'>বিঃশ</code> vs <code class='nw'>বিশ্ব</code> (two geminations)</td><td>both <code class='nw'>বিসস</code></td><td><code class='nw'>বিশস</code> vs <code class='nw'>বিসস</code></td></tr><tr><td><code class='nw'>শব্দ</code> vs <code class='nw'>সব্দ</code> (no visarga)</td><td>both <code class='nw'>সব্দ</code></td><td>both <code class='nw'>সব্দ</code></td></tr></tbody></table></div><p>The hunt's bounded check found 23,947 violations of "no character that an unconditional rule rewrites or deletes may survive" (chandrabindu and the visarga included) over all 551,881 strings of up to 4 characters on a 27-character alphabet; every one contains a visarga. A folded character survives in 20,097 of them, and the recommended fix removes all of those; the other 3,850 keep only a chandrabindu or a visarga, cases that no fix option covers.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>382 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> <code class='nw'>BengaliAnalyzer</code> (the default constructor included), <code>BengaliNormalizationFilter</code>, and the <code>bengaliNormalization</code> factory, for example in a <code class='nw'>CustomAnalyzer</code>. No setting turns the rule off. Only tokens marked as keywords skip it, together with the whole normalizer (<code>BengaliNormalizationFilter.java:48</code>); <code class='nw'>BengaliAnalyzer</code> marks the words of its stem-exclusion set, if one is given (<code>BengaliAnalyzer.java:123-125</code>).</li><li><strong>Ordinary input.</strong> Tatsama words such as <code class='nw'>নিঃশব্দ</code>, <code class='nw'>নিঃশেষ</code>, <code class='nw'>নিঃশ্বাস</code> and <code class='nw'>দুঃশাসন</code> have a medial visarga before শ. Every such word gets the unfolded term, at index and query time alike.</li><li><strong>What the damage looks like.</strong> Silent: no error, and identical spellings still match. What fails is the match the folds exist for: a document and a query that spell the letter after the visarga differently (শ, ষ or স; ণ or ন) do not meet, although the analyzer conflates them anywhere else in a word. With one document per spelling of <code class='nw'>নিঃশব্দ</code>, each spelling's query finds 1 of 3 documents; with the fix, 3 of 3. An independent end-to-end test: the স-spelled query finds 0 of 1 শ-spelled documents, while the no-visarga control finds 1 of 1.</li><li><strong>Only lost matches.</strong> Over 2,000,718 generated short strings (a synthetic set, not a corpus), 9,779,308 pairs of strings get the same output with the fix but different outputs on stock, and no pair the other way; the fix changes the output of 167,664 strings, each containing a visarga, and never changes an output's length.</li><li><strong>How likely.</strong> Rare: a missed match needs the two sides to spell that one letter differently, and no report of it was found in 9 years.</li><li><strong>Scale.</strong> One word reproduces it; assertions on and off behave the same.</li><li><strong>Reindex.</strong> A fix changes the term of every affected word, so fields analyzed before the fix keep the old terms until they are reindexed.</li><li><strong>What is not shown.</strong> No corpus count or native-speaker check measures how often the variant spellings (<code class='nw'>নিঃষব্দ</code>, <code class='nw'>নিঃসব্দ</code> for <code class='nw'>নিঃশব্দ</code>) occur; the cross-spelling impact is inferred from the class's own folds and the cited paper's codes.</li><li><strong>Downstream remark.</strong> An application that filters on analyzed text (a denylist query, a <code class='nw'>MUST_NOT</code> clause) misses a variant spelling the same way any query does. Authorization is the application's job under Lucene's SECURITY.md, so this is not a Lucene security issue.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code>lucene/analysis/common</code>, in the style of <code>TestBengaliNormalizer</code>, using only the public API: it runs the filter on the শ, ষ and স spellings of <code class='nw'>নিঃশব্দ</code> and on <code class='nw'>নিঃশেষ</code>, then <code class='nw'>BengaliAnalyzer</code> on the স spelling (control) and two শ words. All three tests fail on main, 10.5.2 and 9.12.3, and pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestBengaliVisarga.java (lucene/analysis/common, public API)</span><span class='meta'>54 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.bn;
+
+import java.io.IOException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenFilter;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/** A medial visarga geminates the next letter; the copy must be normalized like the letter. */
+public class TestBengaliVisarga extends BaseTokenStreamTestCase {
+
+  /** SHA after a medial visarga: both copies become SA, as Ba-phalaa gives বিশ্ব -&gt; বিসস. */
+  public void testVisargaBeforeSha() throws IOException {
+    check(&quot;নিঃশব্দ&quot;, &quot;নিসসব্দ&quot;);
+    check(&quot;নিঃশেষ&quot;, &quot;নিসসেস&quot;);
+  }
+
+  /** The SSA and SA spellings of the same word give the same output. */
+  public void testVisargaBeforeSsaAndSa() throws IOException {
+    check(&quot;নিঃসব্দ&quot;, &quot;নিসসব্দ&quot;); // control: already right
+    check(&quot;নিঃষব্দ&quot;, &quot;নিসসব্দ&quot;);
+  }
+
+  /** Through BengaliAnalyzer, the SHA spelling gets the same term as the SA spelling. */
+  public void testAnalyzerVisargaSpellingsAgree() throws IOException {
+    Analyzer a = new BengaliAnalyzer();
+    checkOneTerm(a, &quot;নিঃসব্দ&quot;, &quot;নিসসব্দ&quot;); // control: already right
+    checkOneTerm(a, &quot;নিঃশব্দ&quot;, &quot;নিসসব্দ&quot;);
+    checkOneTerm(a, &quot;নিঃশ্বাস&quot;, &quot;নিসসসাস&quot;);
+    a.close();
+  }
+
+  private void check(String input, String output) throws IOException {
+    Tokenizer tokenizer = whitespaceMockTokenizer(input);
+    TokenFilter tf = new BengaliNormalizationFilter(tokenizer);
+    assertTokenStreamContents(tf, new String[] {output});
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestBengaliVisarga.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/bn/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests TestBengaliVisarga -Ptests.seed=5EED0676 -Ptests.asserts=true
+# also with -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>নিঃশব্দ</code>, <code class='nw'>নিঃষব্দ</code> and <code class='nw'>নিঃসব্দ</code> all → <code class='nw'>নিসসব্দ</code>, <code class='nw'>নিঃশেষ</code> → <code class='nw'>নিসসেস</code>, and <code class='nw'>BengaliAnalyzer</code> gives the শ spelling the term <code class='nw'>নিসসব্দ</code>, like the স spelling.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>নিঃশব্দ</code> → <code class='nw'>নিশসব্দ</code>, <code class='nw'>নিঃষব্দ</code> → <code class='nw'>নিষসব্দ</code>, and the analyzer term is <code class='nw'>নিশসব্দ</code>: 3 of 3 tests fail, with assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-676/'>repro/LFV-676/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (436 lines) · 2,410 words</span></summary><div class='body'><p>The test uses <code>whitespaceMockTokenizer</code> + <code>BengaliNormalizationFilter</code> and <code class='nw'>checkOneTerm</code> on a default <code class='nw'>BengaliAnalyzer</code>, like the upstream Bengali tests. In the two mixed tests the control line (the স spelling, already right) runs first. The inputs are fixed; nothing depends on the seed. It passes <code>checkGoogleJavaFormat</code>.</p><p>The second file is the finder's test, which prints code points (useful if the Bengali glyphs do not render): 3 of 3 fail on main, 10.5.2 and 9.12.3. The third is an independent reproducer's 9-test JUnit with an end-to-end <code class='nw'>IndexWriter</code> + <code class='nw'>QueryBuilder</code> search, an NNA case and 4 controls. The fourth is a <code class='nw'>main()</code> probe that prints the filter output, a second pass, the analyzer term and a 3-document search for 17 words, for comparing the stock code with each fix option.</p><div class="hd hd-3"><h3 id='code-2-h'>TestBengaliVisargaRule.java (the finder&#x27;s test, code points in the messages)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Same package, public API (<code>BengaliNormalizationFilter</code> over <code class='nw'>KeywordTokenizer</code>, <code>BengaliAnalyzer.normalize</code>).</p><figure class='code'><figcaption><span class='fname'>TestBengaliVisargaRule.java (the finder&#x27;s test, code points in the messages)</span><span class='meta'>82 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.bn;
+
+import java.io.IOException;
+import java.io.StringReader;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * BengaliNormalizer replaces a non-final VISARGA by a copy of the next character before that next
+ * character has been normalized, and never revisits the copy. The normalizer folds every sh
+ * (U+09B6 SHA, U+09B7 SSA) to U+09B8 SA, but after a visarga the copy keeps the original sh, so the
+ * output still contains SHA/SSA and spellings that differ only in sh normalize differently.
+ */
+public class TestBengaliVisargaRule extends BaseTokenStreamTestCase {
+
+  private static String hex(String s) {
+    StringBuilder b = new StringBuilder();
+    for (int i = 0; i &lt; s.length(); i++) b.append(String.format(&quot;U+%04X &quot;, (int) s.charAt(i)));
+    return b.toString().trim();
+  }
+
+  /** Runs the filter alone on a single keyword token and returns the term. */
+  private static String normalizeWithFilter(String in) throws IOException {
+    Tokenizer t = new KeywordTokenizer();
+    t.setReader(new StringReader(in));
+    try (TokenStream ts = new BengaliNormalizationFilter(t)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      assertTrue(ts.incrementToken());
+      String s = term.toString();
+      assertFalse(ts.incrementToken());
+      ts.end();
+      return s;
+    }
+  }
+
+  // NIHSHABDA &quot;silent&quot;: NA I VISARGA SHA BA HASANTA DA
+  static final String WITH_SHA = &quot;নিঃশব্দ&quot;;
+  // the same word with SSA, and with SA, in place of SHA
+  static final String WITH_SSA = &quot;নিঃষব্দ&quot;;
+  static final String WITH_SA = &quot;নিঃসব্দ&quot;;
+
+  /** &quot;All sh&quot; become SA, so the normalized word must not contain SHA (U+09B6) any more. */
+  public void testNoShaSurvives() throws IOException {
+    String out = normalizeWithFilter(WITH_SHA);
+    assertTrue(&quot;output still contains U+09B6: &quot; + hex(out), out.indexOf(&#x27;শ&#x27;) &lt; 0);
+  }
+
+  /** Spellings that differ only in SHA / SSA / SA must normalize to the same term. */
+  public void testShaSsaSaAgree() throws IOException {
+    String sa = normalizeWithFilter(WITH_SA);
+    assertEquals(hex(sa), hex(normalizeWithFilter(WITH_SHA)));
+    assertEquals(hex(sa), hex(normalizeWithFilter(WITH_SSA)));
+  }
+
+  /** Query-side impact through BengaliAnalyzer.normalize. */
+  public void testBengaliAnalyzerNormalize() throws IOException {
+    try (BengaliAnalyzer a = new BengaliAnalyzer()) {
+      String sa = a.normalize(&quot;f&quot;, WITH_SA).utf8ToString();
+      assertEquals(hex(sa), hex(a.normalize(&quot;f&quot;, WITH_SHA).utf8ToString()));
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestVisargaCopyIsFolded.java (independent reproducer, end-to-end search)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>5 of 9 fail on main (assertions on and off), 10.5.2 and 9.12.3; the 4 controls pass; 9 of 9 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestVisargaCopyIsFolded.java (independent reproducer, end-to-end search)</span><span class='meta'>178 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.bn;
+
+import java.io.IOException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenFilter;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.util.QueryBuilder;
+
+/**
+ * Independent check: BengaliNormalizationFilter geminates a medial visarga by copying the next
+ * character, but the copy is taken before that character is folded, so SHA / SSA / NNA survive in
+ * the copied position even though the same filter folds them everywhere else.
+ *
+ * &lt;p&gt;Public API only: BengaliNormalizationFilter, BengaliAnalyzer, IndexWriter, QueryBuilder.
+ */
+public class TestVisargaCopyIsFolded extends BaseTokenStreamTestCase {
+
+  // NI + I-kar + VISARGA + {SHA | SSA | SA} + BA + HASANTA + DA  (&quot;silent&quot;, three spellings)
+  private static final String NIH_SHA = &quot;নিঃশব্দ&quot;;
+  private static final String NIH_SSA = &quot;নিঃষব্দ&quot;;
+  private static final String NIH_SA = &quot;নিঃসব্দ&quot;;
+  // what the SA spelling yields: visarga becomes SA, SA stays SA
+  private static final String FOLDED = &quot;নিসসব্দ&quot;;
+
+  private static String esc(String s) {
+    StringBuilder b = new StringBuilder();
+    for (char c : s.toCharArray()) {
+      b.append(String.format(&quot;U+%04X &quot;, (int) c));
+    }
+    return b.toString().trim();
+  }
+
+  private void checkFilter(String input, String expected) throws IOException {
+    Tokenizer tok = whitespaceMockTokenizer(input);
+    TokenFilter tf = new BengaliNormalizationFilter(tok);
+    assertTokenStreamContents(tf, new String[] {expected});
+  }
+
+  /** Runs one whole-input token through BengaliNormalizationFilter and returns the term. */
+  private static String filterOut(String input) throws IOException {
+    Tokenizer t = new org.apache.lucene.analysis.core.KeywordTokenizer();
+    t.setReader(new java.io.StringReader(input));
+    try (TokenStream ts = new BengaliNormalizationFilter(t)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      assertTrue(ts.incrementToken());
+      String out = term.toString();
+      assertFalse(ts.incrementToken());
+      ts.end();
+      return out;
+    }
+  }
+
+  // ---- controls (expected to pass on stock code) ----
+
+  /** Upstream example: visarga before an unfolded consonant (KHA) geminates it. */
+  public void testControlUpstreamVisarga() throws IOException {
+    checkFilter(&quot;দুঃখ&quot;, &quot;দুখখ&quot;);
+  }
+
+  /**
+   * Upstream example (TestBengaliNormalizer.testBaPhalaa): the Ba-phala gemination copies the
+   * previous, already folded consonant, so SHA + hasanta + BA gives SA SA, not SHA SA.
+   */
+  public void testControlBaPhalaGeminationCopiesFoldedValue() throws IOException {
+    checkFilter(&quot;বিশ্ব&quot;, &quot;বিসস&quot;);
+  }
+
+  /** Without a visarga, SHA / SSA / SA spellings normalize to the same term. */
+  public void testControlNoVisargaSpellingsAgree() throws IOException {
+    String sha = filterOut(&quot;শব্দ&quot;);
+    String ssa = filterOut(&quot;ষব্দ&quot;);
+    String sa = filterOut(&quot;সব্দ&quot;);
+    assertEquals(esc(sa), esc(sha));
+    assertEquals(esc(sa), esc(ssa));
+  }
+
+  // ---- claim (expected to fail on stock code) ----
+
+  /** SHA after a medial visarga: the copied position must carry the folded SA. */
+  public void testVisargaThenShaFolded() throws IOException {
+    String out = filterOut(NIH_SHA);
+    assertEquals(esc(FOLDED), esc(out));
+  }
+
+  /** SSA after a medial visarga. */
+  public void testVisargaThenSsaFolded() throws IOException {
+    String out = filterOut(NIH_SSA);
+    assertEquals(esc(FOLDED), esc(out));
+  }
+
+  /** The SA spelling (sanity: this one is already right). */
+  public void testVisargaThenSaFolded() throws IOException {
+    checkFilter(NIH_SA, FOLDED);
+  }
+
+  /** NNA after a medial visarga: &quot;check na&quot; folds NNA to NA everywhere else. */
+  public void testVisargaThenNnaFolded() throws IOException {
+    // DA + U-kar + VISARGA + NNA + AA-kar  vs the NA spelling
+    String nna = filterOut(&quot;দুঃণা&quot;);
+    String na = filterOut(&quot;দুঃনা&quot;);
+    assertEquals(esc(na), esc(nna));
+  }
+
+  /** No SHA or SSA may survive the filter, since the &quot;All sh&quot; rule folds both unconditionally. */
+  public void testNoShaOrSsaSurvives() throws IOException {
+    for (String in : new String[] {NIH_SHA, NIH_SSA}) {
+      String out = filterOut(in);
+      assertTrue(
+          &quot;input &quot; + esc(in) + &quot; -&gt; &quot; + esc(out),
+          out.indexOf(&#x27;শ&#x27;) &lt; 0 &amp;&amp; out.indexOf(&#x27;ষ&#x27;) &lt; 0);
+    }
+  }
+
+  /**
+   * End to end through the stock BengaliAnalyzer: a document spelled with SHA is not found by the
+   * SA spelling (and vice versa), although the analyzer conflates SHA and SA in every other
+   * position.
+   */
+  public void testBengaliAnalyzerSearch() throws IOException {
+    Analyzer analyzer = new BengaliAnalyzer();
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(analyzer))) {
+        Document d = new Document();
+        d.add(new TextField(&quot;f&quot;, NIH_SHA, Field.Store.NO));
+        w.addDocument(d);
+        Document d2 = new Document();
+        // control: SHA without visarga, same word stem
+        d2.add(new TextField(&quot;g&quot;, &quot;শব্দ&quot;, Field.Store.NO));
+        w.addDocument(d2);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        QueryBuilder qb = new QueryBuilder(analyzer);
+        Query control = qb.createBooleanQuery(&quot;g&quot;, &quot;সব্দ&quot;);
+        assertEquals(&quot;control: SA spelling finds SHA spelling&quot;, 1, s.count(control));
+        Query q = qb.createBooleanQuery(&quot;f&quot;, NIH_SA);
+        assertEquals(
+            &quot;SA spelling should find the SHA-spelled document; analyzer terms: &quot;
+                + esc(analyzer.normalize(&quot;f&quot;, NIH_SHA).utf8ToString())
+                + &quot; vs &quot;
+                + esc(analyzer.normalize(&quot;f&quot;, NIH_SA).utf8ToString()),
+            1,
+            s.count(q));
+      }
+    } finally {
+      analyzer.close();
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>VisargaOptionsProbe.java (prints filter output, analyzer terms and a search)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>A plain <code class='nw'>main()</code>; run it with and without a patched <code>BengaliNormalizer</code> on the classpath. Each normalization has a 2 s timeout, so a variant that loops forever is reported as HANG.</p><figure class='code'><figcaption><span class='fname'>VisargaOptionsProbe.java (prints filter output, analyzer terms and a search)</span><span class='meta'>176 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.bn;
+
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.QueryBuilder;
+
+/**
+ * Prints, for a fixed list of words, the BengaliNormalizationFilter output (and a second pass over
+ * it), the BengaliAnalyzer term, and a tiny search over the three spellings of one word. Run it
+ * with the stock jar and with a patched BengaliNormalizer to compare fix options. Public API only.
+ * Each normalization runs with a 2 s timeout, so a variant that loops forever is reported as HANG.
+ * Usage: VisargaOptionsProbe [label]
+ */
+public class VisargaOptionsProbe {
+  static final ExecutorService POOL =
+      Executors.newCachedThreadPool(
+          r -&gt; {
+            Thread t = new Thread(r);
+            t.setDaemon(true);
+            return t;
+          });
+
+  static String cps(String s) {
+    StringBuilder b = new StringBuilder();
+    for (int i = 0; i &lt; s.length(); i++) {
+      if (i &gt; 0) b.append(&#x27; &#x27;);
+      b.append(String.format(&quot;%04X&quot;, (int) s.charAt(i)));
+    }
+    return b.toString();
+  }
+
+  static String filter(String in) throws Exception {
+    Tokenizer t = new KeywordTokenizer();
+    t.setReader(new StringReader(in));
+    try (TokenStream ts = new BengaliNormalizationFilter(t)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      if (!ts.incrementToken()) return &quot;&quot;;
+      String s = term.toString();
+      ts.end();
+      return s;
+    }
+  }
+
+  static String terms(Analyzer a, String in) throws Exception {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, in)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) out.add(term.toString());
+      ts.end();
+    }
+    return String.join(&quot;,&quot;, out);
+  }
+
+  static String timed(java.util.concurrent.Callable&lt;String&gt; c) throws Exception {
+    Future&lt;String&gt; f = POOL.submit(c);
+    try {
+      return f.get(2, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      f.cancel(true);
+      return &quot;HANG (no result after 2 s)&quot;;
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    String label = args.length &gt; 0 ? args[0] : &quot;run&quot;;
+    String[][] words = {
+      {&quot;নিঃশব্দ&quot;, &quot;visarga + SHA (silent)&quot;},
+      {&quot;নিঃষব্দ&quot;, &quot;visarga + SSA&quot;},
+      {&quot;নিঃসব্দ&quot;, &quot;visarga + SA&quot;},
+      {&quot;নিঃশেষ&quot;, &quot;visarga + SHA (exhausted)&quot;},
+      {&quot;নিঃশ্বাস&quot;, &quot;visarga + SHA + Ba-phalaa (breath)&quot;},
+      {&quot;নিঃস্বাস&quot;, &quot;visarga + SA + Ba-phalaa&quot;},
+      {&quot;দুঃণা&quot;, &quot;visarga + NNA (synthetic)&quot;},
+      {&quot;দুঃনা&quot;, &quot;visarga + NA (synthetic)&quot;},
+      {&quot;বিঃশ&quot;, &quot;visarga gemination of SHA&quot;},
+      {&quot;বিশ্ব&quot;, &quot;Ba-phalaa gemination of SHA (upstream test)&quot;},
+      {&quot;শব্দ&quot;, &quot;SHA, no visarga&quot;},
+      {&quot;সব্দ&quot;, &quot;SA, no visarga&quot;},
+      {&quot;দুঃখ&quot;, &quot;visarga + KHA (upstream test)&quot;},
+      {&quot;উঃ&quot;, &quot;final visarga (upstream test)&quot;},
+      {&quot;পুনঃ&quot;, &quot;final visarga (upstream test)&quot;},
+      {&quot;১৬ঃ৯&quot;, &quot;visarga used as a colon between digits&quot;},
+      {&quot;কঃঃক&quot;, &quot;doubled visarga (malformed)&quot;},
+    };
+    Analyzer a = new BengaliAnalyzer();
+    System.out.println(&quot;PROBE &quot; + label + &quot; (filter = BengaliNormalizationFilter on one keyword token)&quot;);
+    for (String[] w : words) {
+      String in = w[0];
+      String once = timed(() -&gt; filter(in));
+      String twice = once.startsWith(&quot;HANG&quot;) ? &quot;-&quot; : timed(() -&gt; filter(once));
+      String term = timed(() -&gt; terms(a, in));
+      System.out.println(
+          String.format(
+              &quot;%-10s [%s] %s%n    filter: %s [%s]   second pass: %s%n    BengaliAnalyzer: %s [%s]&quot;,
+              in,
+              cps(in),
+              w[1],
+              once,
+              once.startsWith(&quot;HANG&quot;) ? &quot;-&quot; : cps(once),
+              twice.equals(once) ? &quot;unchanged&quot; : twice + &quot; [&quot; + cps(twice) + &quot;]&quot;,
+              term,
+              term.startsWith(&quot;HANG&quot;) ? &quot;-&quot; : cps(term)));
+    }
+
+    // tiny index: the three spellings of &quot;silent&quot;, one document each, searched with each spelling
+    String[] spellings = {&quot;নিঃশব্দ&quot;, &quot;নিঃষব্দ&quot;, &quot;নিঃসব্দ&quot;};
+    String[] names = {&quot;SHA&quot;, &quot;SSA&quot;, &quot;SA&quot;};
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+        for (int i = 0; i &lt; spellings.length; i++) {
+          Document d = new Document();
+          d.add(new StringField(&quot;id&quot;, names[i], Field.Store.YES));
+          d.add(new TextField(&quot;body&quot;, spellings[i], Field.Store.NO));
+          w.addDocument(d);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        StoredFields sf = s.storedFields();
+        QueryBuilder qb = new QueryBuilder(a);
+        for (int i = 0; i &lt; spellings.length; i++) {
+          Query q = qb.createBooleanQuery(&quot;body&quot;, spellings[i]);
+          List&lt;String&gt; hits = new ArrayList&lt;&gt;();
+          for (ScoreDoc sd : s.search(q, 10).scoreDocs) hits.add(sf.document(sd.doc).get(&quot;id&quot;));
+          System.out.println(
+              &quot;SEARCH &quot; + label + &quot; query &quot; + names[i] + &quot; spelling &quot; + spellings[i] + &quot; -&gt; &quot;
+                  + hits.size() + &quot; of 3 documents &quot; + hits);
+        }
+      }
+    }
+    a.close();
+    System.exit(0);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also 10.5.2 and 9.12.3 (release jars)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestBengaliVisarga.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/bn/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests TestBengaliVisarga -Ptests.seed=5EED0676 -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestBengaliVisarga &gt; testVisargaBeforeSha FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;নি[স]সব্দ&gt; but was:&lt;নি[শ]সব্দ&gt;
+TestBengaliVisarga &gt; testVisargaBeforeSsaAndSa FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;নি[স]সব্দ&gt; but was:&lt;নি[ষ]সব্দ&gt;
+TestBengaliVisarga &gt; testAnalyzerVisargaSpellingsAgree FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;নি[স]সব্দ&gt; but was:&lt;নি[শ]সব্দ&gt;
+3 tests completed, 3 failed
+
+# in code points: expected U+09A8 U+09BF U+09B8 U+09B8 U+09AC U+09CD U+09A6
+#                 but was  U+09A8 U+09BF U+09B6 U+09B8 U+09AC U+09CD U+09A6
+
+# the same 3 failures: gradle with assertions off; standalone runner -ea and -da; releases 10.5.2, 9.12.3
+# with the fix (option A or B): 3 of 3 pass (gradle and standalone, -ea and -da)
+
+# probe, one document per spelling of নিঃশব্দ, BengaliAnalyzer + QueryBuilder
+stock:  query SHA -&gt; 1 of 3 [SHA]   query SSA -&gt; 1 of 3 [SSA]   query SA -&gt; 1 of 3 [SA]
+fix:    every query -&gt; 3 of 3 [SHA, SSA, SA]</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Ba-phalaa, the class's other doubling rule, copies an already folded letter; an upstream test pins <code class='nw'>বিশ্ব</code> -&gt; <code class='nw'>বিসস</code> (স স, not শ স).</li><li>The cited paper says a medial visarga "gets the code of next character" and gives শ, ষ and স one code.</li><li>The only upstream visarga test uses খ, which no rule folds; nothing documents the order.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>398 words</span></summary><div class='body'><ul><li><strong>The class's own folds.</strong> <code>// All sh</code>, <code>// check na</code> and the others are unconditional. After a visarga the output still holds a letter the class rewrites everywhere else, and a second pass changes it (<code class='nw'>নিশসব্দ</code> -&gt; <code class='nw'>নিসসব্দ</code>). That alone does not prove a bug: another rule interaction also changes on a second pass (<code class='nw'>কঁ্ি</code> -&gt; <code class='nw'>ক্ি</code> -&gt; <code class='nw'>খ</code>, where deleting the chandrabindu exposes the khio pattern). It supports the diagnosis together with the next two points.</li><li><strong>The other gemination.</strong> Ba-phalaa (<code>BengaliNormalizer.java:106</code>, <code>s[i - 1] = s[i - 2]</code>) copies a letter the loop has already folded, and <code>TestBengaliNormalizer.testBaPhalaa</code> (same commit) asserts <code>check("বিশ্ব", "বিসস")</code>. The visarga copy gives <code class='nw'>বিঃশ</code> -&gt; <code class='nw'>বিশস</code> for the same doubling. The difference comes only from loop order: one rule looks back at a processed position, the other ahead at an unprocessed one.</li><li><strong>The cited paper</strong> (UzZaman and Khan, named in the class javadoc). Visarga "Case 1: In the medial position ... acts as a diacritic, geminating the sound of the consonant it follows. So, it gets the code of next character"; its example of a medial visarga before স encodes to <code class='nw'>&lt;dussmy&gt;</code>. SHA, SSA and SA share the code <code class='nw'>&lt;s&gt;</code>, and the Ba-phalaa example <code class='nw'>বিশ্ব</code> encodes to <code class='nw'>&lt;biss&gt;</code>.</li><li><strong>Tests.</strong> <code class='nw'>testVisarga</code> checks <code class='nw'>দুঃখ</code> -&gt; <code class='nw'>দুখখ</code>, <code class='nw'>উঃ</code> -&gt; <code class='nw'>উহ</code>, <code class='nw'>পুনঃ</code> -&gt; <code class='nw'>পুন</code>. খ is not folded, so a raw copy and a folded copy give the same output: no test pins the current behaviour, and the fix breaks none. <code class='nw'>testRandom</code> can generate a folded letter after a visarga but checks only the length.</li><li><strong>History.</strong> The copy and the folds arrived together in the contributor's first commit <code class='nw'>1bca06b8a938</code> (2017-08-24, LUCENE-7940, gh#8989, lucene-solr PR #238). Two later commits of the same PR only added the Ja-phala and Ba-phalaa bounds checks from the review (<code class='nw'>3197d5af71d</code>, <code class='nw'>40dddf9324e</code>); commits after the 2017-09-05 landing only reformat or change visibility. None of them touches the visarga lines, and the review never discussed the visarga.</li><li><strong>No public javadoc for the mapping.</strong> The normalizer is package-private; the public filter says only that it normalizes "the orthography" and that "the normalization may cause unrelated terms to conflate". No javadoc promises a folded copy or a stable output, so there is no public contract; the evidence of intent is the class's rules, its tests and the cited paper.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>286 words</span></summary><div class='body'><p>The strongest "intended" case (the devil's-advocate verifier and the intended-lens review by another model family, rated moderate): the class is a one-pass transcription of the paper, and "gets the code of next character" can be read as "copy the next character", which <code>s[i] = s[i + 1]</code> does literally; the paper describes phonetic codes for a spelling checker, not search normalization; nothing promises that the output is closed under the folds or stable under a second pass, and another rule interaction is not stable either; the normalizer is package-private; no expected-output test covers a folded letter after a visarga; the output has been stable for 9 years and the original review measured relevance with this code; a maintainer defends the Indic folds as "working as documented" in gh#14659; another contributor's evaluation found the Bengali folds too aggressive for search; and nothing measures how often the variant spellings occur. So the missing conflation may be called harmless or not worth a reindex.</p><p>Why it fails: in the paper "code" is the phonetic code, which SHA, SSA and SA share; the class's own Ba-phalaa gemination copies the folded letter and an upstream test from the same commit pins it; the output is not a fixed point of the class's rules (supporting evidence, not proof on its own); and nothing documents the ordering. Long life is not evidence that anyone chose it. <strong>Verdict: a defect</strong> (adjudication: confirmed, high). What the counter-case gets right: the impact is small, a fix changes indexed terms, and documenting the raw copy is a legitimate maintainer choice; a maintainer may also ask for a Bengali-language check first. So the report should frame it as making the two geminations agree, not as a relevance argument.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>One table of the one-to-one folds, shared by the loop and the visarga copy</strong></p><p class='short'>Make the copy carry the folded letter: <code>s[i] = foldSimple(s[i + 1])</code> at <code>BengaliNormalizer.java:121</code>, with the class's one-to-one folds moved into <code class='nw'>foldSimple</code> so the loop and the copy share one table. The repro and all 1,912 tests of the module pass. It changes the terms of affected words, so they need a reindex.</p><pre class='snippet' tabindex='0'><code>} else {
+  // the copy is normalized like the next character itself
+  s[i] = foldSimple(s[i + 1]);
+}
+break;
+
+default:
+  s[i] = foldSimple(s[i]);
+  break;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 767 words</span></summary><div class='body'><p>Options A and B give identical output on every probe word; B avoids a second copy of the fold table. Add the new visarga cases to <code>TestBengaliNormalizer</code> with whichever is chosen. Not covered by any option (not claimed): what the copy should become when the next character is itself deleted (chandrabindu) or part of a context rule (KA + HASANTA, Ja/Ba-phala). Both options fold only the nine one-to-one characters; before anything else (ZWNJ or ZWJ, punctuation, a Latin letter, a supplementary character) the visarga is still a raw copy of one UTF-16 code unit. With a single-token <code class='nw'>KeywordTokenizer</code>, <code class='nw'>কঃ😀</code> gives <code>[0995 D83D D83D DE00]</code>, an unpaired high surrogate that <code class='nw'>IndexWriter</code> stores as U+FFFD, on stock and with both fixes; <code class='nw'>BengaliAnalyzer</code> splits the emoji off, so it is not affected (executed).</p><div class="hd hd-3"><h3 id='fix-shared-fold-table'>One table of the one-to-one folds, shared by the loop and the visarga copy <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-shared-fold-table" target="_self" aria-label="Link to this section" aria-describedby="fix-shared-fold-table"><span aria-hidden="true">#</span></a></div><p>The seven one-to-one cases (II, UU, NGA, SHA/SSA, NNA, RRA/RHA, khanda-ta) move with their comments into <code>private static char foldSimple(char c)</code>; the switch's <code class='nw'>default</code> calls it, so every non-visarga output stays the same, and the medial visarga copies <code>foldSimple(s[i + 1])</code>. +40/-37 in <code>BengaliNormalizer.java</code>.</p><pre class='snippet' tabindex='0'><code>} else {
+  // the copy is normalized like the next character itself
+  s[i] = foldSimple(s[i + 1]);
+}
+break;
+
+default:
+  s[i] = foldSimple(s[i]);
+  break;</code></pre><p class='k'>Trade-offs</p><ul><li>Changes the indexed term of every word with a medial visarga before a folded character: this would likely warrant a CHANGES entry and a MIGRATE note (reindex fields analyzed with <code class='nw'>BengaliAnalyzer</code>, <code>BengaliNormalizationFilter</code> or the <code>bengaliNormalization</code> factory); MIGRATE.md has such a note for the Romanian change in 10.0 (a precedent, not a rule). Main is the natural target; a 10.x backport is debatable.</li><li>The filter conflates more, but only within its own folds.</li><li>A larger diff than the minimal patch, but the table of one-to-one folds exists once, which removes the risk of two copies drifting apart (a special case added to the switch later could still differ from the copy). Cost: one static call for each character that reaches the switch's <code class='nw'>default</code> and for each medial-visarga copy (chandrabindu, KA, YA, BA and the visarga keep their own cases); no allocation (by reading).</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree at <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: the new test fails 3 of 3 on stock (assertions on and off) and passes with the fix; <code>org.apache.lucene.analysis.bn.*</code>: 5 suites, 25 tests (22 upstream + 3 new), 0 failures, with assertions on (seed 5EED0676) and off (seed 5EED0677); <code>:lucene:analysis:common:checkGoogleJavaFormat</code> passes; the whole <code>:lucene:analysis:common:test</code>: 340 suites, 1,912 tests, 18 skipped, 0 failures, with assertions on (seed 5EED0678) and with the seed's choice (seed 5EED0676).</li><li>Standalone runner with the fix shadowed: the new test 3 of 3 pass and the 4 upstream suites 22 of 22, each with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the probe gives 3 of 3 hits for every spelling and leaves the upstream examples and the digit case unchanged.</li></ul><div class="hd hd-3"><h3 id='fix-minimal-foldsimple'>Minimal patch: add <code class='nw'>foldSimple</code> for the copy only <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-minimal-foldsimple" target="_self" aria-label="Link to this section" aria-describedby="fix-minimal-foldsimple"><span aria-hidden="true">#</span></a></div><p>Change line 121 to <code>s[i] = foldSimple(s[i + 1]);</code> and add a helper with the same nine mappings as the switch's one-to-one cases (+25/-1). The finder's original fix.</p><pre class='snippet' tabindex='0'><code>-            s[i] = s[i + 1];
++            s[i] = foldSimple(s[i + 1]);</code></pre><p class='k'>Trade-offs</p><p>The smallest behavioural diff, but the mapping table then exists twice, so a later edit to one fold must update both. Same reindex note.</p><p class='k'>What the checks validated</p><p>Gradle: the 5 Bengali suites, 25 tests, 0 failures with assertions on and off; <code>checkGoogleJavaFormat</code> passes. Standalone: the new test 3 of 3 pass (<code class='nw'>-ea</code>, <code class='nw'>-da</code>); earlier the finder's test 3 of 3, the upstream suites 22 of 22 and the independent reproducer's test 9 of 9.</p><div class="hd hd-3"><h3 id='fix-document'>Keep the behaviour and document it</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>Pin <code class='nw'>নিঃশব্দ</code> -&gt; <code class='nw'>নিশসব্দ</code> in a test and comment that the copy is raw. Not run.</p><p class='k'>Trade-offs</p><p>It keeps every indexed term (no reindex, exact output stability), no public javadoc promises a folded copy, and nothing measures how often the variant spellings occur, so a maintainer may reasonably prefer it or ask for a Bengali-language check first. Its cost: the two geminations stay inconsistent, the output stays not a fixed point of the class's own rules, and the copy keeps differing from the cited paper's coding.</p><div class="hd hd-3"><h3 id='fix-revisit-copy'>Not recommended: step back (<code class='nw'>i--</code>) so the loop folds the copy</h3><a class="hlink" href="#fix-revisit-copy" target="_self" aria-label="Link to this section" aria-describedby="fix-revisit-copy"><span aria-hidden="true">#</span></a></div><p>A one-line idea that fixes the sibilant cases.</p><p class='k'>Trade-offs</p><p>It loops forever on a doubled visarga: <code class='nw'>কঃঃক</code> gives no result within 2 s through the filter and <code class='nw'>BengaliAnalyzer</code>, while the stock code and both fixes return <code class='nw'>কঃকক</code> (executed).</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive check of the stock Bengali filter against its own unconditional rules: no character such a rule rewrites or deletes may survive, and শ and স must give the same output. Over 551,881 short strings it found 23,947 violations, all with a visarga, pointing at line 121; in 20,097 a folded character survives; the recommended fix removes those.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>206 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation on the stock main jars</strong> (the study's "semi-formal" tier). A hunt unit, "script normalizers against their documented rules", 2026-10-27.</p><ul><li>A closure oracle (no character that an unconditional rule rewrites or deletes may survive in the output: the folded characters, chandrabindu and the visarga) and a mapping-invariance oracle (SHA/SSA/SA and the other folded pairs must give the same output) ran over all 551,881 strings of length 0 to 4 on a 27-character alphabet (consonants, vowel signs, hasanta, chandrabindu, anusvara, visarga, khanda-ta; 23,947 closure violations) and all 5,380,840 strings of length 0 to 7 on a 9-character alphabet (1,010,898).</li><li>A fact check later split the 23,947: a folded character survives in 20,097, and only a chandrabindu or a visarga in the other 3,850. With the recommended fix (option B), 4,372 remain, all chandrabindu/visarga-only (cases no fix option covers), and no folded character survives.</li><li>Every closure violation contains a visarga, and a residual run that excludes visarga and KA + HASANTA inputs has 0 closure and 0 mapping-invariance violations, which isolates the cause to the visarga copy (KA + HASANTA is the separate khio bug).</li><li>Then an AI finder wrote the public-API JUnit, and independent AI tools reproduced, reviewed and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report of the unfolded copy was found (best-effort search, 2026-10-27): two runs of the scripted prior-report search (65 and 63 entries over GitHub, commits, downstream projects, mailing lists, JIRA and the web), manual GitHub searches and all 409 open PRs. another contributor's wiki page restates the rule and reports a different side effect of the same branch (digit doubling).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>None of the issues, PRs, commits, JIRA entries, list threads or web pages found reports that the visarga copy escapes the folds. Upstream main, branch_10x and branch_10_5 still have the line.</p><p><strong>Near-miss, to disclose:</strong> another contributor's wiki page of Bengali analysis notes (mediawiki.org, 2022, linked from a comment in gh#14659) restates the rule as "delete ঃ and double the following letter if it is not the last letter" and reports that a visarga used as a colon doubles the next digit (১৬ঃ৯, 16:9, becomes ১৬৯৯). That is a different effect of the same branch, which the fix does not change; the page never mentions the unfolded copy.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene), commits</th><td class='when'>2026-10-27</td><td>47 issue/PR and 6 commit queries in two runs of a scripted prior-report search; manual searches for visarga, Bengali (all 12 results read) and BengaliNormalizer; gh#8989 (30 comments) and lucene-solr PR #238 with its review</td><td>no report; gh#3539 mentions the visarga only as a character typed as ':'; the introducing review never discusses it</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>the changed files of all 409 open apache/lucene PRs</td><td>none touches analysis/bn; #14699 (Telugu IndicNormalizer) is related, not the same</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-27</td><td>48 queries over dev@, java-user@, issues@ and commits@; Solr and general lists; 12 JIRA-archive queries plus searches across all JIRA projects</td><td>no report</td></tr><tr><th scope='row'>Downstream repositories, all of GitHub and the web</th><td class='when'>2026-10-27</td><td>6 downstream queries plus Elasticsearch, OpenSearch, Solr, lucene-solr and Lucene.NET (visarga: 0 hits); code search (36 copies and ports, all read); 8 web queries plus 1 direct fetch of the wiki page</td><td>no report; every copy has the same line; the wiki page above</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since the contributor's first commit <code class='nw'>1bca06b8a938</code> (2017-08-24, LUCENE-7940), first released in 7.1.0; the visarga lines never changed except for formatting. It reproduces on all 72 releases from 7.1.0 to 10.5.2 and on main; 7.0.1 has no Bengali API.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>1bca06b8a938</code> "LUCENE-7490: Added bengali language analyzer" (a typo for LUCENE-7940; lucene-solr PR #238, gh#8989), 2017-08-24, by sunkuet02. rmuir landed it on 2017-09-05 on branch_7x (squash <code class='nw'>e18532cb687c</code>, 7.1.0) and master (merge <code class='nw'>08128f712fc8</code>, 8.0.0 and later); CHANGES lists "LUCENE-7940: Add BengaliAnalyzer." under 7.1.0. The visarga copy and the folds arrived together in one switch. Two later commits of the same PR added the Ja-phala and Ba-phalaa bounds checks from the review (<code class='nw'>3197d5af71d</code>, <code class='nw'>40dddf9324e</code>); commits after the landing only reformat or change visibility (<code class='nw'>8ef6a0da568</code>, <code class='nw'>8ac26737913</code>, <code class='nw'>694d797526a</code>, <code class='nw'>f99deb58b74</code>). None touches the visarga lines. Not a regression; never fixed.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 3 of 3 fail (gradle and the standalone runner, assertions on and off)</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 3 of 3 fail; the finder's test 3 of 3; the independent reproducer's 5 of 9</td></tr><tr><th scope='row'>7.1.0-7.7.3, 8.0.0-8.11.4, 9.0.0-9.12.3, 10.0.0-10.5.2 (72 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the history probe reports BUG_PRESENT on each (assertions off; 7.1.0 also on), with byte-identical output</td></tr><tr><th scope='row'>7.0.1, 7.0.0, 6.6.6</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>the probe does not compile: no org.apache.lucene.analysis.bn package</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>all repros pass; the 5 Bengali suites, 25 tests, and the module's 1,912 tests, 0 failed</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate, an adjudication and reviews by another model family (which ran their own tests) all found it real; the adjudication confirmed it with high confidence. Registry re-runs and a final audit reproduced it with new seeds.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>450 words</span></summary><div class='body'><p>Every check wrote or ran its own test against the stock jars; all but the intended-lens review also ran with assertions off.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-API JUnit fails 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3; with the fix 3 of 3 pass and the upstream Bengali suites 22 of 22.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) ran its own JUnit on main <code class='nw'>ea57360912ed</code> (analysis sources identical to <code class='nw'>a9779ef3c193</code>) with <code class='nw'>-ea</code> over three seeds and <code class='nw'>-da</code> once; it fails, and passes with the fix; it cites the existing 10.5.2 and 9.12.3 runs.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 9-test JUnit fails 5 of 9 on main, 10.5.2 and 9.12.3, including the end-to-end search (0 of 1 hits); its 4 controls pass; a portable <code class='nw'>main()</code> fails on 8.11.4 and 7.7.3; found the Ba-phalaa comparison.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>OpenAI GPT-5.6: the intended-behaviour argument is moderate and rejected; reproduced through index-time analysis, <code>Analyzer.normalize</code> and the factory (<code class='nw'>-ea</code>, on main, 10.5.2 and 9.12.3).</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Re-ran the finder's test; its own probe shows <code class='nw'>বিঃশ</code> → <code class='nw'>বিশস</code> but <code class='nw'>বিশ্ব</code> → <code class='nw'>বিসস</code>, and that a second normalization pass changes the output.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test with a new seed (5 of 9 fail, <code class='nw'>-ea</code> and <code class='nw'>-da</code>) and the finder's (3 of 3, <code class='nw'>-da</code>); class silent wrong results.</td></tr><tr><th scope='row'>security assessment</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> none</span></td><td>0 exceptions over 2,000,718 generated strings; no output longer than its input; the bug only loses matches; outside Lucene's SECURITY.md scope.</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>The finder's test re-run on main with new seeds (3 of 3 fail, <code class='nw'>-ea</code> and <code class='nw'>-da</code>); an independent full-analyzer probe with index and search fails 3 of 5, passes 5 of 5 with the fix.</td></tr><tr><th scope='row'>brief runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced</span></td><td>The brief's test through gradle (main) and the standalone runner (main, 10.5.2, 9.12.3); options A and B validated; the <code class='nw'>i--</code> variant shown to hang; after the fact checks, a code-unit probe of the copy before non-folded characters (stock and both fixes).</td></tr><tr><th scope='row'>fact checks of this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; corrections applied</span></td><td>An independent fact check re-ran the doc's gradle command (3 of 3 fail, assertions on and off), fix B with the 5 Bengali suites (25 tests pass), the standalone runner on main, 10.5.2 and 9.12.3, the options probe and its own closure split. A second one, by another model family (OpenAI GPT-5.6, read-only), re-read the sources and logs. A diagram check re-ran the diagram's probe. All found the bug as described; their precision corrections are applied.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-676/bug.png' download='bengali-visarga-copies-unnormalized-next-char-bug.png' target='_self'>PNG</a> <span class='n'>457 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,543 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-676, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>BengaliNormalizer's medial-visarga rule copies the next character before that character is folded, so SHA, SSA, NNA (and the other one-to-one folded letters) survive after a visarga and those spellings stop matching the SA/NA spelling the same normalizer conflates everywhere else</dd></div><div><dt>Area</dt><dd>analysis-common / Bengali normalizer (BengaliNormalizer.normalize; BengaliNormalizationFilter, BengaliAnalyzer and the 'bengaliNormalization' factory)</dd></div><div><dt>Priority</dt><dd>Medium, rank 113: The default BengaliAnalyzer silently fails to match variant spellings after a medial visarga, the same kind of relevance miss as its khio sibling LFV-667 with a slightly narrower trigger.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Relevance only, with no error: every application that analyzes Bengali text with BengaliAnalyzer (default constructor included), BengaliNormalizationFilter or the 'bengaliNormalization' factory, on every release from 7.1.0 through 10.5.2 and on main, gets a term that keeps the unfolded letter for every word with a medial visarga before SHA (শ), SSA (ষ), NNA (ণ) or another letter the class folds one to one (vowel signs II and UU, NGA, RRA, RHA, khanda-ta), as in common words such as নিঃশব্দ, নিঃশেষ and নিঃশ্বাস, so the SHA/SSA spelling and the SA spelling of such a word no longer match each other although the analyzer conflates them in every other position; identical spellings still match, no scale is needed, -ea and -da behave the same, and because a fix changes indexed terms, affected fields need reindexing after it.</dd></div><div><dt>Summary</dt><dd>You index or query Bengali text with the stock BengaliAnalyzer or BengaliNormalizationFilter. Its normalizer folds SHA (শ) and SSA (ষ) to SA (স) everywhere and turns a medial visarga (ঃ) into a copy of the next letter (gemination), so নিঃশব্দ ('silent'), নিঃষব্দ and নিঃসব্দ should all become নিসসব্দ (SA SA), just as the class's other gemination rule turns বিশ্ব into বিসস in an upstream test. Instead the visarga branch copies the next character before the loop has folded it and never revisits the copy, so নিঃশব্দ becomes নিশসব্দ (SHA SA) and নিঃষব্দ becomes নিষসব্দ (SSA SA): the three spellings give three different terms, and a document written with one of them is not found by a query written with another, with no error.</dd></div><div><dt>Introduced</dt><dd>1bca06b8a938bfe89b288877399942d217c8453d (author sunkuet02; the first commit of apache/lucene-solr PR #238, LUCENE-7940 'Bengali Analyzer for Lucene', now apache/lucene#8989; its message says 'LUCENE-7490', a typo for LUCENE-7940) [read: git blame -w on main lines 112-130 and the introducing diff in the history clone]: the visarga copy s[i] = s[i+1] and the fold cases ('All sh', 'check na', II, UU, NGA, khanda-ta) arrived together in one left-to-right switch. It landed on branch_7x as the squash e18532cb687c (7.1.0) and on master through the merge 08128f712fc8 (8.0.0 and later), both by rmuir on 2017-09-05. Not a regression: the later commits on the file are formatting or visibility only (8ef6a0da568 LUCENE-9570, 8ac26737913 LUCENE-10003, 694d797526a LUCENE-10561, f99deb58b74 #13661), and the Ja/Ba-phala boundary fixes 3197d5af71d and 40dddf9324e inside PR #238 leave the visarga case unchanged. (2017-08-24 (authored; landed on branch_7x and master 2017-09-05; first released in 7.1.0))</dd></div><div><dt>First affected version</dt><dd>7.1.0 [exec] (the first release with the org.apache.lucene.analysis.bn package; the history probe reports BUG_PRESENT there with -da and with -ea, all 5 controls OK). 7.0.1, 7.0.0 and 6.6.6 have no Bengali analysis API [exec: the probe does not compile], so no release ever folded the visarga copy.</dd></div><div><dt>Affected versions</dt><dd>Every release that ships the Bengali analysis API, 7.1.0 through 10.5.2 (72 releases: 7.1.0-7.7.3, 8.0.0-8.11.4, 9.0.0-9.12.3, 10.0.0-10.5.2), and main a9779ef3c193; not fixed. [exec] the follow-up's public-API main() probe (WhitespaceTokenizer + BengaliNormalizationFilter, and BengaliAnalyzer) reports BUG_PRESENT (4 mismatches, 5 of 5 controls OK) on each of the 72 releases with -da (7.1.0 also with -ea) and on main, and BUG_ABSENT on main with the fix sketch shadowed; the finder's JUnit fails 3 of 3 on main (-ea and -da), 10.5.2, 10.0.0, 9.12.3 and 9.1.0; the independent reproduction's JUnit fails 5 of 9 on main (-ea and -da), 10.5.2 and 9.12.3, and the independent reproduction's portable main() fails on 8.11.4 and 7.7.3. [read] the file has three blobs across all release tags in the history clone (7.1.0-8.8.1, 9.0.0-9.12.3, 10.0.0-10.5.2 and main), all with the same raw copy; upstream main a95c754ee00 (2026-10-26), branch_10x and branch_10_5 still have s[i] = s[i + 1] at line 121 (read 2026-10-27).</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27, last run, read-only; the prior-report record, verdict new): two scripted prior-report searches (65 and 63 queries: 47 GitHub issue/PR queries on apache/lucene, 6 commit queries, 6 downstream-repository queries, 48 mailing-list queries over the dev, java-user, issues and commits lists, 12 JIRA-archive queries, 8 web queries; 98 and 56 distinct hits, 0 high), the intended-behaviour check's own scripted prior-report search (12 GitHub, 20 mailing-list and 2 JIRA queries, 0 high), manual GitHub searches ('visarga', 'Bengali' with all 12 results read, 'BengaliNormalizer'), the changed files of all 409 open apache/lucene PRs (none under analysis/bn/), the introducing issue gh#8989 (LUCENE-7940, 30 comments) and lucene-solr PR #238 with its review (no visarga discussion), JIRA across all projects, the solr and general lists, downstream trackers (Elasticsearch, OpenSearch, Solr, lucene-solr, Lucene.NET: 'visarga' 0 hits), GitHub code search (36 copies and ports, all with the raw copy) and the file's full git history. No issue, PR, JIRA ticket, list thread, commit or web page reports that the visarga copy escapes the folds. Near-miss, not a report: another contributor's wiki page of Bengali analysis notes (mediawiki.org, written 2022-08-15, last edited 2023-04-05, linked from a comment in gh#14659) restates the rule as 'delete the visarga and double the following letter' and reports a different side effect of the same branch (a visarga used as a colon doubles the next digit, 16:9 written in Bengali digits becomes 1699), which the proposed fix does not change. Related, not the same bug: gh#14659 and PR #14699 (Telugu IndicNormalizer, open), where a maintainer defends the Indic folds as working as documented; gh#3539 (LUCENE-2465) mentions the visarga only as a character typed as ':'. Gaps: best effort; the web search did not return the wiki page (it was fetched through the gh#14659 link); code search is not exhaustive.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the 10.5.2 and 9.12.3 release jars (the brief's test); a version-independent probe on all 72 release jars from 7.1.0 to 10.5.2 (7.0.1 has no Bengali API). Fix B was validated in the scratch worktree (the new test, the 5 Bengali suites with assertions on and off, <code>checkGoogleJavaFormat</code>, the whole module's 1,912 tests with assertions on and with the seed's choice); fix A with the Bengali suites and the format check.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/bn/BengaliNormalizer.java:21-28 (at a9779ef3c193) (class javadoc: &#x27;Implements the Bengali-language specific algorithm specified in: A Double Metaphone encoding for Bangla and its application in spelling checker&#x27;; package-private class), :40-54 (chandrabindu deletion, II -&gt; I, UU -&gt; U), :70-73 (NGA -&gt; anusvara), :92-110 (Ba-phalaa; :106 s[i - 1] = s[i - 2] copies an already processed character), :112-123 (visarga; :114-119 final visarga, :121 s[i] = s[i + 1]), :125-144 (&#x27;All sh&#x27; SHA/SSA -&gt; SA, &#x27;check na&#x27; NNA -&gt; NA, &#x27;check ra&#x27; RRA/RHA -&gt; RA, khanda-ta -&gt; TA)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/bn/BengaliNormalizationFilter.java:26-31 (at a9779ef3c193) (javadoc: &#x27;normalize the orthography&#x27;; &#x27;the normalization may cause unrelated terms to conflate&#x27;, KeywordAttribute protection); BengaliAnalyzer.java:104, :127, :134-138 (default constructor, the filter in createComponents and in normalize); BengaliNormalizationFilterFactory.java:35, :40 (SPI name &#x27;bengaliNormalization&#x27;)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/bn/TestBengaliNormalizer.java:53-57 (at a9779ef3c193) (testBaPhalaa: check(&quot;বিশ্ব&quot;, &quot;বিসস&quot;)), :59-63 (testVisarga: দুঃখ -&gt; দুখখ, উঃ -&gt; উহ, পুনঃ -&gt; পুন; no folded letter after a visarga)</code></li><li><code>a Lucene main checkout: git diff --stat ea57360912ed a9779ef3c193 -- lucene/analysis/ is empty (the cross-model review ran on ea57360912ed)</code></li><li><code>GitHub, read-only (2026-10-27, via the follow-up prior-report step and the intended-behaviour check): apache/lucene #8989 (LUCENE-7940 comments), apache/lucene-solr PR #238 (conversation and review), apache/lucene #14659 and PR #14699, apache/lucene #3539; apache/lucene main a95c754ee00 BengaliNormalizer.java (line 121 unchanged)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/bn/BengaliNormalizer.java:21-28 (at a9779ef3c193) (class javadoc, package-private), :36-152 (the pass), :46-54, :70-73, :92-110 (Ba-phalaa; :106), :112-123 (visarga; :121), :125-144 (folds)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/bn/BengaliNormalizationFilter.java:26-53; (at a9779ef3c193) BengaliAnalyzer.java:118-140; BengaliNormalizationFilterFactory.java:40, :54-62</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/bn/BengaliNormalizationFilter.java:29-31, (at a9779ef3c193) :48 (keyword tokens skip the normalizer); BengaliAnalyzer.java:123-125 (stem-exclusion set marked as keywords)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/bn/BengaliAnalyzer.java:103-106, (at a9779ef3c193) :118-140; BengaliNormalizationFilterFactory.java:40</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/bn/BengaliNormalizer.java:24-26, (at a9779ef3c193) :106, :112-123, :125-144; BengaliNormalizationFilter.java:27-31</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/bn/TestBengaliNormalizer.java:53-57 (at a9779ef3c193) (testBaPhalaa), :59-63 (testVisarga), :71-88 (testRandom)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/MIGRATE.md:871-873 (at a9779ef3c193)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:7861 (at a9779ef3c193)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestBengaliVisarga.java (lucene/analysis/common, public API): <a href='../repro/LFV-676/TestBengaliVisarga.java'><code>repro/LFV-676/TestBengaliVisarga.java</code></a> (54 lines)</li><li>TestBengaliVisargaRule.java (the finder&#x27;s test, code points in the messages): <a href='../repro/LFV-676/TestBengaliVisargaRule.java'><code>repro/LFV-676/TestBengaliVisargaRule.java</code></a> (82 lines)</li><li>TestVisargaCopyIsFolded.java (independent reproducer, end-to-end search): <a href='../repro/LFV-676/TestVisargaCopyIsFolded.java'><code>repro/LFV-676/TestVisargaCopyIsFolded.java</code></a> (178 lines)</li><li>VisargaOptionsProbe.java (prints filter output, analyzer terms and a search): <a href='../repro/LFV-676/VisargaOptionsProbe.java'><code>repro/LFV-676/VisargaOptionsProbe.java</code></a> (176 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A light, step-by-step picture of the repro (the word নিঃশব্দ and its spellings), made in parallel with this doc from executed runs on main <code class='nw'>a9779ef3c193</code> and the code.</p><ul class='paths'><li><a href='../assets/LFV-676/bug.png'><code>assets/LFV-676/bug.png</code></a> (457 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

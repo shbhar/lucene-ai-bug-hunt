@@ -1,0 +1,78 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+index 45b59fa46dd..396b09f87e2 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+@@ -1772,7 +1772,7 @@ public class IndexWriter
+             }
+             for (DocValuesFieldUpdates updates : fieldUpdatesMap.values()) {
+               updates.finish();
+-              rld.addDVUpdate(updates);
++              rld.addTryDVUpdate(updates);
+             }
+           } finally {
+             bufferedUpdatesStream.finishedSegment(nextGen);
+diff --git a/lucene/core/src/java/org/apache/lucene/index/PendingDeletes.java b/lucene/core/src/java/org/apache/lucene/index/PendingDeletes.java
+index 2549677c661..4002c5d30b6 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/PendingDeletes.java
++++ b/lucene/core/src/java/org/apache/lucene/index/PendingDeletes.java
+@@ -229,6 +229,13 @@ class PendingDeletes {
+   void onDocValuesUpdate(FieldInfo info, DocValuesFieldUpdates.Iterator iterator)
+       throws IOException {}
+ 
++  /**
++   * Called when a doc values update that was resolved by document ID is added, before it is written
++   *
++   * @param update the resolved update
++   */
++  void onTryDocValuesUpdate(DocValuesFieldUpdates update) throws IOException {}
++
+   int numDeletesToMerge(MergePolicy policy, IOSupplier<CodecReader> readerIOSupplier)
+       throws IOException {
+     return policy.numDeletesToMerge(info, getDelCount(), readerIOSupplier);
+diff --git a/lucene/core/src/java/org/apache/lucene/index/PendingSoftDeletes.java b/lucene/core/src/java/org/apache/lucene/index/PendingSoftDeletes.java
+index 63c021660c7..0e05cc6bab3 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/PendingSoftDeletes.java
++++ b/lucene/core/src/java/org/apache/lucene/index/PendingSoftDeletes.java
+@@ -166,6 +166,16 @@ final class PendingSoftDeletes extends PendingDeletes {
+     dvGeneration = info.getDocValuesGen();
+   }
+ 
++  @Override
++  void onTryDocValuesUpdate(DocValuesFieldUpdates update) throws IOException {
++    if (this.field.equals(update.field)) {
++      // Apply it to the live docs now, as a delete by document ID is. When the pending updates are
++      // written, onDocValuesUpdate applies the newest value of each document again.
++      pendingDeleteCount += applySoftDeletes(update.iterator(), getMutableBits());
++      assert assertPendingDeletes();
++    }
++  }
++
+   private boolean assertPendingDeletes() {
+     assert pendingDeleteCount + info.getSoftDelCount() >= 0
+         : "illegal pending delete count: " + (pendingDeleteCount + info.getSoftDelCount());
+diff --git a/lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java b/lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java
+index 4117d3bbec8..f56cf4e9fc3 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java
++++ b/lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java
+@@ -163,6 +163,21 @@ final class ReadersAndUpdates {
+     fieldUpdates.add(update);
+   }
+ 
++  /**
++   * Adds a doc values update that was resolved by document ID ({@link
++   * IndexWriter#tryUpdateDocValue}). Unlike the updates resolved from buffered terms, its effect on
++   * the live docs is applied right away, the same way {@link #delete(int)} applies {@link
++   * IndexWriter#tryDeleteDocument}. Otherwise term-based operations issued after it would be
++   * resolved against live docs that do not reflect it until the update is written.
++   */
++  public synchronized void addTryDVUpdate(DocValuesFieldUpdates update) throws IOException {
++    if (reader == null) {
++      getReader(IOContext.DEFAULT).decRef(); // pass a reader to initialize the pending deletes
++    }
++    addDVUpdate(update);
++    pendingDeletes.onTryDocValuesUpdate(update);
++  }
++
+   public synchronized long getNumDVUpdates() {
+     long count = 0;
+     for (List<DocValuesFieldUpdates> updates : pendingDVUpdates.values()) {

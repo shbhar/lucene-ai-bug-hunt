@@ -1,0 +1,1115 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>IndexWriter.forceMerge(n) can return normally with more than n segments when a merge it adopted fails</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-590 &middot; forcemerge-adopted-merge-failure-not-reported</p><h1 id='top'>IndexWriter.forceMerge(n) can return normally with more than n segments when a merge it adopted fails</h1><p class='tldr'>If a background merge that <code class='nw'>forceMerge(n)</code> waits for but did not register itself fails (say, on a full disk), the call can return normally with the index unmerged. The writer then closes itself and <code class='nw'>close()</code> returns normally too, so <code>forceMerge(1); close()</code> can report success while uncommitted changes are rolled back.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 98</span><span class='sub'>In the default config, forceMerge can return normally after an adopted merge fails (for example on a full disk), and close() can then report success while uncommitted changes are lost; it needs an I/O failure plus a small race, so it joins the fault-driven writer-contract rows after LFV-474 and above the very rare tragic race LFV-013.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>wrong error</span></dd></div><div><dt>Since</dt><dd>2.3.0 (released 2008; LUCENE-845, committed 2007)<span class='sub'>introduced 2007-09-18 &middot; over 19 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>every release from 2.3.0 to 10.5.2, and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>semi-formal: TLA+ model checking of the forced-merge wait protocol</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>forceMerge(n)</code> marks merges that are already pending or running as its own but leaves their generation stamp old, so their failure is dropped; the tragic event that would also stop it is set only after the merge thread has woken it.</p><figure class='visual' id='forcemerge-adopted-merge-failure-not-reported-short-visual'><div class='frame'><a class='still' href='../assets/LFV-590/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-590/bug.png' alt='Summary card: Lucene IndexWriter.forceMerge(1) can return normally although the merge it waited for failed. A timeline of the merge thread (mergeFinish, then the tragedy and the closed writer) against the waiting forceMerge(1), which returns normally in between, and close(), which returns too. Four steps: the flush of forceMerge starts merge M of _0 + _1 stamped mergeGen 0; resetMergeExceptions sets mergeGen to 1 and adopts M, which stays 0; M fails on a simulated full disk and addMergeException drops it; mergeFinish wakes the call before the tragedy is set. Expected: throws IOException background merge hit exception. Actual: returns normally with 2 segments, close() returns too. Fix sketches: set mergeGen on adoption, or set the tragedy before mergeFinish.' width='1920' height='1080'></a></div><figcaption>From forceMerge's flush that starts merge M, through M's old stamp and the dropped failure, to the normal return before the tragedy; ends on a summary card. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Use the default <code>ConcurrentMergeScheduler</code> and a merge policy that merges 2 segments (<code>LogDocMergePolicy</code>, merge factor 2). Add document 0 and commit; add document 1 without committing.</span></li><li><span>Call <code class='nw'>forceMerge(1)</code>. Its first step flushes document 1 into a second segment, and that flush starts an ordinary background merge of the 2 segments. forceMerge adopts that merge as its own and waits for it.</span></li><li><span>The merge fails when it creates a file: the disk is full. You expect <code class='nw'>forceMerge(1)</code> to throw, as it does when the failing merge is one it started itself: <code>IOException: background merge hit exception</code>.</span></li><li><span>Instead it returns normally with 2 segments: in the deterministic test every time, and without test points or <code class='nw'>InfoStream</code> hooks in 22 to 53 of 500 runs. An instant later the writer closes itself and rolls back document 1.</span></li><li><span><code class='nw'>close()</code> then returns normally too, and the index holds 1 of 2 documents. Nothing is corrupted. With the default <code>TieredMergePolicy</code> it is the same: forceMerge(1) returned with 9 segments.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that call the blocking <code class='nw'>forceMerge(n)</code> while a natural merge is pending or running, including one its own flush starts. No special configuration: the default <code>ConcurrentMergeScheduler</code> and <code>TieredMergePolicy</code> reproduce it; <code>SerialMergeScheduler</code> is not affected. It needs an I/O failure in that merge, such as a full disk, and a short race: rare.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>819 words</span></summary><div class='body'><p><code>IndexWriter.forceMerge(n)</code> adopts every merge that is already pending or running when it starts, including one its own flush has just started, and waits for it. If that merge fails, for example on a full disk, the failure is filed under an older merge generation and dropped, and the writer's other alarm, the tragic event, is raised only after the waiting call has been woken. The call can then return normally with more than n segments. A moment later the writer rolls back to the last commit and closes; the next call that changes or commits the index throws <code>AlreadyClosedException</code>, but <code class='nw'>close()</code> returns normally, so <code>forceMerge(1); close()</code> can report success while the changes since the last commit are gone. No special configuration is needed; it needs a merge I/O failure and, since 5.3.0, a short race, so it is rare. It has been there since 2.3.0.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Segments and merges.</strong> An index is a set of segments; merges combine segments, by default in background threads of the <code>ConcurrentMergeScheduler</code>. Commits, flushes and NRT reopens ask the merge policy for merges and register them as <em>pending</em>; a merge thread then runs them.</li><li><strong><code class='nw'>forceMerge(n)</code>.</strong> "Forces merge policy to merge segments until there are &lt;= maxNumSegments". The blocking form waits until merging finishes; its wait loop is meant to throw when merging cannot finish (its comment: "so the calling thread will know merging did not complete", <code class='nw'>:2314-2318</code>).</li><li><strong>Adopted merge.</strong> A merge that is already pending or running when forceMerge starts. forceMerge marks it as part of the forced merge (<code>maxNumSegments = n</code>) and waits for it.</li><li><strong><code class='nw'>mergeGen</code>.</strong> A counter. Every merge is stamped with its value when it is registered; forceMerge clears its list of failed merges and increments the counter; a failure is recorded in the list only if the merge's stamp equals the counter.</li><li><strong>Tragic event.</strong> A failure the writer cannot recover from; since 5.3.0 every failed merge is one. The writer records it, rolls back to the last commit and closes.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-step-by-step-main-a9779ef3c193-indexwriter-java'>The bug, step by step (main <code class='nw'>a9779ef3c193</code>, <code class='nw'>IndexWriter.java</code>)</h3><a class="hlink" href="#what-the-bug-is-the-bug-step-by-step-main-a9779ef3c193-indexwriter-java" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-step-by-step-main-a9779ef3c193-indexwriter-java"><span aria-hidden="true">#</span></a></div><ol><li>forceMerge flushes first (<code class='nw'>:2248</code>). The flush can register a natural merge, stamped with the current generation, say 0 (<code>merge.mergeGen = mergeGen</code>, <code class='nw'>:5218</code>).</li><li>It then clears its failure list and bumps the generation to 1 (<code>resetMergeExceptions()</code>, <code class='nw'>:2250</code>, <code class='nw'>:3039-3042</code>), and marks every pending and running merge as forced (<code>merge.maxNumSegments = maxNumSegments</code>, <code class='nw'>:2258-2279</code>). It does <strong>not</strong> update <code class='nw'>merge.mergeGen</code>: the adopted merge keeps stamp 0.</li><li>The adopted merge fails. <code>handleMergeException</code> calls <code>addMergeException</code> (<code class='nw'>:5040-5041</code>), which records it only <code>if (... mergeGen == merge.mergeGen)</code> (<code class='nw'>:5821</code>): 1 is not 0, so the failure is dropped.</li><li>Still holding the writer lock, the merge thread calls <code class='nw'>mergeFinish</code>, which wakes every waiter (<code class='nw'>notifyAll()</code>) and removes the merge from the running list (<code class='nw'>:5094</code>, <code class='nw'>:5375-5391</code>); after a failure no follow-up forced merge is registered (<code class='nw'>:5096-5106</code>). Only after releasing the lock does it publish the tragedy (<code class='nw'>tragicEvent</code>, <code class='nw'>:5109-5113</code>; comment "Important that tragicEvent is called after mergeFinish, else we hang").</li><li>The woken forceMerge checks the tragedy (not set yet), its failure list (empty) and whether forced merges are pending (none), breaks out of the loop (<code class='nw'>:2284-2312</code>), passes <code class='nw'>ensureOpen()</code> because the writer is not closed yet (<code class='nw'>:2318</code>) and <strong>returns normally</strong>.</li><li>Then the tragedy is set, the writer rolls back to the last commit and closes (<code class='nw'>:6090-6106</code>). The next call that changes or commits the index (a call guarded by <code class='nw'>ensureOpen()</code>) throws <code>AlreadyClosedException</code>; <code class='nw'>close()</code> and <code class='nw'>rollback()</code> return normally on a closed writer (<code class='nw'>:1312-1339</code>, <code class='nw'>:1374-1393</code>, <code class='nw'>:2576-2584</code>).</li></ol><p>Before 5.3.0 merge failures were not tragic, so step 5 happened every time and the writer stayed open. A merge forceMerge registers itself gets the new stamp, so its failure is reported ("background merge hit exception"). The TLA+ model also found a second path that step 2 alone does not explain: a merge that fails and records its failure just before forceMerge clears the list, and is then adopted (model only, not run on a jar).</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Deterministic JUnit on main, assertions on and off: the merge started by forceMerge's own flush, the merge started by an earlier <code class='nw'>commit()</code> (both <code>LogDocMergePolicy</code> with merge factor 2) and the default <code>TieredMergePolicy</code> merge of 9 one-document segments all fail with the injected <code class='nw'>IOException</code> (thrown when the merge creates a file), and <code class='nw'>forceMerge(1)</code> returns normally with <strong>2, 2 and 9 segments</strong>; the control throws <code>IOException: background merge hit exception: _0(11.0.0):c1 _1(11.0.0):c1 into _2 [maxNumSegments=1]</code>. The impact demo's <code class='nw'>close()</code> returns normally and the index holds <strong>1 of 2 documents</strong>. Without test points or <code class='nw'>InfoStream</code> hooks, the public-API program returned normally in 5 and 7 of 300 runs, and earlier runs in 1/200 to 12/300; another hook-free test in 22 to 84 of 500.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>490 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Callers of the blocking <code class='nw'>forceMerge(n)</code> (<code class='nw'>forceMerge(int)</code> or <code>forceMerge(n, true)</code>) while a natural merge registered by an earlier commit, flush or NRT reopen, or by forceMerge's own flush, is pending or running. A lone <code class='nw'>forceMerge(1)</code> after uncommitted adds is enough. A writer that only opens an index and calls <code class='nw'>forceMerge(1)</code> with no uncommitted changes, like the upgrade idiom in <code>lucene/MIGRATE.md:178-180</code>, is not affected: its flush registers no merge (<code class='nw'>:4378</code>, <code class='nw'>:4403-4426</code>), so it waits only for merges it registered itself, whose failure is reported (a probe of that idiom threw in 300 of 300 runs).</li><li><strong>Default or opt-in.</strong> Default: no special configuration is needed; the default <code>ConcurrentMergeScheduler</code> and <code>TieredMergePolicy</code> give 9 segments at return in the deterministic test (its writer config differs from the default only in the test hooks and a 256 MB RAM buffer). The hook-free runs used <code>LogDocMergePolicy</code> with merge factor 2. Not affected: <code>SerialMergeScheduler</code> (the merge runs in the calling thread, so its exception propagates) and <code>forceMerge(n, false)</code>, which does not wait.</li><li><strong>The trigger.</strong> An I/O failure in the adopted merge, most realistically a full disk: forceMerge "requires free space that is proportional to the size of the index", 2X to 3X (<code>IndexWriter.java:2195-2197</code>). No other forced merge may be pending or running when the woken call checks; otherwise it waits again, normally sees the tragedy and throws.</li><li><strong>Consequence: a false success.</strong> <code class='nw'>forceMerge(n)</code> returns with more than n segments, then the writer closes itself and discards every change since the last commit (adds, updates, deletes). The next call that changes or commits the index throws <code>AlreadyClosedException</code> with the tragedy as cause and <code>getTragicException()</code> returns it, but <code class='nw'>close()</code> returns normally, so <code>change; forceMerge(1); close()</code> can complete without an exception while the change is gone. A hook-free probe ran "delete, or update to a restricted version; <code class='nw'>forceMerge(1)</code>; <code class='nw'>close()</code>" back to back: every call returned normally and the old document was still live in the committed index in 1 to 17 of 500 attempts per configuration on main, 10.5.2 and 9.12.3, and in 0 of 500 with either fix; in the other attempts an exception was reported (483 to 499 of 500) or <code class='nw'>close()</code> committed the change first (0 to 2). The default scheduler also throws <code class='nw'>MergeException</code> in the merge thread (<code>ConcurrentMergeScheduler.java:760-762</code>), which by reading reaches that thread's uncaught-exception handler, by default a stack trace on stderr. Nothing is corrupted; the last commit stays intact.</li><li><strong>Before 5.3.0</strong> merge failures were not tragic: <code class='nw'>optimize</code>/<code class='nw'>forceMerge</code> returned normally with the index unmerged every time and the writer stayed open (executed on 2.3.0 and 5.2.1).</li><li><strong>How often.</strong> Rare: an I/O failure in an adopted merge plus, since 5.3.0, a race the caller cannot influence (0.5% to 17% of attempts with a failing merge in small hook-free harnesses whose failure hits only the merge's own writes; not field rates). No report was found in the 11 years since 5.3.0.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit class in <code>org.apache.lucene.index</code> with 3 bug tests and a control, 2 to 9 documents each. Latches and IndexWriter test points order the steps, <code>MockDirectoryWrapper</code> makes the merge fail, and an <code class='nw'>InfoStream</code> holds the merge thread just before the tragedy. A hook-free plain-Java program is in the collapsed block.</p><figure class='code'><figcaption><span class='fname'>TestForceMergeAdoptedMergeFailure.java (JUnit, formatted by ./gradlew tidy)</span><span class='meta'>287 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.tests.store.MockDirectoryWrapper;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.InfoStream;
+import org.apache.lucene.util.SuppressForbidden;
+
+/**
+ * forceMerge(1) waits for a merge that was already registered when it was called (it marks it as a
+ * forced merge). If that merge fails, forceMerge must not return normally with the index still
+ * unmerged. The failure is dropped from IndexWriter&#x27;s mergeExceptions list because the merge keeps
+ * the mergeGen of its registration, and the tragic event that the failing merge thread sets is
+ * published only after mergeFinish() has woken the waiting forceMerge. The InfoStream below holds
+ * the merge thread right before it sets the tragedy, which makes that window deterministic.
+ */
+public class TestForceMergeAdoptedMergeFailure extends LuceneTestCase {
+
+  /**
+   * MockDirectoryWrapper fault injection, as in Lucene&#x27;s own disk-full tests: once armed, every new
+   * file a merge creates fails with an IOException (reading the segments to merge still works).
+   */
+  private static final class DiskFull extends MockDirectoryWrapper.Failure {
+    final AtomicBoolean armed = new AtomicBoolean();
+    final AtomicInteger thrown = new AtomicInteger();
+
+    @Override
+    public void eval(MockDirectoryWrapper dir) throws IOException {
+      if (armed.get()
+          &amp;&amp; callStackContains(IndexWriter.class, &quot;mergeMiddle&quot;)
+          &amp;&amp; callStackContains(MockDirectoryWrapper.class, &quot;createOutput&quot;)) {
+        thrown.incrementAndGet();
+        throw new IOException(&quot;fake disk full while writing the merged segment&quot;);
+      }
+    }
+  }
+
+  private static void await(CountDownLatch latch) {
+    try {
+      if (latch.await(60, TimeUnit.SECONDS) == false) {
+        throw new AssertionError(&quot;timed out waiting for &quot; + latch);
+      }
+    } catch (InterruptedException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  private static Document doc(String id) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    return doc;
+  }
+
+  /**
+   * @param naturalMergeFromCommit true: the natural merge is started by an earlier commit() and is
+   *     already running when forceMerge(1) is called; false: it is started by forceMerge&#x27;s own
+   *     flush (no other call at all)
+   */
+  private void runScenario(boolean naturalMergeFromCommit) throws Exception {
+    runScenario(naturalMergeFromCommit, false, false);
+  }
+
+  private void runScenario(boolean naturalMergeFromCommit, boolean ownMerge) throws Exception {
+    runScenario(naturalMergeFromCommit, ownMerge, false);
+  }
+
+  /**
+   * @param ownMerge control: no natural merge at all (merge factor 10); the merge that fails is the
+   *     one forceMerge(1) itself registers
+   */
+  @SuppressForbidden(reason = &quot;Thread sleep&quot;)
+  private void runScenario(boolean naturalMergeFromCommit, boolean ownMerge, boolean defaultConfig)
+      throws Exception {
+    final CountDownLatch mergeInMiddle = new CountDownLatch(1);
+    final CountDownLatch releaseMerge = new CountDownLatch(1);
+    final CountDownLatch forceMergeWaiting = new CountDownLatch(1);
+    final CountDownLatch forceMergeReturned = new CountDownLatch(1);
+    final AtomicBoolean heldBeforeTragedy = new AtomicBoolean();
+    final AtomicInteger middleStarts = new AtomicInteger();
+
+    InfoStream infoStream =
+        new InfoStream() {
+          @Override
+          public void message(String component, String message) {
+            if (&quot;TP&quot;.equals(component) &amp;&amp; &quot;mergeMiddleStart&quot;.equals(message)) {
+              if (middleStarts.incrementAndGet() == 1) {
+                mergeInMiddle.countDown();
+                await(releaseMerge);
+              }
+            } else if (&quot;TP&quot;.equals(component) &amp;&amp; &quot;forceMergeBeforeWait&quot;.equals(message)) {
+              forceMergeWaiting.countDown();
+            } else if (&quot;IW&quot;.equals(component) &amp;&amp; message.startsWith(&quot;hit tragic&quot;)) {
+              // The failed merge has already left runningMerges and released the IndexWriter
+              // monitor; the tragedy is set right after this message. Hold it here until
+              // forceMerge has returned (bounded, so a fixed IndexWriter cannot hang the test).
+              heldBeforeTragedy.set(true);
+              try {
+                forceMergeReturned.await(10, TimeUnit.SECONDS);
+              } catch (InterruptedException e) {
+                throw new AssertionError(e);
+              }
+            }
+          }
+
+          @Override
+          public boolean isEnabled(String component) {
+            return &quot;TP&quot;.equals(component) || &quot;IW&quot;.equals(component);
+          }
+
+          @Override
+          public void close() {}
+        };
+
+    final AtomicReference&lt;Throwable&gt; mergeThreadFailure = new AtomicReference&lt;&gt;();
+    ConcurrentMergeScheduler cms =
+        new ConcurrentMergeScheduler() {
+          @Override
+          protected void handleMergeException(Throwable exc) {
+            mergeThreadFailure.compareAndSet(null, exc);
+          }
+        };
+    LogDocMergePolicy mp = new LogDocMergePolicy();
+    mp.setMergeFactor(ownMerge ? 10 : 2);
+
+    MockDirectoryWrapper dir = new MockDirectoryWrapper(random(), new ByteBuffersDirectory());
+    DiskFull diskFull = new DiskFull();
+    dir.failOn(diskFull);
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setMergeScheduler(cms)
+            .setMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH)
+            .setRAMBufferSizeMB(256)
+            .setInfoStream(infoStream);
+    if (defaultConfig == false) {
+      iwc.setMergePolicy(mp);
+    } // else: the default merge policy and merge-on-commit settings
+    IndexWriter w =
+        new IndexWriter(dir, iwc) {
+          @Override
+          protected boolean isEnableTestPoints() {
+            return true;
+          }
+        };
+
+    if (defaultConfig) {
+      // default TieredMergePolicy: commit small segments until a commit starts a natural merge
+      for (int i = 0; i &lt; 100 &amp;&amp; mergeInMiddle.getCount() &gt; 0; i++) {
+        w.addDocument(doc(&quot;d&quot; + i));
+        w.commit();
+      }
+      await(mergeInMiddle);
+    } else {
+      w.addDocument(doc(&quot;0&quot;));
+      w.commit(); // segment _0, nothing to merge yet
+      w.addDocument(doc(&quot;1&quot;));
+    }
+    if (defaultConfig) {
+      // a natural merge is running; forceMerge(1) is called now
+    } else if (ownMerge) {
+      w.commit(); // segment _1; merge factor 10: no natural merge
+      assertEquals(2, w.getSegmentCount());
+    } else if (naturalMergeFromCommit) {
+      // segment _1; the commit&#x27;s maybeMerge registers the natural merge [_0, _1] and CMS starts it
+      w.commit();
+      await(mergeInMiddle);
+      assertEquals(2, w.getSegmentCount());
+    }
+
+    final AtomicReference&lt;Throwable&gt; forceMergeFailure = new AtomicReference&lt;&gt;();
+    final AtomicInteger segmentsAtReturn = new AtomicInteger(-1);
+    final AtomicBoolean returnedNormally = new AtomicBoolean();
+    Thread forceMerger =
+        new Thread(
+            () -&gt; {
+              try {
+                w.forceMerge(1);
+                returnedNormally.set(true);
+                segmentsAtReturn.set(w.getSegmentCount());
+              } catch (Throwable t) {
+                forceMergeFailure.set(t);
+              } finally {
+                forceMergeReturned.countDown();
+              }
+            },
+            &quot;forceMerger&quot;);
+    forceMerger.start();
+
+    // forceMerge(1) adopted the running natural merge and is now waiting for it
+    await(forceMergeWaiting);
+    await(mergeInMiddle);
+
+    // make the adopted merge fail (disk full), then let it continue
+    diskFull.armed.set(true);
+    releaseMerge.countDown();
+
+    forceMerger.join(60_000);
+    assertFalse(&quot;forceMerge did not finish&quot;, forceMerger.isAlive());
+
+    // wait for the tragic rollback the failed merge triggers
+    for (int i = 0; i &lt; 600 &amp;&amp; w.isOpen(); i++) {
+      Thread.sleep(100);
+    }
+    diskFull.armed.set(false);
+    cms.sync();
+
+    System.out.println(
+        getTestName()
+            + &quot;: forceMerge returned normally=&quot;
+            + returnedNormally.get()
+            + &quot; segmentsAtReturn=&quot;
+            + segmentsAtReturn.get()
+            + &quot; forceMergeThrew=&quot;
+            + forceMergeFailure.get()
+            + &quot; tragedy=&quot;
+            + w.getTragicException());
+    assertTrue(&quot;the merge must have hit the injected failure&quot;, diskFull.thrown.get() &gt; 0);
+    assertNotNull(&quot;the failed merge must be a tragic event&quot;, w.getTragicException());
+    assertTrue(&quot;the hook before the tragedy must have run&quot;, heldBeforeTragedy.get());
+    assertFalse(&quot;the writer is closed by the tragic event&quot;, w.isOpen());
+
+    // The contract: forceMerge(1) returns normally only after the segments present at its call are
+    // merged into one segment; a failure of the merge it waited for is forwarded to it.
+    assertFalse(
+        &quot;forceMerge(1) returned normally although the merge it was waiting for failed with &quot;
+            + w.getTragicException()
+            + &quot;; segments in the writer when it returned: &quot;
+            + segmentsAtReturn.get(),
+        returnedNormally.get());
+    assertNotNull(forceMergeFailure.get());
+
+    w.close(); // no-op: already closed by the tragic event
+    dir.close();
+  }
+
+  /**
+   * Control: the failing merge is the one forceMerge(1) registers itself. Its failure is forwarded
+   * (&quot;background merge hit exception&quot;), so this test passes on main.
+   */
+  public void testControlOwnForcedMergeFailureIsReported() throws Exception {
+    runScenario(false, true);
+  }
+
+  /**
+   * Default merge policy (TieredMergePolicy) and merge scheduler class (ConcurrentMergeScheduler);
+   * the writer config differs from the default only in the test hooks (merge scheduler subclass,
+   * InfoStream, test points) and a 256 MB RAM buffer. The natural merge that a commit starts is
+   * running when forceMerge(1) is called.
+   */
+  public void testFailedMergeStartedBeforeForceMergeDefaultPolicy() throws Exception {
+    runScenario(true, false, true);
+  }
+
+  /** The natural merge was started by an earlier commit() and is running when forceMerge starts. */
+  public void testFailedMergeStartedBeforeForceMerge() throws Exception {
+    runScenario(true);
+  }
+
+  /** The natural merge is started by forceMerge&#x27;s own flush; no other writer call is involved. */
+  public void testFailedMergeStartedByForceMergeFlush() throws Exception {
+    runScenario(false);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.index.TestForceMergeAdoptedMergeFailure -Ptests.seed=DEADBEEF
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>forceMerge(1)</code> throws, as the control does (<code>IOException: background merge hit exception</code>), or leaves 1 segment.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>forceMerge(1)</code> returns normally with 2 segments (9 with the default policy); the writer then closes itself, and <code class='nw'>close()</code> returns normally with 1 of 2 documents left.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-590/'>repro/LFV-590/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (478 lines) · 2,478 words</span></summary><div class='body'><p>Each test builds a tiny index with a stock <code>ConcurrentMergeScheduler</code> (its <code>handleMergeException</code> overridden only to keep the merge thread's exception out of the test result), lets a natural merge start, calls <code class='nw'>forceMerge(1)</code> in a second thread, waits until it is parked in the wait loop (test point <code>forceMergeBeforeWait</code>), then makes the merge fail with <code>IOException("fake disk full while writing the merged segment")</code> when it creates its first new file (<code>MockDirectoryWrapper.createOutput</code> inside <code class='nw'>mergeMiddle</code>; reading the segments to merge still works). The <code class='nw'>InfoStream</code> holds the merge thread at its <code>"hit tragic"</code> message, which lies between <code class='nw'>mergeFinish</code> and the tragedy, for at most 10 s; that bound makes the schedule reliable rather than strictly deterministic. Every test asserts the correct behaviour (forceMerge must not return normally).</p><div class="tbl"><table><thead><tr><th>test</th><th>how the merge starts</th><th>main</th></tr></thead><tbody><tr><td><code>testFailedMergeStartedByForceMergeFlush</code></td><td>forceMerge's own flush (<code>LogDocMergePolicy</code>, merge factor 2)</td><td>fails: returns normally, 2 segments</td></tr><tr><td><code>testFailedMergeStartedBeforeForceMerge</code></td><td>an earlier <code class='nw'>commit()</code> (merge factor 2)</td><td>fails: returns normally, 2 segments</td></tr><tr><td><code>testFailedMergeStartedBeforeForceMergeDefaultPolicy</code></td><td>a <code class='nw'>commit()</code>, default <code>TieredMergePolicy</code></td><td>fails: returns normally, 9 segments</td></tr><tr><td><code>testControlOwnForcedMergeFailureIsReported</code></td><td>none (merge factor 10): forceMerge registers the merge</td><td>passes: <code>IOException: background merge hit exception</code></td></tr></tbody></table></div><p>The polling loop that waits for the tragic close uses <code class='nw'>Thread.sleep</code>, so the method carries <code>@SuppressForbidden(reason = "Thread sleep")</code>, as several Lucene tests do; with it <code>./gradlew :lucene:core:check -x test</code> is clean.</p><p><strong>Without test points or InfoStream hooks.</strong> <code>PublicApiForceMergeRace.java</code> (below) uses the public API only, no test framework, no test points and no <code class='nw'>InfoStream</code> hooks: a plain <code class='nw'>Directory</code> subclass whose merge outputs wait until released and then fail like a full disk (this gate and a 50 ms sleep time the failure). Two commits start the merge, <code class='nw'>forceMerge(1)</code> runs in a second thread, and 50 ms later the merge fails. On main it returned normally in 5 of 300 runs (7 of 300 with IndexWriter logging on).</p><p><strong>Impact demo.</strong> <code>TestForceMergeAdoptedMergeFailureThenClose</code> adds <code class='nw'>close()</code> after the normal return and asserts that both documents are in the index: <code>expected:&lt;2&gt; but was:&lt;1&gt;</code> on main.</p><div class="hd hd-3"><h3 id='code-2-h'>PublicApiForceMergeRace.java (hook-free, public API, plain main)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Exits 1 if <code class='nw'>forceMerge(1)</code> returned normally after its merge failed in any run. Second argument <code class='nw'>true</code> turns IndexWriter logging on (to a discarding stream).</p><figure class='code'><figcaption><span class='fname'>PublicApiForceMergeRace.java (hook-free, public API, plain main)</span><span class='meta'>218 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package repro;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.ConcurrentMergeScheduler;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexInput;
+import org.apache.lucene.store.IndexOutput;
+import org.apache.lucene.store.Lock;
+
+/**
+ * Natural-race check with public API only: a stock ConcurrentMergeScheduler, a plain Directory
+ * implementation that models a slow disk which then fills up (the first file a merge creates
+ * waits until released, then fails), no test points, no InfoStream hooks, and no Lucene test
+ * framework. The natural merge started by a commit is still running when forceMerge(1) is called;
+ * forceMerge adopts it; then the merge fails. Correct behaviour: forceMerge(1) throws. Counts how
+ * often it returns normally instead.
+ *
+ * &lt;p&gt;Args: iterations [iwLogging=true|false]. iwLogging enables the IndexWriter info stream through
+ * IndexWriterConfig.setInfoStream(PrintStream) to a discarding stream. Exit code 1 if any normal
+ * return was seen.
+ */
+public class PublicApiForceMergeRace {
+
+  /** Delegating Directory: merge outputs wait for the gate, then fail while armed. */
+  static final class SlowThenFullDirectory extends Directory {
+    final Directory in = new ByteBuffersDirectory();
+    volatile CountDownLatch mergeStarted = new CountDownLatch(1);
+    volatile CountDownLatch gate = new CountDownLatch(1);
+    final AtomicBoolean armed = new AtomicBoolean();
+
+    @Override
+    public IndexOutput createOutput(String name, IOContext context) throws IOException {
+      if (context.context() == IOContext.Context.MERGE) {
+        mergeStarted.countDown();
+        try {
+          gate.await(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+          throw new IOException(e);
+        }
+        if (armed.get()) {
+          throw new IOException(&quot;No space left on device (simulated) while writing &quot; + name);
+        }
+      }
+      return in.createOutput(name, context);
+    }
+
+    @Override
+    public IndexOutput createTempOutput(String prefix, String suffix, IOContext context)
+        throws IOException {
+      return in.createTempOutput(prefix, suffix, context);
+    }
+
+    @Override
+    public String[] listAll() throws IOException {
+      return in.listAll();
+    }
+
+    @Override
+    public void deleteFile(String name) throws IOException {
+      in.deleteFile(name);
+    }
+
+    @Override
+    public long fileLength(String name) throws IOException {
+      return in.fileLength(name);
+    }
+
+    @Override
+    public void sync(Collection&lt;String&gt; names) throws IOException {
+      in.sync(names);
+    }
+
+    @Override
+    public void syncMetaData() throws IOException {
+      in.syncMetaData();
+    }
+
+    @Override
+    public void rename(String source, String dest) throws IOException {
+      in.rename(source, dest);
+    }
+
+    @Override
+    public IndexInput openInput(String name, IOContext context) throws IOException {
+      return in.openInput(name, context);
+    }
+
+    @Override
+    public Lock obtainLock(String name) throws IOException {
+      return in.obtainLock(name);
+    }
+
+    @Override
+    public void close() throws IOException {
+      in.close();
+    }
+
+    @Override
+    public void copyFrom(Directory from, String src, String dest, IOContext context)
+        throws IOException {
+      in.copyFrom(from, src, dest, context);
+    }
+
+    @Override
+    public Set&lt;String&gt; getPendingDeletions() throws IOException {
+      return in.getPendingDeletions();
+    }
+  }
+
+  private static Document doc(String id) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    return doc;
+  }
+
+  /** Returns 1 if forceMerge(1) returned normally, 0 if it threw. */
+  static int once(boolean iwLogging) throws Exception {
+    SlowThenFullDirectory dir = new SlowThenFullDirectory();
+    LogDocMergePolicy mp = new LogDocMergePolicy();
+    mp.setMergeFactor(2);
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setMergeScheduler(
+                new ConcurrentMergeScheduler() {
+                  @Override
+                  protected void handleMergeException(Throwable exc) {
+                    // the failure is expected; keep stderr quiet
+                  }
+                })
+            .setMergePolicy(mp);
+    if (iwLogging) {
+      iwc.setInfoStream(new PrintStream(OutputStream.nullOutputStream()));
+    }
+    IndexWriter w = new IndexWriter(dir, iwc);
+    w.addDocument(doc(&quot;0&quot;));
+    w.commit();
+    w.addDocument(doc(&quot;1&quot;));
+    w.commit(); // registers and starts the natural merge [_0, _1]; it blocks on its first file
+    if (dir.mergeStarted.await(30, TimeUnit.SECONDS) == false) {
+      throw new AssertionError(&quot;natural merge did not start&quot;);
+    }
+    AtomicBoolean returnedNormally = new AtomicBoolean();
+    AtomicReference&lt;Throwable&gt; thrown = new AtomicReference&lt;&gt;();
+    Thread t =
+        new Thread(
+            () -&gt; {
+              try {
+                w.forceMerge(1);
+                returnedNormally.set(true);
+              } catch (Throwable e) {
+                thrown.set(e);
+              }
+            });
+    t.start();
+    Thread.sleep(50); // let forceMerge flush, adopt the running merge and start waiting
+    dir.armed.set(true);
+    dir.gate.countDown(); // the disk is now full: the merge fails
+    t.join(60_000);
+    if (t.isAlive()) {
+      throw new AssertionError(&quot;forceMerge did not finish&quot;);
+    }
+    for (int i = 0; i &lt; 600 &amp;&amp; w.isOpen(); i++) {
+      Thread.sleep(10); // the tragic rollback closes the writer
+    }
+    w.close();
+    dir.close();
+    return returnedNormally.get() ? 1 : 0;
+  }
+
+  public static void main(String[] args) throws Exception {
+    int iters = args.length &gt; 0 ? Integer.parseInt(args[0]) : 200;
+    boolean iwLogging = args.length &gt; 1 &amp;&amp; Boolean.parseBoolean(args[1]);
+    int normal = 0;
+    for (int i = 0; i &lt; iters; i++) {
+      normal += once(iwLogging);
+    }
+    System.out.println(
+        &quot;PUBLIC-API RACE iwLogging=&quot;
+            + iwLogging
+            + &quot; iterations=&quot;
+            + iters
+            + &quot; forceMerge(1) returned normally after its merge failed: &quot;
+            + normal);
+    System.exit(normal &gt; 0 ? 1 : 0);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>javac -nowarn -d out -cp lucene-core.jar PublicApiForceMergeRace.java &amp;&amp; java -da -cp out:lucene-core.jar repro.PublicApiForceMergeRace 300 false
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestForceMergeAdoptedMergeFailureThenClose.java (impact demo: forceMerge(1), then close())</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestForceMergeAdoptedMergeFailureThenClose.java (impact demo: forceMerge(1), then close())</span><span class='meta'>260 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.tests.store.MockDirectoryWrapper;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.InfoStream;
+import org.apache.lucene.util.SuppressForbidden;
+
+/**
+ * Impact demo (not the oracle of the candidate): the same interleaving as
+ * TestForceMergeAdoptedMergeFailure, followed by the common &quot;forceMerge(1); close()&quot; sequence with
+ * the default commitOnClose=true. Both calls return normally, yet the document indexed since the
+ * last commit is not in the index: the tragic event rolled the writer back and close() of an
+ * already closed writer does nothing. The test asserts that a sequence of calls that all returned
+ * normally kept every document.
+ *
+ * &lt;p&gt;forceMerge(1) waits for a merge that was already registered when it was called (it marks it as
+ * a forced merge). If that merge fails, forceMerge must not return normally with the index still
+ * unmerged. The failure is dropped from IndexWriter&#x27;s mergeExceptions list because the merge keeps
+ * the mergeGen of its registration, and the tragic event that the failing merge thread sets is
+ * published only after mergeFinish() has woken the waiting forceMerge. The InfoStream below holds
+ * the merge thread right before it sets the tragedy, which makes that window deterministic.
+ */
+public class TestForceMergeAdoptedMergeFailureThenClose extends LuceneTestCase {
+
+  /**
+   * MockDirectoryWrapper fault injection, as in Lucene&#x27;s own disk-full tests: once armed, every new
+   * file a merge creates fails with an IOException (reading the segments to merge still works).
+   */
+  private static final class DiskFull extends MockDirectoryWrapper.Failure {
+    final AtomicBoolean armed = new AtomicBoolean();
+    final AtomicInteger thrown = new AtomicInteger();
+
+    @Override
+    public void eval(MockDirectoryWrapper dir) throws IOException {
+      if (armed.get()
+          &amp;&amp; callStackContains(IndexWriter.class, &quot;mergeMiddle&quot;)
+          &amp;&amp; callStackContains(MockDirectoryWrapper.class, &quot;createOutput&quot;)) {
+        thrown.incrementAndGet();
+        throw new IOException(&quot;fake disk full while writing the merged segment&quot;);
+      }
+    }
+  }
+
+  private static void await(CountDownLatch latch) {
+    try {
+      if (latch.await(60, TimeUnit.SECONDS) == false) {
+        throw new AssertionError(&quot;timed out waiting for &quot; + latch);
+      }
+    } catch (InterruptedException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  private static Document doc(String id) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    return doc;
+  }
+
+  /**
+   * @param naturalMergeFromCommit true: the natural merge is started by an earlier commit() and is
+   *     already running when forceMerge(1) is called; false: it is started by forceMerge&#x27;s own
+   *     flush (no other call at all)
+   */
+  private void runScenario(boolean naturalMergeFromCommit) throws Exception {
+    runScenario(naturalMergeFromCommit, false);
+  }
+
+  /**
+   * @param ownMerge control: no natural merge at all (merge factor 10); the merge that fails is the
+   *     one forceMerge(1) itself registers
+   */
+  @SuppressForbidden(reason = &quot;Thread sleep&quot;)
+  private void runScenario(boolean naturalMergeFromCommit, boolean ownMerge) throws Exception {
+    final CountDownLatch mergeInMiddle = new CountDownLatch(1);
+    final CountDownLatch releaseMerge = new CountDownLatch(1);
+    final CountDownLatch forceMergeWaiting = new CountDownLatch(1);
+    final CountDownLatch forceMergeReturned = new CountDownLatch(1);
+    final AtomicBoolean heldBeforeTragedy = new AtomicBoolean();
+    final AtomicInteger middleStarts = new AtomicInteger();
+
+    InfoStream infoStream =
+        new InfoStream() {
+          @Override
+          public void message(String component, String message) {
+            if (&quot;TP&quot;.equals(component) &amp;&amp; &quot;mergeMiddleStart&quot;.equals(message)) {
+              if (middleStarts.incrementAndGet() == 1) {
+                mergeInMiddle.countDown();
+                await(releaseMerge);
+              }
+            } else if (&quot;TP&quot;.equals(component) &amp;&amp; &quot;forceMergeBeforeWait&quot;.equals(message)) {
+              forceMergeWaiting.countDown();
+            } else if (&quot;IW&quot;.equals(component) &amp;&amp; message.startsWith(&quot;hit tragic&quot;)) {
+              // The failed merge has already left runningMerges and released the IndexWriter
+              // monitor; the tragedy is set right after this message. Hold it here until
+              // forceMerge has returned (bounded, so a fixed IndexWriter cannot hang the test).
+              heldBeforeTragedy.set(true);
+              try {
+                forceMergeReturned.await(10, TimeUnit.SECONDS);
+              } catch (InterruptedException e) {
+                throw new AssertionError(e);
+              }
+            }
+          }
+
+          @Override
+          public boolean isEnabled(String component) {
+            return &quot;TP&quot;.equals(component) || &quot;IW&quot;.equals(component);
+          }
+
+          @Override
+          public void close() {}
+        };
+
+    final AtomicReference&lt;Throwable&gt; mergeThreadFailure = new AtomicReference&lt;&gt;();
+    ConcurrentMergeScheduler cms =
+        new ConcurrentMergeScheduler() {
+          @Override
+          protected void handleMergeException(Throwable exc) {
+            mergeThreadFailure.compareAndSet(null, exc);
+          }
+        };
+    LogDocMergePolicy mp = new LogDocMergePolicy();
+    mp.setMergeFactor(ownMerge ? 10 : 2);
+
+    MockDirectoryWrapper dir = new MockDirectoryWrapper(random(), new ByteBuffersDirectory());
+    DiskFull diskFull = new DiskFull();
+    dir.failOn(diskFull);
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setMergeScheduler(cms)
+            .setMergePolicy(mp)
+            .setMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH)
+            .setRAMBufferSizeMB(256)
+            .setInfoStream(infoStream);
+    IndexWriter w =
+        new IndexWriter(dir, iwc) {
+          @Override
+          protected boolean isEnableTestPoints() {
+            return true;
+          }
+        };
+
+    w.addDocument(doc(&quot;0&quot;));
+    w.commit(); // segment _0, nothing to merge yet
+    w.addDocument(doc(&quot;1&quot;));
+    if (ownMerge) {
+      w.commit(); // segment _1; merge factor 10: no natural merge
+      assertEquals(2, w.getSegmentCount());
+    } else if (naturalMergeFromCommit) {
+      // segment _1; the commit&#x27;s maybeMerge registers the natural merge [_0, _1] and CMS starts it
+      w.commit();
+      await(mergeInMiddle);
+      assertEquals(2, w.getSegmentCount());
+    }
+
+    final AtomicReference&lt;Throwable&gt; forceMergeFailure = new AtomicReference&lt;&gt;();
+    final AtomicInteger segmentsAtReturn = new AtomicInteger(-1);
+    final AtomicBoolean returnedNormally = new AtomicBoolean();
+    Thread forceMerger =
+        new Thread(
+            () -&gt; {
+              try {
+                w.forceMerge(1);
+                returnedNormally.set(true);
+                segmentsAtReturn.set(w.getSegmentCount());
+              } catch (Throwable t) {
+                forceMergeFailure.set(t);
+              } finally {
+                forceMergeReturned.countDown();
+              }
+            },
+            &quot;forceMerger&quot;);
+    forceMerger.start();
+
+    // forceMerge(1) adopted the running natural merge and is now waiting for it
+    await(forceMergeWaiting);
+    await(mergeInMiddle);
+
+    // make the adopted merge fail (disk full), then let it continue
+    diskFull.armed.set(true);
+    releaseMerge.countDown();
+
+    forceMerger.join(60_000);
+    assertFalse(&quot;forceMerge did not finish&quot;, forceMerger.isAlive());
+
+    // wait for the tragic rollback the failed merge triggers
+    for (int i = 0; i &lt; 600 &amp;&amp; w.isOpen(); i++) {
+      Thread.sleep(100);
+    }
+    diskFull.armed.set(false);
+    cms.sync();
+
+    assertTrue(&quot;the merge must have hit the injected failure&quot;, diskFull.thrown.get() &gt; 0);
+    assertTrue(&quot;the hook before the tragedy must have run&quot;, heldBeforeTragedy.get());
+    if (returnedNormally.get() == false) {
+      // forceMerge reported the failure: the caller knows, nothing to check
+      System.out.println(getTestName() + &quot;: forceMerge threw &quot; + forceMergeFailure.get());
+      w.close();
+      dir.close();
+      return;
+    }
+    Throwable closeFailure = null;
+    try {
+      w.close(); // commitOnClose=true (default): flush, wait for merges, commit, close
+    } catch (Throwable t) {
+      closeFailure = t;
+    }
+    int docs;
+    try (DirectoryReader r = DirectoryReader.open(dir)) {
+      docs = r.numDocs();
+    }
+    System.out.println(
+        getTestName()
+            + &quot;: forceMerge(1) returned normally, close() threw=&quot;
+            + closeFailure
+            + &quot;, documents in the index after close: &quot;
+            + docs
+            + &quot; of 2, tragedy=&quot;
+            + w.getTragicException());
+    if (closeFailure == null) {
+      assertEquals(
+          &quot;forceMerge(1) and close() both returned normally, but the index lost documents&quot;,
+          2,
+          docs);
+    }
+    dir.close();
+  }
+
+  /** The natural merge is started by forceMerge&#x27;s own flush; doc &quot;1&quot; is not yet committed. */
+  public void testForceMergeThenCloseLosesUncommittedDoc() throws Exception {
+    runScenario(false);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.index.TestForceMergeAdoptedMergeFailureThenClose -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); the same failures on 10.5.2, 9.12.3, 9.0.0, 8.11.4 and 8.6.0 (9.0.0 and 8.x with the pre-9.1 test-framework imports)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp TestForceMergeAdoptedMergeFailure.java $LUCENE/lucene/core/src/test/org/apache/lucene/index/
+cd $LUCENE
+./gradlew :lucene:core:test --tests org.apache.lucene.index.TestForceMergeAdoptedMergeFailure -Ptests.seed=DEADBEEF
+# assertions off: add -Ptests.asserts=false (same 3 failures)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># the command above on stock main a9779ef3c193, assertions on (the same 3 failures with -Ptests.asserts=false); excerpt, messages wrapped
+TestForceMergeAdoptedMergeFailure &gt; testFailedMergeStartedBeforeForceMerge FAILED
+    java.lang.AssertionError: forceMerge(1) returned normally although the merge it was waiting for failed with
+    java.io.IOException: fake disk full while writing the merged segment; segments in the writer when it returned: 2
+TestForceMergeAdoptedMergeFailure &gt; testFailedMergeStartedByForceMergeFlush FAILED
+    ... segments in the writer when it returned: 2
+TestForceMergeAdoptedMergeFailure &gt; testFailedMergeStartedBeforeForceMergeDefaultPolicy FAILED
+    ... segments in the writer when it returned: 9
+4 tests completed, 3 failed
+control: forceMergeThrew=java.io.IOException: background merge hit exception: _0(11.0.0):c1 _1(11.0.0):c1 into _2 [maxNumSegments=1]
+
+# impact demo (--tests ...TestForceMergeAdoptedMergeFailureThenClose: 1 test, 1 failure)
+TestForceMergeAdoptedMergeFailureThenClose &gt; testForceMergeThenCloseLosesUncommittedDoc FAILED
+    java.lang.AssertionError: forceMerge(1) and close() both returned normally, but the index lost documents expected:&lt;2&gt; but was:&lt;1&gt;
+
+# hook-free program, plain javac/java, main a9779ef3c193, -da
+PUBLIC-API RACE iwLogging=false iterations=300 forceMerge(1) returned normally after its merge failed: 5
+PUBLIC-API RACE iwLogging=true iterations=300 forceMerge(1) returned normally after its merge failed: 7</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The wait loop forwards background merge failures and calls <code class='nw'>ensureOpen()</code> "so the calling thread will know merging did not complete".</li><li>The same failure in a merge forceMerge registered itself is reported: <code>IOException: background merge hit exception</code>.</li><li>The generation filter exists only for forceMerge, yet drops exactly the merges forceMerge adopted, including one its own flush started.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>322 words</span></summary><div class='body'><ul><li><strong>The wait loop states the intent.</strong> "Forward any exceptions in background merge threads to the current thread" (<code class='nw'>:2293-2294</code>); a tragedy throws "this writer hit an unrecoverable error; cannot complete forceMerge" (<code class='nw'>:2286-2290</code>); and after the loop: "If close is called while we are still running, throw an exception so the calling thread will know merging did not complete", then <code class='nw'>ensureOpen()</code> (<code class='nw'>:2314-2318</code>).</li><li><strong>The javadoc.</strong> <code>@param maxNumSegments maximum number of segments left in the index after merging finishes</code> (<code class='nw'>:2223</code>); "This call will merge those segments present in the index when the call started" (<code class='nw'>:2219</code>); <code>@throws IOException if there is a low-level IO error</code> (<code class='nw'>:2225</code>). Its disk-full paragraph describes a partially merged index for the case "If an Exception is hit" (<code class='nw'>:2213-2217</code>), that is, when the call throws.</li><li><strong>The control.</strong> A merge forceMerge registered itself, failing the same way, is forwarded as <code>IOException: background merge hit exception</code> on every version where the control ran (2.3.0, 5.2.1, 5.3.0, 9.12.3, 10.5.2 and main).</li><li><strong>The filter exists only for forceMerge.</strong> <code>resetMergeExceptions()</code> has one caller, forceMerge (<code class='nw'>:2250</code>), and the failure list is consumed only by forceMerge's wait loop (<code class='nw'>:2292-2303</code>; <code>addMergeException</code> reads it only to skip duplicates, <code class='nw'>:5821</code>). In this scenario the merges it filters out are exactly those forceMerge has just marked as its own and waits for (<code>maxNumSegmentsMergesPending</code>, <code class='nw'>:2326-2336</code>); a merge started by forceMerge's own flush cannot predate the call.</li><li><strong>Nothing accepts it.</strong> No javadoc, <code class='nw'>CHANGES.txt</code> or <code class='nw'>MIGRATE.md</code> entry, test or issue describes a normal return after a failed adopted merge; <code>TestIndexWriterExceptions.testForceMergeExceptions</code> and <code>TestIndexWriterOnDiskFull</code> tolerate exceptions but never check the segment count after a normal return.</li><li><strong>Precedent.</strong> LUCENE-1376 (#2450, 2008), "sometimes if a BG merge hits an exception, optimize() will fail to forward the exception", and LUCENE-2618 (#3692, 2010), an adoption gap for concurrently started natural merges, were both fixed as bugs. This case survives both fixes.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>246 words</span></summary><div class='body'><p>The strongest case for "intended" (from the intended-behaviour checker and the cross-model refute review): <code class='nw'>mergeGen</code> has deliberately kept earlier merges' failures out since 2007; publishing the tragedy after <code class='nw'>mergeFinish</code> is deliberate (LUCENE-6579); the javadoc never says every background failure reaches the caller and it allows a partial merge; the writer still reports the tragedy at the next call and in the merge thread; <code class='nw'>close()</code> doing nothing on a closed writer matches <code class='nw'>Closeable</code>; forceMerge(n) may legitimately leave more than n segments when a policy skips segments; and the deterministic test needs test points and an <code class='nw'>@lucene.internal</code> <code class='nw'>InfoStream</code> hold.</p><p>Why it fails: forceMerge reclassifies the adopted merges as its own and waits for them, and a merge started by its own flush removes any "not your merge" reading. The LUCENE-6579 comment requires only that the <em>close</em> follows <code class='nw'>mergeFinish</code>; <code class='nw'>onTragicEvent</code> only sets a field, the close is <code>maybeCloseOnTragicEvent</code> (<code class='nw'>:6068-6106</code>). The partial-merge sentence is about a call that throws. A later report does not make a return correct whose postcondition is false. The 2 or 9 segments are not a policy decision: the follow-up forced merge is skipped only because the merge failed (<code class='nw'>:5096-5106</code>). And the hook-free public-API program fails without any test point or <code class='nw'>InfoStream</code> hook, while upstream tests already use the same test points (<code>TestConcurrentMergeScheduler.java:1007,1014</code>). The refute reviewer agreed with the root cause ("mechanically credible") and called its own not-real verdict procedural; it could not run code. <strong>Verdict: not intended.</strong></p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Publish the tragedy before mergeFinish wakes the waiters (validated)</strong></p><p class='short'>Publish the tragedy before <code class='nw'>mergeFinish</code> wakes the waiting forceMerge (+5 lines in <code>IndexWriter.merge</code>; the writer still closes after <code class='nw'>mergeFinish</code>). The tests, 24 closest suites and all 8,894 tests of <code>:lucene:core:test</code> pass. A waiting forceMerge then gets <code>IllegalStateException</code> for an ordinary merge failure. A 4-line alternative sets <code class='nw'>mergeGen</code> on adoption but misses a second path the model found.</p><pre class='snippet' tabindex='0'><code>} catch (Throwable t) {
+  if (t instanceof MergePolicy.MergeAbortedException == false) {
+    // publish the tragedy before mergeFinish() wakes threads that wait for this merge;
+    // the writer is still closed only after mergeFinish (tragicEvent below)
+    onTragicEvent(t, &quot;merge&quot;);
+  }
+  handleMergeException(t, merge);
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 830 words</span></summary><div class='body'><p>Two fix sketches from the hunt, both validated through gradle in scratch worktrees of <code class='nw'>a9779ef3c193</code>. They differ in what they cover and in which exception a waiting forceMerge gets. Present both.</p><div class="hd hd-3"><h3 id='fix-tragic-before-mergefinish'>Publish the tragedy before mergeFinish wakes the waiters (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-tragic-before-mergefinish" target="_self" aria-label="Link to this section" aria-describedby="fix-tragic-before-mergefinish"><span aria-hidden="true">#</span></a></div><p>+5 lines in <code>IndexWriter.merge</code> (<code>IndexWriter.java:5084</code>): call <code class='nw'>onTragicEvent</code> in the inner catch, so the tragedy is set before <code class='nw'>mergeFinish</code> calls <code class='nw'>notifyAll()</code>; <code class='nw'>tragicEvent</code> (which closes the writer) stays after <code class='nw'>mergeFinish</code>, as LUCENE-6579 requires.</p><pre class='snippet' tabindex='0'><code>} catch (Throwable t) {
+  if (t instanceof MergePolicy.MergeAbortedException == false) {
+    // publish the tragedy before mergeFinish() wakes threads that wait for this merge;
+    // the writer is still closed only after mergeFinish (tragicEvent below)
+    onTragicEvent(t, &quot;merge&quot;);
+  }
+  handleMergeException(t, merge);
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Closes both paths in the TLA+ model: the dropped failure and the failure cleared by the reset (configs <code class='nw'>fixtrag1</code> 4,847 states, two callers with the same n 91,094, wider bounds up to 38,896,974; invariants hold; two callers with different n still violate F1 through the separate LFV-592).</li><li>For an ordinary failure (merge aborts are skipped by the patch) of a merge it waits for, a waiting forceMerge then throws <code>IllegalStateException: this writer hit an unrecoverable error; cannot complete forceMerge</code> (cause: the merge's exception) instead of, sometimes, the <code>IOException: background merge hit exception</code> it gets today; the control shows this change. As today, an <code class='nw'>InfoStream</code> whose <code class='nw'>message()</code> throws makes <code class='nw'>onTragicEvent</code> skip setting the field (<code class='nw'>:6075-6083</code>).</li><li><code class='nw'>onTragicEvent</code> runs twice per failed merge (the second <code class='nw'>compareAndSet</code> is a no-op, but <code>"hit tragic"</code> is logged twice), and other threads can see the tragedy while the merge is still in the running list; by reading, a concurrent rollback then waits in <code class='nw'>abortMerges</code> until the merge leaves it. The suites showed no hang.</li><li>The test's hold then sits before <code class='nw'>mergeFinish</code>, so each fixed test waits out its 10 s bound.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree of <code class='nw'>a9779ef3c193</code> (removed afterwards), 2026-10-27: the paste-ready 4-test class and the impact demo pass with assertions on and off (forceMerge throws <code>IllegalStateException: ... cannot complete forceMerge</code>; pass 4), and an earlier version of the tests with <code class='nw'>tests.iters=10</code> (seed CAFEBABE): 50 of 50.</li><li>24 closest <code>org.apache.lucene.index</code> suites (<code class='nw'>TestIndexWriter</code>, <code>TestIndexWriterExceptions</code>, <code>TestIndexWriterExceptions2</code>, <code>TestIndexWriterOnDiskFull</code>, <code>TestIndexWriterForceMerge</code>, <code>TestConcurrentMergeScheduler</code>, <code>TestTragicIndexWriterDeadlock</code>, <code>TestThreadedForceMerge</code>, <code class='nw'>TestRollback</code>, <code class='nw'>TestAddIndexes</code> and others): 376 tests, 0 failures, 19 skipped, with assertions on and off.</li><li>All of <code>:lucene:core:test</code> (seed DEADBEEF): 750 classes, 8,894 tests, 0 failures, 0 errors, 322 skipped; <code>:lucene:core:check -x test</code> passes with the paste-ready tests.</li><li>Earlier, on the jar: the hook-free program 0 of 200 normal returns; the hook-free probes 0 of 500 silent losses (delete and update modes); the finder's hooked 4-test JUnit 4 of 4.</li></ul><div class="hd hd-3"><h3 id='fix-mergegen-on-adoption'>Set mergeGen when forceMerge adopts a merge (validated, smaller) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-mergegen-on-adoption" target="_self" aria-label="Link to this section" aria-describedby="fix-mergegen-on-adoption"><span aria-hidden="true">#</span></a></div><p>+4 lines in the adoption loops (<code>IndexWriter.java:2260-2278</code>): <code>merge.mergeGen = mergeGen;</code> next to <code>merge.maxNumSegments = maxNumSegments;</code> for pending and running merges, so an adopted merge's failure reaches the wait loop like that of a merge forceMerge registered itself.</p><pre class='snippet' tabindex='0'><code>for (final MergePolicy.OneMerge merge : pendingMerges) {
+  merge.maxNumSegments = maxNumSegments;
+  // this call now waits for the merge: report its failure to this call
+  merge.mergeGen = mergeGen;
+  ...
+for (final MergePolicy.OneMerge merge : runningMerges) {
+  merge.maxNumSegments = maxNumSegments;
+  merge.mergeGen = mergeGen;</code></pre><p class='k'>Trade-offs</p><ul><li>Smallest change; adopted merges then behave exactly like merges forceMerge registers (<code>IOException: background merge hit exception</code> when the waiter is first, <code>IllegalStateException</code> when the tragedy is).</li><li>Misses the model's second path: a merge that fails and records its failure just before forceMerge clears the list, and is adopted afterwards (config <code class='nw'>fixgen1</code>, not run on a jar). A possible complement, untested: in the adoption loops, also add a merge whose <code class='nw'>getException()</code> is already set to the failure list.</li><li>Keeps the writer-wide <code class='nw'>mergeGen</code> and failure list that concurrent forceMerge calls share: by reading, a second call's reset can still clear a failure already recorded for the first (the model's two-caller stock config <code class='nw'>two_stock_same</code> shows that clearing; fix A was not model-checked with two callers).</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree of <code class='nw'>a9779ef3c193</code> (removed afterwards), 2026-10-27: the paste-ready 4-test class and the impact demo pass with assertions on and off (forceMerge throws <code>IOException: background merge hit exception</code>; pass 4), and an earlier version of the tests with <code class='nw'>tests.iters=10</code>: 50 of 50.</li><li>The same 24 closest suites: 376 tests, 0 failures, 19 skipped, assertions on and off. All of <code>:lucene:core:test</code>: 750 classes, 8,894 tests, 0 failures, 322 skipped; <code>:lucene:core:check -x test</code> passes with the paste-ready tests.</li><li>Earlier, on the jar: the independent reproducer's shadow fix 0 of 500 normal returns hook-free; the hook-free probes 0 of 500 silent losses.</li></ul><div class="hd hd-3"><h3 id='fix-other'>Other directions (untested)</h3><a class="hlink" href="#fix-other" target="_self" aria-label="Link to this section" aria-describedby="fix-other"><span aria-hidden="true">#</span></a></div><p>Track the merges a forceMerge call waits for and check each one's <code class='nw'>getException()</code> when it finishes, as <code>MergePolicy.MergeObserver</code> does for <code>forceMergeDeletes</code>, instead of the generation-filtered list; or drop the generation filter for merges that have <code class='nw'>maxNumSegments</code> set.</p><p class='k'>Trade-offs</p><p>Larger changes to the wait protocol; not built or run.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Not a security issue (a full disk triggers it, not untrusted input), but a service that runs <code>delete; forceMerge(1); close()</code> and trusts the normal return can believe a deletion took effect when it was rolled back.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Semi-formal: the mechanism was first read from the code while planning a TLA+ model of IndexWriter's forced-merge wait protocol; the TLC model checker then produced a 12-state counterexample with one caller, one natural merge and one I/O failure. It was replayed on the stock jar as a JUnit, and hook-free programs hit it too.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>239 words</span></summary><div class='body'><p><strong>Method: TLA+ model checking (TLC) of the forced-merge wait protocol</strong>, at the granularity of the writer's <code class='nw'>synchronized</code> blocks (<code>ForceMergeWait.tla</code>), with 1-2 callers, 1-2 merge threads, a flushing thread, <code class='nw'>deleteAll</code> and merge I/O failures as actions, and fix switches.</p><ul><li>The hunt unit's plan already read the mechanism from the code, so this is semi-formal, not a blind find. TLC then witnessed it: invariant F1, "a normal return leaves the segments present at the call merged into at most n", is violated by a 12-state trace (config <code class='nw'>stock1</code>).</li><li>TLC also found a second path that the <code class='nw'>mergeGen</code> fix alone misses (<code class='nw'>fixgen1</code>, a 12-state trace), and showed the tragedy-first fix clean (<code class='nw'>fixtrag1</code>, 4,847 states; two same-target callers 91,094; wider bounds on a separate host up to 38,896,974 states). The model abstracts merge-policy choices and timed waits and does not model <code class='nw'>close()</code>, <code class='nw'>commit()</code> or a throwing <code class='nw'>InfoStream</code>: it supports the wait-protocol argument, not the full safety of either patch.</li><li>The trace was replayed on the stock jar as the JUnit (test points, <code>MockDirectoryWrapper</code> fault injection, an <code class='nw'>InfoStream</code> hold). A stress test without test points or <code class='nw'>InfoStream</code> hooks returned normally in 1/100 and 5/100 runs, and the public-API program in 2/200 and 5/200 (0/200 with a fix).</li><li>The model's liveness check also led to two sibling bugs with <code class='nw'>NoMergeScheduler</code> (LFV-586, LFV-587); an overlap of two forceMerge calls with different n is the separate LFV-592.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: 301 queries over GitHub, JIRA, the mailing lists and downstream projects plus all 406 open PRs (2026-10-26). Closest: LUCENE-1376 (2008), the same symptom class with a different cause that was fixed long ago.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No report, issue, PR or list discussion describes this bug; every query on its internal identifiers returned 0 results. Cite LUCENE-1376 and LUCENE-2618 as earlier fixes in the same protocol that this case survives.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), downstream repositories</th><td class='when'>2026-10-26</td><td>a scripted prior-report search, 6 runs: 48 issue/PR queries, 9 commit queries, 6 downstream queries (identifiers addMergeException, resetMergeExceptions, mergeGen, maxNumSegmentsMergesPending, tragicEvent, "background merge hit exception", "cannot complete forceMerge"; optimize/forceMerge symptom phrasings); 69 manual searches, including elastic/elasticsearch, OpenSearch, Solr and the .NET port</td><td>no report of this bug; every query on the internal identifiers returned 0 results</td></tr><tr><th scope='row'>Open apache/lucene PRs</th><td class='when'>2026-10-26</td><td>changed files of all 406 open PRs; patches of the 20 touching IndexWriter.java, ConcurrentMergeScheduler.java or MergePolicy.java scanned</td><td>#16571, #16846 and #16888 edit nearby code; none changes the adoption loop, the failure filter or the mergeFinish/tragedy order</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>2026-10-26</td><td>16 tool queries and 18 hand-written JQL queries; 30 issues read in full</td><td>LUCENE-1376 (2008: optimize did not forward a failure because of the loop structure; fixed), LUCENE-1397, LUCENE-2618 (2010: adoption gap, fixed); LUCENE-845 and LUCENE-6579 are the origins, not reports</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@, builds@)</th><td class='when'>2026-10-26</td><td>125 queries; 12 threads read in full</td><td>only threads where optimize/forceMerge did throw "background merge hit exception"</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>7 queries</td><td>elastic/elasticsearch#102594 (a force merge ends with more than one segment, no merge failure reported; symptom level only, do not cite as an occurrence)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-845 (<code class='nw'>299d6357dd29</code>, 2007), which added background merges, and first released in 2.3.0 (2008); deterministic until 5.2.x, a race since 5.3.0 (LUCENE-6579). Executed from 2.3.0 to 10.5.2 and on main; never fixed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>9 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>299d6357dd29</code> (2007-09-18, svn r576798, by mikemccand), "LUCENE-845, LUCENE-847, LUCENE-870: factor MergePolicy &amp; MergeScheduler out of IndexWriter, improve overall concurrency of IndexWriter, and add ConcurrentMergeScheduler": it added <code class='nw'>mergeGen</code>, the failure filter, <code>resetMergeExceptions</code> and the loop that adopts pending and running merges without updating their generation. First release 2.3.0 (2008-01-24, as <code class='nw'>optimize()</code>; renamed <code class='nw'>forceMerge()</code> in 3.5.0). <strong>LUCENE-6579</strong> (#7637, 5.3.0) made merge failures tragic and calls <code class='nw'>tragicEvent</code> after <code class='nw'>mergeFinish</code>: the deterministic false success became a race and the writer now closes right after. It narrowed the defect; it did not introduce it. <code class='nw'>IndexWriter.java</code> is unchanged on upstream main, branch_10x and branch_10_6 since #16581 (2026-09-21), which does not touch these lines.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code>, <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>JUnit 4 run / 3 fail, assertions on and off; hook-free program 5/300 and 7/300; history harness 3/10 without the hold</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>JUnit 4 run / 3 fail (9.12.3 default policy: 11 segments at return); history harness fails; control passes</td></tr><tr><th scope='row'>9.0.0, 8.11.4, 8.6.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>JUnit 4 run / 3 fail (test points exist since 8.6.0; a copy with the pre-9.1 test-framework imports)</td></tr><tr><th scope='row'>6.6.6, 7.7.3, 8.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>history harness with the hold: returns normally, then the tragedy closes the writer</td></tr><tr><th scope='row'>5.3.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> race</span></td><td>returns normally, then the tragedy closes the writer; 6/10 without the hold</td></tr><tr><th scope='row'>2.3.0, 5.2.1</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> deterministic</span></td><td>returns normally with 2 segments every time, writer stays open; control throws "background merge hit exception"</td></tr><tr><th scope='row'>2.4.0 to 4.10.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> by reading</span></td><td>the same lines (2.4.0, 2.9.2, 3.0.1, 3.6.2, 4.0.0, 4.10.4 read)</td></tr><tr><th scope='row'>2.2.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td><code class='nw'>optimize()</code> exists, but there are no background merges; the harness does not compile</td></tr><tr><th scope='row'>main + either fix sketch</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>forceMerge throws in every test; 0 normal returns hook-free</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Confirmed by an adjudication (high confidence) after an independent reproducer with its own test and fix, cross-model reviews (OpenAI GPT-5.6, reading only) and an intended-behaviour devil's advocate; a credibility audit re-ran it at a new seed, and this doc re-ran it through gradle.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>310 words</span></summary><div class='body'><p>Every AI tool check that ran Java reproduced it on main; the cross-model reviews could not run code (a separate run re-ran the JUnit: 4 run / 3 fail).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit written from the claim fails 3 run / 2 fail on main (-ea, -da), 10.5.2 and 9.12.3; hook-free 22-84/500, each followed by a close() that returned normally with 1 of 2 documents; its mergeGen shadow fix gives 0/500.</td></tr><tr><th scope='row'>Refute review (OpenAI GPT-5.6, reading only)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real, low confidence, procedural</span></td><td>Could not run code; agreed with the root cause; objected to the test hooks, which the hook-free program answers.</td></tr><tr><th scope='row'>Intended-lens review (OpenAI GPT-5.6, reading only) and its verifier runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>Re-runs fail on main (-ea, -da) and 10.5.2; hook-free 1/200 and 9/200.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium-high</span></td><td>No javadoc, CHANGES, MIGRATE entry, test or issue accepts it; re-runs fail on main, 10.5.2 and 9.12.3; hook-free 12/300.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's JUnit at seed 7A11E5ED (3 run / 2 fail, -ea and -da) and the hook-free program (6/200); set the impact class to wrong error.</td></tr><tr><th scope='row'>Credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Seed A0D17004: 4 run / 3 fail, -ea and -da; hook-free 4/300; impact not inflated.</td></tr><tr><th scope='row'>This doc's gradle run</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces; both fixes pass</span></td><td>Stock: 3 bug tests and the impact demo fail, the control passes, assertions on and off; plain-java hook-free run 5/300 and 7/300.</td></tr><tr><th scope='row'>Fact checks (two) and diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug holds; text fixed</span></td><td>An AI tool fact check and a cross-model one (OpenAI GPT-5.6, reading only) found wording and citation errors, not a change in the conclusion; the diagram check found the test's fault injection failing a read. The test now fails only new files, re-run on main and 5 releases with the same results.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-590/bug.png' download='forcemerge-adopted-merge-failure-not-reported-bug.png' target='_self'>PNG</a> <span class='n'>506 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,531 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-590, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>IndexWriter.forceMerge(n) can return normally with more than n segments when a merge that was already pending or running at the call fails: forceMerge adopts that merge without updating its mergeGen, so addMergeException drops the failure, and the tragic event is published only after mergeFinish has woken the waiting forceMerge</dd></div><div><dt>Area</dt><dd>index / IndexWriter forced merge (forceMerge wait loop, mergeExceptions and mergeGen, tragic events)</dd></div><div><dt>Priority</dt><dd>Medium, rank 98: In the default config, forceMerge can return normally after an adopted merge fails (for example on a full disk), and close() can then report success while uncommitted changes are lost; it needs an I/O failure plus a small race, so it joins the fault-driven writer-contract rows after LFV-474 and above the very rare tragic race LFV-013.</dd></div><div><dt>Impact class</dt><dd>wrong error</dd></div><div><dt>Impact note</dt><dd>Hits any application whose blocking forceMerge(n) adopts a merge that was registered before the call (by an earlier commit, flush or NRT reopen, or by forceMerge's own flush) when that merge then fails with an I/O error such as a full disk; no special configuration is needed, the default ConcurrentMergeScheduler and TieredMergePolicy reproduce it (SerialMergeScheduler is not affected), no scale is needed, and since 5.3.0 the waiting call must also win a short race against the tragedy publication (0.5% to 17% of failing attempts in small synthetic hook-free harnesses, not a field rate): forceMerge then returns normally with the index unmerged instead of throwing, the documented tragic rollback closes the writer a moment later, and the next call that changes or commits the index throws AlreadyClosedException, while close() and rollback() return normally, so 'change; forceMerge(1); close()' can report success while every change since the last commit is lost (executed for an added document, a delete and a restricting update); nothing is corrupted and the last commit stays intact.</dd></div><div><dt>Summary</dt><dd>You call forceMerge(1) while a background merge started by an earlier commit or flush (or by forceMerge's own flush) is still pending or running, and that merge fails, for example because the disk is full. You expect forceMerge to throw, as it does ('background merge hit exception') when the failing merge is one it registered itself. Instead it can return normally with the index still unmerged (2 segments, or 9 with the default TieredMergePolicy): the adopted merge keeps its old mergeGen, so its failure is dropped, and the tragic event that closes the writer is published only after mergeFinish has woken the waiting call.</dd></div><div><dt>Introduced</dt><dd>299d6357dd296f87a099fadd0764292b28dbde47 'LUCENE-845, LUCENE-847, LUCENE-870: factor MergePolicy &amp; MergeScheduler out of IndexWriter, improve overall concurrency of IndexWriter, and add ConcurrentMergeScheduler' (Subversion r576798, by mikemccand; pre-GitHub, no PR), which added mergeGen, the addMergeException generation filter, resetMergeExceptions and the optimize() loop that marks pending and running merges as its own without updating their mergeGen [read: git blame of IndexWriter.java:3039-3042, :5218 and :5821 on main and the commit's own tree in the full-history clone; exec at release granularity: 2.2.0 has no background merges (the repro does not compile), 2.3.0 fails deterministically]. LUCENE-6579 (branch_5x aaf1c49b6097, trunk 926397824e9f; released in 5.3.0) made merge failures tragic and calls tragicEvent after mergeFinish; that turned the deterministic false success into a race (it narrowed the defect, it did not introduce it). (2007-09-18)</dd></div><div><dt>First affected version</dt><dd>2.3.0 [exec: optimize(1) returned normally with 2 segments after the adopted merge failed, -ea and -da, deterministic; the own-merge control threw 'background merge hit exception']; 2.2.0 has no background merges [exec: the repro does not compile]</dd></div><div><dt>Affected versions</dt><dd>every release from 2.3.0 through 10.5.2 (the latest 10.x), including 9.12.3 (the latest 9.x), and main a9779ef3c193; the previous hunt main ea57360912ed too [exec]; never fixed. [exec, history harness without test points or test framework] 2.3.0 and 5.2.1: deterministic false success with the writer left open (5.2.1: 5/5 without any hold); 5.3.0, 6.6.6, 7.7.3, 8.5.2, 9.12.3, 10.5.2 and main: forceMerge returns normally and the tragedy closes the writer right after (deterministic with an InfoStream hold; without it 6/10 on 5.3.0 and 3/10 on main); the own-merge control passes on 2.3.0, 5.2.1, 5.3.0, 9.12.3, 10.5.2 and main. [exec, the main-branch JUnit, whose test points exist since 8.6.0] 8.6.0, 8.11.4, 9.0.0, 9.12.3, 10.5.2 and main (-ea and -da) each 4 run / 3 fail with the control passing; the independent reproduction and the intended-behaviour check repeated this on main, 10.5.2 and 9.12.3, the cross-model review on main and 10.5.2. [read] 2.4.0, 2.9.2, 3.0.1, 3.6.2, 4.0.0 and 4.10.4 have the same lines. IndexWriter.java is unchanged on upstream main (a95c754ee003), branch_10x and branch_10_6 since #16581 (2026-09-21), which does not touch these lines.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; the prior-report record, verdict new; 301 queries): a scripted prior-report search over apache/lucene issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@, commits@ and builds@ lists and the JIRA archive, plus 69 manual GitHub searches, 18 JIRA searches, 7 web searches and the changed files of all 406 open apache/lucene PRs (20 touch IndexWriter.java, ConcurrentMergeScheduler.java or MergePolicy.java; #16571, #16846 and #16888 edit nearby code, but none changes the adoption loop, addMergeException/resetMergeExceptions or the mergeFinish/tragedy order); every query on the internal identifiers (addMergeException, resetMergeExceptions, maxNumSegmentsMergesPending, merge.mergeGen, forceMergeBeforeWait) returned 0 results. Closest prior art, all fixed long ago and with different root causes: #2450 / LUCENE-1376 (2008: optimize() failed to forward a background merge exception because of the loop structure; the fixed loop is the one main still has, and this bug happens with it), #2471 / LUCENE-1397 (2008: a failed merge was recorded before its cause was set), #3692 / LUCENE-2618 (2010: a natural merge started concurrently with optimize was not marked as an optimize merge; the fix upgrades maxNumSegments, not mergeGen). Origins, not reports: LUCENE-845 (mergeGen, 2007) and #7637 / LUCENE-6579 (tragicEvent after mergeFinish). Symptom-level only, no mechanism: elastic/elasticsearch#102594 (a force merge completes with more than one segment; no merge failure reported; its maintainers point to relocations and refreshes).</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26): the 4-test JUnit and the impact demo through gradle with assertions on and off (3 bug tests and the demo fail, the control passes), and through the repro harness at seeds DEADBEEF and A0D17004; the independent reproducer's own JUnit at seed 7A11E5ED; the hook-free public-API program with plain <code class='nw'>javac</code>/<code class='nw'>java</code> and through the harness; 10.5.2, 9.12.3, 9.0.0, 8.11.4 and 8.6.0 with the JUnit; 2.3.0, 5.2.1, 5.3.0, 6.6.6, 7.7.3, 8.5.2, 9.12.3 and 10.5.2 with a history harness without test points (2.2.0 has no background merges; the harness does not compile there); the previous hunt main <code class='nw'>ea57360912ed</code>; the exact gradle commands of the repro section on a fresh stock worktree; both fix sketches in scratch worktrees of <code class='nw'>a9779ef3c193</code> (the tests, 24 closest suites, all of <code>:lucene:core:test</code>, <code>:lucene:core:check -x test</code>), removed afterwards; after the checks, the paste-ready tests again with their fault injection narrowed to files the merge creates (stock at 4 seeds, both fixes, assertions on and off, <code>check -x test</code>; the JUnit on 10.5.2, 9.12.3, 9.0.0, 8.11.4 and 8.6.0).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:2187-2227 (at a9779ef3c193) (forceMerge javadoc: 2192-2193 &#x27;only call this if the index is static&#x27;, 2195-2197 2X/3X free space, 2219 &#x27;This call will merge those segments present in the index when the call started&#x27;, 2223 &#x27;@param maxNumSegments maximum number of segments left in the index after merging finishes&#x27;, 2225 &#x27;@throws IOException&#x27;), :2248 (flush before the reset), :2250 (resetMergeExceptions), :2258-2279 (adoption loops set maxNumSegments but not mergeGen), :2284-2318 (wait loop: tragedy check &#x27;cannot complete forceMerge&#x27;, forwarding &#x27;background merge hit exception&#x27;, maxNumSegmentsMergesPending, then ensureOpen with the comment &#x27;so the calling thread will know merging did not complete&#x27;), :3039-3042 (resetMergeExceptions: clear, mergeGen++), :5218 (registerMerge: merge.mergeGen = mergeGen), :5819-5824 (addMergeException keeps a failure only if mergeGen == merge.mergeGen), :5084-5114 (merge(): handleMergeException, mergeFinish in finally under the lock, then tragicEvent outside it, comment &#x27;Important that tragicEvent is called after mergeFinish, else we hang&#x27;), :5375-5379 (mergeFinish: notifyAll), :6076-6080 (onTragicEvent: &#x27;hit tragic&#x27; message, then tragedy.compareAndSet)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:2248, (at a9779ef3c193) :2250, :2258-2279, :2284-2318, :3039-3042, :5040-5041, :5084-5114, :5218, :5375-5391, :5819-5824, :6068-6106, :1312-1393</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/MIGRATE.md:178-180; (at a9779ef3c193) lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:2195-2197, :1312-1393, :913-917, :2576-2584, :4378, :4403-4426; ConcurrentMergeScheduler.java:747-762</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:2213-2225, (at a9779ef3c193) :2286-2318, :2326-2336, :5096-5106, :6068-6106</code></li><li><code>lucene/core/src/test/org/apache/lucene/index/TestConcurrentMergeScheduler.java:1007,1014; (at a9779ef3c193) TestIndexWriterExceptions.java:1064-1108 (testForceMergeExceptions)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:5037-5055 (at a9779ef3c193) (handleMergeException records aborts too), :6075-6083 (onTragicEvent)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:5084-5114, (at a9779ef3c193) :2258-2279, :6068-6106</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestForceMergeAdoptedMergeFailure.java (JUnit, formatted by ./gradlew tidy): <a href='../repro/LFV-590/TestForceMergeAdoptedMergeFailure.java'><code>repro/LFV-590/TestForceMergeAdoptedMergeFailure.java</code></a> (287 lines)</li><li>PublicApiForceMergeRace.java (hook-free, public API, plain main): <a href='../repro/LFV-590/PublicApiForceMergeRace.java'><code>repro/LFV-590/PublicApiForceMergeRace.java</code></a> (218 lines)</li><li>TestForceMergeAdoptedMergeFailureThenClose.java (impact demo: forceMerge(1), then close()): <a href='../repro/LFV-590/TestForceMergeAdoptedMergeFailureThenClose.java'><code>repro/LFV-590/TestForceMergeAdoptedMergeFailureThenClose.java</code></a> (260 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Summary card (<code class='nw'>bug.png</code>); the values on screen come from the executed runs cited in this doc (the 9 segments and the control from the same test class, the rates from the hook-free harnesses, the versions from the history runs).</p><ul class='paths'><li><a href='../assets/LFV-590/bug.png'><code>assets/LFV-590/bug.png</code></a> (506 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

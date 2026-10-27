@@ -1,0 +1,52 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java b/lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java
+index 764391d2cf2..ca8e9943b05 100644
+--- a/lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java
++++ b/lucene/core/src/java/org/apache/lucene/analysis/TokenStreamToAutomaton.java
+@@ -21,6 +21,7 @@ import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+ import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+ import org.apache.lucene.analysis.tokenattributes.PositionLengthAttribute;
+ import org.apache.lucene.analysis.tokenattributes.TermToBytesRefAttribute;
++import org.apache.lucene.internal.hppc.IntArrayList;
+ import org.apache.lucene.util.BytesRef;
+ import org.apache.lucene.util.RollingBuffer;
+ import org.apache.lucene.util.automaton.Automaton;
+@@ -125,6 +126,9 @@ public class TokenStreamToAutomaton {
+     int freedPos = 0;
+     Position posData = null;
+     int maxOffset = 0;
++    // (from, to) state pairs of zero-length tokens, connected at the end:
++    final IntArrayList emptyTokens = new IntArrayList();
++    boolean sawNonEmptyToken = false;
+     while (in.incrementToken()) {
+       int posInc = posIncAtt.getPositionIncrement();
+       if (preservePositionIncrements == false && posInc > 1) {
+@@ -194,6 +198,13 @@ public class TokenStreamToAutomaton {
+ 
+       int state = posData.leaving;
+ 
++      if (termLen == 0) {
++        emptyTokens.add(state);
++        emptyTokens.add(endPosData.arriving);
++      } else {
++        sawNonEmptyToken = true;
++      }
++
+       for (int byteIDX = 0; byteIDX < termLen; byteIDX++) {
+         final int nextState = byteIDX == termLen - 1 ? endPosData.arriving : builder.createState();
+         int c;
+@@ -211,6 +222,15 @@ public class TokenStreamToAutomaton {
+ 
+     in.end();
+ 
++    if (sawNonEmptyToken) {
++      // A zero-length token has no bytes, but it still spans its position(s): connect it like a
++      // hole so the paths through it are kept (consumers remove HOLE, leaving two adjacent
++      // separators). A stream of only zero-length tokens accepts nothing, like an empty stream.
++      for (int i = 0; i < emptyTokens.size(); i += 2) {
++        builder.addTransition(emptyTokens.get(i), emptyTokens.get(i + 1), HOLE);
++      }
++    }
++
+     int endPosInc = posIncAtt.getPositionIncrement();
+     if (endPosInc == 0 && finalOffsetGapAsHole && offsetAtt.endOffset() > maxOffset) {
+       endPosInc = 1;

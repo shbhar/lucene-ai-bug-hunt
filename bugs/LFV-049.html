@@ -1,0 +1,604 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Operations.isTotal can say &quot;accepts everything&quot; for a DFA that can reach a dead state, so an AutomatonQuery built from it matches every term</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-049 &middot; operations-istotal-dead-state</p><h1 id='top'>Operations.isTotal can say &quot;accepts everything&quot; for a DFA that can reach a dead state, so an AutomatonQuery built from it matches every term</h1><p class='tldr'>Since Lucene 10.0.0, <code>Operations.isTotal</code> can answer "accepts every string" for a deterministic automaton that rejects some strings: it happens when the only strings the automaton rejects are those that run into a reachable dead (sink) state. An <code class='nw'>AutomatonQuery</code> built from such an automaton then matches every term: 3 hits instead of 2 in a three-document index.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 377</span><span class='sub'>Top of Low (moved down from Medium): the 10.0 isTotal regression makes an AutomatonQuery match every term for a DFA with a reachable dead state, and Elasticsearch uses isTotal in authorization checks, but every Lucene automaton builder strips dead states and no downstream path that keeps one is known, so the over-match needs a hand-built automaton.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>10.0.0 (#13707, merged 2024-09-05)<span class='sub'>introduced 2024-09-05 &middot; about 2 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>10.0.0 to 10.5.2 and main; correct on 9.12.0 to 9.12.3 (run)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>Exhaustive translation validation against an exact reference semantics</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>Operations.isTotal(a)</code> should be true only if the automaton accepts every string. <code>CompiledAutomaton</code>, and so every <code class='nw'>AutomatonQuery</code>, uses it to take a match-all shortcut.</p><ol class='steps'><li><span>Build a two-state DFA by hand: state 0 accepts and loops on <code class='nw'>a</code> and above; any character below <code class='nw'>a</code>, such as <code class='nw'>0</code>, goes to a sink state that never accepts. It accepts <code class='nw'>b</code> and <code class='nw'>zz</code> and rejects <code class='nw'>0</code>.</span></li><li><span>Call <code>Operations.isTotal(a)</code>, or index the terms <code class='nw'>0</code>, <code class='nw'>b</code> and <code class='nw'>zz</code> and count <code>new AutomatonQuery(term, a)</code>. You expect <code class='nw'>false</code> and 2 hits, which is what Lucene 9.12.3 gives.</span></li><li><span>Since 10.0.0 you get <code class='nw'>true</code>. The query compiles to <code>AUTOMATON_TYPE.ALL</code> and matches all 3 documents, including <code class='nw'>0</code>. No error.</span></li><li><span>The cause: <code class='nw'>isTotal</code> checks only live states (<code class='nw'>getLiveStates</code>, <code>Operations.java:857</code>). The sink cannot reach an accept state, so it is skipped, while the transition into it still counts as covering the alphabet.</span></li><li><span>The same language without the sink (<code class='nw'>removeDeadStates</code>) gives <code class='nw'>false</code> and 2 hits. Lucene's own RegExp, wildcard, prefix, range and fuzzy automata had no dead state in sampled checks, so it takes an automaton that the application builds (by hand, by determinizing its own NFA, or through an <code>AutomatonProvider</code>).</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code that builds its own deterministic automaton with a reachable sink (by hand, by determinizing its own NFA, or through an <code>AutomatonProvider</code>) and calls <code class='nw'>isTotal</code> or runs it as an <code class='nw'>AutomatonQuery</code>. Lucene's own query builders produced none in sampled checks. Downstream code uses <code class='nw'>isTotal</code> as a grant-all decision, for example in field-level security. Affects 10.0.0 to 10.5.2 and main.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>800 words</span></summary><div class='body'><p><code>Operations.isTotal(a)</code> is documented to return true only if the automaton accepts all strings. Since Lucene 10.0.0 it can return <code class='nw'>true</code> for a deterministic automaton that rejects some strings: it checks only the live states, so a reachable non-accepting dead (sink) state is never looked at, while the transition into the sink still counts as covering the alphabet. The answer is wrong when every live state accepts and covers the alphabet, so that the only rejected strings are those that run into the sink; a reachable dead state alone is not enough. <code>CompiledAutomaton</code> turns the wrong <code class='nw'>true</code> into <code>AUTOMATON_TYPE.ALL</code>, so an <code class='nw'>AutomatonQuery</code> silently matches every term of the field (3 documents instead of 2 in the repro). Lucene 9.12.x answers correctly. The cause is #13707, which generalised <code class='nw'>isTotal</code> from minimal to any deterministic automaton. A direct <code class='nw'>isTotal</code> call with this automaton is inside its documented contract (determinism only); the <code class='nw'>AutomatonQuery</code> path also crosses the <code>CompiledAutomaton</code> class javadoc, which says a deterministic automaton "must not have dead states", a rule that <code class='nw'>AutomatonQuery</code> does not restate. Lucene's own query builders produced no dead state in sampled checks, so the trigger is an automaton that the application builds itself. Downstream code uses <code class='nw'>isTotal</code> as a grant-all decision, but the bug is not security-sensitive: the trigger is an automaton the application builds, out of scope of Lucene's SECURITY.md (registry <code class='nw'>none</code> since the strict re-evaluation of 2026-10-27). A one-line fix passes the repro and the whole core test suite.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Deterministic automaton (DFA)</strong>: from every state, each character leads to at most one next state. Lucene's <code class='nw'>Automaton</code> numbers its states; state 0 is the start.</li><li><strong>Dead state (sink)</strong>: a state from which no accepting state can be reached. A <em>complete</em> DFA, the textbook form, sends every character it rejects into one such sink, which loops on everything.</li><li><strong>Live state</strong>: a state reachable from the start that can still reach an accept state (<code class='nw'>getLiveStates</code>, <code>Operations.java:922-930</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-automaton-of-the-repro'>The automaton of the repro</h3><a class="hlink" href="#what-the-bug-is-the-automaton-of-the-repro" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-automaton-of-the-repro"><span aria-hidden="true">#</span></a></div><pre><code>  state 0 (accepting):     [U+0000 .. U+0060]  -&gt; state 1   (&#x27;0&#x27;, &#x27; &#x27;, &#x27;`&#x27; ... go to the sink)
+                           [U+0061 .. U+10FFFF] -&gt; state 0   (&#x27;a&#x27; and above stay)
+  state 1 (not accepting): [U+0000 .. U+10FFFF] -&gt; state 1   (the sink)</code></pre><p>It is deterministic, accepts <code class='nw'>b</code> and <code class='nw'>zz</code>, and rejects <code class='nw'>0</code>. <code>Operations.removeDeadStates(a)</code> gives the same language with only state 0.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-line-by-line-operations-java-at-ea57360912ed'>The bug, line by line (<code class='nw'>Operations.java</code> at <code class='nw'>ea57360912ed</code>)</h3><a class="hlink" href="#what-the-bug-is-the-bug-line-by-line-operations-java-at-ea57360912ed" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-line-by-line-operations-java-at-ea57360912ed"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>isTotal(a)</code> (844-846) calls <code>isTotal(a, Character.MIN_CODE_POINT, Character.MAX_CODE_POINT)</code> (856-879).</li><li>857: <code>BitSet states = getLiveStates(a);</code> is {state 0}: the sink cannot reach an accept state, so it is not live.</li><li>861-862, under the comment "all reachable states must be accept states": state 0 is accepting.</li><li>863-871, the gap scan ("no gaps are allowed"): <code>[0, 0x60]</code> and <code>[0x61, 0x10FFFF]</code> leave no gap. The scan looks at label ranges only, not at where they go, so the range that leads into the sink counts as covered.</li><li>878: <code>return seenStates &gt; 0;</code> gives <strong>true</strong>. The sink, which is reachable and not accepting, was never checked.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-from-istotal-to-the-query'>From <code class='nw'>isTotal</code> to the query</h3><a class="hlink" href="#what-the-bug-is-from-istotal-to-the-query" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-from-istotal-to-the-query"><span aria-hidden="true">#</span></a></div><ul><li><code class='nw'>AutomatonQuery</code> always builds <code>new CompiledAutomaton(automaton, false, true, isBinary)</code> (<code>AutomatonQuery.java:99</code>).</li><li><code>CompiledAutomaton</code> calls <code>Operations.isTotal(automaton)</code>, or <code>isTotal(automaton, 0, 0xff)</code> for a binary automaton, and on <code class='nw'>true</code> sets <code>AUTOMATON_TYPE.ALL</code>, "Automaton that accepts all possible strings" (<code>CompiledAutomaton.java:55-56, 179-199</code>).</li><li>For <code class='nw'>ALL</code>, <code class='nw'>getTermsEnum</code> returns <code class='nw'>terms.iterator()</code>: every term of the field (<code>CompiledAutomaton.java:352-353</code>). <code class='nw'>Terms.intersect</code> on that compiled automaton throws <code>IllegalArgumentException("please use CompiledAutomaton.getTermsEnum instead")</code> instead (<code class='nw'>Terms.java:79-80</code>, executed).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-what-9-12-did'>What 9.12 did</h3><a class="hlink" href="#what-the-bug-is-what-9-12-did" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-9-12-did"><span aria-hidden="true">#</span></a></div><p>The 9.12 javadoc said "The automaton must be minimized", and the body recognised one shape only: state 0 accepting, with a single self-loop over the whole alphabet. Everything else got <code class='nw'>false</code>. That could be a missed optimization, but never a wrong <code class='nw'>true</code>. #13707 (10.0.0) replaced it with the live-state loop. The repro's automaton has a dead state, so it is not minimal: it was outside 9.12's documented domain, and 9.12's correct <code class='nw'>false</code> shows the regression rather than a promise.</p><div class="hd hd-3"><h3 id='what-the-bug-is-breadth'>Breadth</h3><a class="hlink" href="#what-the-bug-is-breadth" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-breadth"><span aria-hidden="true">#</span></a></div><p>Over all 2,100,084 DFAs with 1 to 3 states over the labels <code class='nw'>a</code>, <code class='nw'>b</code>, <code class='nw'>c</code>, compared with a brute-force oracle that does not use Lucene: 37,634 false positives (1.8%), <strong>all with dead states</strong>, and 0 false negatives (alphabet <code>[a, c]</code>). A reachable dead state alone is not enough: 574,233 of those automata have one, and <code class='nw'>isTotal</code> is wrong on 37,634 of them and right on the rest. With the alphabet <code>[b, c]</code> (label <code class='nw'>a</code> outside it) main gives 48,120 false positives, again all with dead states. A separate, older and conservative mode (a wrong <code class='nw'>false</code> when a custom alphabet is narrower than the labels: 38,656 cases in the <code>[b, c]</code> scope, also in 9.12.0) is out of scope here; the recommended fix does not fix it and raises it to 43,466 (see the fix trade-offs).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>425 words</span></summary><div class='body'><ul><li><strong>Trigger paths, all executed on main.</strong> A hand-built <code class='nw'>Automaton</code> (the repro). An NFA built with <code>Automaton.Builder</code> and passed through <code>Operations.determinize</code>, which keeps its dead state (<code class='nw'>determinize</code> returns its result without <code class='nw'>removeDeadStates</code>, <code>Operations.java:793-795</code>): <code class='nw'>isTotal</code> is <code class='nw'>true</code> although <code class='nw'>0</code> is rejected. A <code class='nw'>RegexpQuery</code> with an <code>AutomatonProvider</code> that returns the repro's automaton for the named automaton <code class='nw'>&lt;lower&gt;</code> (returned unchanged, <code>RegExp.java:711-727</code>): 3 hits instead of 2, compiled type <code class='nw'>ALL</code>.</li><li><strong>Not hit, as far as checked: Lucene's own query builders.</strong> Sampling found no dead state in automata from <code class='nw'>RegExp</code> (about 59,800 random regexps, the study), <code class='nw'>TermRangeQuery</code>, <code class='nw'>PrefixQuery</code>, <code class='nw'>WildcardQuery</code> (20,000 each) and <code>LevenshteinAutomata</code> (120,000). Several <code class='nw'>Automata.make*</code> builders assert there are none (<code>Automata.java:564, 589, 609</code>), and Operations' concatenate, union, intersection, complement, repeat and reverse call <code class='nw'>removeDeadStates</code> on the automata they build. That is not a guarantee for every path: <code class='nw'>optional</code> documents "This may create a dead state" (<code>Operations.java:148</code>), <code class='nw'>determinize</code> returns its result without <code class='nw'>removeDeadStates</code> (793-795), and <code class='nw'>optional</code>, <code class='nw'>repeat</code>, <code class='nw'>intersection</code> and <code class='nw'>minus</code> can return an input unchanged (155, 204, 209, 381, 393-400), so a dead state that an input already has can survive them.</li><li><strong>Default or opt-in.</strong> No setting is involved, but the trigger is opt-in: the application builds the automaton through the <code>@lucene.experimental</code> automaton API.</li><li><strong>Scale.</strong> None: two states, three documents.</li><li><strong>Silent and fail-open.</strong> No exception. This bug's wrong answer is always <code class='nw'>true</code> ("accepts everything"): through <code>CompiledAutomaton</code> it becomes <code class='nw'>ALL</code> and an <code class='nw'>AutomatonQuery</code> over-matches, and a caller's match-all shortcut fires. <code class='nw'>Terms.intersect</code> on that compiled automaton throws <code>IllegalArgumentException</code> instead (<code class='nw'>Terms.java:79-80</code>, executed); <code>SortedDocValues.intersect</code> and <code>SortedSetDocValues.intersect</code> return every value for <code class='nw'>ALL</code> (read).</li><li><strong>Downstream decisions</strong> (read in Elasticsearch main on 2026-10-26, not executed). <code>Privilege.grantsAll</code> is <code>Operations.isTotal(automaton)</code> (<code>Privilege.java:49</code>). <code class='nw'>FieldPermissions</code> caches <code>isTotal(permittedFieldsAutomaton)</code> (<code>FieldPermissions.java:110-112</code>); when it is true, every field is granted (227), <code>hasFieldLevelSecurity()</code> is false (244-246) and <code class='nw'>filter()</code> returns the reader unfiltered (249-253). The wildcard field mapper and the query languages' <code>AbstractStringPattern</code> use it as a match-all shortcut. The study found no Elasticsearch path that builds one of these automata with a dead state.</li><li><strong>How likely.</strong> Unknown. No prior report was found in about two years since 10.0.0, and no Lucene path that produces such an automaton is known; neither measures real-world frequency. A complete DFA with a sink is the textbook form, and Lucene's own package-private <code>Operations.totalize</code> builds exactly that shape ("added transitions to a dead state", <code>Operations.java:1308-1345</code>). It does not leak out: <code class='nw'>complement</code> then flips every state's acceptance (351-354), so that sink becomes an accepting state of the complement, which the final <code class='nw'>removeDeadStates</code> (356) keeps.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A plain Java program on the public API, lucene-core only: it builds the two-state DFA and prints <code class='nw'>run</code>, <code class='nw'>isTotal</code> and the <code class='nw'>AutomatonQuery</code> hit count over the terms <code class='nw'>0</code>, <code class='nw'>b</code>, <code class='nw'>zz</code>, with and without the sink. A JUnit drop-in, a third trigger path and the regression test for the fix are in the collapsed block.</p><figure class='code'><figcaption><span class='fname'>IsTotalDeadState.java (plain main, public API, lucene-core only)</span><span class='meta'>57 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.AutomatonQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.automaton.Automaton;
+import org.apache.lucene.util.automaton.CompiledAutomaton;
+import org.apache.lucene.util.automaton.Operations;
+
+/** Operations.isTotal says &quot;accepts everything&quot; for a DFA that rejects &quot;0&quot;. Public API only. */
+public class IsTotalDeadState {
+  public static void main(String[] args) throws Exception {
+    // A complete DFA that accepts exactly the strings whose characters are all &gt;= &#x27;a&#x27;.
+    // State 0 (accepting) loops on [&#x27;a&#x27; .. MAX]; a character below &#x27;a&#x27; goes to state 1,
+    // a sink: not accepting, loops on every character (a &quot;dead&quot; state).
+    Automaton a = new Automaton();
+    int s0 = a.createState();
+    int sink = a.createState();
+    a.setAccept(s0, true);
+    a.addTransition(s0, sink, Character.MIN_CODE_POINT, &#x27;a&#x27; - 1);
+    a.addTransition(s0, s0, &#x27;a&#x27;, Character.MAX_CODE_POINT);
+    a.addTransition(sink, sink, Character.MIN_CODE_POINT, Character.MAX_CODE_POINT);
+    a.finishState();
+    Automaton noSink = Operations.removeDeadStates(a); // the same language, without the sink
+
+    System.out.println(&quot;deterministic=&quot; + a.isDeterministic()
+        + &quot;  hasDeadStates=&quot; + Operations.hasDeadStates(a));
+    System.out.println(&quot;run(\&quot;b\&quot;)=&quot; + Operations.run(a, &quot;b&quot;)
+        + &quot;  run(\&quot;zz\&quot;)=&quot; + Operations.run(a, &quot;zz&quot;) + &quot;  run(\&quot;0\&quot;)=&quot; + Operations.run(a, &quot;0&quot;));
+    System.out.println(&quot;isTotal(a)=&quot; + Operations.isTotal(a)
+        + &quot;  isTotal(removeDeadStates(a))=&quot; + Operations.isTotal(noSink));
+
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (String v : new String[] {&quot;0&quot;, &quot;b&quot;, &quot;zz&quot;}) {
+          Document doc = new Document();
+          doc.add(new StringField(&quot;f&quot;, v, Field.Store.NO));
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(r);
+        AutomatonQuery q = new AutomatonQuery(new Term(&quot;f&quot;, &quot;&quot;), a);
+        AutomatonQuery qNoSink = new AutomatonQuery(new Term(&quot;f&quot;, &quot;&quot;), noSink);
+        System.out.println(&quot;AutomatonQuery over the terms 0, b, zz: hits=&quot; + searcher.count(q)
+            + &quot; (compiled type &quot; + new CompiledAutomaton(a, false, true).type + &quot;);  without the sink: hits=&quot;
+            + searcher.count(qNoSink) + &quot; (&quot; + new CompiledAutomaton(noSink, false, true).type + &quot;)&quot;);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>javac -cp lucene-core.jar -d out IsTotalDeadState.java &amp;&amp; java -cp lucene-core.jar:out IsTotalDeadState
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>isTotal(a)=false</code>, and the <code class='nw'>AutomatonQuery</code> matches 2 documents (<code class='nw'>b</code>, <code class='nw'>zz</code>), as on 9.12.3.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>isTotal(a)=true</code>; the query compiles to <code class='nw'>ALL</code> and matches 3 documents, including the rejected <code class='nw'>0</code> (10.0.0, 10.5.2 and main, assertions on and off).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-049/'>repro/LFV-049/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (212 lines) · 1,349 words</span></summary><div class='body'><p>The plain program needs only <code class='nw'>lucene-core</code>; it was compiled and run against 9.12.3, 10.0.0, 10.5.2 and main. It indexes three <code class='nw'>StringField</code> terms in a <code>ByteBuffersDirectory</code> with the default <code>IndexWriterConfig</code>. <code>CompiledAutomaton(a, false, true)</code> is printed only to show the type that <code class='nw'>AutomatonQuery</code> compiles to.</p><p>The JUnit test (4 tests: 3 bug checks and 1 control) drops into <code>lucene/core/src/test/org/apache/lucene/util/automaton/</code>. The first bug test asserts its preconditions (deterministic, has a dead state, which strings are accepted). The second is the binary call <code>isTotal(a, 0, 255)</code> on a byte DFA that rejects <code class='nw'>x</code>. Two of its lines need <code>./gradlew tidy</code> to match Lucene's format.</p><p><code>ProviderProbe.java</code> shows a third trigger path: the same automaton supplied to <code class='nw'>RegexpQuery</code> as the named automaton <code class='nw'>&lt;lower&gt;</code> through an <code>AutomatonProvider</code>.</p><p>The diff is the recommended fix with its regression test <code>TestOperations.testIsTotalWithReachableDeadState</code>, which fails on stock main and passes with the fix.</p><div class="hd hd-3"><h3 id='code-2-h'>TestIsTotalDeadState.java (JUnit, drop-in for Lucene&#x27;s build)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestIsTotalDeadState.java (JUnit, drop-in for Lucene&#x27;s build)</span><span class='meta'>113 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.util.automaton;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.AutomatonQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Operations.isTotal(a) must return true only if the automaton accepts every string. For a
+ * deterministic automaton that has a reachable dead (sink) state it returns true even though some
+ * strings are rejected, and an AutomatonQuery built from such an automaton then matches every term.
+ *
+ * &lt;p&gt;Uses public API only.
+ */
+public class TestIsTotalDeadState extends LuceneTestCase {
+
+  /**
+   * A complete DFA with an explicit sink, over all code points. It accepts exactly the strings in
+   * which every code point is &amp;gt;= &#x27;a&#x27;. State 0: accepting, [&#x27;a&#x27;..MAX] loops to 0, [0..&#x27;a&#x27;-1] goes
+   * to the sink. Sink: not accepting, [0..MAX] loops to the sink (it can never reach an accept).
+   */
+  private static Automaton completeDfaWithSink() {
+    Automaton a = new Automaton();
+    int start = a.createState();
+    int sink = a.createState();
+    a.setAccept(start, true);
+    a.addTransition(start, sink, Character.MIN_CODE_POINT, &#x27;a&#x27; - 1);
+    a.addTransition(start, start, &#x27;a&#x27;, Character.MAX_CODE_POINT);
+    a.addTransition(sink, sink, Character.MIN_CODE_POINT, Character.MAX_CODE_POINT);
+    a.finishState();
+    return a;
+  }
+
+  /** isTotal(a): documented as &quot;Returns true if the given automaton accepts all strings.&quot; */
+  public void testIsTotalFalseForDfaWithReachableSink() {
+    Automaton a = completeDfaWithSink();
+    assertTrue(&quot;precondition: deterministic&quot;, a.isDeterministic());
+    assertTrue(&quot;precondition: has a dead state&quot;, Operations.hasDeadStates(a));
+    assertTrue(Operations.run(a, &quot;b&quot;));
+    assertFalse(&quot;\&quot;0\&quot; is rejected&quot;, Operations.run(a, &quot;0&quot;));
+    assertFalse(
+        &quot;isTotal(a) must be false for a DFA that rejects \&quot;0\&quot;&quot;, Operations.isTotal(a));
+  }
+
+  /** isTotal(a, 0, 255) is the call CompiledAutomaton makes for binary automata. */
+  public void testIsTotalBinaryFalseForByteDfaWithDeadState() {
+    Automaton a = new Automaton();
+    int start = a.createState();
+    int dead = a.createState();
+    a.setAccept(start, true);
+    a.addTransition(start, start, 0, &#x27;x&#x27; - 1);
+    a.addTransition(start, dead, &#x27;x&#x27;, &#x27;x&#x27;);
+    a.addTransition(start, start, &#x27;x&#x27; + 1, 0xff);
+    a.finishState();
+    assertTrue(&quot;precondition: deterministic&quot;, a.isDeterministic());
+    assertFalse(&quot;byte &#x27;x&#x27; is rejected&quot;, Operations.run(a, &quot;x&quot;));
+    assertFalse(
+        &quot;isTotal(a, 0, 255) must be false for a byte DFA that rejects &#x27;x&#x27;&quot;,
+        Operations.isTotal(a, 0, 0xff));
+  }
+
+  /** AutomatonQuery javadoc: &quot;terms that are accepted are considered a match&quot;. */
+  public void testAutomatonQueryMatchesOnlyAcceptedTerms() throws Exception {
+    assertEquals(
+        &quot;only \&quot;b\&quot; and \&quot;zz\&quot; are accepted&quot;, 2, countMatches(completeDfaWithSink()));
+  }
+
+  /** Control: the same language without the dead state gives the right answers. */
+  public void testControlSameLanguageWithoutDeadState() throws Exception {
+    Automaton clean = Operations.removeDeadStates(completeDfaWithSink());
+    assertFalse(Operations.hasDeadStates(clean));
+    assertFalse(Operations.run(clean, &quot;0&quot;));
+    assertFalse(Operations.isTotal(clean));
+    assertEquals(2, countMatches(clean));
+  }
+
+  private int countMatches(Automaton a) throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        for (String v : new String[] {&quot;0&quot;, &quot;b&quot;, &quot;zz&quot;}) {
+          Document doc = new Document();
+          doc.add(new StringField(&quot;f&quot;, v, Field.Store.NO));
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        return new IndexSearcher(r).count(new AutomatonQuery(new Term(&quot;f&quot;, &quot;&quot;), a));
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.util.automaton.TestIsTotalDeadState -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>ProviderProbe.java (third trigger path: RegexpQuery with an AutomatonProvider)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>ProviderProbe.java (third trigger path: RegexpQuery with an AutomatonProvider)</span><span class='meta'>48 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MultiTermQuery;
+import org.apache.lucene.search.RegexpQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.automaton.Automaton;
+import org.apache.lucene.util.automaton.AutomatonProvider;
+import org.apache.lucene.util.automaton.Operations;
+import org.apache.lucene.util.automaton.RegExp;
+
+/** The same complete DFA with a sink, supplied as a named automaton to RegexpQuery. */
+public class ProviderProbe {
+  public static void main(String[] args) throws Exception {
+    Automaton a = new Automaton();
+    int s0 = a.createState();
+    int sink = a.createState();
+    a.setAccept(s0, true);
+    a.addTransition(s0, sink, Character.MIN_CODE_POINT, &#x27;a&#x27; - 1);
+    a.addTransition(s0, s0, &#x27;a&#x27;, Character.MAX_CODE_POINT);
+    a.addTransition(sink, sink, Character.MIN_CODE_POINT, Character.MAX_CODE_POINT);
+    a.finishState();
+    AutomatonProvider provider = name -&gt; &quot;lower&quot;.equals(name) ? a : null;
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (String v : new String[] {&quot;0&quot;, &quot;b&quot;, &quot;zz&quot;}) {
+          Document doc = new Document();
+          doc.add(new StringField(&quot;f&quot;, v, Field.Store.NO));
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        RegexpQuery q =
+            new RegexpQuery(new Term(&quot;f&quot;, &quot;&lt;lower&gt;&quot;), RegExp.ALL, 0, provider,
+                MultiTermQuery.CONSTANT_SCORE_BLENDED_REWRITE);
+        System.out.println(&quot;RegexpQuery &lt;lower&gt; via AutomatonProvider: hits=&quot;
+            + new IndexSearcher(r).count(q) + &quot; (expected 2: b, zz)  compiled type=&quot;
+            + q.getCompiled().type + &quot;  run(\&quot;0\&quot;)=&quot; + Operations.run(a, &quot;0&quot;));
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>javac -cp lucene-core.jar -d out ProviderProbe.java &amp;&amp; java -cp lucene-core.jar:out ProviderProbe
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>istotal-reachable-states.diff (the fix and its regression test, +28/-1)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Applies to main <code class='nw'>ea57360912ed</code> with <code>git apply</code>; <code>:lucene:core:checkGoogleJavaFormat</code> passes.</p><figure class='code'><figcaption><span class='fname'>istotal-reachable-states.diff (the fix and its regression test, +28/-1)</span><span class='meta'>51 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java b/lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java
+index 45543fd1de2..4cc2d85383b 100644
+--- a/lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java
++++ b/lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java
+@@ -854,7 +854,7 @@ public final class Operations {
+    * &lt;p&gt;Complexity: linear in number of states and transitions.
+    */
+   public static boolean isTotal(Automaton a, int minAlphabet, int maxAlphabet) {
+-    BitSet states = getLiveStates(a);
++    BitSet states = getLiveStatesFromInitial(a);
+     Transition spare = new Transition();
+     int seenStates = 0;
+     for (int state = states.nextSetBit(0); state &gt;= 0; state = states.nextSetBit(state + 1)) {
+diff --git a/lucene/core/src/test/org/apache/lucene/util/automaton/TestOperations.java b/lucene/core/src/test/org/apache/lucene/util/automaton/TestOperations.java
+index 0545b7a3100..1a8b246ad28 100644
+--- a/lucene/core/src/test/org/apache/lucene/util/automaton/TestOperations.java
++++ b/lucene/core/src/test/org/apache/lucene/util/automaton/TestOperations.java
+@@ -219,6 +219,33 @@ public class TestOperations extends LuceneTestCase {
+     assertFalse(Operations.isTotal(tricky4));
+   }
+ 
++  public void testIsTotalWithReachableDeadState() {
++    for (int maxLabel : new int[] {0xff, Character.MAX_CODE_POINT}) {
++      // deterministic, but &#x27;b&#x27; leads to a dead state, so &quot;b&quot; is rejected
++      Automaton a = new Automaton();
++      int init = a.createState();
++      int dead = a.createState();
++      a.setAccept(init, true);
++      a.addTransition(init, init, 0, &#x27;a&#x27;);
++      a.addTransition(init, dead, &#x27;b&#x27;, &#x27;b&#x27;);
++      a.addTransition(init, init, &#x27;c&#x27;, maxLabel);
++      a.finishState();
++      assertTrue(a.isDeterministic());
++      assertTrue(Operations.hasDeadStatesFromInitial(a));
++      assertFalse(Operations.run(a, &quot;b&quot;));
++      assertFalse(Operations.isTotal(a, 0, maxLabel));
++      assertFalse(Operations.isTotal(Operations.removeDeadStates(a), 0, maxLabel));
++    }
++    // a non-accepting state that cannot be reached does not matter
++    Automaton a = new Automaton();
++    int init = a.createState();
++    a.createState();
++    a.setAccept(init, true);
++    a.addTransition(init, init, Character.MIN_CODE_POINT, Character.MAX_CODE_POINT);
++    a.finishState();
++    assertTrue(Operations.isTotal(a));
++  }
++
+   /**
+    * Returns the set of all accepted strings.
+    *
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed (11.0.0-SNAPSHOT): reproduced with -ea and -da; 10.0.0 and 10.5.2: reproduced; 9.12.3: correct (Maven Central jars, SHA-1 checked)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>javac -cp lucene-core-&lt;version&gt;.jar -d out IsTotalDeadState.java
+java -cp lucene-core-&lt;version&gt;.jar:out IsTotalDeadState
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># main ea57360912ed (-ea and -da), 10.5.2, 10.0.0
+deterministic=true  hasDeadStates=true
+run(&quot;b&quot;)=true  run(&quot;zz&quot;)=true  run(&quot;0&quot;)=false
+isTotal(a)=true  isTotal(removeDeadStates(a))=false
+AutomatonQuery over the terms 0, b, zz: hits=3 (compiled type ALL);  without the sink: hits=2 (NORMAL)
+# 9.12.3, and main with the fix
+deterministic=true  hasDeadStates=true
+run(&quot;b&quot;)=true  run(&quot;zz&quot;)=true  run(&quot;0&quot;)=false
+isTotal(a)=false  isTotal(removeDeadStates(a))=false
+AutomatonQuery over the terms 0, b, zz: hits=2 (compiled type NORMAL);  without the sink: hits=2 (NORMAL)
+
+# ProviderProbe on main; with the fix: hits=2, NORMAL
+RegexpQuery &lt;lower&gt; via AutomatonProvider: hits=3 (expected 2: b, zz)  compiled type=ALL  run(&quot;0&quot;)=false
+
+# JUnit with gradle on main, seed DEADBEEF
+TestIsTotalDeadState &gt; testIsTotalFalseForDfaWithReachableSink FAILED
+    java.lang.AssertionError: isTotal(a) must be false for a DFA that rejects &quot;0&quot;
+TestIsTotalDeadState &gt; testIsTotalBinaryFalseForByteDfaWithDeadState FAILED
+    java.lang.AssertionError: isTotal(a, 0, 255) must be false for a byte DFA that rejects &#x27;x&#x27;
+TestIsTotalDeadState &gt; testAutomatonQueryMatchesOnlyAcceptedTerms FAILED
+    java.lang.AssertionError: only &quot;b&quot; and &quot;zz&quot; are accepted expected:&lt;2&gt; but was:&lt;3&gt;
+4 tests completed, 3 failed</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc: "Returns true if the given automaton accepts all strings". Its only precondition is determinism, and its only allowed error is a wrong <code class='nw'>false</code>.</li><li>Same language, two answers: without the sink, <code class='nw'>isTotal</code> is <code class='nw'>false</code>. 9.12.3 says <code class='nw'>false</code> for both.</li><li>#13707, which made the change, says the new code "should work generally for any DFA".</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>377 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>Operations.java:838</code>: "Returns true if the given automaton accepts all strings." 840: "The automaton must be deterministic, or this method may return false." 849-852 say the same for a min/max alphabet. The in-code comment at 861 states the rule: "all reachable states must be accept states".</li><li><strong>The consumers.</strong> <code class='nw'>AutomatonQuery</code> "will match documents that contain terms accepted by a given finite-state machine" (<code>AutomatonQuery.java:32</code>) and "terms that are accepted are considered a match" (64, 75, 88). <code>AUTOMATON_TYPE.ALL</code> is the "Automaton that accepts all possible strings" (<code>CompiledAutomaton.java:55-56</code>).</li><li><strong>History.</strong> #13707 ("Relax Operations.isTotal() to work with a deterministic automaton", by rmuir, approved by dweiss and ChrisHegarty, merged 2024-09-05; CHANGES under 10.0.0: "Improve Operations.isTotal() to work with non-minimal automata") changed the javadoc from "must be minimized" to "must be deterministic". rmuir wrote that it "should work generally for any DFA, so IMO it is safe". <code class='nw'>getLiveStates(a)</code> was already in rmuir's first coding of dweiss's idea in #13706, and the stated reason for it is that it "is easier to reason about"; the PR's randomized check later found "the situation where all states are dead states" for the draft's <code>return a.getNumStates() &gt; 0;</code>, and the merged code returns <code>seenStates &gt; 0</code>. In the motivating issue #13706 an earlier draft by rmuir documented "The automaton must be deterministic with no transitions to dead states" and returned <code class='nw'>false</code> when <code>hasDeadStatesFromInitial(a)</code>; dweiss described the rule as "a deterministic, total automaton must accept full language in each state reachable from root". The merged code dropped the guard; no comment discusses a reachable dead state next to live states. This is design context from before the bug shipped, not a report of it.</li><li><strong>Tests.</strong> <code>TestOperations.testIsTotal</code> (<code>TestOperations.java:182-220</code>, added by #13707) has minimal, non-minimal and "not total, but close" cases, and no automaton with a dead state.</li><li><strong>Dead states are legal.</strong> <code class='nw'>hasDeadStates</code>, <code>hasDeadStatesFromInitial</code> and <code class='nw'>removeDeadStates</code> are public (<code>Operations.java:444-460, 1003-1007</code>). Where a method cannot handle them it says so: <code class='nw'>getCommonPrefix</code> documents and throws <code>IllegalArgumentException</code> "if the automaton has dead states reachable from the initial state" (1127-1134). <code class='nw'>isTotal</code> documents nothing of the kind.</li><li><strong>Same language, two answers.</strong> <code class='nw'>a</code> and <code>removeDeadStates(a)</code> accept the same strings, yet <code class='nw'>isTotal</code> returns <code class='nw'>true</code> and <code class='nw'>false</code>. A predicate on the language cannot do that.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>280 words</span></summary><div class='body'><p>The strongest case for "intended" (the cross-model refute review rated it "moderate"): the <code>CompiledAutomaton</code> class javadoc says "For deterministic automaton, it must not have dead states but is not necessarily minimal" (<code>CompiledAutomaton.java:36-41</code>), <code>AutomatonTermsEnum</code> assumes "a DFA with no transitions to dead states" (<code>AutomatonTermsEnum.java:297</code>), <code>CompiledAutomaton.java:181</code> says "NOTE: only approximate, because automaton may not be minimal", 9.12's <code class='nw'>isTotal</code> documented "The automaton must be minimized", so the explicit-sink automaton was outside 9.12's domain too, the automaton API is <code>@lucene.experimental</code>, Lucene's own query builders produced no dead states in sampled checks, and SECURITY.md leaves untrusted input to the caller.</p><p>Why it fails: (1) the direct <code class='nw'>isTotal</code> contract has no dead-state precondition and allows only a wrong <code class='nw'>false</code>; (2) the "only approximate" comment predates #13707 (it is at <code>CompiledAutomaton.java:176</code> in 9.12.0), when <code class='nw'>isTotal</code> could only miss an optimization; (3) <code class='nw'>AutomatonQuery</code>'s javadoc does not repeat the <code>CompiledAutomaton</code> rule, and its constructor always simplifies; (4) the answer changes for the same language; (5) 9.12.x is right for the same input (an input outside 9.12's "must be minimized" precondition, so this shows the regression rather than a promise), and the rule as stated in #13706 (dweiss: "each state reachable from root") and in #13707's own code comment at <code>Operations.java:861</code> ("all reachable states must be accept states") covers the sink; (6) the one-line fix keeps all 8,870 core tests passing (compatibility, not intent). <strong>Verdict: not intended, a defect</strong> in <code>Operations.isTotal</code>; the <code class='nw'>AutomatonQuery</code> symptom follows from it. A maintainer may still call the <code class='nw'>AutomatonQuery</code> input a violation of <code>CompiledAutomaton</code>'s precondition; then <code class='nw'>AutomatonQuery</code>'s javadoc, which does not repeat the rule while its constructor always simplifies, is at least a documentation defect.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Check every state reachable from the initial state (one line)</strong></p><p class='short'>Check every state reachable from the start, not only the live ones: in <code>Operations.isTotal</code>, replace <code class='nw'>getLiveStates(a)</code> with <code>getLiveStatesFromInitial(a)</code> (one line, plus a test). The repro passes, and so do all 8,870 core tests and seven other modules. It does not fix the older narrow-alphabet false negative (direct callers only) and adds some conservative cases to it.</p><pre class='snippet' tabindex='0'><code>-    BitSet states = getLiveStates(a);
++    BitSet states = getLiveStatesFromInitial(a);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 664 words</span></summary><div class='body'><p>Option A was validated with gradle in a scratch worktree at <code class='nw'>ea57360912ed</code>; option B was validated by the study on <code class='nw'>7cecf79523</code>; C and D were not run. Workaround today: call <code>Operations.removeDeadStates(a)</code> before <code class='nw'>isTotal</code>, <code class='nw'>AutomatonQuery</code> or <code>CompiledAutomaton</code>.</p><div class="hd hd-3"><h3 id='fix-reachable-states'>Check every state reachable from the initial state (one line) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-reachable-states" target="_self" aria-label="Link to this section" aria-describedby="fix-reachable-states"><span aria-hidden="true">#</span></a></div><p>For a deterministic automaton whose labels lie in <code>[min, max]</code>, the language is total exactly when every state reachable from state 0 is accepting and covers <code>[min, max]</code>: the rule the comment at <code>Operations.java:861</code> states. The empty cases stay right: with 0 states the set is empty and <code>seenStates &gt; 0</code> is false; if no accept state is reachable, state 0 is in the set and is not accepting, so the loop returns <code class='nw'>false</code> at once.</p><pre class='snippet' tabindex='0'><code>-    BitSet states = getLiveStates(a);
++    BitSet states = getLiveStatesFromInitial(a);</code></pre><p class='k'>Trade-offs</p><ul><li>Removes every dead-state false positive: in the study's exhaustive scope, 0 false positives and 0 false negatives for labels inside the alphabet.</li><li>Complete when every label lies inside <code>[min, max]</code>: always so for <code class='nw'>isTotal(a)</code> on code-point labels and for <code>CompiledAutomaton</code>'s <code>isTotal(a, 0, 0xff)</code> on a binary automaton. It does not fix the older conservative mode (narrow custom alphabets) and changes its count: in the study's <code>[b, c]</code> scope main gives 48,120 false positives and 38,656 false negatives, the fix 0 and 43,466. The 4,810 new answers are all a conservative <code class='nw'>false</code> for a total language, from a dead state that can be reached only through a label outside <code>[min, max]</code>; no answer goes from <code class='nw'>false</code> to <code class='nw'>true</code> (executed). Only direct callers that pass a narrower alphabet see them; option B removes them.</li><li>Does less work: it skips <code>getLiveStatesToAccept</code>, which builds a reversed copy of the automaton (<code>Operations.java:959-1001</code>); not benchmarked.</li><li>An automaton with a reachable dead state now compiles to <code class='nw'>NORMAL</code> instead of <code class='nw'>ALL</code>: correct, and Lucene's own query builders were not seen to produce such automata.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree at <code class='nw'>ea57360912ed</code>, JDK 25: 36 classes (automaton, regexp, wildcard, prefix, range, fuzzy and terms-enum tests and 5 related query classes) with the repro test: stock 406 tests, 4 failed (the 3 repro tests and the new <code class='nw'>TestOperations</code> test); with the fix 406 tests, 0 failed (also seed <code class='nw'>1234ABCD</code> with assertions off).</li><li>The whole <code>:lucene:core:test</code>: 8,870 tests in 748 classes, 0 failures, 322 skipped. <code class='nw'>queryparser</code>, <code class='nw'>highlighter</code>, <code class='nw'>monitor</code>, <code class='nw'>queries</code>, <code class='nw'>memory</code>, <code class='nw'>suggest</code> and <code class='nw'>analysis:common</code>: 4,144 tests, all pass. <code>checkGoogleJavaFormat</code> passes on the diff.</li><li>The plain program and the provider probe give the 9.12.3 answers with the fix; the cross-model reviewer's own test and 133 existing tests pass with it.</li></ul><div class="hd hd-3"><h3 id='fix-clipped-walk'>Walk only in-alphabet labels from the start, with a clipped gap scan (the study's patch B) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-clipped-walk" target="_self" aria-label="Link to this section" aria-describedby="fix-clipped-walk"><span aria-hidden="true">#</span></a></div><p>About 30 lines in <code class='nw'>isTotal</code>: a breadth-first walk from state 0 that follows only labels inside <code>[min, max]</code>, with each transition clipped to the alphabet before the gap check.</p><p class='k'>Trade-offs</p><p>Also fixes the conservative false negatives for narrow custom alphabets (0 oracle disagreements in both scopes): the full fix for direct callers that pass a custom alphabet. A larger change than A. The corrected specification it implements was proved sound and complete in Dafny by the study (not re-audited by the hunt).</p><p class='k'>What the checks validated</p><p>By the study on <code class='nw'>7cecf79523</code> (classpath shadow, not gradle): 0 disagreements with the brute-force oracle in both scopes, and 297 tests from 24 Lucene test classes pass.</p><div class="hd hd-3"><h3 id='fix-compiled-guard'>Guard in CompiledAutomaton only</h3><a class="hlink" href="#fix-compiled-guard" target="_self" aria-label="Link to this section" aria-describedby="fix-compiled-guard"><span aria-hidden="true">#</span></a></div><p>Call <code class='nw'>removeDeadStates</code>, or skip the <code class='nw'>ALL</code> shortcut when <code>hasDeadStatesFromInitial(a)</code>, before <code class='nw'>isTotal</code>.</p><p class='k'>Trade-offs</p><p>Fixes <code class='nw'>AutomatonQuery</code> and the provider path, but not direct callers of <code class='nw'>isTotal</code>, which is where the downstream authorization use is. Not run.</p><div class="hd hd-3"><h3 id='fix-javadoc-only'>Document "no dead states" in the isTotal javadoc (not recommended)</h3><a class="hlink" href="#fix-javadoc-only" target="_self" aria-label="Link to this section" aria-describedby="fix-javadoc-only"><span aria-hidden="true">#</span></a></div><p>Keep the code and add the precondition.</p><p class='k'>Trade-offs</p><p>Keeps a fail-open answer in a public predicate that downstream code uses for grant-all decisions, and every 10.x release keeps it.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>The wrong answer is always <code class='nw'>true</code> ("accepts everything"). <code class='nw'>isTotal</code> requires only determinism, dead states are legal, and downstream code acts on the answer: in Elasticsearch a <code class='nw'>true</code> turns field-level security off. It needs a sink in an automaton the application builds; no such path or exploit is known. Out of scope of Lucene's SECURITY.md (registry <code class='nw'>none</code> since 2026-10-27).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Exhaustive translation validation: an AI tool enumerated every small automaton, ran Lucene's <code class='nw'>Operations</code> on the real jar and compared each answer with an exact, independent textbook reference semantics. <code class='nw'>isTotal</code> was wrong only on DFAs with dead states, and a corrected version was proved in Dafny. A separate AI verifier reproduced it from scratch.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>203 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation plus a deductive proof</strong> (the study's semi-formal tier, 2026-10-22, main <code class='nw'>7cecf79523</code>), in the experiment that verified <code>org.apache.lucene.util.automaton</code>.</p><ul><li>An AI tool wrote <code class='nw'>FvRef</code>, an independent textbook semantics for automata that decides language equality, emptiness and totality exactly. It enumerated every automaton in small scopes, ran each Lucene operation on it, and compared. <code class='nw'>isTotal</code> returned <code class='nw'>true</code> on non-total DFAs, and every such case had a dead state (finding F2a). Dafny proved a corrected <code class='nw'>isTotal</code> sound and complete and machine-checked counterexamples for main. The study's attribution table records it as found blind: the task did not point at this bug.</li><li>A separate AI verifier re-derived it from scratch: a brute-force oracle over all 2,100,084 DFAs with 1 to 3 states over 3 labels (37,634 false positives, all with dead states), the end-to-end <code class='nw'>AutomatonQuery</code> test, runs on 9.12.0, 10.0.0 and main, and two patches checked against 297 Lucene tests.</li><li>On 2026-10-26 the hunt re-ran it on <code class='nw'>ea57360912ed</code>, built the release matrix and the commit A/B, searched for prior reports, and had it reviewed by an independent reviewer from another model family (OpenAI GPT-5.6). For this page the fix was validated with gradle and two more trigger paths were run.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found in GitHub issues and PRs, commits, the JIRA archive, the dev@, java-user@ and issues@ lists or downstream trackers (158 queries, 2026-10-26; general web search not run). A GitHub search for <code class='nw'>isTotal</code> finds only 3 items, all read. The closest is #13706, the design discussion of the change. No upstream fix found.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No report of this bug was found in the sources searched, and no upstream change to <code class='nw'>isTotal</code> after #13707 was found (main, branch_10x, branch_10_6 and branch_10_5 history; open PRs). Closest items, none of them this bug: #13707 (the cause), #13706 (its design discussion: an unmerged draft guarded against dead states), #16816 (open: rewrites an <code class='nw'>ALL</code> AutomatonQuery to <code class='nw'>FieldExistsQuery</code>, so a wrongly <code class='nw'>ALL</code> query would still match every document with the field), #11049 (2021: the no-dead-states precondition of AutomatonQuery), #16382 (a <code class='nw'>WildcardQuery</code> caller of <code class='nw'>isTotal</code>), and the downstream review thread elastic/elasticsearch#158570, which mentions <code class='nw'>isTotal</code> walking "every live state" but not the false positive.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene), commits, downstream trackers, mailing lists, JIRA archive, via a scripted prior-report search</th><td class='when'>2026-10-26</td><td>two runs, 96 and 45 queries: Operations, CompiledAutomaton, AutomatonQuery, isTotal, getLiveStates, "dead state", "sink state", "accepts all strings", "matches all terms"; web search was not run</td><td>no report; 279 distinct hits in the final run, the top ones read</td></tr><tr><th scope='row'>Extra GitHub searches</th><td class='when'>2026-10-26</td><td>17 queries, e.g. isTotal is:open, "Operations.isTotal", isTotal NFA, "complete DFA", getLiveStatesFromInitial; isTotal on three downstream repositories</td><td>only #13706, #13707 and #16382 mention isTotal in apache/lucene; all read in full</td></tr><tr><th scope='row'>Mailing lists (lists.apache.org) and JIRA archive</th><td class='when'>2026-10-26</td><td>26 direct archive queries over dev@, java-user@, issues@ and commits@; 6 JQL queries</td><td>dev@ and java-user@: no message mentions isTotal; issues@: only mirrors of the 3 items; JIRA text ~ "isTotal": 0</td></tr><tr><th scope='row'>Open PRs and branches</th><td class='when'>2026-10-26</td><td>changed files of all 413 open PRs; isTotal history on main, branch_10x, branch_10_6 and branch_10_5</td><td>12 open PRs touch util/automaton/ or AutomatonQuery.java, none Operations.java; no branch changes isTotal after #13707</td></tr><tr><th scope='row'>Earlier searches</th><td class='when'>2026-10-22 and 2026-10-20..23</td><td>the study (13 GitHub phrasings, JIRA, git log -S isTotal) and the public-list check</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #13707 (<code class='nw'>ea3a9b89278</code>, merged 2024-09-05), which generalised <code class='nw'>isTotal</code> from minimal to any deterministic automaton; first released in 10.0.0. Every release from 10.0.0 to 10.5.2 and main is wrong; 9.12.0 to 9.12.3 are correct. A commit A/B and a single-hunk revert pin it.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p>#13707, "Relax Operations.isTotal() to work with a deterministic automaton" (rmuir; approved by dweiss and ChrisHegarty; merged 2024-09-05 as <code class='nw'>ea3a9b89278</code> on main). The 10.0 line was cut from main after it, so there is no separate backport; <code>git tag --contains ea3a9b89278</code> lists exactly 10.0.0 through 10.5.2, and it never reached 9.x. The <code>isTotal(a, min, max)</code> text is byte-identical at <code class='nw'>ea3a9b89278</code>, 10.0.0, 10.5.2, <code class='nw'>ea57360912ed</code> and the <code class='nw'>branch_10_6</code> and <code class='nw'>branch_10x</code> heads of 2026-10-24.</p><p>Every release row ran the same 4-test JUnit on the release's Maven Central jars (SHA-1 checked), seed <code class='nw'>DEADBEEF</code>, <code class='nw'>-ea</code>.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code> (unreleased 11.0)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>3 of 4 fail with -ea, -da and gradle; the plain program gives 3 hits, type ALL</td></tr><tr><th scope='row'>10.0.0 to 10.5.2 (all 12 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the same 3 of 4 fail; 10.0.0 also with -da</td></tr><tr><th scope='row'>9.12.0, 9.12.1, 9.12.2, 9.12.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>4 of 4 pass (the old minimal-only isTotal returns false)</td></tr><tr><th scope='row'><code class='nw'>ea3a9b89278</code> (#13707) vs its parent <code class='nw'>87bc8270ffa</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>the parent's automaton package passes 4 of 4, #13707's fails 3 of 4; the packages differ only in the #13707 hunk</td></tr><tr><th scope='row'>10.0.0 and main with only the #13707 hunk reverted</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> revert check</span></td><td>4 of 4 pass</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code> with the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix</span></td><td>the repro passes; all 8,870 core tests pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The study's verifier, the public-list rerun, the hunt's re-verification and a cross-model refute review all reproduced it. The reviewer, from another model family, wrote its own test, rated the "intended" argument moderate and returned verdict real, confidence high. This page's runs validated the fix on the whole core suite.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>308 words</span></summary><div class='body'><p>Each check worked from the code or its own runs. The only disagreement-shaped point is intent for the <code class='nw'>AutomatonQuery</code> symptom, shown in full in "Why it is a bug".</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Study verifier (automaton)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new bug</span></td><td>Its own 8 tests (all fail on main), a brute-force oracle over 2,100,084 DFAs, runs on 9.12.0, 10.0.0 and main, and two patches checked against 297 Lucene tests.</td></tr><tr><th scope='row'>Public-list rerun</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces on b83101cdd2</span></td><td>8 tests, 8 failures, as in the study.</td></tr><tr><th scope='row'>Hunt verification</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>The 4-test JUnit fails 3 of 4 on main with -ea and -da, on 10.5.2 and 10.0.0; 9.12.3 passes; the determinize path also fails; the one-line fix passes.</td></tr><tr><th scope='row'>Cross-model refute review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, confidence high</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) wrote and ran its own 3-state test: it fails on main with -ea, -da and a second seed, passes on 9.12.3 and with the fix, and 133 existing tests pass with the fix. It rated the "intended" argument moderate. The repro driver re-ran its test with the same results.</td></tr><tr><th scope='row'>History follow-up</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> introduced by #13707, first released in 10.0.0</span></td><td>16 releases plus main, a commit A/B and single-hunk revert checks.</td></tr><tr><th scope='row'>Prior-report follow-up</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> new</span></td><td>158 queries; nothing found.</td></tr><tr><th scope='row'>This page's own runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Plain program on main (-ea, -da), 10.5.2, 10.0.0 and 9.12.3; a third trigger path (AutomatonProvider); gradle stock and with the fix, including the whole core suite and seven other modules.</td></tr><tr><th scope='row'>Fact checks of this page</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> bug stands; wording fixed</span></td><td>None changed a conclusion. Their findings on wording and scope (the trigger condition, <code class='nw'>Terms.intersect</code>, the fix's effect on narrow alphabets, the <code class='nw'>getLiveStates</code> rationale, the builders claim, the security scope) were fixed, with one new exhaustive run; one finding was rejected under the hunt's vendor policy.</td></tr></tbody></table></div></div></details></div></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources and repro files</span><span class='n'>640 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-049, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>Operations.isTotal returns true for a deterministic automaton that can reach a dead state, so an AutomatonQuery can match every term</dd></div><div><dt>Area</dt><dd>util / automaton</dd></div><div><dt>Priority</dt><dd>Low, rank 377: Top of Low (moved down from Medium): the 10.0 isTotal regression makes an AutomatonQuery match every term for a DFA with a reachable dead state, and Elasticsearch uses isTotal in authorization checks, but every Lucene automaton builder strips dead states and no downstream path that keeps one is known, so the over-match needs a hand-built automaton.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Code that hands Lucene a hand-built deterministic automaton with a reachable dead state (Automaton/Automaton.Builder, or determinize of such an NFA), and downstream code that uses isTotal as a match-all decision; Lucene's own RegExp, wildcard, prefix and Levenshtein automata never contain one; any scale; regression released in 10.0.0-10.5.2.</dd></div><div><dt>Summary</dt><dd>You call Operations.isTotal, or build an AutomatonQuery, on a deterministic automaton that rejects some strings and has a reachable dead state, such as a complete DFA with an explicit sink state built by hand. You expect false, as Lucene 9.12.0 returns. Instead, since 10.0.0, isTotal checks only live states, so a transition into the dead state counts as coverage and it returns true; CompiledAutomaton then compiles the query to AUTOMATON_TYPE.ALL, and in the repro an AutomatonQuery matched 3 documents instead of 2.</dd></div><div><dt>Introduced</dt><dd>#13707 (ea3a9b89278) (2024-09-05)</dd></div><div><dt>First affected version</dt><dd>10.0.0 (regression; 9.12.0 correct)</dd></div><div><dt>Affected versions</dt><dd>10.0.0-10.5.2, branch_10_6 and main [exec on 9.12.0, 10.0.0, main]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; also a cross-model review that agreed; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (study searches 2026-10-22; public-list check 2026-10-20..23)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (commit 2026-10-24; tested 2026-10-26): the plain program and the JUnit repro through the repro runner with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, and through gradle in a scratch worktree, stock and with the fix (the worktree was removed after the runs). Also the Maven Central jars 9.12.0-9.12.3 and every release from 10.0.0 to 10.5.2 (SHA-1 checked), and the introducing commit and its parent (A/B). The study reproduced it on <code class='nw'>7cecf79523</code> and the public-list rerun on <code class='nw'>b83101cdd2</code>; <code class='nw'>Operations.java</code> has the same blob at <code class='nw'>7cecf79523</code> and <code class='nw'>ea57360912ed</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>SECURITY.md:28, 50 (threat model)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java:837-879, 922-957</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/CompiledAutomaton.java:36-61, 179-199, 344-353</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/AutomatonQuery.java:29-41, 59-99</code></li><li><code>a Lucene clone releases/lucene/9.12.0 lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java:864-879</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/Automaton.java:38-41 (transitions sorted when a state is finished)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java:56, 350-356, 793-795, 1308-1345</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/RegExp.java:711-727; Automata.java:564, 589, 609; Automaton.java:43</code></li><li><code>elastic/elasticsearch main, read-only GitHub API 2026-10-26: x-pack/plugin/core/src/main/java/org/elasticsearch/xpack/core/security/authz/privilege/Privilege.java:49; .../authz/permission/FieldPermissions.java:110-112, 227, 244-253 (last change d45ce17cdd3, 2026-09-11); code search for Operations.isTotal</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java:148, 155, 204, 209, 351-356, 381, 393-400 (optional, repeat, complement, minus, intersection)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java:838-861, 444-460, 1003-1007, 1127-1134</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/search/AutomatonQuery.java:32, 64, 75, 88, 99</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/CompiledAutomaton.java:36-41, 55-56, 181</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/AutomatonTermsEnum.java:297</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/test/org/apache/lucene/util/automaton/TestOperations.java:182-220; lucene/CHANGES.txt:2332 (10.0.0 section from line 2139)</code></li><li><code>a Lucene clone releases/lucene/9.12.0 CompiledAutomaton.java:176</code></li><li><code>a Lucene clone releases/lucene/9.12.0 Operations.java:863, 870 (&quot;must be minimized&quot;)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/util/automaton/Operations.java:857, 936-940, 959-1001</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>IsTotalDeadState.java (plain main, public API, lucene-core only): <a href='../repro/LFV-049/IsTotalDeadState.java'><code>repro/LFV-049/IsTotalDeadState.java</code></a> (57 lines)</li><li>TestIsTotalDeadState.java (JUnit, drop-in for Lucene&#x27;s build): <a href='../repro/LFV-049/TestIsTotalDeadState.java'><code>repro/LFV-049/TestIsTotalDeadState.java</code></a> (113 lines)</li><li>ProviderProbe.java (third trigger path: RegexpQuery with an AutomatonProvider): <a href='../repro/LFV-049/ProviderProbe.java'><code>repro/LFV-049/ProviderProbe.java</code></a> (48 lines)</li><li>istotal-reachable-states.diff (the fix and its regression test, +28/-1): <a href='../repro/LFV-049/istotal-reachable-states.diff'><code>repro/LFV-049/istotal-reachable-states.diff</code></a> (51 lines)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

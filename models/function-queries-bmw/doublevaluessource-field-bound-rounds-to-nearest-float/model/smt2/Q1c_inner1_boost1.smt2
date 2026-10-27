@@ -1,0 +1,26 @@
+(set-logic QF_FPBV)
+(declare-fun v () (_ FloatingPoint 11 53))
+(declare-fun V () (_ FloatingPoint 11 53))
+(assert (and (not (fp.isNaN v)) (not (fp.isInfinite v))))
+(assert (and (not (fp.isNaN V)) (not (fp.isInfinite V))))
+(assert (fp.leq v V))
+(assert (fp.geq v (_ +zero 11 53)))
+(assert (let ((a!1 (ite (fp.geq v (_ +zero 11 53))
+                ((_ to_fp 8 24)
+                  roundNearestTiesToEven
+                  (fp.mul roundNearestTiesToEven
+                          v
+                          ((_ to_fp 11 53)
+                            roundNearestTiesToEven
+                            (fp #b0 #x7f #b00000000000000000000000))))
+                (_ +zero 8 24)))
+      (a!2 (ite (fp.isInfinite ((_ to_fp 8 24) roundNearestTiesToEven V))
+                (_ +oo 8 24)
+                (fp.mul roundNearestTiesToEven
+                        (fp.mul roundNearestTiesToEven
+                                (fp #b0 #x7f #b00000000000000000000000)
+                                ((_ to_fp 8 24) roundNearestTiesToEven V))
+                        (fp #b0 #x7f #b00000000000000000000000)))))
+  (fp.gt a!1 a!2)))
+
+(check-sat)

@@ -1,0 +1,51 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/document/LatLonPoint.java b/lucene/core/src/java/org/apache/lucene/document/LatLonPoint.java
+index 61ca403637f..9808c0ae4c1 100644
+--- a/lucene/core/src/java/org/apache/lucene/document/LatLonPoint.java
++++ b/lucene/core/src/java/org/apache/lucene/document/LatLonPoint.java
+@@ -33,6 +33,7 @@ import org.apache.lucene.geo.Point;
+ import org.apache.lucene.geo.Polygon;
+ import org.apache.lucene.geo.Rectangle;
+ import org.apache.lucene.index.FieldInfo;
++import org.apache.lucene.index.LeafReader;
+ import org.apache.lucene.index.LeafReaderContext;
+ import org.apache.lucene.index.PointValues;
+ import org.apache.lucene.internal.hppc.IntArrayList;
+@@ -419,13 +420,25 @@ public class LatLonPoint extends Field {
+     IntArrayList docBases = new IntArrayList();
+     List<Bits> liveDocs = new ArrayList<>();
+     int totalHits = 0;
++    boolean exactTotalHits = true;
+     for (LeafReaderContext leaf : searcher.getIndexReader().leaves()) {
+-      PointValues points = leaf.reader().getPointValues(field);
++      LeafReader reader = leaf.reader();
++      PointValues points = reader.getPointValues(field);
+       if (points != null) {
+-        totalHits += points.getDocCount();
++        int docCount = points.getDocCount(); // index statistic: ignores deletions
++        if (reader.hasDeletions() == false) {
++          totalHits += docCount;
++        } else if (docCount == reader.maxDoc()) {
++          // every document has the field, so the live documents that have it are exactly numDocs
++          totalHits += reader.numDocs();
++        } else {
++          // only a lower bound is cheap to compute
++          totalHits += Math.max(0, docCount - reader.numDeletedDocs());
++          exactTotalHits = false;
++        }
+         readers.add(points);
+         docBases.add(leaf.docBase);
+-        liveDocs.add(leaf.reader().getLiveDocs());
++        liveDocs.add(reader.getLiveDocs());
+       }
+     }
+ 
+@@ -439,6 +452,8 @@ public class LatLonPoint extends Field {
+       double hitDistance = SloppyMath.haversinMeters(hit.distanceSortKey);
+       scoreDocs[i] = new FieldDoc(hit.docID, 0.0f, new Object[] {Double.valueOf(hitDistance)});
+     }
+-    return new TopFieldDocs(new TotalHits(totalHits, TotalHits.Relation.EQUAL_TO), scoreDocs, null);
++    TotalHits.Relation relation =
++        exactTotalHits ? TotalHits.Relation.EQUAL_TO : TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO;
++    return new TopFieldDocs(new TotalHits(totalHits, relation), scoreDocs, null);
+   }
+ }

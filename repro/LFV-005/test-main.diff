@@ -1,0 +1,179 @@
+diff --git a/lucene/core/src/test/org/apache/lucene/util/hnsw/TestHnswFloatVectorGraph.java b/lucene/core/src/test/org/apache/lucene/util/hnsw/TestHnswFloatVectorGraph.java
+index cf20030e6b4..23a7fa5d3dc 100644
+--- a/lucene/core/src/test/org/apache/lucene/util/hnsw/TestHnswFloatVectorGraph.java
++++ b/lucene/core/src/test/org/apache/lucene/util/hnsw/TestHnswFloatVectorGraph.java
+@@ -25,6 +25,7 @@ import java.io.IOException;
+ import java.io.PrintStream;
+ import java.nio.charset.StandardCharsets;
+ import java.util.ArrayList;
++import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.List;
+ import java.util.Random;
+@@ -37,6 +38,7 @@ import org.apache.lucene.codecs.lucene99.Lucene99HnswVectorsReader;
+ import org.apache.lucene.document.Document;
+ import org.apache.lucene.document.Field;
+ import org.apache.lucene.document.KnnFloatVectorField;
++import org.apache.lucene.document.StoredField;
+ import org.apache.lucene.document.StringField;
+ import org.apache.lucene.index.CodecReader;
+ import org.apache.lucene.index.DirectoryReader;
+@@ -67,6 +69,7 @@ import org.apache.lucene.util.IORunnable;
+ import org.apache.lucene.util.IntsRef;
+ import org.apache.lucene.util.NamedThreadFactory;
+ import org.apache.lucene.util.PrintStreamInfoStream;
++import org.apache.lucene.util.VectorUtil;
+ import org.junit.Before;
+ 
+ /** Tests HNSW KNN graphs */
+@@ -506,6 +509,150 @@ public class TestHnswFloatVectorGraph extends HnswGraphTestCase<float[]> {
+     }
+   }
+ 
++  /**
++   * The merge-reuse repair must reconnect the reused graph's entry node when that node lost every
++   * neighbour. Points on a line: ord 171 at 0, ords 0, 4 and 215 at 1, 2 and 3, every other ord i
++   * at 100 + i. With seed 42, ord 171 is the first node of the top level (level 2), and its only
++   * links on levels 0, 1 and 2 go to ords 0, 4 and 215. Deleting those 3 ords (0.2%) leaves ord 171
++   * as the entry of the reused graph with no neighbours left.
++   */
++  public void testRepairReconnectsEntryNodeThatLostAllNeighbors() throws IOException {
++    long savedRandSeed = HnswGraphBuilder.randSeed;
++    try {
++      HnswGraphBuilder.randSeed = 42;
++      similarityFunction = VectorSimilarityFunction.EUCLIDEAN;
++      int n = 1450;
++      float[][] all = new float[n][];
++      for (int i = 0; i < n; i++) {
++        float pos = i == 171 ? 0 : i == 0 ? 1 : i == 4 ? 2 : i == 215 ? 3 : 100 + i;
++        all[i] = new float[] {pos, 0};
++      }
++      RandomVectorScorerSupplier allScorer = buildScorerSupplier(MockVectorValues.fromValues(all));
++      OnHeapHnswGraph source = HnswGraphBuilder.create(allScorer, 16, 100, 42).build(n);
++      int[] newOrdMap = new int[n];
++      float[][] live = new float[n - 3][];
++      for (int old = 0, next = 0; old < n; old++) {
++        boolean deleted = old == 0 || old == 4 || old == 215;
++        newOrdMap[old] = deleted ? -1 : next;
++        if (deleted == false) {
++          live[next++] = all[old];
++        }
++      }
++      MockVectorValues liveVectors = MockVectorValues.fromValues(live);
++      OnHeapHnswGraph merged =
++          InitializedHnswGraphBuilder.initGraph(
++              source, newOrdMap, live.length, 100, buildScorerSupplier(liveVectors));
++
++      int entry = merged.entryNode();
++      assertEquals("old ord 171 (new ord 169) is the entry of the merged graph", 169, entry);
++      int[] degrees = new int[merged.numLevels()];
++      for (int level = 0; level < degrees.length; level++) {
++        degrees[level] = merged.getNeighbors(level, entry).size();
++      }
++      KnnCollector top5 =
++          HnswGraphSearcher.search(
++              buildScorer(liveVectors, new float[] {1000.3f, 0}),
++              5,
++              merged,
++              null,
++              Integer.MAX_VALUE);
++      int hits = top5.topDocs().scoreDocs.length;
++      assertTrue(
++          "entry node degree per level after repair = "
++              + Arrays.toString(degrees)
++              + ", a 5-NN search returned "
++              + hits
++              + " hit(s)",
++          degrees[0] > 0 && hits == 5);
++    } finally {
++      HnswGraphBuilder.randSeed = savedRandSeed;
++    }
++  }
++
++  /**
++   * End to end with the default codec: a plain forceMerge(1) must keep kNN recall. 1450 docs, 16
++   * dims: doc 171 at -10 on axis 0, cluster A (docs 0..29 and 215) at 0, the other 1418 docs at
++   * +10. The flushed graph's first top-level node is doc 171 (seed 42), and it links only to
++   * cluster A. Deleting cluster A (2.1% of the docs) makes the merge reuse the graph with doc 171
++   * as its entry.
++   */
++  public void testForceMergeKeepsRecallWhenReusedEntryLosesAllNeighbors() throws IOException {
++    long savedRandSeed = HnswGraphBuilder.randSeed;
++    try (Directory dir = newDirectory()) {
++      HnswGraphBuilder.randSeed = 42;
++      int n = 1450, dim = 16;
++      Random random = new Random(20261022L);
++      float[][] vectors = new float[n][dim];
++      boolean[] inA = new boolean[n];
++      for (int i = 0; i < n; i++) {
++        inA[i] = i < 30 || i == 215;
++        for (int d = 0; d < dim; d++) {
++          vectors[i][d] = (float) (random.nextGaussian() * 0.3);
++        }
++        vectors[i][0] += i == 171 ? -10 : inA[i] ? 0 : 10;
++      }
++      random = new Random(7L);
++      float[][] queries = new float[50][dim]; // all in the big cluster at +10
++      for (float[] q : queries) {
++        for (int d = 0; d < dim; d++) {
++          q[d] = (float) (random.nextGaussian() * 0.3);
++        }
++        q[0] += 10;
++      }
++      double before, after;
++      IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
++      try (IndexWriter w = new IndexWriter(dir, iwc)) {
++        for (int i = 0; i < n; i++) {
++          Document doc = new Document();
++          doc.add(new StoredField(ID_FIELD, i));
++          doc.add(new StringField("cluster", inA[i] ? "A" : "B", Field.Store.NO));
++          doc.add(new KnnFloatVectorField("vec", vectors[i], VectorSimilarityFunction.EUCLIDEAN));
++          w.addDocument(doc);
++        }
++        w.commit(); // one segment of 1450 docs
++        w.deleteDocuments(new Term("cluster", "A"));
++        w.commit();
++        before = recallAt10(w, vectors, inA, queries);
++        w.forceMerge(1);
++        after = recallAt10(w, vectors, inA, queries);
++      }
++      TestUtil.checkIndex(dir); // passes
++      assertTrue("recall@10 before the merge = " + before, before > 0.85);
++      assertTrue("recall@10 after forceMerge(1) = " + after + ", before = " + before, after > 0.85);
++    } finally {
++      HnswGraphBuilder.randSeed = savedRandSeed;
++    }
++  }
++
++  private static double recallAt10(
++      IndexWriter w, float[][] vectors, boolean[] deleted, float[][] queries) throws IOException {
++    try (DirectoryReader reader = DirectoryReader.open(w)) {
++      IndexSearcher searcher = new IndexSearcher(reader);
++      int found = 0;
++      for (float[] q : queries) {
++        List<Integer> exact = new ArrayList<>();
++        for (int i = 0; i < vectors.length; i++) {
++          if (deleted[i] == false) {
++            exact.add(i);
++          }
++        }
++        exact.sort(
++            (a, b) ->
++                Float.compare(
++                    VectorUtil.squareDistance(q, vectors[a]),
++                    VectorUtil.squareDistance(q, vectors[b])));
++        exact = exact.subList(0, 10);
++        for (ScoreDoc sd : searcher.search(new KnnFloatVectorQuery("vec", q, 10), 10).scoreDocs) {
++          Document doc = searcher.storedFields().document(sd.doc);
++          if (exact.contains(doc.getField(ID_FIELD).numericValue().intValue())) {
++            found++;
++          }
++        }
++      }
++      return found / (10.0 * queries.length);
++    }
++  }
++
+   private static List<Integer> sortedNeighbors(OnHeapHnswGraph graph, int level, int node) {
+     NeighborArray arr = graph.getNeighbors(level, node);
+     List<Integer> neighbors = new ArrayList<>(arr.size());

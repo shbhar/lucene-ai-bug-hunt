@@ -1,0 +1,1199 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Geo3D distance and path sorts skip the secondary sort for hits outside the radius</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-746 &middot; geo3d-distance-sort-outside-radius-tie-skips-secondary-sort</p><h1 id='top'>Geo3D distance and path sorts skip the secondary sort for hits outside the radius</h1><p class='tldr'>Geo3D distance sorts give every hit outside the radius distance +Infinity, so a second sort key must order them. Once they fill the page, a bounding-box shortcut rejects later ones without consulting that key: for 5 far-away documents the top 2 by <code class='nw'>tie</code> are <code>[1, 0]</code>, not <code>[4, 3]</code>.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 205</span><span class='sub'>A deterministic silent mis-order since 6.1.0 that needs the little-used Geo3D distance or path sort plus a secondary sort and a query wider than the radius, so it joins its Geo3D sort siblings LFV-551 and LFV-544 right after the searchAfter paging row.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>6.1.0 (LUCENE-7212, 2016)<span class='sub'>introduced 2016-05-17 &middot; over 10 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>6.1.0 to 10.5.2 (all 90 releases run) and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive comparison of index layouts, then code reading</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>newDistanceSort</code> orders hits by distance from a point; a hit outside <code class='nw'>maxRadiusMeters</code>, like a document without the field, gets distance +Infinity. To save work, the comparator rejects a hit early when its point lies outside a bounding box built from the weakest distance in the top-n queue.</p><figure class='visual' id='geo3d-distance-sort-outside-radius-tie-skips-secondary-sort-short-visual'><div class='frame'><a class='still' href='../assets/LFV-746/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-746/bug.png' alt='Diagram of the Geo3D distance-sort bug: a 1,000 km circle around (0, 0) and its bounding box, five documents far outside at latitude 60 with tie values 0 to 4, all at distance +Infinity. A top-2 page sorted by distance and then tie descending should hold documents 4 and 3; after documents 0 and 1 fill it, the bounding-box shortcut rejects documents 2, 3 and 4 as worse instead of tied, so the page holds documents 1 and 0. A document without the field, also at +Infinity, is compared on tie and can enter.' width='1920' height='1080'></a></div><figcaption>Five far-away documents sorted by distance, then by <code class='nw'>tie</code>: once two fill the page, the bounding-box shortcut turns the rest away without comparing <code class='nw'>tie</code>, so the page keeps documents 1 and 0 instead of 4 and 3. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index 5 documents at latitude 60, about 6,700 km from (0, 0), with a second key <code class='nw'>tie</code> = 0 to 4. Search <code>MatchAllDocsQuery</code> sorted by <code class='nw'>newDistanceSort</code> around (0, 0) with a 1,000 km radius, then by <code class='nw'>tie</code> descending.</span></li><li><span>All 5 are outside the radius, so each gets distance +Infinity, the value a document without the field gets, and <code class='nw'>tie</code> decides. The full result is <code>[4, 3, 2, 1, 0]</code>, so you expect the top 2 to be <code>[4, 3]</code>.</span></li><li><span>Instead <code>search(q, 2, sort)</code> returns <code>[1, 0]</code>: the first two documents indexed, here the two with the lowest <code class='nw'>tie</code>. No error, with assertions on or off.</span></li><li><span>Why: once 2 hits fill the queue, its weakest distance is +Infinity. For each later hit whose point lies outside the circle's bounding box, the comparator answers "worse" (-1) instead of "tie" (0), so <code class='nw'>tie</code> is never compared.</span></li><li><span>A document without the field is tie-broken (add one with <code class='nw'>tie</code> 5: <code>[5, 1]</code> instead of <code>[5, 4]</code>), hits inside the radius are always right, and <code class='nw'>newPathSort</code> fails the same way. Every release since 6.1.0 has it.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that use the Geo3D distance or path sort (lucene/spatial3d, opt-in) with a second sort key, over a query that also matches documents outside the radius: say "within 10 km nearest first, the rest newest first". Default settings, any index size, no error. Pairing the sort with the matching distance query normally hides it.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>702 words</span></summary><div class='body'><p><code>Geo3DDocValuesField.newDistanceSort(field, lat, lon, maxRadiusMeters, planet)</code> and <code class='nw'>newPathSort</code> sort hits by ascending distance; a document without the field, and any hit outside the circle or path, gets distance +Infinity, so in <code>new Sort(distanceSort, secondary)</code> the secondary SortField must order all of them (<code class='nw'>Sort</code>: "if it produces a tie, then the second SortField is used to break the tie"). <code>Geo3DPointDistanceComparator</code> keeps a bounding box built from the queue's weakest distance and lets <code class='nw'>compareBottom</code> reject hits outside it without computing their distance. When that weakest distance is +Infinity, the box is the shape's own box, and <code class='nw'>compareBottom</code> starts at -1 and skips every value outside it, so a later out-of-box hit returns -1 ("not competitive") although it ties at +Infinity. The secondary SortField is never asked, and the page keeps the first out-of-radius hits in doc order. Five documents at latitude 60 sorted around (0, 0) with a 1,000 km radius and a <code class='nw'>tie</code> key descending give <code>[1, 0]</code> for the top 2, while the full order is <code>[4, 3, 2, 1, 0]</code>. Documents without the field and out-of-radius points inside the box are tie-broken correctly, and hits inside the radius are always right. The code is unchanged since the sorts were added in 6.1.0 (LUCENE-7212, 2016). Starting <code class='nw'>cmp</code> at 0 when the bottom is +Infinity fixes it (a one-line change, validated with the repro and the whole spatial3d module).</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Geo3D distance sort</strong>: <code>Geo3DDocValuesField.newDistanceSort(field, latitude, longitude, maxRadiusMeters, planetModel)</code> (lucene/spatial3d) "orders documents by ascending distance from the location"; "If a document is missing the field, then by default it is treated as having <code>Double#POSITIVE_INFINITY</code> distance (missing values sort last)" (<code>Geo3DDocValuesField.java:164-192</code>). <code class='nw'>newPathSort</code> does the same for a path (<code class='nw'>:194-225</code>); both build a <code>Geo3DPointSortField</code> whose comparator is <code>Geo3DPointDistanceComparator</code> (<code>Geo3DPointSortField.java:44-46</code>).</li><li><strong>Outside the shape</strong>: the distance of a point outside the circle (or path) is +Infinity (<code>GeoBaseDistanceShape.java:47-53</code>), the same value as a missing document. <code>FieldDoc.fields[0]</code> reports <code class='nw'>Infinity</code> for both.</li><li><strong>Ties</strong>: <code>new Sort(a, b)</code> checks <code class='nw'>a</code> first, "but if it produces a tie, then the second SortField is used to break the tie" (<code class='nw'>Sort.java:58-62</code>).</li><li><strong>The queue bottom</strong>: a top-n search keeps n hits in a queue; the weakest one is the bottom. <code>compareBottom(doc)</code> answers whether a new hit beats it: positive, 0 for a tie (then the next SortField decides), negative for worse (<code>LeafFieldComparator.java:54-67</code>).</li><li><strong>The bounding-box shortcut</strong>: "When the least competitive item on the priority queue changes (setBottom), we recompute a bounding box representing competitive distance to the top-N. Then in compareBottom, we can quickly reject hits based on bounding box alone" (<code>Geo3DPointDistanceComparator.java:33-40</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><strong>The box for an +Infinity bottom.</strong> <code class='nw'>setBottom</code> (<code>Geo3DPointDistanceComparator.java:77-89</code>) calls <code>getDistanceBounds(bounds, ARC, bottomDistance)</code>; for +Infinity it returns the shape's own XYZ box (<code>GeoBaseDistanceShape.java:80-87</code>).</li><li><strong>The rejection.</strong> <code class='nw'>compareBottom</code> (<code class='nw'>:97-134</code>) starts with <code>cmp = -1</code> (<code class='nw'>:108</code>) and skips (<code class='nw'>continue</code>) every value outside the box (<code class='nw'>:118-125</code>). A hit whose points are all outside the box returns -1, although its distance, +Infinity, ties with the bottom. For a finite bottom the shortcut is right: such a point is outside the shape, so +Infinity is worse.</li><li><strong>The secondary sort is skipped.</strong> <code>MultiLeafFieldComparator.compareBottom</code> returns the first non-zero result (<code class='nw'>:52-64</code>), and the collector drops the hit (<code>TopFieldCollector.java:92-96</code>).</li><li><strong>The inconsistency.</strong> A document without the field returns <code>Double.compare(bottomDistance, +Infinity)</code> = 0 (<code class='nw'>:101-103</code>) and is tie-broken; an out-of-radius point inside the box computes its distance, +Infinity, also gets 0 and is tie-broken. Only out-of-box points are rejected.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-example-step-by-step'>The example, step by step</h3><a class="hlink" href="#what-the-bug-is-the-example-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-example-step-by-step"><span aria-hidden="true">#</span></a></div><p>Docs 0-4 at (60, 0) with <code class='nw'>tie</code> 0-4, top 2 by distance (1,000 km circle at (0, 0)), then <code class='nw'>tie</code> descending. Docs 0 and 1 fill the queue; the bottom is doc 0 (+Infinity, <code class='nw'>tie</code> 0). Docs 2, 3 and 4 lie outside the circle's box, so each returns -1 and is dropped. The page is <code>[1, 0]</code>; the full order, <code>[4, 3, 2, 1, 0]</code>, starts with <code>[4, 3]</code>.</p><p>Not affected: hits inside the radius (inside the box, finite distance), documents without the field, doc-id tie-breaking (the earliest documents win anyway), and the outside-distance sorts, whose comparator has no box.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>248 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Users of <code>Geo3DDocValuesField.newDistanceSort</code> or <code class='nw'>newPathSort</code> (lucene/spatial3d, opt-in) with a secondary SortField whose query also matches documents outside the radius or path. No upstream test uses either factory.</li><li><strong>All four conditions are needed.</strong> (1) The query matches documents outside the radius. (2) The secondary key disagrees with doc-id order: a descending key, an index sort, a reordered index. (3) More such hits remain than free slots on the page. (4) Their points lie outside the shape's XYZ bounding box, which holds for most far-away points.</li><li><strong>The usual pairing hides it.</strong> With the matching <code>Geo3DPoint.newDistanceQuery</code>, out-of-radius hits normally do not match (read, not run; the query reads the indexed points and the sort the coarser doc values, so a hit right at the edge can still sort as +Infinity).</li><li><strong>Worst case is ordinary.</strong> In an index built in time order, "then newest first" keeps the oldest out-of-radius documents. A small radius or a deep page makes an +Infinity bottom more likely.</li><li><strong>Silent.</strong> No exception; <code class='nw'>totalHits</code> and the hits inside the radius are right. Default <code>IndexWriterConfig</code>, codec and searcher, any index size, assertions on or off; the JUnit runs got two different random codecs with the same result.</li><li><strong>Layout-dependent.</strong> It was first seen as top-n results of an index-sorted index (1,200 documents per segment) that differ from a force-merged single-segment copy of the same documents.</li><li><strong>How likely.</strong> Plausible: a little-used API, hidden by the usual pairing and by doc-id tie-breaking, and no report since 6.1.0 (2016).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code class='nw'>lucene/spatial3d</code> on the public API: each test indexes 4-6 documents in one segment and checks that the top n hits are the first n of the full sorted order. 6 of 7 tests fail on main and 10.5.2, with assertions on and off; the control passes, and all 7 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGeo3DDistanceSortTieAtInfinity.java (lucene/spatial3d, public API)</span><span class='meta'>233 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial3d;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.spatial3d.geom.GeoCircle;
+import org.apache.lucene.spatial3d.geom.GeoCircleFactory;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.spatial3d.geom.XYZBounds;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Geo3D distance and path sorts give every hit outside the circle (or the path) the distance
+ * +Infinity, the same value as a document without the field. A second SortField must then order
+ * those hits, so search(q, n, sort) must return the first n hits of the full sorted order.
+ */
+public class TestGeo3DDistanceSortTieAtInfinity extends LuceneTestCase {
+
+  /**
+   * One document: a location (null for none), the secondary sort key &quot;tie&quot;, and whether the
+   * location is inside the sort&#x27;s circle or path (then its distance is finite).
+   */
+  private record Doc(GeoPoint point, int tie, boolean inShape) {}
+
+  /** A document outside the sort&#x27;s circle or path. */
+  private static Doc at(PlanetModel planetModel, double latDegrees, double lonDegrees, int tie) {
+    return new Doc(point(planetModel, latDegrees, lonDegrees), tie, false);
+  }
+
+  /** A document inside the sort&#x27;s circle. */
+  private static Doc inShape(
+      PlanetModel planetModel, double latDegrees, double lonDegrees, int tie) {
+    return new Doc(point(planetModel, latDegrees, lonDegrees), tie, true);
+  }
+
+  private static Doc missing(int tie) {
+    return new Doc(null, tie, false);
+  }
+
+  private static GeoPoint point(PlanetModel planetModel, double latDegrees, double lonDegrees) {
+    return new GeoPoint(planetModel, Math.toRadians(latDegrees), Math.toRadians(lonDegrees));
+  }
+
+  /** Five documents at latitude 60, about 6,700 km from (0, 0), with tie = doc id. */
+  private static Doc[] fiveFarAway(PlanetModel planetModel) {
+    Doc[] docs = new Doc[5];
+    for (int i = 0; i &lt; docs.length; i++) {
+      docs[i] = at(planetModel, 60, 0, i);
+    }
+    return docs;
+  }
+
+  /**
+   * Indexes the documents in one segment (doc ids in the given order), sorts all hits by geoSort
+   * and then by &quot;tie&quot; descending, checks the full order of doc ids and that the top n hits are its
+   * first n.
+   */
+  private void check(
+      PlanetModel planetModel,
+      SortField geoSort,
+      int n,
+      List&lt;Integer&gt; expectedFullOrder,
+      Doc... docs)
+      throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (Doc d : docs) {
+          Document doc = new Document();
+          if (d.point() != null) {
+            doc.add(new Geo3DDocValuesField(&quot;loc&quot;, d.point(), planetModel));
+          }
+          doc.add(new NumericDocValuesField(&quot;tie&quot;, d.tie()));
+          w.addDocument(doc);
+        }
+        w.forceMerge(1);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        assertEquals(1, reader.leaves().size());
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Sort sort = new Sort(geoSort, new SortField(&quot;tie&quot;, SortField.Type.LONG, true));
+        TopDocs all = searcher.search(new MatchAllDocsQuery(), docs.length + 10, sort);
+        List&lt;Integer&gt; full = new ArrayList&lt;&gt;();
+        for (ScoreDoc sd : all.scoreDocs) {
+          full.add(sd.doc);
+          // documents without the field and documents outside the shape sort as +Infinity
+          double distance = (Double) ((FieldDoc) sd).fields[0];
+          assertEquals(docs[sd.doc].inShape(), Double.isFinite(distance));
+        }
+        assertEquals(&quot;full order&quot;, expectedFullOrder, full);
+        List&lt;Integer&gt; top = new ArrayList&lt;&gt;();
+        for (ScoreDoc sd : searcher.search(new MatchAllDocsQuery(), n, sort).scoreDocs) {
+          top.add(sd.doc);
+        }
+        assertEquals(&quot;top &quot; + n + &quot; = first &quot; + n + &quot; of the full order&quot;, full.subList(0, n), top);
+      }
+    }
+  }
+
+  /** A circle around (0, 0): 1,000 km on WGS84, 0.2 planet radii on SPHERE (mean radius 1). */
+  private static SortField circleAtOrigin(PlanetModel planetModel) {
+    double radius = planetModel == PlanetModel.SPHERE ? 0.2 : 1_000_000;
+    return Geo3DDocValuesField.newDistanceSort(&quot;loc&quot;, 0, 0, radius, planetModel);
+  }
+
+  public void testOutsideRadiusTiesWgs84() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    check(pm, circleAtOrigin(pm), 2, List.of(4, 3, 2, 1, 0), fiveFarAway(pm));
+  }
+
+  public void testOutsideRadiusTiesSphere() throws Exception {
+    PlanetModel pm = PlanetModel.SPHERE;
+    check(pm, circleAtOrigin(pm), 2, List.of(4, 3, 2, 1, 0), fiveFarAway(pm));
+  }
+
+  /** A document without the field is +Infinity too: it must tie with the out-of-radius ones. */
+  public void testOutsideRadiusAndMissingTies() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    Doc[] far = fiveFarAway(pm);
+    check(
+        pm,
+        circleAtOrigin(pm),
+        2,
+        List.of(5, 4, 3, 2, 1, 0),
+        far[0],
+        far[1],
+        far[2],
+        far[3],
+        far[4],
+        missing(5));
+  }
+
+  /** A hit inside the radius comes first; the out-of-radius hits after it still tie. */
+  public void testInsideRadiusHitThenOutsideTies() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    Doc[] far = fiveFarAway(pm);
+    Doc inside = inShape(pm, 0, 1, -1); // about 111 km from the center
+    check(
+        pm,
+        circleAtOrigin(pm),
+        3,
+        List.of(5, 4, 3, 2, 1, 0),
+        far[0],
+        far[1],
+        far[2],
+        far[3],
+        far[4],
+        inside);
+  }
+
+  /** The path sort uses the same comparator: hits outside the path are +Infinity. */
+  public void testPathSortOutsidePathTies() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    SortField path =
+        Geo3DDocValuesField.newPathSort(
+            &quot;loc&quot;, new double[] {0, 0}, new double[] {0, 1}, 50_000, pm);
+    check(pm, path, 2, List.of(4, 3, 2, 1, 0), fiveFarAway(pm));
+  }
+
+  /**
+   * Two out-of-radius documents, both +Infinity: one just outside the circle but inside its XYZ
+   * bounding box, one far away. Both must be ordered by &quot;tie&quot;.
+   */
+  public void testOutsideCircleInsideAndOutsideBoundingBoxTie() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    double radiusRadians = 0.0157; // about 100 km around (45, 0)
+    GeoCircle c = GeoCircleFactory.makeGeoCircle(pm, Math.toRadians(45), 0, radiusRadians);
+    XYZBounds bounds = new XYZBounds();
+    c.getBounds(bounds);
+    Doc corner = at(pm, 45.8, 1.147, 2); // near a corner of the bounding box
+    Doc far = at(pm, 10, 12, 3);
+    assertFalse(c.isWithin(corner.point()));
+    assertTrue(inside(bounds, corner.point()));
+    assertFalse(inside(bounds, far.point()));
+    SortField sort =
+        Geo3DDocValuesField.newDistanceSort(&quot;loc&quot;, 45, 0, radiusRadians * pm.getMeanRadius(), pm);
+    check(pm, sort, 2, List.of(2, 3, 1, 0), at(pm, 10, 10, 0), at(pm, 10, 11, 1), far, corner);
+  }
+
+  private static boolean inside(XYZBounds b, GeoPoint p) {
+    return p.x &gt;= b.getMinimumX()
+        &amp;&amp; p.x &lt;= b.getMaximumX()
+        &amp;&amp; p.y &gt;= b.getMinimumY()
+        &amp;&amp; p.y &lt;= b.getMaximumY()
+        &amp;&amp; p.z &gt;= b.getMinimumZ()
+        &amp;&amp; p.z &lt;= b.getMaximumZ();
+  }
+
+  /** Control: documents without the field tie at +Infinity and &quot;tie&quot; orders them. */
+  public void testMissingOnlyTiesControl() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    Doc inside = inShape(pm, 0, 1, -1);
+    check(
+        pm,
+        circleAtOrigin(pm),
+        3,
+        List.of(5, 4, 3, 2, 1, 0),
+        missing(0),
+        missing(1),
+        missing(2),
+        missing(3),
+        missing(4),
+        inside);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestGeo3DDistanceSortTieAtInfinity.java $LUCENE/lucene/spatial3d/src/test/org/apache/lucene/spatial3d/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial3d:test --tests TestGeo3DDistanceSortTieAtInfinity -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED0746)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>search(q, 2, sort)</code> returns <code>[4, 3]</code>, the first 2 of the full order <code>[4, 3, 2, 1, 0]</code>.</dd></div><div class='got'><dt>Observed</dt><dd><code>[1, 0]</code>, the first two documents indexed; 6 of 7 tests fail this way (also <code>[5, 1]</code>, <code>[5, 2, 1]</code> and <code>[3, 1]</code>).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-746/'>repro/LFV-746/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (617 lines) · 3,497 words</span></summary><div class='body'><p>Each test searches <code>MatchAllDocsQuery</code> sorted by a Geo3D sort and then <code class='nw'>tie</code> descending, with the default <code>IndexWriterConfig</code> and a plain <code class='nw'>IndexSearcher</code>; it asserts one segment, the full order of doc ids, that exactly the in-shape documents have a finite distance, and that the top n equal the first n of the full order. The documents and assertions are fixed; the seed only picks the test framework's random codec and directory.</p><div class="tbl"><table><thead><tr><th>test</th><th>documents</th><th>top n: expected / on main</th></tr></thead><tbody><tr><td>outside radius, WGS84</td><td>5 at (60, 0), <code class='nw'>tie</code> 0-4; circle (0, 0), 1,000 km</td><td><code>[4, 3]</code> / <code>[1, 0]</code></td></tr><tr><td>outside radius, SPHERE</td><td>the same, circle of 0.2 planet radii</td><td><code>[4, 3]</code> / <code>[1, 0]</code></td></tr><tr><td>plus a missing field</td><td>+ doc 5 without <code class='nw'>loc</code> (<code class='nw'>tie</code> 5)</td><td><code>[5, 4]</code> / <code>[5, 1]</code></td></tr><tr><td>plus a hit inside</td><td>+ doc 5 at (0, 1), 111 km away, n = 3</td><td><code>[5, 4, 3]</code> / <code>[5, 2, 1]</code></td></tr><tr><td>path sort</td><td>5 at (60, 0); path (0, 0)-(0, 1), 50 km</td><td><code>[4, 3]</code> / <code>[1, 0]</code></td></tr><tr><td>inside vs outside the box</td><td>circle of about 100 km at (45, 0); 3 far points (<code class='nw'>tie</code> 0, 1, 3) and 1 point outside the circle but inside its XYZ box (<code class='nw'>tie</code> 2)</td><td><code>[2, 3]</code> / <code>[3, 1]</code></td></tr><tr><td>control: missing only</td><td>5 without <code class='nw'>loc</code>, 1 inside, n = 3</td><td><code>[5, 4, 3]</code> / <code>[5, 4, 3]</code></td></tr></tbody></table></div><p>The box-membership assertions check the exact points, not their 21-bit decoded doc values; the observed <code>[3, 1]</code> shows that the decoded point was inside the box too. The class passes <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLint</code> and <code class='nw'>forbiddenApis</code>.</p><p>The other files: the finder's original 4-test JUnit, an independent reproducer's 7-test JUnit from a package outside <code>org.apache.lucene</code>, and the portable <code class='nw'>main()</code> that ran on all 90 releases.</p><div class="hd hd-3"><h3 id='code-2-h'>TestGeo3DDistanceSortOutsideRadiusTie.java (the finder&#x27;s original 4-test repro)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Five documents at latitude 60 on WGS84 and SPHERE, the missing-field variant and a missing-only control; ids are stored fields. Fails 3 of 4 on main (assertions on and off), 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestGeo3DDistanceSortOutsideRadiusTie.java (the finder&#x27;s original 4-test repro)</span><span class='meta'>158 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial3d;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Geo3DDocValuesField.newDistanceSort reports +Infinity for every document outside maxRadiusMeters,
+ * the same value it reports for a document without the field. When the top-N queue is full and its
+ * bottom has distance +Infinity, the comparator&#x27;s bounding-box shortcut in compareBottom rejects a
+ * document whose points lie outside the circle without computing its (equal, +Infinity) distance,
+ * so the secondary SortField never breaks the tie: search(q, n, sort) does not return the first n
+ * hits of the full sorted order.
+ */
+public class TestGeo3DDistanceSortOutsideRadiusTie extends LuceneTestCase {
+
+  private static List&lt;String&gt; ids(IndexSearcher searcher, TopFieldDocs td) throws Exception {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (ScoreDoc sd : td.scoreDocs) {
+      out.add(searcher.storedFields().document(sd.doc).get(&quot;id&quot;) + &quot;=&quot; + ((FieldDoc) sd).fields[0]);
+    }
+    return out;
+  }
+
+  /**
+   * @param withLocation whether documents 0..4 get a location (all far outside the radius)
+   * @param addMissingDoc whether a sixth document without a location is added
+   */
+  private void check(PlanetModel planetModel, boolean withLocation, boolean addMissingDoc)
+      throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (int i = 0; i &lt; 5; i++) {
+          Document doc = new Document();
+          doc.add(new org.apache.lucene.document.StoredField(&quot;id&quot;, Integer.toString(i)));
+          doc.add(new NumericDocValuesField(&quot;tie&quot;, i));
+          if (withLocation) {
+            // latitude 60, longitude 0: about 6,700 km from the origin, far outside the radius
+            doc.add(
+                new Geo3DDocValuesField(
+                    &quot;loc&quot;,
+                    new GeoPoint(planetModel, Math.toRadians(60), Math.toRadians(0)),
+                    planetModel));
+          }
+          w.addDocument(doc);
+        }
+        if (addMissingDoc) {
+          Document doc = new Document(); // no location: documented to sort as +Infinity
+          doc.add(new org.apache.lucene.document.StoredField(&quot;id&quot;, &quot;5&quot;));
+          doc.add(new NumericDocValuesField(&quot;tie&quot;, 5));
+          w.addDocument(doc);
+        }
+        w.forceMerge(1);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        // 1,000 km on WGS84; on SPHERE distances are in planet units (mean radius 1)
+        double maxRadius = planetModel == PlanetModel.SPHERE ? 0.2 : 1_000_000;
+        Sort sort =
+            new Sort(
+                Geo3DDocValuesField.newDistanceSort(&quot;loc&quot;, 0, 0, maxRadius, planetModel),
+                new SortField(&quot;tie&quot;, SortField.Type.LONG, true)); // ties: highest &quot;tie&quot; first
+        List&lt;String&gt; full = ids(searcher, searcher.search(new MatchAllDocsQuery(), 100, sort));
+        List&lt;String&gt; top2 = ids(searcher, searcher.search(new MatchAllDocsQuery(), 2, sort));
+        // every hit ties on +Infinity, so the full order is by &quot;tie&quot; descending
+        assertEquals(
+            &quot;full order&quot;,
+            addMissingDoc
+                ? &quot;[5=Infinity, 4=Infinity, 3=Infinity, 2=Infinity, 1=Infinity, 0=Infinity]&quot;
+                : &quot;[4=Infinity, 3=Infinity, 2=Infinity, 1=Infinity, 0=Infinity]&quot;,
+            full.toString());
+        assertEquals(&quot;top 2 must be the first 2 hits of the full order&quot;, full.subList(0, 2), top2);
+      }
+    }
+  }
+
+  /** Fails on main: [1, 0] instead of [4, 3]. */
+  public void testOutsideRadiusTieWgs84() throws Exception {
+    check(PlanetModel.WGS84, true, false);
+  }
+
+  /** Fails on main: [1, 0] instead of [4, 3]. */
+  public void testOutsideRadiusTieSphere() throws Exception {
+    check(PlanetModel.SPHERE, true, false);
+  }
+
+  /**
+   * Fails on main: [5, 1] instead of [5, 4]; the document without a location (also +Infinity) is
+   * compared on the secondary sort, the documents outside the radius are not.
+   */
+  public void testOutsideRadiusAndMissingTieWgs84() throws Exception {
+    check(PlanetModel.WGS84, true, true);
+  }
+
+  /** Control, passes on main: documents without a location tie and the secondary sort decides. */
+  public void testMissingOnlyTieControl() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        Document withLoc = new Document(); // one document inside the radius so the field exists
+        withLoc.add(new org.apache.lucene.document.StoredField(&quot;id&quot;, &quot;9&quot;));
+        withLoc.add(new NumericDocValuesField(&quot;tie&quot;, -1));
+        withLoc.add(
+            new Geo3DDocValuesField(
+                &quot;loc&quot;, new GeoPoint(PlanetModel.WGS84, 0, Math.toRadians(1)), PlanetModel.WGS84));
+        w.addDocument(withLoc);
+        for (int i = 0; i &lt; 5; i++) {
+          Document doc = new Document();
+          doc.add(new org.apache.lucene.document.StoredField(&quot;id&quot;, Integer.toString(i)));
+          doc.add(new NumericDocValuesField(&quot;tie&quot;, i));
+          w.addDocument(doc);
+        }
+        w.forceMerge(1);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Sort sort =
+            new Sort(
+                Geo3DDocValuesField.newDistanceSort(&quot;loc&quot;, 0, 0, 1_000_000, PlanetModel.WGS84),
+                new SortField(&quot;tie&quot;, SortField.Type.LONG, true));
+        List&lt;String&gt; full = ids(searcher, searcher.search(new MatchAllDocsQuery(), 100, sort));
+        List&lt;String&gt; top3 = ids(searcher, searcher.search(new MatchAllDocsQuery(), 3, sort));
+        assertEquals(full.subList(0, 3), top3);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestGeo3DSortTieAtInfinityV1.java (independent reproducer, package outside org.apache.lucene)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only; ascending secondary key. Fails 6 of 7 on main, 10.5.2, 9.12.3 and 8.11.4, including the path sort and the box case.</p><figure class='code'><figcaption><span class='fname'>TestGeo3DSortTieAtInfinityV1.java (independent reproducer, package outside org.apache.lucene)</span><span class='meta'>252 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package lfvverify;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.spatial3d.Geo3DDocValuesField;
+import org.apache.lucene.spatial3d.geom.GeoCircle;
+import org.apache.lucene.spatial3d.geom.GeoCircleFactory;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.spatial3d.geom.XYZBounds;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check: documents whose Geo3D distance sort key is +Infinity (outside the maximum
+ * radius / path width) must still be ordered among themselves by the next SortField, so that
+ * search(q, n, sort) returns the first n hits of search(q, all, sort).
+ *
+ * &lt;p&gt;Public API only (package lfvverify, outside org.apache.lucene). One segment, plain
+ * IndexWriterConfig, plain IndexSearcher, every document single-valued.
+ */
+public class TestGeo3DSortTieAtInfinityV1 extends LuceneTestCase {
+
+  private static final String GEO = &quot;geo&quot;;
+  private static final String TIE = &quot;tie&quot;;
+
+  /** lat/lon in degrees; null lat means the document has no geo field. */
+  private record Doc(Double lat, Double lon, int tie) {}
+
+  private static Doc at(double lat, double lon, int tie) {
+    return new Doc(lat, lon, tie);
+  }
+
+  private static Doc missing(int tie) {
+    return new Doc(null, null, tie);
+  }
+
+  /** Returns docid order and sort values as &quot;docid=value&quot; strings. */
+  private static List&lt;String&gt; hits(TopDocs td) {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (ScoreDoc sd : td.scoreDocs) {
+      FieldDoc fd = (FieldDoc) sd;
+      out.add(sd.doc + &quot;=&quot; + fd.fields[0] + &quot;/&quot; + fd.fields[1]);
+    }
+    return out;
+  }
+
+  /**
+   * Indexes docs in order (one segment), runs the full sort (n larger than the hit count, so the
+   * queue never fills) and the top-n sort, and asserts the top-n is the prefix of the full order.
+   * Returns the full order for further checks.
+   */
+  private List&lt;String&gt; checkPrefix(PlanetModel pm, SortField geoSort, int n, Doc... docs)
+      throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc = new IndexWriterConfig();
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        for (Doc d : docs) {
+          Document doc = new Document();
+          if (d.lat() != null) {
+            doc.add(
+                new Geo3DDocValuesField(
+                    GEO,
+                    new GeoPoint(pm, Math.toRadians(d.lat()), Math.toRadians(d.lon())),
+                    pm));
+          }
+          doc.add(new NumericDocValuesField(TIE, d.tie()));
+          w.addDocument(doc);
+        }
+        w.forceMerge(1);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(&quot;one segment&quot;, 1, r.leaves().size());
+        assertEquals(docs.length, r.maxDoc());
+        IndexSearcher s = new IndexSearcher(r);
+        Sort sort = new Sort(geoSort, new SortField(TIE, SortField.Type.INT));
+        List&lt;String&gt; full = hits(s.search(new MatchAllDocsQuery(), docs.length + 10, sort));
+        List&lt;String&gt; top = hits(s.search(new MatchAllDocsQuery(), n, sort));
+        assertEquals(
+            &quot;top &quot; + n + &quot; must be the first &quot; + n + &quot; hits of the full order &quot; + full,
+            full.subList(0, n),
+            top);
+        return full;
+      }
+    }
+  }
+
+  /** About 0.9 degrees of arc, in the planet model&#x27;s own distance unit (meters on WGS84). */
+  private static double radius(PlanetModel pm) {
+    return 0.0157 * pm.getMeanRadius();
+  }
+
+  private static SortField circle(PlanetModel pm) {
+    // circle of ~100 km (on WGS84) around (0, 0)
+    return Geo3DDocValuesField.newDistanceSort(GEO, 0.0, 0.0, radius(pm), pm);
+  }
+
+  /** Five documents far outside the circle; secondary key prefers later documents. */
+  private void allOutside(PlanetModel pm) throws Exception {
+    List&lt;String&gt; full =
+        checkPrefix(
+            pm,
+            circle(pm),
+            2,
+            at(50, 10, 10), // doc 0
+            at(50, 11, 9), // doc 1
+            at(50, 12, 8), // doc 2
+            at(50, 13, 7), // doc 3
+            at(50, 14, 6)); // doc 4
+    // sanity on the full (unpruned) order: all +Infinity, ordered by tie ascending
+    assertTrue(full.toString(), full.get(0).startsWith(&quot;4=Infinity/&quot;));
+    assertTrue(full.toString(), full.get(4).startsWith(&quot;0=Infinity/&quot;));
+  }
+
+  public void testAllOutsideRadiusWgs84() throws Exception {
+    allOutside(PlanetModel.WGS84);
+  }
+
+  public void testAllOutsideRadiusSphere() throws Exception {
+    allOutside(PlanetModel.SPHERE);
+  }
+
+  /** One document inside the circle (last in doc order) plus five outside: top 3. */
+  public void testInsidePlusOutsideWgs84() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    List&lt;String&gt; full =
+        checkPrefix(
+            pm,
+            circle(pm),
+            3,
+            at(50, 10, 10), // doc 0
+            at(50, 11, 9), // doc 1
+            at(50, 12, 8), // doc 2
+            at(50, 13, 7), // doc 3
+            at(50, 14, 6), // doc 4
+            at(0.1, 0.1, 0)); // doc 5, inside the circle
+    assertTrue(full.toString(), full.get(0).startsWith(&quot;5=&quot;));
+    assertFalse(full.toString(), full.get(0).startsWith(&quot;5=Infinity&quot;));
+  }
+
+  /** Control: documents without the field (+Infinity too) do reach the secondary sort. */
+  public void testControlAllMissingWgs84() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    checkPrefix(pm, circle(pm), 2, missing(10), missing(9), missing(8), missing(7), missing(6));
+  }
+
+  /**
+   * Mixed: out-of-radius and missing documents both have +Infinity; the missing ones are compared
+   * on the secondary key, the out-of-radius ones are not.
+   */
+  public void testOutsideAndMissingMixedWgs84() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    checkPrefix(
+        pm,
+        circle(pm),
+        2,
+        at(50, 10, 10), // doc 0
+        at(50, 11, 9), // doc 1
+        missing(8), // doc 2
+        missing(7), // doc 3
+        at(50, 14, 6)); // doc 4 -&gt; expected first
+  }
+
+  /**
+   * Mechanism check: two out-of-radius documents (both +Infinity) are treated differently depending
+   * on whether their point lies inside the circle&#x27;s xyz bounding box. Circle around (45, 0); doc 3
+   * is just outside the circle near a corner of its bounding box, doc 2 is far away.
+   */
+  public void testBoundingBoxDecidesWhichInfinityCompetesWgs84() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    double centerLat = 45.0;
+    double radiusRad = 0.0157;
+    double cornerLat = 45.8;
+    double cornerLon = 1.147;
+    GeoCircle c =
+        GeoCircleFactory.makeGeoCircle(pm, Math.toRadians(centerLat), 0.0, radiusRad);
+    XYZBounds b = new XYZBounds();
+    c.getBounds(b);
+    GeoPoint corner = new GeoPoint(pm, Math.toRadians(cornerLat), Math.toRadians(cornerLon));
+    GeoPoint far = new GeoPoint(pm, Math.toRadians(10), Math.toRadians(12));
+    assertFalse(&quot;corner point must be outside the circle&quot;, c.isWithin(corner));
+    assertTrue(&quot;corner point must be inside the circle&#x27;s bounds&quot;, inside(b, corner));
+    assertFalse(&quot;far point must be outside the circle&#x27;s bounds&quot;, inside(b, far));
+    SortField sf =
+        Geo3DDocValuesField.newDistanceSort(GEO, centerLat, 0.0, radiusRad * pm.getMeanRadius(), pm);
+    List&lt;String&gt; full =
+        checkPrefix(
+            pm,
+            sf,
+            2,
+            at(10, 10, 10), // doc 0, far
+            at(10, 11, 9), // doc 1, far
+            at(10, 12, 7), // doc 2, far, best tie
+            at(cornerLat, cornerLon, 8)); // doc 3, near corner, outside the circle
+    assertEquals(full.toString(), &quot;2=Infinity/7&quot;, full.get(0));
+    assertEquals(full.toString(), &quot;3=Infinity/8&quot;, full.get(1));
+  }
+
+  private static boolean inside(XYZBounds b, GeoPoint p) {
+    return p.x &gt;= b.getMinimumX()
+        &amp;&amp; p.x &lt;= b.getMaximumX()
+        &amp;&amp; p.y &gt;= b.getMinimumY()
+        &amp;&amp; p.y &lt;= b.getMaximumY()
+        &amp;&amp; p.z &gt;= b.getMinimumZ()
+        &amp;&amp; p.z &lt;= b.getMaximumZ();
+  }
+
+  /** Path sort uses the same comparator: documents beyond the path width are +Infinity. */
+  public void testPathSortOutsideWidthWgs84() throws Exception {
+    PlanetModel pm = PlanetModel.WGS84;
+    SortField path =
+        Geo3DDocValuesField.newPathSort(
+            GEO, new double[] {0.0, 0.0}, new double[] {0.0, 1.0}, radius(pm) / 10, pm);
+    checkPrefix(
+        pm,
+        path,
+        2,
+        at(50, 10, 10),
+        at(50, 11, 9),
+        at(50, 12, 8),
+        at(50, 13, 7),
+        at(50, 14, 6));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>Geo3DDistanceSortTieHistoryRepro.java (portable main(), 6.1.0 to main)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>No test framework; picks the old or new factory signature by reflection. Exit 1 means the bug is present and both controls match.</p><figure class='code'><figcaption><span class='fname'>Geo3DDistanceSortTieHistoryRepro.java (portable main(), 6.1.0 to main)</span><span class='meta'>207 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package hist;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Stream;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.spatial3d.Geo3DDocValuesField;
+import org.apache.lucene.spatial3d.geom.GeoPoint;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.NIOFSDirectory;
+
+/**
+ * Version-portable repro for the history sweep of the Geo3D distance-sort tie bug.
+ *
+ * &lt;p&gt;It runs on every release that has Geo3DDocValuesField.newDistanceSort (6.1.0 and later) and
+ * on main. The two public signatures that changed over time are chosen by reflection: up to 8.4
+ * the field constructor and newDistanceSort take no PlanetModel (WGS84 is implied); from 8.5 on
+ * they take one. Everything else (IndexWriter, NIOFSDirectory, NumericDocValuesField,
+ * IndexSearcher.search(Query, int, Sort), FieldDoc) has the same signature in all of them. No
+ * LuceneTestCase, so no test-framework jar is needed.
+ *
+ * &lt;p&gt;Oracle: search(q, n, sort) must return the first n hits of search(q, 100, sort) (a top-n
+ * search returns the prefix of the full sorted order; the second SortField breaks ties of the
+ * first). Documents are identified by their &quot;tie&quot; value (FieldDoc.fields[1]); the index is one
+ * segment in insertion order.
+ *
+ * &lt;p&gt;Exit codes: 0 bug absent (every scenario matches); 1 bug present (a bug scenario differs and
+ * all controls match); 2 a control differs (inconclusive); 5 the API is absent at run time.
+ */
+public class Geo3DDistanceSortTieHistoryRepro {
+
+  static final double MAX_RADIUS_METERS = 1_000_000; // 1,000 km around (0, 0)
+
+  public static void main(String[] args) throws Exception {
+    Method sortFactory;
+    try {
+      sortFactory = distanceSortFactory();
+    } catch (NoSuchMethodException e) {
+      System.out.println(&quot;API_ABSENT: no Geo3DDocValuesField.newDistanceSort(field, lat, lon, radius[, PlanetModel])&quot;);
+      System.exit(5);
+      return;
+    }
+    System.out.println(&quot;newDistanceSort signature: &quot; + sortFactory);
+
+    boolean bug = false;
+    boolean controlFailed = false;
+
+    // Bug scenario 1: five documents, all at latitude 60 (about 6,700 km away, far outside the
+    // radius), so every one has distance +Infinity and the second SortField must decide.
+    bug |= !scenario(&quot;outside-only&quot;, 2, new double[][] {far(), far(), far(), far(), far()});
+
+    // Bug scenario 2: the same plus a sixth document without the field (also sorts last).
+    bug |= !scenario(&quot;outside-plus-missing&quot;, 2, new double[][] {far(), far(), far(), far(), far(), null});
+
+    // Control 1: one document inside the radius, five without the field (tie on +Infinity
+    // through the documented &quot;missing&quot; path).
+    controlFailed |= !scenario(&quot;control-missing-only&quot;, 3, new double[][] {near(), null, null, null, null, null});
+
+    // Control 2: five documents at the same point inside the radius (tie on a finite distance).
+    controlFailed |= !scenario(&quot;control-inside-tie&quot;, 2, new double[][] {near(), near(), near(), near(), near()});
+
+    if (controlFailed) {
+      System.out.println(&quot;RESULT: INCONCLUSIVE (a control scenario differs)&quot;);
+      System.exit(2);
+    }
+    if (bug) {
+      System.out.println(&quot;RESULT: BUG PRESENT (top-n is not the prefix of the full sorted order)&quot;);
+      System.exit(1);
+    }
+    System.out.println(&quot;RESULT: BUG ABSENT&quot;);
+  }
+
+  static double[] far() {
+    return new double[] {60, 0};
+  }
+
+  static double[] near() {
+    return new double[] {0, 1}; // about 111 km from (0, 0), inside the radius
+  }
+
+  /** Indexes docs[i] (lat, lon in degrees, or null for no location) with tie=i; true if top-n == prefix. */
+  static boolean scenario(String name, int n, double[][] docs) throws Exception {
+    Path tmp = Files.createTempDirectory(&quot;geo3d-sort-tie-&quot;);
+    try (Directory dir = new NIOFSDirectory(tmp)) {
+      IndexWriterConfig iwc = new IndexWriterConfig(new NoTextAnalyzer());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        for (int i = 0; i &lt; docs.length; i++) {
+          Document doc = new Document();
+          doc.add(new NumericDocValuesField(&quot;tie&quot;, i));
+          if (docs[i] != null) {
+            doc.add(locationField(&quot;loc&quot;, docs[i][0], docs[i][1]));
+          }
+          w.addDocument(doc);
+        }
+        w.forceMerge(1);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Sort sort =
+            new Sort(
+                newDistanceSort(&quot;loc&quot;, 0, 0, MAX_RADIUS_METERS),
+                new SortField(&quot;tie&quot;, SortField.Type.LONG, true)); // ties: highest &quot;tie&quot; first
+        List&lt;String&gt; full = hits(searcher.search(new MatchAllDocsQuery(), 100, sort));
+        List&lt;String&gt; top = hits(searcher.search(new MatchAllDocsQuery(), n, sort));
+        List&lt;String&gt; prefix = full.subList(0, Math.min(n, full.size()));
+        boolean ok = prefix.equals(top);
+        System.out.println(
+            name + &quot;: segments=&quot; + reader.leaves().size() + &quot; full=&quot; + full + &quot; top&quot; + n + &quot;=&quot; + top
+                + &quot; expected top&quot; + n + &quot;=&quot; + prefix + (ok ? &quot; OK&quot; : &quot; MISMATCH&quot;));
+        return ok;
+      }
+    } finally {
+      try (Stream&lt;Path&gt; s = Files.walk(tmp)) {
+        s.sorted(Comparator.reverseOrder()).forEach(p -&gt; p.toFile().delete());
+      }
+    }
+  }
+
+  static List&lt;String&gt; hits(TopFieldDocs td) {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (ScoreDoc sd : td.scoreDocs) {
+      FieldDoc fd = (FieldDoc) sd;
+      out.add(&quot;tie&quot; + fd.fields[1] + &quot;=&quot; + fd.fields[0]);
+    }
+    return out;
+  }
+
+  // ---- signature differences across releases (chosen by reflection) ----
+
+  static Method distanceSortFactory() throws NoSuchMethodException {
+    try { // 8.5.0 and later
+      return Geo3DDocValuesField.class.getMethod(
+          &quot;newDistanceSort&quot;, String.class, double.class, double.class, double.class, PlanetModel.class);
+    } catch (NoSuchMethodException e) { // 6.1.0 to 8.4.x: WGS84 implied
+      return Geo3DDocValuesField.class.getMethod(
+          &quot;newDistanceSort&quot;, String.class, double.class, double.class, double.class);
+    }
+  }
+
+  static SortField newDistanceSort(String field, double lat, double lon, double radiusMeters)
+      throws Exception {
+    Method m = distanceSortFactory();
+    try {
+      if (m.getParameterCount() == 5) {
+        return (SortField) m.invoke(null, field, lat, lon, radiusMeters, PlanetModel.WGS84);
+      }
+      return (SortField) m.invoke(null, field, lat, lon, radiusMeters);
+    } catch (InvocationTargetException e) {
+      throw (Exception) e.getCause();
+    }
+  }
+
+  static Field locationField(String name, double latDeg, double lonDeg) throws Exception {
+    GeoPoint p = new GeoPoint(PlanetModel.WGS84, Math.toRadians(latDeg), Math.toRadians(lonDeg));
+    try { // 8.5.0 and later
+      return Geo3DDocValuesField.class
+          .getConstructor(String.class, GeoPoint.class, PlanetModel.class)
+          .newInstance(name, p, PlanetModel.WGS84);
+    } catch (NoSuchMethodException e) { // 6.1.0 to 8.4.x
+      return Geo3DDocValuesField.class.getConstructor(String.class, GeoPoint.class).newInstance(name, p);
+    }
+  }
+
+  /** Only doc-values fields are indexed, so the analyzer is never asked for components. */
+  static final class NoTextAnalyzer extends Analyzer {
+    @Override
+    protected TokenStreamComponents createComponents(String fieldName) {
+      throw new UnsupportedOperationException(&quot;no tokenized fields in this repro&quot;);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT) and the 10.5.2 release jars: reproduced; all 90 releases 6.1.0-10.5.2: reproduced with the portable main()</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java; the platform does not matter)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestGeo3DDistanceSortTieAtInfinity.java $LUCENE/lucene/spatial3d/src/test/org/apache/lucene/spatial3d/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial3d:test --tests TestGeo3DDistanceSortTieAtInfinity -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED0746)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestGeo3DDistanceSortTieAtInfinity &gt; testOutsideRadiusTiesWgs84 FAILED
+    java.lang.AssertionError: top 2 = first 2 of the full order expected:&lt;[4, 3]&gt; but was:&lt;[1, 0]&gt;
+TestGeo3DDistanceSortTieAtInfinity &gt; testOutsideRadiusAndMissingTies FAILED
+    java.lang.AssertionError: top 2 = first 2 of the full order expected:&lt;[5, 4]&gt; but was:&lt;[5, 1]&gt;
+TestGeo3DDistanceSortTieAtInfinity &gt; testOutsideRadiusTiesSphere FAILED
+    java.lang.AssertionError: top 2 = first 2 of the full order expected:&lt;[4, 3]&gt; but was:&lt;[1, 0]&gt;
+TestGeo3DDistanceSortTieAtInfinity &gt; testInsideRadiusHitThenOutsideTies FAILED
+    java.lang.AssertionError: top 3 = first 3 of the full order expected:&lt;[5, 4, 3]&gt; but was:&lt;[5, 2, 1]&gt;
+TestGeo3DDistanceSortTieAtInfinity &gt; testPathSortOutsidePathTies FAILED
+    java.lang.AssertionError: top 2 = first 2 of the full order expected:&lt;[4, 3]&gt; but was:&lt;[1, 0]&gt;
+TestGeo3DDistanceSortTieAtInfinity &gt; testOutsideCircleInsideAndOutsideBoundingBoxTie FAILED
+    java.lang.AssertionError: top 2 = first 2 of the full order expected:&lt;[2, 3]&gt; but was:&lt;[3, 1]&gt;
+7 tests completed, 6 failed
+
+# the same with -Ptests.asserts=false, through the standalone runner (assertions on and off)
+# and on the 10.5.2 release jars; with either fix: 7 tests, 0 failed</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>Sort</code> promises that the second SortField breaks ties, and <code class='nw'>compareBottom</code> must return 0 for equal values; the comparator's own <code class='nw'>compare</code> calls these hits equal.</li><li>A document without the field, also +Infinity, is tie-broken; one outside the radius is not.</li><li>Out-of-radius points inside the circle's bounding box are tie-broken, others are not: an internal shortcut decides.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>273 words</span></summary><div class='body'><ul><li><strong>The Sort contract.</strong> "the first SortField is checked first, but if it produces a tie, then the second SortField is used to break the tie" (<code class='nw'>Sort.java:58-62</code>). The full search orders out-of-radius hits by the secondary key, so the same Sort returns different documents for different n.</li><li><strong>The comparator contract.</strong> <code class='nw'>compareBottom</code> "should return the same result as <code>FieldComparator#compare(int,int)</code>", 0 if equal (<code>LeafFieldComparator.java:54-67</code>); <code class='nw'>compare</code> uses <code class='nw'>Double.compare</code> of the stored distances (<code>Geo3DPointDistanceComparator.java:72-74</code>), which gives 0 for two +Infinity values.</li><li><strong>Two kinds of +Infinity.</strong> A document without the field returns 0 (<code class='nw'>:101-103</code>); an out-of-radius document reports the same <code class='nw'>Infinity</code> in <code>FieldDoc.fields[0]</code> but gets -1.</li><li><strong>It depends on a box.</strong> In the repro, an out-of-circle point inside the circle's XYZ box competes on <code class='nw'>tie</code>, and a far point with a better <code class='nw'>tie</code> does not: <code>[3, 1]</code> instead of <code>[2, 3]</code> (executed). No intended rule could give that split.</li><li><strong>The box is documented as a shortcut</strong> to "quickly reject hits" (<code class='nw'>:33-40</code>); LUCENE-7212 describes the LatLon box it copies as rejecting "hits that won't compete anyway". A shortcut must not change results.</li><li><strong>The LatLon twin was fixed for this.</strong> In LUCENE-7102 (#8157, fixed 2016-03), @rmuir wrote "+Inf means we've filled the priority queue with only missing values, so any possible value competes", and the LatLon box was made unbounded for that case.</li><li><strong>No precondition in the javadoc.</strong> "maxRadiusMeters is the maximum radius in meters" (<code>Geo3DDocValuesField.java:179</code>); nothing says out-of-radius hits come back unordered or that the query must stay inside the radius. No upstream test covers the Geo3D sorts; LUCENE-7212's last comment still lists "tests" as needed.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>214 words</span></summary><div class='body'><p>The strongest case for "works as designed" (rated weak by the devil's advocate and by a reviewer from another model family): the sort was meant to run with the matching query. In LUCENE-7212 (#8267) its author explains that an unbounded Geo3D distance sort "would not perform reasonably", so "If you introduced an upper bound to the circle radius as an additional argument, then it would work fine", and "The arguments would have to correspond exactly, though, to \"newXXXQuery\", including distance bounds". The javadoc begins "Creates a SortField for sorting by distance within a circle" (<code>Geo3DDocValuesField.java:165</code>). On that reading, out-of-radius hits were never meant to be there.</p><p>Why it fails: the requirement lives in a 2016 design comment, not in the API docs, and the code does not enforce it. Any query is accepted, and out-of-radius hits get a defined value, +Infinity, the same as documents without the field, which the comparator does tie-break. Whether such a hit reaches the secondary key depends on an internal box and on doc order, so the result for one Sort changes with n and with the segment layout. The fix costs one comparison and changes nothing inside the radius. A maintainer may still prefer to document the pairing; the two kinds of +Infinity would stay inconsistent.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Start cmp at 0 when the bottom is +Infinity</strong></p><p class='short'>In <code class='nw'>compareBottom</code>, start <code class='nw'>cmp</code> at 0 instead of -1 when the bottom distance is +Infinity: nothing can sort after such a bottom, and a value inside the shape is still compared and wins. A one-line change; the repro and the whole spatial3d module (188 tests) pass with assertions on and off. Not benchmarked.</p><pre class='snippet' tabindex='0'><code>     int numValues = currentDocs.docValueCount();
+     assert numValues &gt; 0;
+ 
+-    int cmp = -1;
++    // Nothing sorts after an +Infinity bottom: the document ties with it (0), unless one of its
++    // values lies inside the shape (and so inside the bounds) and has a finite distance (1).
++    int cmp = bottomDistance == Double.POSITIVE_INFINITY ? 0 : -1;
+     for (int i = 0; i &lt; numValues; i++) {
+       long encoded = currentDocs.nextValue();</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 756 words</span></summary><div class='body'><p>The shortcut is only wrong when the bottom is +Infinity, so both validated fixes return 0 instead of -1 in that case and leave everything else unchanged; they give identical results. Starting <code class='nw'>cmp</code> at 0 is the shortest; the finder's version adds the same rule next to the shortcut. Skipping the box while the bottom is +Infinity (as the LatLon comparator does) would also work but computes every distance. Documenting "use with the matching distance query" changes nothing in the code and leaves the inconsistency; until a fix ships, that pairing is the workaround.</p><div class="hd hd-3"><h3 id='fix-start-at-zero'>Start cmp at 0 when the bottom is +Infinity <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-start-at-zero" target="_self" aria-label="Link to this section" aria-describedby="fix-start-at-zero"><span aria-hidden="true">#</span></a></div><p>In <code>Geo3DPointDistanceComparator.compareBottom</code>, replace <code>int cmp = -1;</code> by a start value of 0 when <code class='nw'>bottomDistance</code> is <code>Double.POSITIVE_INFINITY</code> (+3/-1 in one file). Every distance is at most +Infinity, so the document ties or wins; a value inside the shape is inside the shape's box, so it is still compared and gives 1. The finite-bottom path is unchanged.</p><pre class='snippet' tabindex='0'><code>     int numValues = currentDocs.docValueCount();
+     assert numValues &gt; 0;
+ 
+-    int cmp = -1;
++    // Nothing sorts after an +Infinity bottom: the document ties with it (0), unless one of its
++    // values lies inside the shape (and so inside the bounds) and has a finite distance (1).
++    int cmp = bottomDistance == Double.POSITIVE_INFINITY ? 0 : -1;
+     for (int i = 0; i &lt; numValues; i++) {
+       long encoded = currentDocs.nextValue();</code></pre><p class='k'>Trade-offs</p><ul><li>While the bottom is +Infinity, an out-of-box hit now reaches the secondary comparator instead of being rejected; if it wins, <code class='nw'>copy</code> computes its distance and <code class='nw'>setBottom</code> rebuilds the box (sampled after 1024 calls). A document without the field takes the same path today, minus the distance computation. Not benchmarked.</li><li>Results change only for out-of-radius hits, which were wrong.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: stock + the new test, 6 of 7 fail with assertions on and off; + the fix, the new test and <code>TestGeo3DDocValues</code> (8 tests) pass with assertions on and off, the whole <code class='nw'>lucene/spatial3d</code> module (20 suites, 188 tests, 3 skipped) passes with assertions on and off, and <code>:lucene:spatial3d:check -x test</code> (ecjLint, forbiddenApis, checkGoogleJavaFormat) passes.</li><li>Standalone runner: 7 of 7 with assertions on and off.</li><li>No upstream test exercises a Geo3D sort, so the module run shows only that nothing else changes.</li></ul><div class="hd hd-3"><h3 id='fix-tie-out-of-box'>Treat an out-of-box value as a tie when the bottom is +Infinity (the finder's fix) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-tie-out-of-box" target="_self" aria-label="Link to this section" aria-describedby="fix-tie-out-of-box"><span aria-hidden="true">#</span></a></div><p>In the out-of-bounds branch, before <code class='nw'>continue</code>: <code>if (bottomDistance == Double.POSITIVE_INFINITY) { cmp = Math.max(cmp, 0); }</code> (+5 lines with a comment). Same results as the first option, since a document has at least one value and every in-box value gives 0 or 1 against an +Infinity bottom.</p><pre class='snippet' tabindex='0'><code>           || z &lt; priorityQueueBounds.getMinimumZ()) {
++        // outside the bounds the distance is greater than bottomDistance, or +Infinity (outside
++        // the shape) when bottomDistance is itself +Infinity: then the document ties with it
++        if (bottomDistance == Double.POSITIVE_INFINITY) {
++          cmp = Math.max(cmp, 0);
++        }
+         continue;
+       }</code></pre><p class='k'>Trade-offs</p><p>The same cost as the first option; four more lines, but the rule sits next to the shortcut it corrects. The finder's original comment line is 101 columns and fails <code>checkGoogleJavaFormat</code>; the version above is re-wrapped.</p><p class='k'>What the checks validated</p><ul><li>The new test 7 of 7 with assertions on and off; the whole <code class='nw'>lucene/spatial3d</code> module (188 tests) with assertions on; <code>:lucene:spatial3d:check -x test</code> after the re-wrap.</li><li>Earlier: the finder's 4 tests (alone and on top of the LFV-551 and LFV-544 fixes), an independent reproducer's 7 tests with its equivalent fix, and a reviewer's 5-test box probe.</li></ul><div class="hd hd-3"><h3 id='fix-skip-box'>Skip the box while the bottom is +Infinity</h3><a class="hlink" href="#fix-skip-box" target="_self" aria-label="Link to this section" aria-describedby="fix-skip-box"><span aria-hidden="true">#</span></a></div><p>In <code class='nw'>setBottom</code>, use an unbounded box (or a flag) when <code class='nw'>bottomDistance</code> is +Infinity, as the LatLon comparator does since LUCENE-7102. Not built.</p><p class='k'>Trade-offs</p><p>Same results, but every hit computes its distance while the bottom is +Infinity, which costs more than the first two options.</p><div class="hd hd-3"><h3 id='fix-document'>Document the pairing with the distance query</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>Add to <code class='nw'>newDistanceSort</code> and <code class='nw'>newPathSort</code> that hits outside the radius (path) are not ordered by later SortFields and that the sort should be used with the matching <code>Geo3DPoint.newDistanceQuery</code> (<code class='nw'>newPathQuery</code>). Not built.</p><p class='k'>Trade-offs</p><p>No behaviour change; but <code class='nw'>compareBottom</code> stays inconsistent with <code class='nw'>compare</code> and with documents that lack the field, and results still depend on doc order and the segment layout. The pairing normally keeps out-of-radius hits out (read, not run); hits right at the edge can still sort as +Infinity because the query and the sort read differently encoded points.</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive check indexed the same documents in many segment layouts and compared every sorted search with a force-merged single-segment copy. With an index sort, a Geo3D distance sort with a radius plus a tie-break returned different top hits; reading <code class='nw'>compareBottom</code> gave the cause, and a 5-document test reproduced it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>115 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive layout translation validation on the stock main jars, then code reading.</strong></p><ul><li>The hunt unit on documented absent-field behaviour built a harness (<code>AbsentFieldLayoutTV</code>) that indexes the same documents in every segment layout it enumerates, plus an index-sorted variant, and compares each search with a force-merged single-segment reference.</li><li>Its probe <code>Sort(distance with maxRadius, id)</code> differed only in index-sorted layouts at 1,200 documents per segment, where doc order differs from the tie-break order (11 mismatching layouts).</li><li>An AI finder read <code class='nw'>compareBottom</code>, found the bounding-box rejection under an +Infinity bottom, and reduced it to a 5-document single-segment JUnit without an index sort; independent AI tools then reproduced, reviewed and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): five scripted prior-report search runs over GitHub, the mailing lists, JIRA and downstream projects, 40 GitHub GraphQL searches, 9 JQL queries, 21 list queries and the files of all 408 open PRs. The closest items are the feature issue and same-class fixes in the LatLon and XY comparators.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>No issue, PR, JIRA ticket, list thread or downstream report discusses Geo3D distance or path sorts rejecting out-of-radius hits under an +Infinity bottom, skipping the secondary sort, or treating out-of-radius and missing documents differently. The comparator on upstream main <code class='nw'>f7bcc0abd816</code> is byte-identical to the tested commit, and no open PR touches it or <code>GeoBaseDistanceShape.java</code>.</p><p><strong>Closest, not this bug:</strong> #8267 (LUCENE-7212, open; created the comparator; 49 comments, none about ties at +Infinity), #8157 (LUCENE-7102, fixed 2016: the LatLon precedent, "any possible value competes"), #8240 (LUCENE-7185, a LatLon tie-breaker fix with a different cause), #8198 (LUCENE-7143) and #10283 (LUCENE-9243): the same failure class in the LatLon and XY boxes, neither mentions Geo3D; #8343 (LUCENE-7288, made outside distances +Infinity); #14775 (open; adds <code class='nw'>inverseSort()</code> overrides to the Geo3D sort fields, not the comparator).</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), Elasticsearch, OpenSearch, Solr, dev@ / java-user@ / issues@ / commits@ lists, JIRA archive, web</th><td class='when'>2026-10-27</td><td>five runs of a scripted prior-report search: the finder's (283 hits), identifiers (178), symptoms across the Geo3D, LatLon and XY comparators (534), feature history (272, #8267 at rank 1) and a web run (15)</td><td>only #8267 and unrelated items</td></tr><tr><th scope='row'>GitHub (apache/lucene, lucene-solr, solr, elasticsearch, OpenSearch, lucenenet, all of GitHub)</th><td class='when'>2026-10-27</td><td>40 GraphQL searches and 5 gh CLI searches</td><td>#8267, #8157, #8240, #8198, #10283, #8343 and others judged different</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>the changed files of all 408 open apache/lucene PRs</td><td>none touches the comparator or GeoBaseDistanceShape; #14775 touches the Geo3D sort fields only</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR) and lists.apache.org</th><td class='when'>2026-10-27</td><td>9 JQL queries; 21 list queries; the 49 comments of LUCENE-7212</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with the Geo3D sorts by LUCENE-7212 (<code class='nw'>07af00d8e7b</code>, branch_6x <code class='nw'>8a407f0399c</code>, 2016-05-17), first released in 6.1.0; not a regression. A portable repro fails on all 90 releases from 6.1.0 to 10.5.2 and on main, and passes with the fix.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-7212 "Add Geo3D sorted document fields." (@DaddyWri; <code class='nw'>07af00d8e7b</code> on master and <code class='nw'>8a407f0399c</code> on branch_6x, 2016-05-17; a JIRA patch committed directly, GitHub mirror #8267, still open). The commit added <code class='nw'>newDistanceSort</code>, <code class='nw'>newPathSort</code>, <code>Geo3DPointSortField</code> and the comparator, with <code>cmp = -1</code> and the <code class='nw'>continue</code> from the start. It relies on <code class='nw'>23422908165</code> (2016-04-19), which added <code>getDistanceBounds</code> returning the shape's box for the outside sentinel; LUCENE-7288 (<code class='nw'>a911eb85619</code>, 2016-05-18) changed that sentinel from <code class='nw'>Double.MAX_VALUE</code> to +Infinity, and the bug reproduces before that change too. Later commits on these lines are mechanical (LUCENE-7407, LUCENE-9150, the LUCENE-9570 reformat in 2021). Not fixed upstream.</p><p>Caveats: every run used JDK 25.0.3; the commit-level runs paired the commit's spatial3d sources with the 6.1.0 core jar; the path sort was executed on 8.11.4 and later only.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 6 of 7 fail (gradle and the standalone runner, assertions on and off); the portable main() fails with assertions on and off</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 6 of 7 fail (assertions on and off); the finder's and the independent reproducer's tests fail</td></tr><tr><th scope='row'>6.1.0 to 10.5.2 (all 90 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the portable main(): top 2 <code>[1, 0]</code> instead of <code>[4, 3]</code>, <code>[5, 1]</code> instead of <code>[5, 4]</code>; controls match</td></tr><tr><th scope='row'><code class='nw'>07af00d8e7b</code>, <code class='nw'>8a407f0399c</code> (LUCENE-7212)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> introducing</span></td><td>the portable main() reproduces the bug (before LUCENE-7288 the sentinel is MAX_VALUE; still <code>[1, 0]</code>)</td></tr><tr><th scope='row'>6.0.0, 6.0.1; <code class='nw'>ba7698e4e70</code> (parent)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>no Geo3D sort: compile error (6.0.x) or no <code class='nw'>newDistanceSort</code> (parent)</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro passes; the whole <code class='nw'>lucene/spatial3d</code> module, 188 tests, 0 failed</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and reviews by another model family agree on the cause; the reproducer and the devil's advocate reproduced it with their own tests, including the path sort and the box case. The adjudication confirmed it (high), and a registry re-run and an audit reproduced it.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>390 words</span></summary><div class='body'><p>Each executed check ran on the stock jars with assertions on and off. The cross-model reviews ran read-only on the previous main <code class='nw'>ea57360912ed</code>, whose spatial3d sources are identical; their stages then re-ran the tests.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>The layout harness flagged the probe; the 4-test public-API JUnit fails 3 of 4 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3 and passes with the fix; the LFV-551 and LFV-544 fixes alone do not help; a path probe gives <code>[1, 0]</code>.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> procedural not_real (low)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) ran read-only and could not run Java, so its rubric required not_real; it agreed with the root cause, found the inputs in contract and rated the intended case weak. A separate run re-ran the finder's JUnit: 3 of 4 fail.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit from the claim only, outside <code>org.apache.lucene</code>: 6 of 7 fail on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2, 9.12.3 and 8.11.4, including the path sort and the box case; its fix passes 7 of 7.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>OpenAI GPT-5.6, read-only; the stage then ran the finder's JUnit (3 of 4 fail, <code class='nw'>-ea</code>, <code class='nw'>-da</code>; 4 of 4 with the fix) and its own box probe (2 of 5 fail; 5 of 5 with the fix).</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the "designed for the matching query" case and rejected it; own probe on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>) and 10.5.2: out-of-radius points inside the box are tie-broken, those outside it are not.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's JUnit on main: 6 of 7 fail with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; 7 of 7 pass with the independent reproduction's fix.</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>The finder's JUnit fails 3 of 4 with <code class='nw'>-ea</code> and <code class='nw'>-da</code> (three seeds) and passes 4 of 4 with the fix; the independent reproduction's fails 6 of 7 with <code class='nw'>-da</code>.</td></tr><tr><th scope='row'>this doc's brief</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, two fixes validated</span></td><td>A new 7-test JUnit fails 6 of 7 on main (gradle and the standalone runner, <code class='nw'>-ea</code>, <code class='nw'>-da</code>) and 10.5.2; both fixes pass it, and the recommended one passes the whole spatial3d module with assertions on and off.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-746/bug.png' download='geo3d-distance-sort-outside-radius-tie-skips-secondary-sort-bug.png' target='_self'>PNG</a> <span class='n'>462 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,563 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-746, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>Geo3D distance and path sorts (Geo3DDocValuesField.newDistanceSort, newPathSort) skip the secondary SortField for hits outside the shape's bounding box once the queue bottom is +Infinity, so top-N keeps the earliest out-of-radius documents in doc order instead of the first N of the sorted order (released since 6.1.0)</dd></div><div><dt>Area</dt><dd>spatial3d / Geo3D distance sort comparator (Geo3DPointDistanceComparator.compareBottom bounds shortcut; Geo3DDocValuesField.newDistanceSort and newPathSort)</dd></div><div><dt>Priority</dt><dd>Medium, rank 205: A deterministic silent mis-order since 6.1.0 that needs the little-used Geo3D distance or path sort plus a secondary sort and a query wider than the radius, so it joins its Geo3D sort siblings LFV-551 and LFV-544 right after the searchAfter paging row.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that sort with Geo3DDocValuesField.newDistanceSort or newPathSort (spatial3d module, a little-used API: no upstream test uses any Geo3D sort factory) get a silently wrong page, with the default IndexWriterConfig, codec and searcher, any index size and with -ea or -da, when (1) the query also matches documents outside maxRadiusMeters (or outside the path), (2) a secondary SortField disagrees with doc-id order (a descending key, an index sort or a reordered index), (3) more such hits remain than free top-N slots and (4) their decoded points lie outside the shape's axis-aligned XYZ bounds (most far-away points; a point just outside a circle but inside its box is tie-broken correctly): the earliest out-of-radius documents in doc order are returned instead of the ones the secondary sort ranks first; hits inside the radius are always ordered correctly, and pairing the sort with the matching distance query hides the bug.</dd></div><div><dt>Summary</dt><dd>You sort a query with Sort(Geo3DDocValuesField.newDistanceSort(field, lat, lon, maxRadiusMeters, planet), secondary SortField) and expect search(q, n, sort) to return the first n hits of the sorted order: every hit outside the radius reports distance +Infinity (like a document without the field), so the secondary field should order them. Instead, five documents at latitude 60 sorted around (0,0) with a 1,000 km radius and a secondary 'tie' key descending give top 2 = [1, 0] although the full order is [4, 3, 2, 1, 0] (WGS84; the same on SPHERE with a 0.2 planet-radius circle; with a sixth document missing the field, [5, 1] instead of [5, 4]), and newPathSort does the same. The cause: once the queue bottom is +Infinity, compareBottom rejects (-1) every later document whose points lie outside the shape's bounding box instead of reporting a tie (0), so the secondary SortField is never consulted.</dd></div><div><dt>Introduced</dt><dd>07af00d8e7bc4ce2820973e2ab511bfe536654c6 on master and its branch_6x twin 8a407f0399c6575d6f4bb087f1d9fdc7d112e5d2, 'LUCENE-7212: Add Geo3D sorted document fields.' (JIRA LUCENE-7212, now apache/lucene#8267, still open; pre-GitHub patch on the JIRA issue, no pull request; committer GitHub DaddyWri). It added newDistanceSort, newPathSort, Geo3DPointSortField and Geo3DPointDistanceComparator, whose compareBottom starts at cmp = -1 and skips ('continue') every value outside priorityQueueBounds from the first version on. Preconditions from earlier commits: 23422908165f (LUCENE-7212, 2016-04-19) added getDistanceBounds, which returns the shape's own bounds for the outside sentinel; 688c67f8ff22 (LUCENE-6578, 2015) made computeDistance return that sentinel (then Double.MAX_VALUE), and a911eb856196 (LUCENE-7288, 2016-05-18) changed it to +Infinity. [read: git log --follow, git blame -w -M -C -C on setBottom/compareBottom and getDistanceBounds, git log -S in the history clone; exec: the bug reproduces at 07af00d8e7b and 8a407f0399c, before LUCENE-7288, and the branch_6x parent ba7698e4e70 has no newDistanceSort] (2016-05-17 (master and branch_6x))</dd></div><div><dt>First affected version</dt><dd>6.1.0 [exec] (tag commit 4726c5b2d2e, 2016-06-12), the first release with the Geo3D sorts; 6.0.0 and 6.0.1 have no Geo3DDocValuesField [exec: compile error], so no earlier release is affected</dd></div><div><dt>Affected versions</dt><dd>every lucene-spatial3d release from 6.1.0 through 10.5.2 (all 90 releases &gt;= 6.1.0 in the Maven Central metadata) and main a9779ef3c193. Executed (JDK 25): the follow-up's portable main() fails on all 90 releases (-ea) and on main (-ea and -da), and passes on main with the fix shadowed; the finder's JUnit fails on main (-ea, -da), 10.5.2 and 9.12.3; the independent reproduction's JUnit (including the newPathSort case) fails on main and 10.5.2 (-ea, -da), 9.12.3 and 8.11.4 (a copy differing only in the LuceneTestCase import); the intended-behaviour check's probe fails on main and 10.5.2. Not fixed upstream: Geo3DPointDistanceComparator.java on upstream main f7bcc0abd816 is byte-identical to the tested commit (last commit 2cbf261032dc, 2021, a reformat), the same on branch_10x, and no open PR touches it or GeoBaseDistanceShape.java [read]. Caveats: all runs used JDK 25; the commit-level runs paired the commit's spatial3d sources with the 6.1.0 core jar; the path sort was executed on 8.11.4 and later only, older releases by reading.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27 finder run and follow-up, read-only; the prior-report record, verdict new): five scripted prior-report searches (finder 51 queries and 283 hits; identifiers 51 and 178; symptoms across the Geo3D, LatLon and XY comparators 51 and 534; feature history 51 and 272, with #8267 found at rank 1; web ingest 15 hits) over apache/lucene issues, PRs and commits, Elasticsearch, OpenSearch and Solr, the dev@, java-user@, issues@ and commits@ lists and the JIRA archive; 40 GitHub GraphQL and 5 gh CLI searches; 9 JQL queries; 21 lists.apache.org queries; 5 web searches; the changed files of all 408 open apache/lucene PRs. Related, not reports: #8267 (LUCENE-7212, open; created the comparator and getDistanceBounds; 49 comments, the bounding box described as rejecting 'hits that won't compete anyway', no discussion of ties at +Infinity or of the secondary sort), #8157 (LUCENE-7102, fixed 2016-03: in the LatLon twin an +Infinity bottom was made to mean 'any possible value competes', a precedent), #8240 (LUCENE-7185, a LatLon tie-breaker fix with a different cause), #8198 (LUCENE-7143) and #10283 (LUCENE-9243), the same failure class in the LatLon and XY boxes, and #8343 (LUCENE-7288, made outside distances +Infinity); none mentions Geo3D, maxRadius or ties at +Infinity. Not fixed upstream: the comparator on upstream main f7bcc0abd816 is byte-identical to the tested commit and no open PR touches it or GeoBaseDistanceShape.java (#14775 only adds inverseSort overrides to the sort fields). Gaps: GitHub search does not index PR review comments or attachments; web search was throttled on 2 of 7 attempts (one retried); list search matches words, not phrases.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the 10.5.2 release jars (assertions on and off). A portable <code class='nw'>main()</code> ran on all 90 lucene-spatial3d releases from 6.1.0 to 10.5.2 and on the introducing commits; earlier JUnit tests ran on 9.12.3 and 8.11.4. Two fixes were validated in the scratch worktree: the new test, <code>TestGeo3DDocValues</code>, the whole <code class='nw'>lucene/spatial3d</code> module (188 tests) and <code>:lucene:spatial3d:check -x test</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointDistanceComparator.java:33-40 (at a9779ef3c193) (class javadoc: setBottom recomputes a bounding box so compareBottom can &#x27;quickly reject hits based on bounding box alone&#x27;), :77-89 (setBottom: priorityQueueBounds = distanceShape.getDistanceBounds(bounds, ARC, bottomDistance)), :97-133 (compareBottom: :102 a document without the field returns Double.compare(bottomDistance, +Infinity), i.e. 0 for an +Infinity bottom; :108 cmp = -1; :118-125 a value outside priorityQueueBounds is skipped with continue; :133 return cmp), :163-182 (computeMinimumDistance: +Infinity outside the shape)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoBaseDistanceShape.java:47-53 (at a9779ef3c193) (computeDistance returns +Infinity when !isWithin) and :80-87 (getDistanceBounds: for distanceValue == +Infinity it returns the shape&#x27;s own bounds)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoStandardCircle.java:161-166 (at a9779ef3c193) (distanceBounds ignores the distance, &#x27;TBD&#x27;, and returns the shape&#x27;s bounds)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoDistanceShape.java:27-39 (at a9779ef3c193) (getDistanceBounds may return bounds larger than the distance indicates, never smaller)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DDocValuesField.java:164-192 (at a9779ef3c193) (newDistanceSort javadoc: ascending distance in meters in FieldDoc, missing documents +Infinity and sort last, maxRadiusMeters &#x27;is the maximum radius&#x27;, no other precondition) and :194-225 (newPathSort, same comparator)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointSortField.java:44-45 (at a9779ef3c193) (getComparator returns Geo3DPointDistanceComparator)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/Sort.java:58-63 (at a9779ef3c193) (Sort(SortField...): &#x27;if it produces a tie, then the second SortField is used to break the tie&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/LeafFieldComparator.java:54-67 (at a9779ef3c193) (compareBottom &#x27;should return the same result as FieldComparator#compare(int,int)&#x27;, 0 if equal)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/MultiLeafFieldComparator.java:52-62 (at a9779ef3c193) (a non-zero first comparator result returns at once; later comparators are not consulted)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointDistanceComparator.java:33-40, (at a9779ef3c193) :72-74, :77-89, :97-134 (:101-103, :108, :118-125), :137-139, :163-182</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoBaseDistanceShape.java:47-53, (at a9779ef3c193) :80-87</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DDocValuesField.java:164-192, (at a9779ef3c193) :194-225; Geo3DPointSortField.java:44-46; Geo3DPointOutsideDistanceComparator.java (setBottom stores the distance only; compareBottom computes every value)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/Sort.java:58-62, (at a9779ef3c193) LeafFieldComparator.java:54-67, MultiLeafFieldComparator.java:52-64, TopFieldCollector.java:92-96</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/spatial3d/src/test/ (at a9779ef3c193) (no file mentions newDistanceSort, newPathSort or Geo3DPointSortField; grep); lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPoint.java:122-128, :53 (points: Integer.BYTES per dimension), geom/PlanetModel.java:644-651 (doc values: 21 bits per dimension)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/Sort.java:58-62, (at a9779ef3c193) LeafFieldComparator.java:54-67</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointDistanceComparator.java:33-40, (at a9779ef3c193) :72-74, :101-103; Geo3DDocValuesField.java:164-182</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/Geo3DPointDistanceComparator.java:82 (at a9779ef3c193) (setBottom sampling), :106 (assert numValues &gt; 0); lucene/core/src/java/org/apache/lucene/document/LatLonPointDistanceComparator.java:88-113, :232-237</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestGeo3DDistanceSortTieAtInfinity.java (lucene/spatial3d, public API): <a href='../repro/LFV-746/TestGeo3DDistanceSortTieAtInfinity.java'><code>repro/LFV-746/TestGeo3DDistanceSortTieAtInfinity.java</code></a> (233 lines)</li><li>TestGeo3DDistanceSortOutsideRadiusTie.java (the finder&#x27;s original 4-test repro): <a href='../repro/LFV-746/TestGeo3DDistanceSortOutsideRadiusTie.java'><code>repro/LFV-746/TestGeo3DDistanceSortOutsideRadiusTie.java</code></a> (158 lines)</li><li>TestGeo3DSortTieAtInfinityV1.java (independent reproducer, package outside org.apache.lucene): <a href='../repro/LFV-746/TestGeo3DSortTieAtInfinityV1.java'><code>repro/LFV-746/TestGeo3DSortTieAtInfinityV1.java</code></a> (252 lines)</li><li>Geo3DDistanceSortTieHistoryRepro.java (portable main(), 6.1.0 to main): <a href='../repro/LFV-746/Geo3DDistanceSortTieHistoryRepro.java'><code>repro/LFV-746/Geo3DDistanceSortTieHistoryRepro.java</code></a> (207 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the repro's first case, made in parallel with this doc from the executed repro on main <code class='nw'>a9779ef3c193</code> and the code; the PNG is the final summary card. The alt text describes the intended content.</p><ul class='paths'><li><a href='../assets/LFV-746/bug.png'><code>assets/LFV-746/bug.png</code></a> (462 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

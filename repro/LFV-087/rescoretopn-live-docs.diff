@@ -1,0 +1,47 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java b/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
+index 6015a1c430a..e165519cdfb 100644
+--- a/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/search/RescoreTopNQuery.java
+@@ -22,6 +22,7 @@ import java.util.Objects;
+ import org.apache.lucene.index.IndexReader;
+ import org.apache.lucene.index.LeafReaderContext;
+ import org.apache.lucene.index.VectorSimilarityFunction;
++import org.apache.lucene.util.Bits;
+ 
+ /**
+  * A Query that re-scores another Query with a {@link DoubleValuesSource} function and cut-off the
+@@ -77,6 +78,9 @@ public class RescoreTopNQuery extends Query {
+         valuesSource.needsScores()
+             ? rescoreInline(reader, weight, rewrittenValueSource, queue)
+             : rescoreWithPrefetch(reader, weight, rewrittenValueSource, queue);
++    if (queue.size() == 0) {
++      return new MatchNoDocsQuery();
++    }
+     int i = 0;
+     ScoreDoc[] scoreDocs = new ScoreDoc[queue.size()];
+     for (ScoreDoc topDoc : queue) {
+@@ -98,7 +102,11 @@ public class RescoreTopNQuery extends Query {
+       }
+       DoubleValues rescores = rewrittenValueSource.getValues(leaf, getDoubleValues(innerScorer));
+       DocIdSetIterator iterator = innerScorer.iterator();
++      Bits liveDocs = leaf.reader().getLiveDocs();
+       while (iterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
++        if (liveDocs != null && liveDocs.get(iterator.docID()) == false) {
++          continue;
++        }
+         rescoreInto(queue, rescores, leaf.docBase, iterator.docID());
+         originalCount++;
+       }
+@@ -137,8 +145,12 @@ public class RescoreTopNQuery extends Query {
+       DoubleValues rescores = rewrittenValueSource.getValues(leaf, null);
+       leafValues[i] = rescores;
+       DocIdSetIterator iterator = innerScorer.iterator();
++      Bits liveDocs = leaf.reader().getLiveDocs();
+       while (iterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+         int docId = iterator.docID();
++        if (liveDocs != null && liveDocs.get(docId) == false) {
++          continue;
++        }
+         // Issue the load first, so that the new read is in flight while we block on the oldest one.
+         rescores.prefetch(docId);
+         if (ring.isFull()) {

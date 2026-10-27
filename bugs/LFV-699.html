@@ -1,0 +1,1347 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>TSTLookup loses emoji and CJK Extension B suggestions after store() and load()</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-699 &middot; tstlookup-store-load-surrogate-splitchar</p><h1 id='top'>TSTLookup loses emoji and CJK Extension B suggestions after store() and load()</h1><p class='tldr'>A <code class='nw'>TSTLookup</code> saved with <code class='nw'>store()</code> and reloaded with <code class='nw'>load()</code> no longer finds suggestions through an emoji or a CJK Extension B character: <code class='nw'>lookup("𠮷")</code> returns <code class='nw'>[]</code> instead of <code class='nw'>[𠮷野家/5]</code>, while <code class='nw'>load()</code> returns true and ASCII entries still work. Every release since 4.7.0 (2014) has it.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 48</span><span class='sub'>A TSTLookup reloaded with store/load silently loses every suggestion through a supplementary character since 4.7.0, but it needs the little-used TSTLookup plus persistence plus such text, so it joins the rare silent suggester-loss rows right after LFV-523.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>4.7.0 (LUCENE-5404, 2014); 4.6.1 was lossless<span class='sub'>introduced 2014-02-07 &middot; over 12 years</span></dd></div><div><dt>Affected</dt><dd>4.7.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>randomized differential check of the suggesters with a store/load round trip</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>TSTLookup</code> is a suggester that keeps its entries in a ternary search tree, one node per UTF-16 code unit. <code class='nw'>store()</code> and <code class='nw'>load()</code> save and reload that tree. An emoji or a CJK Extension B character takes two code units (a surrogate pair), so it becomes two nodes.</p><figure class='visual' id='tstlookup-store-load-surrogate-splitchar-short-visual'><div class='frame'><a class='still' href='../assets/LFV-699/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-699/bug.png' alt='Diagram of the TSTLookup store/load bug: the key 𠮷野家 is split into the tree nodes D842, DFB7, 野 and 家; store() writes each surrogate node as the bytes EF BF BD (U+FFFD); after load() those nodes hold U+FFFD, and lookup of 𠮷 returns an empty list instead of 𠮷野家 with weight 5.' width='1920' height='1080'></a></div><figcaption>One tree node per UTF-16 unit: <code class='nw'>store()</code> writes each half of 😀 and 𠮷 as U+FFFD, and the reloaded search for 𠮷 takes the wrong branch; the recommended fix writes a lone surrogate in a 3-byte form. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Build a <code class='nw'>TSTLookup</code> from <code class='nw'>𠮷野家</code> (weight 5), <code>😀 smile</code> (4) and <code class='nw'>apple</code> (3). <code class='nw'>lookup("𠮷")</code> returns <code class='nw'>[𠮷野家/5]</code> and <code class='nw'>get("𠮷野家")</code> returns 5.</span></li><li><span>Save it with <code class='nw'>store()</code> and read it back with <code class='nw'>load()</code> into a fresh <code class='nw'>TSTLookup</code>. Both return true; <code class='nw'>getCount()</code> is still 3 and <code class='nw'>lookup("ap")</code> is still <code class='nw'>[apple/3]</code>.</span></li><li><span>You expect the reloaded copy to answer the same. Instead <code class='nw'>lookup("𠮷")</code> and <code class='nw'>lookup("😀")</code> return <code class='nw'>[]</code>, <code class='nw'>get("𠮷野家")</code> returns null, and <code class='nw'>lookup("�")</code> (U+FFFD), empty before, now returns <code>[😀 smile/4]</code>.</span></li><li><span>Why: the tree has one node per UTF-16 unit, so 𠮷 is two nodes, <code class='nw'>D842</code> and <code class='nw'>DFB7</code>. <code class='nw'>store()</code> writes each node's char as its own UTF-8 string; half a pair has no UTF-8 form, so both are saved as U+FFFD. After <code class='nw'>load()</code> the search compares <code class='nw'>D842</code> with <code class='nw'>FFFD</code> and takes the wrong branch.</span></li><li><span>Neighbours are hit too: in a lookup of <code>😀 smile</code>, <code class='nw'>Ａb</code> and <code class='nw'>ab</code>, the fullwidth key is lost (<code class='nw'>lookup("Ａ")</code> gives <code class='nw'>[]</code>, was <code class='nw'>[Ａb/4]</code>). Nothing fails loudly.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that use <code class='nw'>TSTLookup</code>, save it with <code class='nw'>store()</code>, reload it with <code class='nw'>load()</code> (for example at startup) and have emoji or CJK Extension B characters in their suggestions. One entry is enough. The loss is silent and lasts until the lookup is rebuilt (the stored tokens would allow a repair, but no version does it); every release since 4.7.0 is affected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>758 words</span></summary><div class='body'><p><code class='nw'>TSTLookup</code> keeps its suggestions in a ternary search tree with one node per UTF-16 code unit (<code>TSTAutocomplete.java:63</code>), so a supplementary character such as the emoji 😀 (U+1F600) or the CJK Extension B character 𠮷 (U+20BB7) becomes two nodes, a high surrogate and a low surrogate. <code class='nw'>store()</code> writes each node's split char as a one-char <code class='nw'>String</code> with <code>DataOutput.writeString</code> (<code>TSTLookup.java:244</code>), which encodes UTF-8; a lone surrogate has no UTF-8 form and is written as <code>EF BF BD</code>, U+FFFD, and <code class='nw'>load()</code> reads it back with <code>readString().charAt(0)</code> (<code class='nw'>:219</code>). <code class='nw'>load()</code> returns true, the count and the ASCII entries survive, but <code class='nw'>get()</code> and every lookup whose prefix reaches such a character return nothing, BMP keys on the high side of such a node (fullwidth forms, halfwidth katakana) can be lost too, and a U+FFFD prefix can return keys it never matched. It is a regression from LUCENE-5404 (2014), which replaced the lossless <code class='nw'>writeChar</code>/<code class='nw'>readChar</code>: 4.6.1 round-trips, and every release from 4.7.0 to 10.5.2 and main does not. A layout-compatible fix keeps every existing file loadable; stores already written with such characters stay lossy until they are rebuilt (their tokens are stored whole, so a loader could also repair them; a probe showed this).</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong><code class='nw'>TSTLookup</code></strong>: a prefix suggester in <code class='nw'>lucene/suggest</code>. <code class='nw'>build()</code> sorts the entries and inserts them into a ternary search tree; <code>lookup(prefix, ...)</code> walks the tree along the prefix and lists the entries below; <code class='nw'>get(key)</code> returns a key's weight. Each node has a split char and three children: lower, equal (next char of the key) and higher.</li><li><strong>Surrogate pair</strong>: Java strings are UTF-16. A character above U+FFFF, such as 😀 U+1F600 (<code>D83D DE00</code>) or 𠮷 U+20BB7 (<code>D842 DFB7</code>), is stored as two <code class='nw'>char</code>s, a high and a low surrogate. Neither half is a character on its own.</li><li><strong><code class='nw'>Lookup.store</code> / <code class='nw'>Lookup.load</code></strong>: "Persist the constructed lookup data" and "load it from a previously saved copy" (<code>Lookup.java:236-252</code>), for example to avoid rebuilding at startup.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>TSTAutocomplete.insert</code> makes one node per <code class='nw'>char</code>: <code>newNode.splitchar = s.charAt(x)</code> (<code>TSTAutocomplete.java:63</code>). <code class='nw'>𠮷野家</code> is four nodes: <code class='nw'>D842</code>, <code class='nw'>DFB7</code>, <code class='nw'>91CE</code>, <code class='nw'>5BB6</code>. The public <code>TSTLookup.add(key, value)</code> calls the same <code class='nw'>insert</code> (<code>TSTLookup.java:149-150</code>).</li><li><code>TSTLookup.writeRecursively</code> writes <code>out.writeString(new String(new char[] {node.splitchar}, 0, 1))</code> (<code>TSTLookup.java:244</code>). <code class='nw'>writeString</code> encodes UTF-8 (<code>DataOutput.java:263-275</code>, through <code>new BytesRef(s)</code>, whose javadoc asks for text "with no unpaired surrogates", <code class='nw'>BytesRef.java:77</code>, and <code>UnicodeUtil.UTF16toUTF8</code>), and <code class='nw'>UnicodeUtil</code> writes <code>EF BF BD</code> (U+FFFD) for an "unpaired surrogate" (<code>UnicodeUtil.java:231-235</code>).</li><li><code class='nw'>readRecursively</code> reads <code>in.readString().charAt(0)</code> (<code>TSTLookup.java:219</code>): U+FFFD. Everything else (node layout, tokens, weights, the count) round-trips, so <code class='nw'>load()</code> returns true.</li><li>The search compares the query's char with each node's split char (<code>TSTAutocomplete.java:103-114</code>). A query char <code class='nw'>D842</code> meets a node that now holds <code class='nw'>FFFD</code>, goes to the lower child, and finds nothing.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-tree-of-the-repro-before-and-after-white-box-dump'>The tree of the repro, before and after (white-box dump)</h3><a class="hlink" href="#what-the-bug-is-the-tree-of-the-repro-before-and-after-white-box-dump" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-tree-of-the-repro-before-and-after-white-box-dump"><span aria-hidden="true">#</span></a></div><pre><code> before store()                             after load()
+  hi: D83D  first half of 😀                  hi: FFFD
+      lo: &#x27;a&#x27; p p l e -&gt; apple/3                  lo: &#x27;a&#x27; p p l e -&gt; apple/3
+      eq: DE00 &#x27; smile&#x27; -&gt; 😀 smile/4              eq: FFFD &#x27; smile&#x27; -&gt; 😀 smile/4
+      hi: D842  first half of 𠮷                  hi: FFFD
+          eq: DFB7 野 家 -&gt; 𠮷野家/5                    eq: FFFD 野 家 -&gt; 𠮷野家/5
+
+ lookup(&quot;𠮷&quot;) after load():  D842 &lt; FFFD -&gt; lower child &#x27;a&#x27; -&gt; D842 &gt; &#x27;a&#x27; -&gt; no higher child -&gt; []
+ lookup(&quot;�&quot;) after load():  FFFD = FFFD -&gt; list everything below -&gt; [😀 smile/4]</code></pre><p>(The tree's top node is an empty root with split char U+0000; the dump starts at its higher child.)</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-three-effects'>The three effects</h3><a class="hlink" href="#what-the-bug-is-the-three-effects" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-three-effects"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>effect</th><th>example (executed)</th></tr></thead><tbody><tr><td><code class='nw'>get()</code> and lookups whose prefix reaches a surrogate node miss</td><td><code class='nw'>lookup("𠮷")</code>: <code class='nw'>[𠮷野家/5]</code> -&gt; <code class='nw'>[]</code>; <code class='nw'>get("𠮷野家")</code>: 5 -&gt; null</td></tr><tr><td>a BMP key whose char at that level is in U+E000..U+FFFD and sits on the high side of the node is lost (a char below U+FFFD turns lo, U+FFFD itself now goes down the surrogate's eq branch; U+FFFE and U+FFFF still go hi)</td><td><code class='nw'>lookup("Ａ")</code>: <code class='nw'>[Ａb/4]</code> -&gt; <code class='nw'>[]</code> (fullwidth U+FF21); keys at U+E000 and U+FFFD lost beside a surrogate node, keys at U+D7FF, U+FFFE, U+FFFF kept; a halfwidth katakana key in an independent test</td></tr><tr><td>a U+FFFD prefix can match supplementary keys</td><td><code class='nw'>lookup("�")</code>: <code class='nw'>[]</code> -&gt; <code>[😀 smile/4]</code></td></tr></tbody></table></div><p>Tokens are stored whole, so a prefix that ends before the first surrogate node still lists the key (the prefix <code class='nw'>a</code> still finds <code class='nw'>a😀</code>): the loss depends on the lookup path, not only on the key. ASCII keys and <code class='nw'>getCount()</code> are unchanged.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>313 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> <code class='nw'>TSTLookup</code> is opt-in: an application picks it among the <code class='nw'>Lookup</code> implementations. It is not deprecated and has no experimental tag of its own (class javadoc <code>TSTLookup.java:36-42</code>), though its base class <code class='nw'>Lookup</code> is <code>@lucene.experimental</code> (<code class='nw'>Lookup.java:38</code>). Only lookups that are persisted with <code class='nw'>store()</code> and reloaded with <code class='nw'>load()</code> are hit, and only for text with characters above U+FFFF, whether built with <code class='nw'>build()</code> or added with <code class='nw'>add()</code>.</li><li><strong>Silent.</strong> <code class='nw'>load()</code> returns true, <code class='nw'>getCount()</code> is right and ASCII entries work. Only lookups whose path reaches a surrogate node change: users who type such a character, and users who type some BMP prefixes beside such a node (the fullwidth <code class='nw'>Ａ</code>, U+FFFD), get missing or wrong suggestions. It does not depend on randomness: the same with assertions on and off and with every seed tried.</li><li><strong>Lasting.</strong> The saved file holds U+FFFD in place of the surrogate split chars, and no Lucene version, fixed or not, reads them back. The tokens and weights are stored whole, though: a white-box probe re-derived the lost split chars from them and got every answer back. Without such a repair step, the lookup has to be rebuilt from its source.</li><li><strong>How much changes.</strong> In the finder's random sweep (100,000 dictionaries of 1-6 keys, with U+00E9, U+1F600 and U+FFFD among the possible keys; 341,084,860 lookups over 20 suggester configurations), the round trip changed 245,800 <code class='nw'>TSTLookup</code> results, and 0 with the fix. An independent test: 13 of 24 code-point-boundary prefixes change.</li><li><strong>Siblings are fine.</strong> <code>FSTCompletionLookup</code> and <code>WFSTCompletionLookup</code> round-trip the same keys.</li><li><strong>Downstream (read, not run).</strong> In a 2020 Lucene/Solr source snapshot, Solr's suggester reloads a persisted lookup from a <code class='nw'>storeDir</code>, and <code class='nw'>TSTLookupFactory</code> creates a <code class='nw'>TSTLookup</code>. The Lucene.NET port carries the same two lines.</li><li><strong>How likely.</strong> Rare: it needs a persisted <code class='nw'>TSTLookup</code>, such characters in the dictionary, and a lookup through them; no report of it was found.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code class='nw'>lucene/suggest</code>, in the style of <code class='nw'>TestPersistence</code>, on the public API: it builds two small lookups, stores and reloads each, and checks the answers. Both tests fail on main, 10.5.2 and 9.12.3, with assertions on and off, and pass with either fix.</p><figure class='code'><figcaption><span class='fname'>TestTSTLookupSurrogatePersistence.java (lucene/suggest, public API)</span><span class='meta'>79 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest;
+
+import java.io.IOException;
+import org.apache.lucene.search.suggest.tst.TSTLookup;
+import org.apache.lucene.store.ByteBuffersDataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * A TSTLookup loaded from its stored copy must answer like the original, also for keys with
+ * supplementary characters. TSTLookup keeps one tree node per UTF-16 unit, so such a character is a
+ * high-surrogate node followed by a low-surrogate node.
+ */
+public class TestTSTLookupSurrogatePersistence extends LuceneTestCase {
+
+  private static final String CJK = &quot;\uD842\uDFB7\u91CE\u5BB6&quot;; // U+20BB7 (CJK Ext. B) + 2 chars
+  private static final String EMOJI = &quot;\uD83D\uDE00 smile&quot;; // U+1F600, an emoji
+
+  private static TSTLookup build(Directory dir, Input... inputs) throws IOException {
+    TSTLookup lookup = new TSTLookup(dir, &quot;tst&quot;);
+    lookup.build(new InputArrayIterator(inputs));
+    return lookup;
+  }
+
+  private static TSTLookup storeAndLoad(Directory dir, TSTLookup lookup) throws IOException {
+    ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+    assertTrue(lookup.store(out));
+    TSTLookup loaded = new TSTLookup(dir, &quot;tst&quot;);
+    assertTrue(loaded.load(out.toDataInput()));
+    return loaded;
+  }
+
+  public void testSupplementaryKeysAfterStoreLoad() throws Exception {
+    try (Directory dir = newDirectory()) {
+      TSTLookup lookup = build(dir, new Input(CJK, 5), new Input(EMOJI, 4), new Input(&quot;apple&quot;, 3));
+      assertEquals(&quot;[&quot; + CJK + &quot;/5]&quot;, lookup.lookup(&quot;\uD842\uDFB7&quot;, true, 5).toString());
+      assertEquals(&quot;[&quot; + EMOJI + &quot;/4]&quot;, lookup.lookup(&quot;\uD83D\uDE00&quot;, true, 5).toString());
+      assertEquals(5L, lookup.get(CJK));
+
+      TSTLookup loaded = storeAndLoad(dir, lookup);
+      assertEquals(3, loaded.getCount()); // controls: these survive
+      assertEquals(&quot;[apple/3]&quot;, loaded.lookup(&quot;ap&quot;, true, 5).toString());
+      assertEquals(&quot;[&quot; + CJK + &quot;/5]&quot;, loaded.lookup(&quot;\uD842\uDFB7&quot;, true, 5).toString());
+      assertEquals(&quot;[&quot; + EMOJI + &quot;/4]&quot;, loaded.lookup(&quot;\uD83D\uDE00&quot;, true, 5).toString());
+      assertEquals(5L, loaded.get(CJK));
+    }
+  }
+
+  public void testNeighbouringKeysAfterStoreLoad() throws Exception {
+    String fullwidth = &quot;\uFF21b&quot;; // FULLWIDTH LATIN CAPITAL LETTER A, then &#x27;b&#x27;
+    try (Directory dir = newDirectory()) {
+      TSTLookup lookup =
+          build(dir, new Input(EMOJI, 5), new Input(fullwidth, 4), new Input(&quot;ab&quot;, 3));
+      assertEquals(&quot;[&quot; + fullwidth + &quot;/4]&quot;, lookup.lookup(&quot;\uFF21&quot;, true, 5).toString());
+      assertEquals(&quot;[]&quot;, lookup.lookup(&quot;\uFFFD&quot;, true, 5).toString());
+
+      TSTLookup loaded = storeAndLoad(dir, lookup);
+      assertEquals(&quot;[ab/3]&quot;, loaded.lookup(&quot;a&quot;, true, 5).toString()); // control
+      assertEquals(&quot;[&quot; + fullwidth + &quot;/4]&quot;, loaded.lookup(&quot;\uFF21&quot;, true, 5).toString());
+      assertEquals(&quot;[]&quot;, loaded.lookup(&quot;\uFFFD&quot;, true, 5).toString());
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestTSTLookupSurrogatePersistence.java $LUCENE/lucene/suggest/src/test/org/apache/lucene/search/suggest/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:suggest:test --tests TestTSTLookupSurrogatePersistence -Ptests.seed=5EED0699 -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED069A)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>After <code class='nw'>load()</code>, <code class='nw'>lookup("𠮷")</code> = <code class='nw'>[𠮷野家/5]</code>, <code class='nw'>get("𠮷野家")</code> = 5 and <code class='nw'>lookup("Ａ")</code> = <code class='nw'>[Ａb/4]</code>, as before <code class='nw'>store()</code>.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>lookup("𠮷")</code> = <code class='nw'>[]</code> and <code class='nw'>lookup("Ａ")</code> = <code class='nw'>[]</code> while <code class='nw'>load()</code> returns true and the ASCII controls pass: 2 of 2 tests fail, with assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-699/'>repro/LFV-699/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>6 more files (914 lines) · 4,400 words</span></summary><div class='body'><p>The test uses the module's own test helpers <code class='nw'>Input</code> and <code>InputArrayIterator</code> (as <code class='nw'>TestPersistence</code> does), <code>store(DataOutput)</code> into a <code>ByteBuffersDataOutput</code> and <code class='nw'>load(DataInput)</code> into a fresh <code class='nw'>TSTLookup</code>. The inputs are fixed and no particular seed is needed (<code class='nw'>newDirectory()</code> is randomized, but it only holds the build's temporary sort files); it failed the same way with every seed tried. Each test checks the answers before <code class='nw'>store()</code> and a control after <code class='nw'>load()</code> (an ASCII key, and in the first test the count), so a failure can only come from the round trip. It passes <code>checkGoogleJavaFormat</code>. The strings use <code class='nw'>\u</code> escapes: <code class='nw'>\uD842\uDFB7</code> is 𠮷, <code class='nw'>\uD83D\uDE00</code> is 😀, <code class='nw'>\uFF21</code> is Ａ, <code class='nw'>\uFFFD</code> is U+FFFD.</p><p>The other files: the finder's 2-test JUnit (its own <code class='nw'>InputIterator</code>); an independent reproducer's 3-test JUnit (a <code class='nw'>FileDictionary</code> build, the file-stream and <code class='nw'>DataOutput</code> round trips, 24 prefixes, a halfwidth katakana key); a <code class='nw'>main()</code> probe that shows which build reads whose stored files (stock, fix A, fix B); a white-box <code class='nw'>main()</code> that dumps the tree before and after the reload; and, added after the fact checks, a <code class='nw'>main()</code> that stores every surrogate value as a split char, a white-box repair-from-tokens probe and a JDK decoder check.</p><div class="hd hd-3"><h3 id='code-2-h'>TestTSTLookupStoreLoadSupplementary.java (the finder&#x27;s test)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>The same two scenarios with a hand-written <code class='nw'>InputIterator</code>; fails 2 of 2 on main (assertions on and off), 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestTSTLookupStoreLoadSupplementary.java (the finder&#x27;s test)</span><span class='meta'>133 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.tst;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import org.apache.lucene.search.suggest.InputIterator;
+import org.apache.lucene.search.suggest.Lookup.LookupResult;
+import org.apache.lucene.store.ByteBuffersDataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Lookup#store / Lookup#load must persist the lookup data: a TSTLookup loaded from a stored copy
+ * must return the same suggestions. TSTLookup splits keys into UTF-16 chars, so a supplementary
+ * character (here U+20BB7, and an emoji U+1F600) is stored as a high and a low surrogate split
+ * char. store() writes each split char with DataOutput#writeString, which encodes a lone surrogate
+ * as U+FFFD, so after load() the keys with supplementary characters can no longer be found.
+ */
+public class TestTSTLookupStoreLoadSupplementary extends LuceneTestCase {
+
+  // U+20BB7 followed by two BMP CJK characters, and U+1F600 followed by &quot; smile&quot;
+  private static final String CJK = &quot;\uD842\uDFB7\u91CE\u5BB6&quot;;
+  private static final String EMOJI = &quot;\uD83D\uDE00 smile&quot;;
+
+  private static InputIterator iter(String[] keys, long[] weights) {
+    Iterator&lt;Integer&gt; it = java.util.stream.IntStream.range(0, keys.length).iterator();
+    return new InputIterator() {
+      int cur = -1;
+
+      @Override
+      public BytesRef next() {
+        if (it.hasNext() == false) {
+          return null;
+        }
+        cur = it.next();
+        return new BytesRef(keys[cur]);
+      }
+
+      @Override
+      public long weight() {
+        return weights[cur];
+      }
+
+      @Override
+      public BytesRef payload() {
+        return null;
+      }
+
+      @Override
+      public boolean hasPayloads() {
+        return false;
+      }
+
+      @Override
+      public Set&lt;BytesRef&gt; contexts() {
+        return null;
+      }
+
+      @Override
+      public boolean hasContexts() {
+        return false;
+      }
+    };
+  }
+
+  public void testStoreLoadKeepsSupplementaryCharacterSuggestions() throws Exception {
+    try (Directory tempDir = newDirectory()) {
+      TSTLookup lookup = new TSTLookup(tempDir, &quot;tst&quot;);
+      lookup.build(iter(new String[] {CJK, EMOJI, &quot;apple&quot;}, new long[] {5, 4, 3}));
+
+      // before store/load: every key is found
+      List&lt;LookupResult&gt; cjkBefore = lookup.lookup(CJK.substring(0, 2), true, 5);
+      List&lt;LookupResult&gt; emojiBefore = lookup.lookup(EMOJI.substring(0, 2), true, 5);
+      assertEquals(&quot;[&quot; + CJK + &quot;/5]&quot;, cjkBefore.toString());
+      assertEquals(&quot;[&quot; + EMOJI + &quot;/4]&quot;, emojiBefore.toString());
+      assertEquals(Long.valueOf(5), lookup.get(CJK));
+
+      ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+      assertTrue(lookup.store(out));
+      TSTLookup loaded = new TSTLookup(tempDir, &quot;tst&quot;);
+      assertTrue(loaded.load(out.toDataInput()));
+
+      // control: count and an ASCII key survive the round trip
+      assertEquals(lookup.getCount(), loaded.getCount());
+      assertEquals(&quot;[apple/3]&quot;, loaded.lookup(&quot;ap&quot;, true, 5).toString());
+
+      // the loaded copy must return the same suggestions
+      assertEquals(cjkBefore.toString(), loaded.lookup(CJK.substring(0, 2), true, 5).toString());
+      assertEquals(emojiBefore.toString(), loaded.lookup(EMOJI.substring(0, 2), true, 5).toString());
+      assertEquals(Long.valueOf(5), loaded.get(CJK));
+    }
+  }
+
+  /**
+   * The U+FFFD split char also breaks the binary-search order of its tree level: a BMP key whose
+   * first char sorts between the surrogate and U+FFFD (here fullwidth U+FF21) sits in the hiKid
+   * subtree of the surrogate node and is no longer found either.
+   */
+  public void testStoreLoadKeepsBmpKeysNextToSurrogateNodes() throws Exception {
+    String fullwidth = &quot;\uFF21b&quot;; // FULLWIDTH LATIN CAPITAL LETTER A, then &#x27;b&#x27;
+    try (Directory tempDir = newDirectory()) {
+      TSTLookup lookup = new TSTLookup(tempDir, &quot;tst&quot;);
+      lookup.build(iter(new String[] {EMOJI, fullwidth, &quot;ab&quot;}, new long[] {5, 4, 3}));
+      assertEquals(&quot;[&quot; + fullwidth + &quot;/4]&quot;, lookup.lookup(&quot;\uFF21&quot;, true, 5).toString());
+
+      ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+      assertTrue(lookup.store(out));
+      TSTLookup loaded = new TSTLookup(tempDir, &quot;tst&quot;);
+      assertTrue(loaded.load(out.toDataInput()));
+
+      assertEquals(&quot;[ab/3]&quot;, loaded.lookup(&quot;a&quot;, true, 5).toString());
+      assertEquals(&quot;[&quot; + fullwidth + &quot;/4]&quot;, loaded.lookup(&quot;\uFF21&quot;, true, 5).toString());
+      assertEquals(Long.valueOf(4), loaded.get(fullwidth));
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestTSTStoreLoadSupplementaryV1.java (independent reproducer)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>3 of 3 fail on main, 10.5.2 and 9.12.3: three keys with supplementary characters (a musical symbol and two emoji) lost after a stream round trip, 13 of 24 prefixes changed, a halfwidth katakana key lost.</p><figure class='code'><figcaption><span class='fname'>TestTSTStoreLoadSupplementaryV1.java (independent reproducer)</span><span class='meta'>187 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest;
+
+import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeSet;
+import org.apache.lucene.search.suggest.Lookup.LookupResult;
+import org.apache.lucene.search.suggest.tst.TSTLookup;
+import org.apache.lucene.store.ByteBuffersDataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * TSTLookup store/load round trip with keys that contain supplementary characters (UTF-16
+ * surrogate pairs). Uses only public API: FileDictionary to feed the lookup, Lookup.store/load
+ * (both the stream and the DataOutput/DataInput variants) and Lookup.lookup / TSTLookup.get.
+ *
+ * &lt;p&gt;Same shape as the upstream TestPersistence (every built key must still be found after
+ * reloading), with non-BMP keys.
+ */
+public class TestTSTStoreLoadSupplementaryV1 extends LuceneTestCase {
+
+  // key \t weight ; U+1D11E MUSICAL SYMBOL G CLEF, U+1F355 SLICE OF PIZZA, U+1F41D HONEYBEE
+  private static final String[] KEYS = {
+    &quot;apple&quot;, &quot;\uD834\uDD1Eclef&quot;, &quot;\uD83C\uDF55pizza&quot;, &quot;b\uD83D\uDC1D&quot;, &quot;zebra&quot;,
+  };
+  private static final long[] WEIGHTS = {2, 7, 3, 4, 1};
+
+  private static String dictText() {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i &lt; KEYS.length; i++) {
+      sb.append(KEYS[i]).append(&#x27;\t&#x27;).append(WEIGHTS[i]).append(&#x27;\n&#x27;);
+    }
+    return sb.toString();
+  }
+
+  private TSTLookup buildLookup(Directory tempDir) throws Exception {
+    TSTLookup lookup = new TSTLookup(tempDir, &quot;suggest&quot;);
+    lookup.build(new FileDictionary(new StringReader(dictText())));
+    return lookup;
+  }
+
+  private static String hex(String s) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i &lt; s.length(); i++) {
+      sb.append(String.format(&quot;\\u%04X&quot;, (int) s.charAt(i)));
+    }
+    return sb.toString();
+  }
+
+  private static List&lt;String&gt; render(List&lt;LookupResult&gt; results) {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (LookupResult r : results) {
+      out.add(hex(r.key.toString()) + &quot;/&quot; + r.value);
+    }
+    return out;
+  }
+
+  /** Mirrors TestPersistence: every key that was built must be found after store + load. */
+  public void testEveryBuiltKeyFoundAfterStreamStoreLoad() throws Exception {
+    try (Directory tempDir = newDirectory()) {
+      TSTLookup built = buildLookup(tempDir);
+
+      // Control: before persisting, every key is found with its weight.
+      for (int i = 0; i &lt; KEYS.length; i++) {
+        List&lt;LookupResult&gt; r = built.lookup(KEYS[i], false, 1);
+        assertEquals(&quot;before store, key &quot; + hex(KEYS[i]), 1, r.size());
+        assertEquals(KEYS[i], r.get(0).key.toString());
+        assertEquals(WEIGHTS[i], r.get(0).value);
+        assertEquals(WEIGHTS[i], ((Number) built.get(KEYS[i])).longValue());
+      }
+
+      Path dir = createTempDir(&quot;tst-v1&quot;);
+      Path file = dir.resolve(&quot;lookup.dat&quot;);
+      assertTrue(built.store(Files.newOutputStream(file)));
+
+      TSTLookup loaded = new TSTLookup();
+      assertTrue(loaded.load(Files.newInputStream(file)));
+      assertEquals(built.getCount(), loaded.getCount());
+
+      List&lt;String&gt; missing = new ArrayList&lt;&gt;();
+      for (int i = 0; i &lt; KEYS.length; i++) {
+        List&lt;LookupResult&gt; r = loaded.lookup(KEYS[i], false, 1);
+        Object v = loaded.get(KEYS[i]);
+        System.out.println(
+            &quot;after load: key=&quot;
+                + hex(KEYS[i])
+                + &quot; lookup=&quot;
+                + render(r)
+                + &quot; get=&quot;
+                + v);
+        if (r.size() != 1 || v == null) {
+          missing.add(hex(KEYS[i]));
+        }
+      }
+      assertTrue(&quot;keys not found after store+load: &quot; + missing, missing.isEmpty());
+    }
+  }
+
+  /**
+   * A BMP-only key is also affected when it sits next to a surrogate node: here the emoji key is
+   * the balanced tree&#x27;s middle (root) and the half-width katakana key U+FF76 U+FF9E is in its
+   * high subtree. After reload the root split char is no longer U+D83D, so the search for U+FF76
+   * goes to the low side and misses the key.
+   */
+  public void testBmpKeyBesideSurrogateNodeAfterRoundTrip() throws Exception {
+    try (Directory tempDir = newDirectory()) {
+      TSTLookup built = new TSTLookup(tempDir, &quot;suggest&quot;);
+      // sorted (UTF-16 order): &quot;ok&quot; &lt; U+1F44D THUMBS UP &lt; U+FF76 U+FF9E
+      built.build(
+          new FileDictionary(
+              new StringReader(&quot;ok\t1\n\uD83D\uDC4D\t2\n\uFF76\uFF9E\t3\n&quot;)));
+      String bmpKey = &quot;\uFF76\uFF9E&quot;;
+      assertEquals(List.of(hex(bmpKey) + &quot;/3&quot;), render(built.lookup(bmpKey, false, 10)));
+
+      ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+      assertTrue(built.store(out));
+      TSTLookup loaded = new TSTLookup();
+      assertTrue(loaded.load(out.toDataInput()));
+
+      List&lt;String&gt; after = render(loaded.lookup(bmpKey, false, 10));
+      System.out.println(&quot;bmp key after load: lookup=&quot; + after + &quot; get=&quot; + loaded.get(bmpKey));
+      assertEquals(
+          &quot;BMP key U+FF76 U+FF9E after store+load&quot;, List.of(hex(bmpKey) + &quot;/3&quot;), after);
+    }
+  }
+
+  /**
+   * Differential: every prefix (cut at code-point boundaries) of every key gives the same
+   * suggestions before and after a DataOutput/DataInput round trip.
+   */
+  public void testPrefixLookupsUnchangedAfterDataOutputRoundTrip() throws Exception {
+    try (Directory tempDir = newDirectory()) {
+      TSTLookup built = buildLookup(tempDir);
+
+      ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+      assertTrue(built.store(out));
+      TSTLookup loaded = new TSTLookup();
+      assertTrue(loaded.load(out.toDataInput()));
+
+      TreeSet&lt;String&gt; prefixes = new TreeSet&lt;&gt;();
+      for (String k : KEYS) {
+        for (int i = 1; i &lt;= k.length(); i++) {
+          if (i &lt; k.length() &amp;&amp; Character.isLowSurrogate(k.charAt(i))) {
+            continue; // never cut a surrogate pair
+          }
+          prefixes.add(k.substring(0, i));
+        }
+      }
+      prefixes.add(&quot;\uFFFD&quot;); // a prefix that no key starts with
+
+      List&lt;String&gt; diffs = new ArrayList&lt;&gt;();
+      for (String p : prefixes) {
+        List&lt;String&gt; before = render(built.lookup(p, false, 100));
+        List&lt;String&gt; after = render(loaded.lookup(p, false, 100));
+        before.sort(null);
+        after.sort(null);
+        if (!before.equals(after)) {
+          diffs.add(&quot;prefix=&quot; + hex(p) + &quot; before=&quot; + before + &quot; after=&quot; + after);
+        }
+      }
+      for (String d : diffs) {
+        System.out.println(&quot;DIFF &quot; + d);
+      }
+      System.out.println(&quot;prefixes checked=&quot; + prefixes.size() + &quot; differing=&quot; + diffs.size());
+      assertTrue(&quot;prefix lookups changed by store+load: &quot; + diffs, diffs.isEmpty());
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TstStoreCompatProbe.java (store-format compatibility, main())</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p><code>write DIR LABEL</code> stores two dictionaries with <code>store(OutputStream)</code>; <code>read FILE...</code> loads each with <code>load(InputStream)</code> and prints the answers. Run once per build (stock, fix A, fix B).</p><figure class='code'><figcaption><span class='fname'>TstStoreCompatProbe.java (store-format compatibility, main())</span><span class='meta'>186 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>package compat;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.apache.lucene.search.suggest.InputIterator;
+import org.apache.lucene.search.suggest.tst.TSTLookup;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Store-format compatibility probe for TSTLookup (public API only).
+ *
+ * &lt;pre&gt;
+ *   write DIR LABEL   build two dictionaries, print their answers, store them with
+ *                     Lookup.store(OutputStream) to DIR/LABEL-sup.bin and DIR/LABEL-ascii.bin
+ *   read FILE...      load each file with Lookup.load(InputStream) into a fresh TSTLookup and
+ *                     print load()&#x27;s result (or the exception) and the same answers
+ * &lt;/pre&gt;
+ *
+ * Run it once per TSTLookup build (stock, fix A, fix B) to see which build reads whose files.
+ */
+public class TstStoreCompatProbe {
+
+  static final String CJK = &quot;\uD842\uDFB7\u91CE\u5BB6&quot;; // U+20BB7 + two BMP chars
+  static final String EMOJI = &quot;\uD83D\uDE00 smile&quot;; // U+1F600
+  static final String FULLWIDTH = &quot;\uFF21b&quot;; // U+FF21 + &#x27;b&#x27;
+
+  static final String[] SUP_KEYS = {CJK, EMOJI, FULLWIDTH, &quot;apple&quot;, &quot;ab&quot;};
+  static final long[] SUP_WEIGHTS = {5, 4, 3, 2, 1};
+  static final String[] SUP_PREFIXES = {
+    &quot;\uD842\uDFB7&quot;, &quot;\uD83D\uDE00&quot;, &quot;\uFF21&quot;, &quot;\uFFFD&quot;, &quot;ap&quot;, &quot;a&quot;
+  };
+
+  // the 15 ASCII keys of upstream TestPersistence, weights 0..14
+  static final String[] ASCII_KEYS = {
+    &quot;one&quot;, &quot;two&quot;, &quot;three&quot;, &quot;four&quot;, &quot;oneness&quot;, &quot;onerous&quot;, &quot;onesimus&quot;, &quot;twofold&quot;, &quot;twonk&quot;, &quot;thrive&quot;,
+    &quot;through&quot;, &quot;threat&quot;, &quot;foundation&quot;, &quot;fourier&quot;, &quot;fourty&quot;
+  };
+  static final String[] ASCII_PREFIXES = {&quot;o&quot;, &quot;one&quot;, &quot;tw&quot;, &quot;thr&quot;, &quot;fou&quot;, &quot;f&quot;};
+
+  public static void main(String[] args) throws Exception {
+    if (args[0].equals(&quot;write&quot;)) {
+      Path dir = Path.of(args[1]);
+      String label = args[2];
+      write(dir.resolve(label + &quot;-sup.bin&quot;), SUP_KEYS, SUP_WEIGHTS, SUP_PREFIXES);
+      write(dir.resolve(label + &quot;-ascii.bin&quot;), ASCII_KEYS, asciiWeights(), ASCII_PREFIXES);
+    } else {
+      for (int i = 1; i &lt; args.length; i++) {
+        Path f = Path.of(args[i]);
+        boolean sup = f.getFileName().toString().endsWith(&quot;-sup.bin&quot;);
+        read(f, sup ? SUP_KEYS : ASCII_KEYS, sup ? SUP_PREFIXES : ASCII_PREFIXES);
+      }
+    }
+  }
+
+  static long[] asciiWeights() {
+    long[] w = new long[ASCII_KEYS.length];
+    for (int i = 0; i &lt; w.length; i++) {
+      w[i] = i;
+    }
+    return w;
+  }
+
+  static void write(Path file, String[] keys, long[] weights, String[] prefixes) throws Exception {
+    try (Directory tmp = new ByteBuffersDirectory()) {
+      TSTLookup lookup = new TSTLookup(tmp, &quot;tst&quot;);
+      lookup.build(iter(keys, weights));
+      System.out.println(&quot;== write &quot; + file.getFileName());
+      System.out.println(&quot;  ANSWERS &quot; + answers(lookup, keys, prefixes));
+      boolean ok;
+      try (OutputStream os = Files.newOutputStream(file)) {
+        ok = lookup.store(os);
+      }
+      byte[] b = Files.readAllBytes(file);
+      System.out.println(
+          &quot;  store()=&quot;
+              + ok
+              + &quot; bytes=&quot;
+              + b.length
+              + &quot; EF_BF_BD=&quot;
+              + count(b, false)
+              + &quot; ED_A0-BF=&quot;
+              + count(b, true));
+    }
+  }
+
+  static void read(Path file, String[] keys, String[] prefixes) throws Exception {
+    System.out.println(&quot;== read &quot; + file.getFileName());
+    try (Directory tmp = new ByteBuffersDirectory()) {
+      TSTLookup lookup = new TSTLookup(tmp, &quot;tst&quot;);
+      boolean ok;
+      try (InputStream is = Files.newInputStream(file)) {
+        ok = lookup.load(is);
+      } catch (Throwable t) {
+        System.out.println(&quot;  load() threw &quot; + t.getClass().getName() + &quot;: &quot; + t.getMessage());
+        return;
+      }
+      String a;
+      try {
+        a = answers(lookup, keys, prefixes);
+      } catch (Throwable t) {
+        a = &quot;lookup threw &quot; + t.getClass().getName() + &quot;: &quot; + t.getMessage();
+      }
+      System.out.println(&quot;  load()=&quot; + ok + &quot; getCount()=&quot; + lookup.getCount());
+      System.out.println(&quot;  ANSWERS &quot; + a);
+    }
+  }
+
+  static String answers(TSTLookup lookup, String[] keys, String[] prefixes) throws Exception {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (String p : prefixes) {
+      out.add(&quot;lookup(&quot; + esc(p) + &quot;)=&quot; + esc(lookup.lookup(p, true, 10).toString()));
+    }
+    for (String k : keys) {
+      out.add(&quot;get(&quot; + esc(k) + &quot;)=&quot; + lookup.get(k));
+    }
+    return String.join(&quot;; &quot;, out);
+  }
+
+  static int count(byte[] b, boolean edSurrogate) {
+    int n = 0;
+    for (int i = 0; i + 2 &lt; b.length; i++) {
+      int b0 = b[i] &amp; 0xFF, b1 = b[i + 1] &amp; 0xFF, b2 = b[i + 2] &amp; 0xFF;
+      if (edSurrogate ? (b0 == 0xED &amp;&amp; b1 &gt;= 0xA0 &amp;&amp; b1 &lt;= 0xBF) : (b0 == 0xEF &amp;&amp; b1 == 0xBF &amp;&amp; b2 == 0xBD)) {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  /** ASCII-only rendering: non-ASCII chars as U+XXXX, so logs are byte-stable. */
+  static String esc(String s) {
+    StringBuilder sb = new StringBuilder();
+    for (char c : s.toCharArray()) {
+      if (c &gt;= 0x20 &amp;&amp; c &lt; 0x7F) {
+        sb.append(c);
+      } else {
+        sb.append(String.format(&quot;&lt;%04X&gt;&quot;, (int) c));
+      }
+    }
+    return sb.toString();
+  }
+
+  static InputIterator iter(String[] keys, long[] weights) {
+    return new InputIterator() {
+      int i = -1;
+
+      @Override
+      public BytesRef next() {
+        return ++i &lt; keys.length ? new BytesRef(keys[i].getBytes(StandardCharsets.UTF_8)) : null;
+      }
+
+      @Override
+      public long weight() {
+        return weights[i];
+      }
+
+      @Override
+      public BytesRef payload() {
+        return null;
+      }
+
+      @Override
+      public boolean hasPayloads() {
+        return false;
+      }
+
+      @Override
+      public Set&lt;BytesRef&gt; contexts() {
+        return null;
+      }
+
+      @Override
+      public boolean hasContexts() {
+        return false;
+      }
+    };
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>TstTreeDumpProbe.java (white-box tree dump, main())</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>Reads the package-private tree to print every split char before <code class='nw'>store()</code> and after <code class='nw'>load()</code>.</p><figure class='code'><figcaption><span class='fname'>TstTreeDumpProbe.java (white-box tree dump, main())</span><span class='meta'>69 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>package org.apache.lucene.search.suggest.tst;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import org.apache.lucene.search.suggest.InputIterator;
+import org.apache.lucene.store.ByteBuffersDataOutput;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.util.BytesRef;
+
+/** Prints the TSTLookup tree (split chars as U+XXXX) before store() and after load(), and a few lookups. */
+public class TstTreeDumpProbe {
+  public static void main(String[] args) throws Exception {
+    dump(new String[] {&quot;𠮷野家&quot;, &quot;😀 smile&quot;, &quot;apple&quot;}, new long[] {5, 4, 3},
+        new String[] {&quot;𠮷&quot;, &quot;😀&quot;, &quot;�&quot;, &quot;ap&quot;});
+    dump(new String[] {&quot;😀 smile&quot;, &quot;Ａb&quot;, &quot;ab&quot;}, new long[] {5, 4, 3},
+        new String[] {&quot;Ａ&quot;, &quot;�&quot;, &quot;a&quot;, &quot;😀&quot;});
+  }
+
+  static void dump(String[] keys, long[] w, String[] prefixes) throws Exception {
+    TSTLookup lookup = new TSTLookup(new ByteBuffersDirectory(), &quot;tst&quot;);
+    lookup.build(iter(keys, w));
+    System.out.println(&quot;#### dictionary &quot; + esc(String.join(&quot; | &quot;, keys)));
+    System.out.println(&quot;-- tree before store()&quot;);
+    print(lookup.root, &quot;root&quot;, 0);
+    answers(lookup, prefixes);
+    ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+    lookup.store(out);
+    TSTLookup loaded = new TSTLookup(new ByteBuffersDirectory(), &quot;tst&quot;);
+    loaded.load(out.toDataInput());
+    System.out.println(&quot;-- tree after load()&quot;);
+    print(loaded.root, &quot;root&quot;, 0);
+    answers(loaded, prefixes);
+  }
+
+  static void answers(TSTLookup l, String[] prefixes) throws Exception {
+    for (String p : prefixes) {
+      System.out.println(&quot;   lookup(&quot; + esc(p) + &quot;) = &quot; + esc(l.lookup(p, true, 5).toString()));
+    }
+  }
+
+  static void print(TernaryTreeNode n, String edge, int depth) {
+    if (n == null) return;
+    System.out.println(&quot;   &quot; + &quot;  &quot;.repeat(depth) + edge + &quot;: &quot; + String.format(&quot;U+%04X&quot;, (int) n.splitchar)
+        + (n.token != null ? &quot;  token=&quot; + esc(n.token) + &quot; val=&quot; + n.val : &quot;&quot;));
+    print(n.loKid, &quot;lo&quot;, depth + 1);
+    print(n.eqKid, &quot;eq&quot;, depth + 1);
+    print(n.hiKid, &quot;hi&quot;, depth + 1);
+  }
+
+  static String esc(String s) {
+    StringBuilder sb = new StringBuilder();
+    for (char c : s.toCharArray()) {
+      if (c &gt;= 0x20 &amp;&amp; c &lt; 0x7F) sb.append(c); else sb.append(String.format(&quot;&lt;%04X&gt;&quot;, (int) c));
+    }
+    return sb.toString();
+  }
+
+  static InputIterator iter(String[] keys, long[] weights) {
+    return new InputIterator() {
+      int i = -1;
+      @Override public BytesRef next() { return ++i &lt; keys.length ? new BytesRef(keys[i].getBytes(StandardCharsets.UTF_8)) : null; }
+      @Override public long weight() { return weights[i]; }
+      @Override public BytesRef payload() { return null; }
+      @Override public boolean hasPayloads() { return false; }
+      @Override public Set&lt;BytesRef&gt; contexts() { return null; }
+      @Override public boolean hasContexts() { return false; }
+    };
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-6-h'>TstSurrogateBoundaryProbe.java (every surrogate value, main())</h3><a class="hlink" href="#code-6-h" target="_self" aria-label="Link to this section" aria-describedby="code-6-h"><span aria-hidden="true">#</span></a></div><p>Public API. 1,031 keys whose nodes cover every surrogate D800-DFFF, plus BMP keys at U+D7FF, U+E000, U+FFFD, U+FFFE, U+FFFF: on stock 3,078 of 3,093 checks change after the round trip; with fix B or fix A, 0.</p><figure class='code'><figcaption><span class='fname'>TstSurrogateBoundaryProbe.java (every surrogate value, main())</span><span class='meta'>163 lines</span><button type='button' class='copy' data-copy='code-6' data-status='code-6-st'>Copy</button><span class='copy-st' id='code-6-st' role='status' aria-live='polite'></span></figcaption><pre id='code-6' tabindex='0'><code>package boundary;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.apache.lucene.search.suggest.InputIterator;
+import org.apache.lucene.search.suggest.Lookup.LookupResult;
+import org.apache.lucene.search.suggest.tst.TSTLookup;
+import org.apache.lucene.store.ByteBuffersDataOutput;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Every UTF-16 surrogate value as a TSTLookup split char (public API only). Builds one TSTLookup
+ * whose 1024 supplementary keys put each high surrogate D800..DBFF on a node at char index 0 and
+ * each low surrogate DC00..DFFF on a node at char index 1, plus BMP keys at the edges of the
+ * surrogate block and of the 3-byte UTF-8 range (U+D7FF, U+E000, U+FFFD, U+FFFE, U+FFFF) and two
+ * ASCII keys. It stores the lookup into a ByteBuffersDataOutput, loads it into a fresh TSTLookup and
+ * compares, for every key, get(key) and lookup(key, false, 2000), and for every first code point,
+ * lookup(prefix, true, 5), with the answers before store(). Exit 1 on any difference.
+ */
+public class TstSurrogateBoundaryProbe {
+
+  public static void main(String[] args) throws Exception {
+    List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+    for (int i = 0; i &lt; 1024; i++) {
+      keys.add(new String(new char[] {(char) (0xD800 + i), (char) (0xDC00 + i), &#x27;z&#x27;}));
+    }
+    for (char c : new char[] {&#x27;\uD7FF&#x27;, &#x27;\uE000&#x27;, &#x27;\uFFFD&#x27;, &#x27;\uFFFE&#x27;, &#x27;\uFFFF&#x27;}) {
+      keys.add(c + &quot;b&quot;);
+    }
+    keys.add(&quot;ab&quot;);
+    keys.add(&quot;zz&quot;);
+    long[] weights = new long[keys.size()];
+    for (int i = 0; i &lt; weights.length; i++) {
+      weights[i] = i + 1;
+    }
+    try (Directory tmp = new ByteBuffersDirectory()) {
+      TSTLookup lookup = new TSTLookup(tmp, &quot;tst&quot;);
+      lookup.build(iter(keys, weights));
+      List&lt;String&gt; before = answers(lookup, keys);
+      ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+      boolean stored = lookup.store(out);
+      byte[] bytes = out.toArrayCopy();
+      TSTLookup loaded = new TSTLookup(tmp, &quot;tst&quot;);
+      boolean ok = loaded.load(out.toDataInput());
+      List&lt;String&gt; after = answers(loaded, keys);
+      int diffs = 0;
+      int shown = 0;
+      for (int i = 0; i &lt; before.size(); i++) {
+        if (!before.get(i).equals(after.get(i))) {
+          diffs++;
+          // the first 6 differences, and every difference for a key without a surrogate pair
+          boolean bmpKey = !Character.isSurrogate(keys.get(i / 3).charAt(0));
+          if (shown++ &lt; 6 || bmpKey) {
+            System.out.println(&quot;  DIFF &quot; + esc(before.get(i)) + &quot;  -&gt;  &quot; + esc(after.get(i)));
+          }
+        }
+      }
+      int sur = 0;
+      int fffd = 0;
+      for (int i = 0; i + 3 &lt; bytes.length; i++) {
+        int b0 = bytes[i] &amp; 0xFF, b1 = bytes[i + 1] &amp; 0xFF, b2 = bytes[i + 2] &amp; 0xFF;
+        int b3 = bytes[i + 3] &amp; 0xFF;
+        if (b0 == 3 &amp;&amp; b1 == 0xED &amp;&amp; b2 &gt;= 0xA0 &amp;&amp; b2 &lt;= 0xBF &amp;&amp; b3 &gt;= 0x80 &amp;&amp; b3 &lt;= 0xBF) {
+          sur++;
+        }
+        if (b0 == 3 &amp;&amp; b1 == 0xEF &amp;&amp; b2 == 0xBF &amp;&amp; b3 == 0xBD) {
+          fffd++;
+        }
+      }
+      System.out.println(
+          &quot;keys=&quot;
+              + keys.size()
+              + &quot; checks=&quot;
+              + before.size()
+              + &quot; store()=&quot;
+              + stored
+              + &quot; load()=&quot;
+              + ok
+              + &quot; bytes=&quot;
+              + bytes.length
+              + &quot; len3+ED_A0-BF_80-BF=&quot;
+              + sur
+              + &quot; len3+EF_BF_BD=&quot;
+              + fffd
+              + &quot; getCount()=&quot;
+              + loaded.getCount()
+              + &quot; changed_checks=&quot;
+              + diffs);
+      if (diffs != 0) {
+        System.exit(1);
+      }
+    }
+  }
+
+  static List&lt;String&gt; answers(TSTLookup l, List&lt;String&gt; keys) throws Exception {
+    List&lt;String&gt; a = new ArrayList&lt;&gt;();
+    for (String k : keys) {
+      a.add(&quot;get(&quot; + k + &quot;)=&quot; + l.get(k));
+      a.add(&quot;lookup(&quot; + k + &quot;,false)=&quot; + render(l.lookup(k, false, 2000)));
+      String first = k.substring(0, Character.charCount(k.codePointAt(0)));
+      a.add(&quot;lookup(&quot; + first + &quot;,true)=&quot; + render(l.lookup(first, true, 5)));
+    }
+    return a;
+  }
+
+  static String render(List&lt;LookupResult&gt; r) {
+    return r.toString();
+  }
+
+  static String esc(String s) {
+    StringBuilder sb = new StringBuilder();
+    for (char c : s.toCharArray()) {
+      if (c &gt;= 0x20 &amp;&amp; c &lt; 0x7F) {
+        sb.append(c);
+      } else {
+        sb.append(String.format(&quot;&lt;%04X&gt;&quot;, (int) c));
+      }
+    }
+    return sb.toString();
+  }
+
+  static InputIterator iter(List&lt;String&gt; keys, long[] weights) {
+    return new InputIterator() {
+      int i = -1;
+
+      @Override
+      public BytesRef next() {
+        return ++i &lt; keys.size()
+            ? new BytesRef(keys.get(i).getBytes(StandardCharsets.UTF_8))
+            : null;
+      }
+
+      @Override
+      public long weight() {
+        return weights[i];
+      }
+
+      @Override
+      public BytesRef payload() {
+        return null;
+      }
+
+      @Override
+      public boolean hasPayloads() {
+        return false;
+      }
+
+      @Override
+      public Set&lt;BytesRef&gt; contexts() {
+        return null;
+      }
+
+      @Override
+      public boolean hasContexts() {
+        return false;
+      }
+    };
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-7-h'>TstRepairFromTokensProbe.java (repair old files from stored tokens, main())</h3><a class="hlink" href="#code-7-h" target="_self" aria-label="Link to this section" aria-describedby="code-7-h"><span aria-hidden="true">#</span></a></div><p>White-box: loads a stock file, re-derives each split char from a token at or below its node, and compares every answer with a fresh build: equal for both stock files.</p><figure class='code'><figcaption><span class='fname'>TstRepairFromTokensProbe.java (repair old files from stored tokens, main())</span><span class='meta'>176 lines</span><button type='button' class='copy' data-copy='code-7' data-status='code-7-st'>Copy</button><span class='copy-st' id='code-7-st' role='status' aria-live='polite'></span></figcaption><pre id='code-7' tabindex='0'><code>package org.apache.lucene.search.suggest.tst;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import org.apache.lucene.search.suggest.InputIterator;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * White-box probe: is the information lost in a stored TSTLookup file recoverable from the file
+ * itself? It loads FILE (written by the stock store(OutputStream), see TstStoreCompatProbe) with the
+ * stock load(InputStream), prints the answers, then re-derives every node&#x27;s split char from a token
+ * stored at or below the node (split char = token.charAt(number of eq edges from the root)), keeping
+ * the tree shape, and prints the answers again. It compares both with a TSTLookup freshly built from
+ * the same dictionary. It sits in the tst package only to reach the package-private tree; the
+ * lookups are public API. Exit 1 if the repaired copy differs from the fresh build.
+ *
+ * &lt;pre&gt;
+ *   TstRepairFromTokensProbe FILE...   (FILE names end in -sup.bin or -ascii.bin)
+ * &lt;/pre&gt;
+ */
+public class TstRepairFromTokensProbe {
+
+  static final String CJK = &quot;\uD842\uDFB7\u91CE\u5BB6&quot;; // U+20BB7 + two BMP chars
+  static final String EMOJI = &quot;\uD83D\uDE00 smile&quot;; // U+1F600
+  static final String FULLWIDTH = &quot;\uFF21b&quot;; // U+FF21 + &#x27;b&#x27;
+  static final String[] SUP_KEYS = {CJK, EMOJI, FULLWIDTH, &quot;apple&quot;, &quot;ab&quot;};
+  static final long[] SUP_WEIGHTS = {5, 4, 3, 2, 1};
+  static final String[] SUP_PREFIXES = {
+    &quot;\uD842\uDFB7&quot;, &quot;\uD83D\uDE00&quot;, &quot;\uFF21&quot;, &quot;\uFFFD&quot;, &quot;ap&quot;, &quot;a&quot;
+  };
+  static final String[] ASCII_KEYS = {
+    &quot;one&quot;, &quot;two&quot;, &quot;three&quot;, &quot;four&quot;, &quot;oneness&quot;, &quot;onerous&quot;, &quot;onesimus&quot;, &quot;twofold&quot;, &quot;twonk&quot;, &quot;thrive&quot;,
+    &quot;through&quot;, &quot;threat&quot;, &quot;foundation&quot;, &quot;fourier&quot;, &quot;fourty&quot;
+  };
+  static final String[] ASCII_PREFIXES = {&quot;o&quot;, &quot;one&quot;, &quot;tw&quot;, &quot;thr&quot;, &quot;fou&quot;, &quot;f&quot;};
+
+  public static void main(String[] args) throws Exception {
+    boolean allOk = true;
+    for (String a : args) {
+      Path f = Path.of(a);
+      boolean sup = f.getFileName().toString().endsWith(&quot;-sup.bin&quot;);
+      String[] keys = sup ? SUP_KEYS : ASCII_KEYS;
+      String[] prefixes = sup ? SUP_PREFIXES : ASCII_PREFIXES;
+      long[] weights = sup ? SUP_WEIGHTS : asciiWeights();
+      try (Directory tmp = new ByteBuffersDirectory()) {
+        TSTLookup fresh = new TSTLookup(tmp, &quot;tst&quot;);
+        fresh.build(iter(keys, weights));
+        String expected = answers(fresh, keys, prefixes);
+        TSTLookup loaded = new TSTLookup(tmp, &quot;tst&quot;);
+        boolean ok;
+        try (InputStream is = Files.newInputStream(f)) {
+          ok = loaded.load(is);
+        }
+        String asLoaded = answers(loaded, keys, prefixes);
+        int[] stats = new int[2]; // nodes visited, split chars changed by the repair
+        repair(loaded.root, 0, stats);
+        String repaired = answers(loaded, keys, prefixes);
+        System.out.println(&quot;== &quot; + f.getFileName() + &quot; load()=&quot; + ok);
+        System.out.println(&quot;  FRESH    &quot; + expected);
+        System.out.println(&quot;  LOADED   &quot; + asLoaded + &quot;   [equals fresh: &quot; + asLoaded.equals(expected) + &quot;]&quot;);
+        System.out.println(
+            &quot;  REPAIRED &quot; + repaired + &quot;   [equals fresh: &quot; + repaired.equals(expected) + &quot;]&quot;);
+        System.out.println(&quot;  nodes=&quot; + stats[0] + &quot; split_chars_rederived_differently=&quot; + stats[1]);
+        allOk &amp;= repaired.equals(expected);
+      }
+    }
+    System.out.println(&quot;ALL_REPAIRED_EQUAL_FRESH=&quot; + allOk);
+    if (!allOk) {
+      System.exit(1);
+    }
+  }
+
+  /** depth = number of eq edges from the root; a key passes a node at its char index depth. */
+  static void repair(TernaryTreeNode n, int depth, int[] stats) {
+    if (n == null) {
+      return;
+    }
+    stats[0]++;
+    String t = n.token != null ? n.token : anyToken(n.eqKid);
+    if (t != null &amp;&amp; depth &lt; t.length() &amp;&amp; t.charAt(depth) != n.splitchar) {
+      n.splitchar = t.charAt(depth);
+      stats[1]++;
+    }
+    repair(n.loKid, depth, stats);
+    repair(n.eqKid, depth + 1, stats);
+    repair(n.hiKid, depth, stats);
+  }
+
+  static String anyToken(TernaryTreeNode n) {
+    if (n == null) {
+      return null;
+    }
+    if (n.token != null) {
+      return n.token;
+    }
+    String t = anyToken(n.eqKid);
+    if (t == null) {
+      t = anyToken(n.loKid);
+    }
+    return t != null ? t : anyToken(n.hiKid);
+  }
+
+  static long[] asciiWeights() {
+    long[] w = new long[ASCII_KEYS.length];
+    for (int i = 0; i &lt; w.length; i++) {
+      w[i] = i;
+    }
+    return w;
+  }
+
+  static String answers(TSTLookup lookup, String[] keys, String[] prefixes) throws Exception {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (String p : prefixes) {
+      out.add(&quot;lookup(&quot; + esc(p) + &quot;)=&quot; + esc(lookup.lookup(p, true, 10).toString()));
+    }
+    for (String k : keys) {
+      out.add(&quot;get(&quot; + esc(k) + &quot;)=&quot; + lookup.get(k));
+    }
+    return String.join(&quot;; &quot;, out);
+  }
+
+  static String esc(String s) {
+    StringBuilder sb = new StringBuilder();
+    for (char c : s.toCharArray()) {
+      if (c &gt;= 0x20 &amp;&amp; c &lt; 0x7F) {
+        sb.append(c);
+      } else {
+        sb.append(String.format(&quot;&lt;%04X&gt;&quot;, (int) c));
+      }
+    }
+    return sb.toString();
+  }
+
+  static InputIterator iter(String[] keys, long[] weights) {
+    return new InputIterator() {
+      int i = -1;
+
+      @Override
+      public BytesRef next() {
+        return ++i &lt; keys.length ? new BytesRef(keys[i].getBytes(StandardCharsets.UTF_8)) : null;
+      }
+
+      @Override
+      public long weight() {
+        return weights[i];
+      }
+
+      @Override
+      public BytesRef payload() {
+        return null;
+      }
+
+      @Override
+      public boolean hasPayloads() {
+        return false;
+      }
+
+      @Override
+      public Set&lt;BytesRef&gt; contexts() {
+        return null;
+      }
+
+      @Override
+      public boolean hasContexts() {
+        return false;
+      }
+    };
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also 10.5.2 and 9.12.3 (release jars)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64 (pure Java; the platform does not matter)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestTSTLookupSurrogatePersistence.java $LUCENE/lucene/suggest/src/test/org/apache/lucene/search/suggest/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:suggest:test --tests TestTSTLookupSurrogatePersistence -Ptests.seed=5EED0699 -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestTSTLookupSurrogatePersistence &gt; testNeighbouringKeysAfterStoreLoad FAILED
+    org.junit.ComparisonFailure: expected:&lt;[[Ａb/4]]&gt; but was:&lt;[[]]&gt;
+TestTSTLookupSurrogatePersistence &gt; testSupplementaryKeysAfterStoreLoad FAILED
+    org.junit.ComparisonFailure: expected:&lt;[[𠮷野家/5]]&gt; but was:&lt;[[]]&gt;
+2 tests completed, 2 failed
+
+# the same 2 failures: gradle with assertions off; standalone runner -ea and -da; releases 10.5.2, 9.12.3
+# with fix A or fix B: 2 of 2 pass (gradle and standalone, -ea and -da)
+
+# tree dump, first dictionary, after load() (before store() in brackets)
+lookup(&lt;D842&gt;&lt;DFB7&gt;) = []                       [&lt;D842&gt;&lt;DFB7&gt;&lt;91CE&gt;&lt;5BB6&gt;/5]
+lookup(&lt;D83D&gt;&lt;DE00&gt;) = []                       [&lt;D83D&gt;&lt;DE00&gt; smile/4]
+lookup(&lt;FFFD&gt;)       = [&lt;D83D&gt;&lt;DE00&gt; smile/4]   []
+lookup(ap)           = [apple/3]                [apple/3]</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>Lookup.load</code> promises to "load it from a previously saved copy", and <code class='nw'>TSTLookup.load</code> returns true.</li><li>Upstream <code class='nw'>TestPersistence</code> checks that every key keeps its exact weight after a <code class='nw'>TSTLookup</code> store/load (ASCII keys only); before the reload, every emoji key is found.</li><li>A regression: 4.6.1 wrote the split char losslessly with <code class='nw'>writeChar</code> and round-trips; 4.7.0 switched to <code class='nw'>writeString</code> and does not.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>192 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code class='nw'>Lookup.store</code>: "Persist the constructed lookup data ... @return true if successful"; <code class='nw'>Lookup.load</code>: "Discard current lookup data and load it from a previously saved copy" (<code>Lookup.java:236-252</code>). <code class='nw'>TSTLookup</code> implements both and returns true (<code>TSTLookup.java:267-280</code>).</li><li><strong>The upstream test.</strong> <code>TestPersistence.testTSTPersistence</code> runs <code>runTest(TSTLookup.class, true)</code> (<code>TestPersistence.java:50-52</code>): it stores, reloads into a new <code class='nw'>TSTLookup</code> and asserts that every key returns 1 hit with its exact weight (<code class='nw'>:82-105</code>), for 15 ASCII words (<code class='nw'>:31-48</code>).</li><li><strong>Nothing limits it to the BMP.</strong> No javadoc restricts <code class='nw'>TSTLookup</code> to BMP text; it sorts its input with a comparator whose comment explains where supplementary code points go (<code>TSTLookup.java:73-115</code>; a TODO at <code class='nw'>:71</code> asks whether the comparator is needed at all); before <code class='nw'>store()</code> every repro's supplementary key is found.</li><li><strong>History.</strong> Before LUCENE-5404 the split char was written with <code>DataOutputStream.writeChar</code> and read with <code class='nw'>readChar</code> (4.6.1, <code class='nw'>TSTLookup.java</code> lines 154 and 179), lossless for any UTF-16 unit. LUCENE-5404 (2014) moved store/load to <code class='nw'>DataOutput</code>/<code class='nw'>DataInput</code> and replaced them with <code class='nw'>writeString</code>/<code>readString().charAt(0)</code>. Its discussion (19 comments) and its 4.7.0 CHANGES entry never mention characters. A probe round-trips on 4.6.1 and not on 4.7.0.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>232 words</span></summary><div class='body'><p>The strongest "intended" case (the devil's-advocate verifier; the reviews by another model family rated it weak): <code class='nw'>writeString</code> is documented as UTF-8, and since LUCENE-510 (2008) "If any text ... has illegal UTF-16 surrogate characters, these characters are now silently replaced with the Unicode replacement character U+FFFD"; store/load is an "Optional operation" with no format header or version, and <code class='nw'>Lookup</code> is <code>@lucene.experimental</code>; no upstream test stores non-ASCII keys in a <code class='nw'>TSTLookup</code>; and LUCENE-5404 changed the format on purpose.</p><p>Why it fails: the caller's text is valid; <code class='nw'>TSTLookup</code> itself splits it into lone surrogates and passes one to <code class='nw'>writeString</code> as if it were a string, so <code class='nw'>DataOutput</code> behaves as documented and <code class='nw'>TSTLookup</code>'s use of it is the defect; <code class='nw'>writeString</code> builds a <code>new BytesRef(s)</code>, whose javadoc asks for text "with no unpaired surrogates" (<code class='nw'>BytesRef.java:77</code>). "Optional" lets an implementation return false; it does not allow returning true and loading a different lookup. An untested input is not an unsupported one, and the comparator anticipates it. The format change was deliberate; the character loss was a side effect nobody discussed. <strong>Verdict: a defect</strong> (adjudication: confirmed, high).</p><p>What a maintainer may still choose: the second cross-model fact check rated "intended" weak but "acceptable / won't fix" moderate. A maintainer could document the limit, deprecate <code class='nw'>TSTLookup</code>, or prefer a format break with a header to a hand-written decoder in an unversioned format.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Keep the layout; write a lone surrogate as its 3-byte generalized-UTF-8 form</strong></p><p class='short'>Write a lone surrogate split char as its 3-byte form (<code>ED A0 80</code> to <code>ED BF BF</code>) and decode it on load; every other char is written as today, so existing files load as before. The repro and the module's 238 tests pass. Old stores stay lossy until rebuilt, or repaired from their stored tokens.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 1,187 words</span></summary><div class='body'><p>All options make the split char round-trip; they differ in what happens to files already on disk. Executed matrix (two dictionaries, each stored by each build with <code>store(OutputStream)</code> and loaded by each build): a stock file read by fix B answers exactly as on stock; an ASCII-only file is byte-identical under fix B; a fix B file read by stock answers as today. Under fix A, both stock files in the probe load with <code class='nw'>load()</code> = true and <strong>every</strong> lookup empty, the ASCII-only one included, which works today; a fix A file makes stock and fix B throw <code>StringIndexOutOfBoundsException</code>. The 10.5.2 and 9.12.3 readers print exactly what main's stock reader prints for all six files (executed). A pre-9.0 reader misreads the weights of every file written by 9.0 or later, stock files included (9.0 made the Directory API little-endian, LUCENE-9047; executed with 8.8.1: <code class='nw'>apple/2</code> reads back as <code>apple/144115188075855872</code>), independent of this bug. Options A-C do not repair files written by 4.7.0 to main: their surrogate nodes already hold U+FFFD. The tokens are stored whole, though, so a loader could re-derive the split chars (option D; a probe did it, no patch). Add the new test with whichever option, and a CHANGES note that such stores must be rebuilt (unless the fix adds option D).</p><div class="hd hd-3"><h3 id='fix-compatible-surrogate-encoding'>Keep the layout; write a lone surrogate as its 3-byte generalized-UTF-8 form <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-compatible-surrogate-encoding" target="_self" aria-label="Link to this section" aria-describedby="fix-compatible-surrogate-encoding"><span aria-hidden="true">#</span></a></div><p><code class='nw'>writeRecursively</code> and <code class='nw'>readRecursively</code> call two small helpers instead of <code class='nw'>writeString</code>/<code>readString().charAt(0)</code>. A surrogate is written as length 3 plus <code>ED A0 80</code>..<code>ED BF BF</code> (the same length as today's <code>EF BF BD</code>); that byte pattern never occurs in valid UTF-8 (after <code class='nw'>ED</code> the next byte must be <code class='nw'>80</code>-<code class='nw'>9F</code>), so the reader can tell it from every file written today. Every other char goes through <code class='nw'>writeString</code> as before. +32/-2 in <code class='nw'>TSTLookup.java</code>.</p><pre class='snippet' tabindex='0'><code>private static void writeSplitChar(DataOutput out, char c) throws IOException {
+  if (Character.isSurrogate(c)) {
+    out.writeVInt(3);
+    out.writeByte((byte) (0xE0 | (c &gt;&gt; 12)));
+    out.writeByte((byte) (0x80 | ((c &gt;&gt; 6) &amp; 0x3F)));
+    out.writeByte((byte) (0x80 | (c &amp; 0x3F)));
+  } else {
+    out.writeString(String.valueOf(c));
+  }
+}
+
+private static char readSplitChar(DataInput in) throws IOException {
+  int length = in.readVInt();
+  byte[] bytes = new byte[length];
+  in.readBytes(bytes, 0, length);
+  if (length == 3 &amp;&amp; (bytes[0] &amp; 0xFF) == 0xED &amp;&amp; (bytes[1] &amp; 0xE0) == 0xA0) {
+    return (char) (0xD000 | ((bytes[1] &amp; 0x3F) &lt;&lt; 6) | (bytes[2] &amp; 0x3F));
+  }
+  return new String(bytes, 0, length, StandardCharsets.UTF_8).charAt(0);
+}</code></pre><p class='k'>Trade-offs</p><ul><li>No break for today's readers: old files load as today (still lossy until rebuilt); new files without supplementary characters are byte-identical, and with them differ only in the surrogate nodes (11 of 154 bytes in the probe); main's stock reader and the 9.12.3 and 10.5.2 readers load a new file exactly as today (executed), because <code class='nw'>readString</code> decodes with the JDK's UTF-8 decoder, which turns each <code>ED A0 80</code>..<code>ED BF BF</code> into a String that starts with U+FFFD (a single U+FFFD for all 2048 forms on OpenJDK 25.0.3, executed). Pre-9.0 readers cannot read any file written today (see above).</li><li>32 lines instead of 2, and a hand-written decoder for one byte pattern.</li><li>The format stays unversioned; a maintainer may prefer to add a header at the same time (option C).</li><li>Cost on load: one small <code class='nw'>byte[]</code> per node, as <code class='nw'>readString</code> allocates today.</li><li><code class='nw'>readSplitChar</code> checks the first two bytes (<code class='nw'>ED</code>, then <code class='nw'>A0</code>-<code class='nw'>BF</code>) but not that the third is <code class='nw'>80</code>-<code class='nw'>BF</code>; every file <code class='nw'>store()</code> writes satisfies that, but a reviewer may ask for the check. The new test covers two surrogate pairs; a production test may add boundary cases like the probe's.</li><li>A maintainer may prefer option C, or option A with a header in a major release, to a hand-written decoder in an unversioned format (the second cross-model fact check's view).</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree of <code class='nw'>a9779ef3c193</code>, JDK 25: stock + the new test fails 2 of 2 with assertions on and off; with the fix, the new test and <code class='nw'>TestPersistence</code> (4 tests) pass with assertions on and off; the whole <code class='nw'>lucene/suggest</code> module, 32 suites, 238 tests (7 skipped), 0 failures with assertions on and off; <code>:lucene:suggest:check -x test</code> (ecjLint, forbiddenApis, <code>checkGoogleJavaFormat</code>) passes.</li><li>Standalone runner: the new test 2 of 2 pass with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</li><li>Compatibility matrix as described above (executed), including the 10.5.2, 9.12.3 and 8.8.1 readers.</li><li>Every surrogate value: 1,031 keys covering D800-DFFF plus BMP keys at U+D7FF, U+E000, U+FFFD, U+FFFE, U+FFFF; 3,093 checks after a round trip: stock changes 3,078, fix B (<code class='nw'>-ea</code> and <code class='nw'>-da</code>) 0, fix A 0. The fix B bytes hold 2,048 <code>03 ED A0..BF 80..BF</code> forms and one <code>03 EF BF BD</code> (the real U+FFFD key).</li></ul><div class="hd hd-3"><h3 id='fix-vint'>Write the split char as a VInt (the finder's two-line fix) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-vint" target="_self" aria-label="Link to this section" aria-describedby="fix-vint"><span aria-hidden="true">#</span></a></div><p><code>out.writeVInt(node.splitchar)</code> / <code>(char) in.readVInt()</code>. +2/-2.</p><pre class='snippet' tabindex='0'><code>-    node.splitchar = in.readString().charAt(0);
++    node.splitchar = (char) in.readVInt();
+...
+-    out.writeString(new String(new char[] {node.splitchar}, 0, 1));
++    out.writeVInt(node.splitchar); // a lone surrogate must survive (writeString maps it to U+FFFD)</code></pre><p class='k'>Trade-offs</p><p>Simplest, lossless, and ASCII nodes get 1 byte smaller (the ASCII file is 337 instead of 392 bytes). But every node's byte layout changes and nothing marks the format: a fixed reader misparses files written by 4.7.0 to main (both old files in the probe loaded with <code class='nw'>load()</code> = true and every lookup empty, the ASCII-only one included), and an older reader threw <code>StringIndexOutOfBoundsException</code> on both new files (executed). Acceptable only with an explicit "rebuild your lookups" note in a major release, or together with option C.</p><p class='k'>What the checks validated</p><p>Gradle: the new test and <code class='nw'>TestPersistence</code> pass with assertions on and off; the whole module, 238 tests, passes with assertions on; <code>checkGoogleJavaFormat</code> passes. Standalone: 2 of 2 pass with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the finder's and the independent reproducer's tests pass with it.</p><div class="hd hd-3"><h3 id='fix-versioned-header'>Add a versioned header, then any lossless encoding</h3><a class="hlink" href="#fix-versioned-header" target="_self" aria-label="Link to this section" aria-describedby="fix-versioned-header"><span aria-hidden="true">#</span></a></div><p>Write a header (for example with <code>CodecUtil.writeHeader</code>) and the split char with <code class='nw'>writeVInt</code> or <code class='nw'>writeShort</code>; read headerless files with today's decoding. Not built.</p><p class='k'>Trade-offs</p><p>Lets the format evolve later. Detecting "no header" is not free: today's files start with a VLong count, so the reader must tell the header's magic bytes apart from a count. The LUCENE-5404 discussion already noted the missing codec header.</p><div class="hd hd-3"><h3 id='fix-repair-on-load'>Repair old files on load from their stored tokens (not built as a patch)</h3><a class="hlink" href="#fix-repair-on-load" target="_self" aria-label="Link to this section" aria-describedby="fix-repair-on-load"><span aria-hidden="true">#</span></a></div><p>Each node's split char equals <code>token.charAt(depth)</code> for any token stored at or below the node on its eq side, where depth is the number of eq edges from the root (<code>TSTAutocomplete.insert</code> advances the char index only on eq, <code>TSTAutocomplete.java:57-86</code>). A loader can re-derive every split char after <code class='nw'>readRecursively</code>, keeping the tree shape. Combined with B or C, files written by 4.7.0 to main would answer correctly again. Executed only as a white-box probe on the stock files: for the supplementary file it changed the 4 surrogate nodes back and every answer then equals a fresh build; the ASCII file was unchanged.</p><p class='k'>Trade-offs</p><p>One more pass over the tree on load. Only a white-box probe exists: no patch, test or review.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream, Solr's suggester can reload a persisted <code class='nw'>TSTLookup</code> from its <code class='nw'>storeDir</code> (seen in 2020 source, not run), so such deployments would lose these suggestions after a restart.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A randomized differential check ran 20 configurations of seven suggesters against a reference written from their javadoc and required a <code class='nw'>store()</code>/<code class='nw'>load()</code> round trip to change nothing. Over 100,000 small random dictionaries whose keys may include an emoji, the round trip changed 245,800 <code class='nw'>TSTLookup</code> results, and none with the fix.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>174 words</span></summary><div class='body'><p><strong>Method: randomized differential translation validation on the stock main jars</strong> (the study's "semi-formal" tier). A hunt unit, "suggest lookups, cross-implementation differential", 2026-10-27.</p><ul><li>20 configurations of seven <code class='nw'>Lookup</code> classes (<code class='nw'>TSTLookup</code>, <code>FSTCompletionLookup</code>, <code>WFSTCompletionLookup</code>, <code>AnalyzingSuggester</code>, <code class='nw'>FuzzySuggester</code>, <code>AnalyzingInfixSuggester</code>, <code>BlendedInfixSuggester</code>; not every <code class='nw'>Lookup</code>: <code>FreeTextSuggester</code>, for example, was not modelled) were run against an independent reference written from their javadoc, plus a store/load round trip that must reproduce every result list and <code class='nw'>getCount()</code>.</li><li>Scope R1: 100,000 random dictionaries of 1-6 entries over {a,b,c}^1..3 plus keys with U+00E9, U+1F600 and U+FFFD; 341,084,860 lookups over 20 suggester configurations. The class "TST RT:changed" (a <code class='nw'>TSTLookup</code> result that differs after the round trip) appeared 245,800 times on the stock jar and 0 times with the fix shadowed.</li><li>The mechanism (<code class='nw'>writeString</code> of a one-char String) had first been noticed while writing the model. The ASCII-only bounded-exhaustive scope (596,908 dictionaries) could not reach it.</li><li>An AI finder then wrote the public-API JUnit, and independent AI tools reproduced, reviewed and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): three runs of a prior-art search over GitHub, JIRA, the mailing lists and downstream projects, manual searches and the changed files of all 409 open PRs. The discussion of the introducing change never mentions characters.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>None of the issues, PRs, commits, JIRA entries, list threads or web pages found reports <code class='nw'>TSTLookup</code> losing suggestions after <code class='nw'>store()</code>/<code class='nw'>load()</code>, lone surrogates in its split chars, or the <code class='nw'>writeString</code> / <code>readString().charAt(0)</code> pair. Upstream main and branch_10x still have both lines.</p><p><strong>Related, not this bug:</strong> gh#6467 / LUCENE-5404 (the introducing change; body and 19 comments never mention the char encoding); SOLR-2375 (the original, lossless store/load); gh#1588 / LUCENE-510 (<code class='nw'>writeString</code>'s U+FFFD substitution; background); a downstream remark (kitodo/kitodo-presentation#594) that <code class='nw'>TSTLookup</code> gave "a flood of errors", without details (this bug raises no error); the Lucene.NET port's <code class='nw'>TSTLookup.cs</code>, which has the same code (source, not a report).</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), downstream repositories, mailing lists, JIRA archive</th><td class='when'>2026-10-27</td><td>three runs of a scripted prior-report search with different specs (identifiers and mechanism; user symptoms such as emoji, restart, storeDir; the general writeString / lone-surrogate mechanism), 51 queries each</td><td>119, 414 and 347 distinct hits; the only high-overlap hit, gh#4915, is unrelated</td></tr><tr><th scope='row'>GitHub (apache/lucene and all repositories), Solr, Elasticsearch, OpenSearch, Lucene.NET</th><td class='when'>2026-10-27</td><td>manual searches (TSTLookup with surrogate, unicode, store, emoji; TernaryTreeNode, TSTAutocomplete, splitchar; lone/unpaired surrogate; LUCENE-5404)</td><td>only 9 apache/lucene issues name TSTLookup, all read or triaged; nothing about this bug</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR) and the Lucene and Solr lists</th><td class='when'>2026-10-27</td><td>22 JQL queries; dev@, java-user@, issues@, commits@, solr-user@ and the Solr lists</td><td>no report; SOLR-2375 and a few suggester threads read</td></tr><tr><th scope='row'>Open PRs and code history</th><td class='when'>2026-10-27</td><td>the changed files of all 409 open apache/lucene PRs; <code>git log --follow</code> of TSTLookup.java; upstream main and branch_10x</td><td>no PR touches lucene/suggest/.../tst/; the two lines are unchanged since 2014</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-5404 (2014-02-07), which replaced the lossless <code class='nw'>writeChar</code>/<code class='nw'>readChar</code> with <code class='nw'>writeString</code>/<code class='nw'>readString</code>; first released in 4.7.0. A probe round-trips on all 14 releases up to 4.6.1 and fails on all 119 from 4.7.0 to 10.5.2 and on main.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-5404 (issue "Add support to get number of entries a Suggester Lookup was built with and minor refactorings"; commit subject "Add .getCount method to all suggesters (Lookup), persist count metadata on .store(), ...") by Areek Zillur, 2014-02-07: <code class='nw'>b5926da2d678</code> on trunk (released in 6.0.0 and later) and <code class='nw'>fdf4595051a</code> on branch_4x (released in 4.7.0 to 5.5.5). No GitHub PR; the patch was reviewed on JIRA (now gh#6467). <code>git blame</code> of <code>TSTLookup.java:219</code> and <code class='nw'>:244</code> on main points to <code class='nw'>b5926da2d678</code>; <code class='nw'>fdf4595051a</code> is the only commit touching <code class='nw'>TSTLookup.java</code> between the 4.6.1 and 4.7.0 tags. Store/load itself is older (SOLR-2375, 2011) and was lossless until then. Not fixed upstream.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 2 of 2 fail (gradle and the standalone runner, assertions on and off)</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 2 of 2 fail; the finder's 2 of 2; the independent reproducer's 3 of 3</td></tr><tr><th scope='row'>4.7.0-10.5.2 (119 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the version-independent probe loses the same 7 of 10 answers on each, with 0 control changes</td></tr><tr><th scope='row'>3.6.0-3.6.2, 4.0.0-4.6.1 (14 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the probe round-trips: 10 of 10 answers unchanged</td></tr><tr><th scope='row'>4.6.1 vs 4.7.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> boundary</span></td><td>4.6.1 round-trips with assertions on and off; 4.7.0 changes 7 of 10 answers with both</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>all repros pass; the whole <code class='nw'>lucene/suggest</code> module, 238 tests, 0 failed</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate, an adjudication and reviews by another model family (which ran their own tests) all found it real; the adjudication confirmed it with high confidence. Registry re-runs and a final audit reproduced it with new seeds.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>295 words</span></summary><div class='body'><p>Every check wrote or ran its own test against the stock jars, with assertions on and off.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-API JUnit fails 2 of 2 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 20 of 20 iterations, 10.5.2 and 9.12.3; passes with the fix; with the unit's fixes, 47 of 47 tests of four upstream suggest suites (<code class='nw'>TestPersistence</code> among them) pass.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) ran its own JUnit on main <code class='nw'>ea57360912ed</code> (whose <code class='nw'>lucene/suggest</code> is identical; <code class='nw'>-ea</code> with two seeds, and <code class='nw'>-da</code>), 10.5.2 and 9.12.3; narrowed the scope to lookup paths and flagged that the VInt fix changes the byte layout.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 3-test JUnit fails 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3: 13 of 24 prefixes change, a halfwidth katakana key is lost; passes with its own two-line fix.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>OpenAI GPT-5.6: the intended-behaviour argument is weak; its expected-behaviour test fails on main and passes with the fix; <code>FSTCompletionLookup</code> keeps the same key.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Built the LUCENE-510 / optional-operation case and rejected it; its probe fails on main and 10.5.2, the FST and WFST controls round-trip; history probe 4.6.1 OK, 4.7.0 and later changed.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Silent wrong results, duplicate of nothing; re-ran the independent reproduction's test (<code class='nw'>-ea</code>), the finder's (<code class='nw'>-da</code>) and the independent reproduction's fix.</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Fresh seeds: the finder's and the independent reproduction's tests fail with <code class='nw'>-ea</code> and <code class='nw'>-da</code> and pass with the fix; the audit's own probe finds 8 differences in 10 checks after a reload.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-699/bug.png' download='tstlookup-store-load-surrogate-splitchar-bug.png' target='_self'>PNG</a> <span class='n'>519 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,585 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-699, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>TSTLookup.store/load writes each tree node's split char with DataOutput.writeString, so the two surrogate halves of an emoji or CJK Extension B character come back as U+FFFD: after load(), get() and lookups whose prefix runs through such a character silently find nothing, and some neighbouring BMP keys are lost too (every release since 4.7.0)</dd></div><div><dt>Area</dt><dd>suggest / ternary search tree suggester persistence (TSTLookup.store and load, writeRecursively and readRecursively)</dd></div><div><dt>Priority</dt><dd>Medium, rank 48: A TSTLookup reloaded with store/load silently loses every suggestion through a supplementary character since 4.7.0, but it needs the little-used TSTLookup plus persistence plus such text, so it joins the rare silent suggester-loss rows right after LFV-523.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits applications that use the opt-in TSTLookup suggester, persist it with Lookup.store and reload it with Lookup.load (for example to skip a rebuild at restart), and whose suggestion text contains supplementary characters (emoji, CJK Extension B): after the reload, which returns true, get() and every lookup whose prefix runs through such a character return nothing, some BMP keys stored beside a surrogate node (fullwidth forms, halfwidth katakana, depending on the tree shape) disappear as well, and a U+FFFD prefix can return emoji keys it never matched before; nothing fails loudly, no scale is needed, ASCII-only dictionaries and getCount() are unaffected, and every release since 4.7.0 has it.</dd></div><div><dt>Summary</dt><dd>You build a TSTLookup from ordinary text that contains an emoji or a CJK Extension B character (for example the key 𠮷野家 with weight 5), store() it, load() it back, and expect the reloaded copy to answer like the original, as Lookup.load promises ('load it from a previously saved copy'). Instead lookup('𠮷', true, 5) returns [] instead of [𠮷野家/5] and get('𠮷野家') returns null after the reload, because TSTLookup keeps one tree node per UTF-16 code unit, writeRecursively writes each node's split char with DataOutput.writeString of a one-char String, and a lone surrogate has no UTF-8 form, so it is written and reloaded as U+FFFD and the tree's char comparisons then take the wrong branches. ASCII keys and getCount() survive, while some BMP keys next to a surrogate node are lost too (in the finder's test lookup('Ａ') returns [] instead of [Ａb/4]).</dd></div><div><dt>Introduced</dt><dd>b5926da2d67820f5fdf8c8ec9b2e642b74d12070 (trunk, svn r1565810; the line released in 6.0.0 and later) and its branch_4x twin fdf4595051ada90409a47f8259a6d6e17d4711be (svn r1565811; the line released in 4.7.0-5.5.5), both 'LUCENE-5404: Add .getCount method to all suggesters (Lookup), persist count metadata on .store(), ...' by Areek Zillur (now apache/lucene#6467; an svn-era JIRA patch, no GitHub PR) [read: git blame of TSTLookup.java:219 and :244 on main points to b5926da2d678; it is the only commit touching TSTLookup.java between the 4.6.1 and 4.7.0 tags; exec: 4.6.1 round-trips correctly, 4.7.0 does not]. It moved Lookup.store/load from java.io streams to Lucene DataOutput/DataInput and replaced the lossless DataOutputStream.writeChar(node.splitchar) / readChar() with writeString(new String(new char[] {node.splitchar}, 0, 1)) / readString().charAt(0); the issue discussion never mentions characters, so the loss is a side effect of that move, not a design choice. No later commit changed the two lines. (2014-02-07)</dd></div><div><dt>First affected version</dt><dd>4.7.0 [exec] (release tag dated 2014-02-25); the last unaffected release is 4.6.1 [exec]; TSTLookup store/load existed before (since Lucene 3.3, stream API since 3.6.0) and was lossless there [exec: 3.6.0-4.6.1]</dd></div><div><dt>Affected versions</dt><dd>every release from 4.7.0 through 10.5.2 and main a9779ef3c193; not fixed upstream. [exec] the follow-up's main() probe on 133 releases: 3.6.0-4.6.1 (14 releases) round-trip correctly, and all 119 cached releases from 4.7.0 to 10.5.2 lose the same 7 of 10 answers with 0 control changes (also -da on 4.6.1, 4.7.0, 9.12.3 and 10.5.2), main with -ea and -da, and main with the fix shadowed passes; the finder's JUnit fails on main (-ea and -da), 10.5.2 and 9.12.3; the independent reproduction's JUnit on main (-ea and -da), 10.5.2 and 9.12.3; the refute reviewer's JUnit on main, 10.5.2 and 9.12.3; the intended-behaviour check's history probe on 4.6.1 (OK), 4.7.0, 4.10.4, 5.5.5, 8.11.4, 10.5.2 and main (CHANGED). [read] both lines are present unchanged in all 110 release tags of the history clone that contain the introducing commit and absent (writeChar/readChar) in every earlier tag; upstream main head a95c754ee003 and branch_10x still have them. All runs on JDK 25.0.3 (aarch64); the defect is pure-Java string encoding, so the platform does not matter.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check; also reached by code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, read-only; the prior-report record, verdict new): three follow-up scripted prior-report searches with different specs (identifiers and mechanism; user-visible symptoms such as emoji, restart and storeDir; the general writeString / lone-surrogate mechanism), 51 queries each over GitHub issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists and the JIRA archive (119, 414 and 347 distinct hits; the only 'high' overlap hit, #4915, is unrelated), plus the finder's run (51 queries, nothing relevant); manual GitHub searches on apache/lucene (only 9 issues name TSTLookup, all read or triaged) and across GitHub, apache/solr, Elasticsearch, OpenSearch and Lucene.NET; 22 JQL queries on LUCENE and SOLR; list searches on the Lucene and Solr dev and user lists; the changed-file lists of all 409 open apache/lucene PRs (none touches lucene/suggest/.../tst/); the file history of TSTLookup.java; 8 web queries. The independent reproduction and the intended-behaviour check searched with more phrasings and found nothing either. Not fixed upstream: main head a95c754ee003 and branch_10x still have both lines. Related, none a report of this bug: #6467 / LUCENE-5404 (the change that introduced it; body and 19 comments never mention the char encoding), SOLR-2375 (added the original, lossless store/load), #1588 / LUCENE-510 (made writeString standard UTF-8 with U+FFFD for unpaired surrogates; background), kitodo/kitodo-presentation#594 (a downstream remark that TSTLookup gave 'a flood of errors', with no details; this bug raises no error) and the Lucene.NET port, whose TSTLookup.cs carries the same code (source, not a report).</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the hunt's standalone JUnit runner, with assertions on and off; the 10.5.2 and 9.12.3 release jars (the brief's test); a version-independent probe on 133 release jars from 3.6.0 to 10.5.2. Fix B was validated in the scratch worktree (the new test and <code class='nw'>TestPersistence</code> with assertions on and off, the whole <code class='nw'>lucene/suggest</code> module's 238 tests with assertions on and off, <code>:lucene:suggest:check -x test</code>); fix A with the same suites (the module with assertions on) and the format check; a store-format compatibility matrix (stock, fix A, fix B writing and reading each other's files, also read by the 10.5.2, 9.12.3 and 8.8.1 release jars) was executed, as were a probe that stores every surrogate value as a split char (stock, fix A, fix B) and a white-box probe that repairs a stock file from its stored tokens.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/tst/TSTLookup.java:219 (readRecursively: node.splitchar = in.readString().charAt(0)), :244 (writeRecursively: out.writeString(new String(new char[] {node.splitchar}, 0, 1))), :222 and :253 (tokens read and written whole with readString/writeString), :268-279 (store/load write and read a VLong count plus the tree and return true), :71-115 (utf8SortedAsUTF16SortOrder comparator that handles supplementary code points explicitly), :36-42 (class javadoc: no @lucene.experimental, not deprecated)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/tst/TSTAutocomplete.java:57-86 (insert: one node per UTF-16 code unit, newNode.splitchar = s.charAt(x) at :63; comparisons at :72 and :74), :103-105 (prefixCompletion compares s.charAt(x) with p.splitchar)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/Lookup.java:38 (@lucene.experimental), :237-243 (store: &#x27;Persist the constructed lookup data ... Optional operation&#x27;, true if successful), :246-252 (load: &#x27;Discard current lookup data and load it from a previously saved copy. Optional operation.&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/store/DataOutput.java:266-275 (writeString writes UTF-8 through new BytesRef(s)); lucene/core/src/java/org/apache/lucene/util/UnicodeUtil.java:172-176 (&#x27;replace unpaired surrogate or out-of-order low surrogate with substitution character&#x27;, EF BF BD)</code></li><li><code>lucene/suggest/src/test/org/apache/lucene/search/suggest/TestPersistence.java:50-51 (testTSTPersistence: runTest(TSTLookup.class, true), exact round trip, ASCII keys only)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/tst/TSTAutocomplete.java:57-86 (at a9779ef3c193) (insert, :63 one node per char, :72/:74 comparisons), :97-148 (prefixCompletion, :103-114 descent)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/tst/TSTLookup.java:219 (at a9779ef3c193) (readRecursively), :244 (writeRecursively), :222/:253 (tokens), :267-280 (store/load return true), :135-141 (build decodes to String), :149-150 (add calls the same insert)</code></li><li><code>lucene/core/src/java/org/apache/lucene/store/DataOutput.java:263-275; (at a9779ef3c193) lucene/core/src/java/org/apache/lucene/util/BytesRef.java:77 (&quot;no unpaired surrogates&quot;), :79-82; lucene/core/src/java/org/apache/lucene/util/UnicodeUtil.java:199-240 (:231-235 substitution); lucene/core/src/java/org/apache/lucene/store/DataInput.java:226-231</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/Lookup.java:236-252 (at a9779ef3c193)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/tst/TSTLookup.java:36-42; (at a9779ef3c193) lucene/suggest/src/java/org/apache/lucene/search/suggest/Lookup.java:38 (at a9779ef3c193)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/Lookup.java:236-252; (at a9779ef3c193) lucene/suggest/src/java/org/apache/lucene/search/suggest/tst/TSTLookup.java:71-115, (at a9779ef3c193) :267-280; lucene/core/src/java/org/apache/lucene/util/BytesRef.java:77</code></li><li><code>lucene/suggest/src/test/org/apache/lucene/search/suggest/TestPersistence.java:31-48, (at a9779ef3c193) :50-52, :82-105</code></li><li><code>a Lucene clone releases/lucene-solr/4.6.1:lucene/suggest/src/java/org/apache/lucene/search/suggest/tst/TSTLookup.java:154, :179 (readChar/writeChar)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/store/DataInput.java:226-231 (at a9779ef3c193) (readString decodes with the JDK UTF-8 decoder); a Lucene clone releases/lucene-solr/4.7.0 DataInput.java:187-192, 6.6.6 :234-239, 8.8.1 :255-260, releases/lucene/9.12.3 :303-308, 10.5.2 :230-235 (the same decoding; whole-file compatibility only from 9.0 on, see LUCENE-9047)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone: releases/lucene-solr/4.6.1 and 4.7.0 TSTLookup.java (readChar/writeChar vs readString/writeString); git log 4.6.1..4.7.0 -- TSTLookup.java (fdf4595051a only)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestTSTLookupSurrogatePersistence.java (lucene/suggest, public API): <a href='../repro/LFV-699/TestTSTLookupSurrogatePersistence.java'><code>repro/LFV-699/TestTSTLookupSurrogatePersistence.java</code></a> (79 lines)</li><li>TestTSTLookupStoreLoadSupplementary.java (the finder&#x27;s test): <a href='../repro/LFV-699/TestTSTLookupStoreLoadSupplementary.java'><code>repro/LFV-699/TestTSTLookupStoreLoadSupplementary.java</code></a> (133 lines)</li><li>TestTSTStoreLoadSupplementaryV1.java (independent reproducer): <a href='../repro/LFV-699/TestTSTStoreLoadSupplementaryV1.java'><code>repro/LFV-699/TestTSTStoreLoadSupplementaryV1.java</code></a> (187 lines)</li><li>TstStoreCompatProbe.java (store-format compatibility, main()): <a href='../repro/LFV-699/TstStoreCompatProbe.java'><code>repro/LFV-699/TstStoreCompatProbe.java</code></a> (186 lines)</li><li>TstTreeDumpProbe.java (white-box tree dump, main()): <a href='../repro/LFV-699/TstTreeDumpProbe.java'><code>repro/LFV-699/TstTreeDumpProbe.java</code></a> (69 lines)</li><li>TstSurrogateBoundaryProbe.java (every surrogate value, main()): <a href='../repro/LFV-699/TstSurrogateBoundaryProbe.java'><code>repro/LFV-699/TstSurrogateBoundaryProbe.java</code></a> (163 lines)</li><li>TstRepairFromTokensProbe.java (repair old files from stored tokens, main()): <a href='../repro/LFV-699/TstRepairFromTokensProbe.java'><code>repro/LFV-699/TstRepairFromTokensProbe.java</code></a> (176 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the repro, made in parallel with this doc from executed runs on main <code class='nw'>a9779ef3c193</code> and the code, and updated after the checks to show the recommended fix (option B); the alt text describes the intended content.</p><ul class='paths'><li><a href='../assets/LFV-699/bug.png'><code>assets/LFV-699/bug.png</code></a> (519 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

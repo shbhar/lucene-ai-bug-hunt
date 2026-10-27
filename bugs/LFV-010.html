@@ -1,0 +1,895 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>A tryUpdateDocValue un-delete is ignored or lost by later term-based operations</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-010 &middot; try-undelete-ignored-by-buffered-ops</p><h1 id='top'>A tryUpdateDocValue un-delete is ignored or lost by later term-based operations</h1><p class='tldr'>With soft deletes, un-delete a document with <code>tryUpdateDocValue</code>, then replace it by term or delete the rest of its segment before the un-delete is written: the commit holds 2 live copies of the key, or loses the revived document. Every release since 7.4.0 has it.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 18</span><span class='sub'>Soft-deletes users who un-delete with try* and then update or delete by term before a refresh get durable duplicate live keys or lose the revived document with ordinary timing, but un-delete is a niche pattern that the IndexWriterConfig javadoc calls unsupported.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>data corruption</span></dd></div><div><dt>Since</dt><dd>7.4.0 (LUCENE-8298, 2018)<span class='sub'>introduced 2018-05-09 &middot; about 8 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>7.4.0 to 10.5.2 (all 67 releases) and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>model-based randomized testing; formal tools re-found it (hinted)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a testing baseline (randomized, fuzz, property-based or stress testing, or static analysis) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The steps below are the duplicate-key case (K1c) and the lost-document case (K2); the full explanation also covers K1 and the contested C2.</p><figure class='visual' id='try-undelete-ignored-by-buffered-ops-short-visual'><div class='frame'><a class='still' href='../assets/LFV-010/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-010/bug.png' alt='Summary card with two cases. Case 1, ignored: updateDocValues(id:x, SOFT=1) gets sequence number 5 and marks x deleted in the writer&#x27;s live docs; tryUpdateDocValue(r, doc 0, SOFT=null) un-deletes x with sequence number 7 but the reset is only queued; softUpdateDocument(id:x, new x, SOFT=2) gets 8, and at commit (10) its term update skips old x because the live docs still say deleted, then the reset is written, so the commit holds 2 live documents with id x instead of 1. Case 2, lost: segment _0 holds y and x indexed with SOFT=1; tryUpdateDocValue(r, doc 1, SOFT=null) un-deletes x with sequence number 5 but x is still counted as deleted; deleteDocuments(id:y) gets 6; at commit (7) the segment counts 2 of 2 deleted, is dropped as 100% deleted, and x is gone. CheckIndex is clean in both cases; opening an NRT reader right after the un-delete gives the documented result.' width='1920' height='1080'></a></div><figcaption>The two main cases on one card: the pending un-delete (blue) against the writer's live docs and deleted count, which still say deleted (orange). Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Set a soft-deletes field (<code>setSoftDeletesField("soft_delete")</code>, <code class='nw'>NoMergePolicy</code>). Index x and y and commit, soft-delete x by term (<code>updateDocValues(id:x, soft=1)</code>, sequence number 5) and open an NRT reader <code class='nw'>r</code>: x is hidden.</span></li><li><span>Un-delete x with <code>tryUpdateDocValue(r, doc 0, soft=null)</code>, as its javadoc describes: it succeeds with sequence number 7. Then replace x with <code>softUpdateDocument(id:x, new x, soft=2)</code> (8) and commit (10).</span></li><li><span>You expect 1 live x, the new one: the replace comes after the un-delete.</span></li><li><span>Instead the commit holds 2 live x. The un-delete only waits in the segment's pending doc-values updates. At commit the replace's term update is resolved first, against the writer's live docs, which still say old x is deleted, so it skips old x; then the un-delete is written.</span></li><li><span>The same gap loses a document: segment {y, x indexed soft-deleted}, un-delete x (5), delete y (6), commit (7). The deleted count still counts x, so the segment looks 100% deleted and is dropped with x. No exception, CheckIndex clean; an NRT reader opened right after the un-delete gives the documented result.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications with the opt-in soft-deletes field that change a document's soft value with the expert <code>tryUpdateDocValue</code> (to un-delete it, its documented use, or to soft-delete it) and then, before that is written, touch the document by term or delete the rest of its segment. No callers in Elasticsearch, OpenSearch or Solr were found; frequency was not measured.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>897 words</span></summary><div class='body'><p>With a soft-deletes field, un-delete a document with <code>tryUpdateDocValue(reader, doc, soft_delete=null)</code>, the way its javadoc suggests, and then touch it again by term before the writer writes the pending update (for example at the next refresh, flush or commit): the later operation does not see the un-delete. In the repro the soft delete gets sequence number 5, the un-delete 7 (success) and a second soft delete by term 8, yet a fresh reader and the commit still show 1 live copy of the document instead of 0. With <code>softUpdateDocument</code> as the later call the commit holds 2 live copies of the same key, and deleting the other document of its segment drops the revived document altogether. Lucene raises no exception, and CheckIndex passes on the committed index in the two tests that run it. The repro needs two documents and the opt-in soft-deletes field, and every release from 7.4.0 to 10.5.2 has it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-what-you-do'>What you do</h3><a class="hlink" href="#what-the-bug-is-what-you-do" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-you-do"><span aria-hidden="true">#</span></a></div><p>Lucene can <strong>soft-delete</strong> a document instead of removing it. You pick a doc-values field with <code>IndexWriterConfig.setSoftDeletesField("soft_delete")</code>; a document that has a value in that field counts as deleted, and readers from the writer hide it. You soft-delete by term with <code>updateDocValues(id:x, soft_delete=1)</code>, or with <code>softUpdateDocument</code>, which marks the old copy and adds a new one.</p><p>To bring a soft-deleted document back, you remove its value with the "Expert" method <code>tryUpdateDocValue(reader, docID, soft_delete=null)</code>. Its javadoc says: "This can be used to un-delete a soft-deleted document". It addresses the document by its doc ID in an NRT reader of the same writer and returns a <strong>sequence number</strong> (&gt; 0 means success). The <code class='nw'>IndexWriter</code> javadoc says sequence numbers express "the effective order in which each change was applied".</p><div class="hd hd-3"><h3 id='what-the-bug-is-a-tiny-example'>A tiny example</h3><a class="hlink" href="#what-the-bug-is-a-tiny-example" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-a-tiny-example"><span aria-hidden="true">#</span></a></div><p>Two documents, <code class='nw'>id:x</code> and <code class='nw'>id:y</code>, no merges:</p><div class="tbl"><table><thead><tr><th>step</th><th>call</th><th>returns</th><th>live copies of x you expect</th></tr></thead><tbody><tr><td>1</td><td>add x and y, <code class='nw'>commit()</code></td><td>seq 1, 2; commit 4</td><td>1</td></tr><tr><td>2</td><td><code>updateDocValues(id:x, soft_delete=1)</code>: soft delete</td><td>seq <strong>5</strong></td><td>0</td></tr><tr><td>3</td><td><code>r = DirectoryReader.open(writer)</code></td><td>x is hidden in <code class='nw'>r</code></td><td>0</td></tr><tr><td>4</td><td><code>tryUpdateDocValue(r, docOf(x), soft_delete=null)</code>: un-delete</td><td>seq <strong>7</strong>, success</td><td>1</td></tr><tr><td>5</td><td><code>updateDocValues(id:x, soft_delete=2)</code>: soft delete again</td><td>seq <strong>8</strong></td><td><strong>0</strong></td></tr><tr><td>6</td><td>open a fresh NRT reader, then <code class='nw'>commit()</code></td><td></td><td><strong>0</strong></td></tr></tbody></table></div><p><strong>What you get:</strong> <strong>1</strong> live copy of x, in the fresh reader and in the commit. The step-5 delete never reached x. If you open an NRT reader between steps 4 and 5, you get 0. (Sequence numbers 3 and 6 are not hidden operations: the commit's and the reader's full flushes reserve them.)</p><p>Two more versions of step 5 show what this does to real data:</p><ul><li><strong>Duplicate key.</strong> Step 5 is <code>softUpdateDocument(id:x, new x, soft_delete=2)</code>, the usual way to replace a record when you use soft deletes. You expect 1 live x (the new one) and get <strong>2</strong>, in the commit too. The same happens when every document is indexed with <code>softUpdateDocument</code>, as the soft-deletes javadoc prescribes.</li><li><strong>Lost document.</strong> Start from a segment that holds y and a soft-deleted x, un-delete x, then <code>deleteDocuments(id:y)</code> and commit. You expect x to be live and get <strong>no x at all</strong>. This also happens with a plain default writer config and a larger segment.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-why-the-un-delete-waits-in-a-queue'>Why: the un-delete waits in a queue</h3><a class="hlink" href="#what-the-bug-is-why-the-un-delete-waits-in-a-queue" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-why-the-un-delete-waits-in-a-queue"><span aria-hidden="true">#</span></a></div><p>For each segment the writer keeps a bitmap of live documents and a deleted-document count, and next to them a queue of doc-values changes that are not written yet.</p><ol><li><strong>The un-delete only joins the queue.</strong> <code>tryUpdateDocValue</code> hands its change to the segment with <code>rld.addDVUpdate(updates)</code> (<code>IndexWriter.java:1775</code>), which just appends it (<code>ReadersAndUpdates.java:153-164</code>). The bitmap still says "x deleted". Its twin <code>tryDeleteDocument</code> is different: it clears the live bit at once (<code>IndexWriter.java:1694</code>).</li><li><strong>The bitmap catches up only when the queue is written.</strong> Writing calls <code>onDocValuesUpdate</code> (<code>ReadersAndUpdates.java:429</code>), which re-applies the soft-delete field to the bitmap and the count (<code>PendingSoftDeletes.java:151-167</code>). That happens, for example, at the next NRT reopen, flush, commit or close, when a merge starts, or under RAM pressure.</li><li><strong>Term-based updates consult the bitmap (the duplicate key).</strong> A buffered update by term only touches documents the bitmap calls live: <code>acceptDocs = segState.rld.getLiveDocs()</code> (<code>FrozenBufferedUpdates.java:321</code>, used at <code class='nw'>:327</code> and <code class='nw'>:341</code>). x looks deleted, so the step-5 soft delete, or the soft-delete half of <code>softUpdateDocument</code>, skips it. Even the next reopen resolves the buffered step 5 (<code>IndexWriter.java:596</code>) before it writes the queued un-delete (<code class='nw'>:608</code>).</li><li><strong>The count still counts x (the lost document).</strong> A segment is "fully deleted" when <code>getDelCount() == maxDoc</code> (<code>PendingDeletes.java:219-221</code>), and the count includes the soft-deleted x (<code class='nw'>:243-246</code>). After y is deleted the segment counts 2 of 2 deleted and is dropped (<code>IndexWriter.java:6750-6752</code>, <code class='nw'>:6726-6733</code>), and the queued un-delete goes with it.</li></ol><p>So the outcome depends on whether something wrote the queue between the two calls, which is why it can look intermittent.</p><p><strong>A related, contested variant (C2).</strong> The same lag applies to two soft deletes by term with no un-delete: <code>updateDocValues(id:x, soft_delete=1)</code> and then <code class='nw'>soft_delete=2</code> commit x with value 2, but with 1 if an NRT reader was opened in between. Lucene's own tests expect term updates to skip documents whose soft delete is already written, so which answer is right when nothing was written is a question for the maintainers; the fix below does not change it. No javadoc promises refresh independence for this case.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>353 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Applications with a soft-deletes field that change a document's soft-delete value with <code>tryUpdateDocValue</code> (to un-delete it, the javadoc's stated use, or to soft-delete it) and then, before the pending update is written (for example by the next NRT reopen, flush, commit or merge, or a RAM-triggered write), either touch the same document by term (<code class='nw'>updateDocValues</code>, <code>updateNumericDocValue</code>, <code>softUpdateDocument</code>) or delete the other live documents of its segment (<code class='nw'>deleteDocuments</code>, <code>tryDeleteDocument</code>). A plausible pattern: "restore this record, then replace it", that is, an un-delete followed by <code>softUpdateDocument</code> on the same key.</li><li><strong>What breaks.</strong> Two live documents with the same key (K1c); a later delete or update that silently misses (K1; K1b: a numeric or binary update by term keeps the old value); a revived document that disappears from the commit (K2). The mirror case also exists: after a soft delete with <code>tryUpdateDocValue</code>, a term-based numeric update reaches the soft-deleted copy only if no reader was opened in between.</li><li><strong>Opt-in feature, default settings otherwise.</strong> Soft deletes are opt-in and <code>tryUpdateDocValue</code> is an "Expert" public method. Default codec. K1 also fails under <code>SoftDeletesRetentionMergePolicy</code>; K2 needs a merge policy that drops fully deleted segments, which is the default; it was also run with a plain default writer config.</li><li><strong>No scale needed, deterministic.</strong> Two documents and a handful of calls; the same result on all 6 seeds tried and in 10 of 10 iterations. The writer config is fixed; the test framework still randomizes the directory and the codec, so this is tested robustness, not a proof.</li><li><strong>Silent and durable.</strong> Lucene raises no exception and no Lucene-internal assertion fires under <code class='nw'>-ea</code> (only the test's own assertions report it); CheckIndex passes on the K1c and K2 commits; the wrong state is committed. Anything that writes the pending update between the two calls hides it, so it can look intermittent.</li><li><strong>Reach.</strong> A code search found no <code>tryUpdateDocValue</code> callers in Elasticsearch, OpenSearch or Solr, so the known exposure is custom applications using the expert API (the search says nothing about private code). How often applications hit the window was not measured.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test on the public API with a fixed writer config (soft-deletes field, <code class='nw'>NoMergePolicy</code>): four bug tests (K1, K1c, K2 and the contested C2) and a passing control that opens a reader right after the un-delete. Put it in Lucene's core test package <code>org.apache.lucene.index</code>; the same 4 tests fail with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestTryUndeleteVsBufferedOps.java (the repro: 4 bug tests + 1 control)</span><span class='meta'>217 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * With a soft-deletes field, a pending soft-field change (an un-delete done with {@link
+ * IndexWriter#tryUpdateDocValue}, or a soft delete done with {@link IndexWriter#updateDocValues})
+ * is not seen by later term-based operations until the doc-values update is written, for example by
+ * a refresh, flush or commit. The three un-delete tests assert what the javadocs of
+ * tryUpdateDocValue and of the later call describe. The last test asserts that the outcome does not
+ * depend on a refresh, which no javadoc states for this case (see its comment). Only public API is
+ * used.
+ *
+ * &lt;p&gt;The writer config is deliberately not randomized, so the only flush or refresh points are the
+ * ones written in each test; the test framework still picks the directory and the codec.
+ */
+public class TestTryUndeleteVsBufferedOps extends LuceneTestCase {
+
+  private static final String SOFT = &quot;soft_delete&quot;;
+
+  private static IndexWriterConfig config() {
+    return new IndexWriterConfig().setSoftDeletesField(SOFT).setMergePolicy(NoMergePolicy.INSTANCE);
+  }
+
+  private static Document doc(String id) {
+    Document d = new Document();
+    d.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    return d;
+  }
+
+  /** Number of live documents with this id. */
+  private static int count(IndexReader reader, String id) throws IOException {
+    return new IndexSearcher(reader).count(new TermQuery(new Term(&quot;id&quot;, id)));
+  }
+
+  /** Top-level doc ID of the document with this id, whether it is deleted or not. */
+  private static int docIdIgnoringDeletes(IndexReader reader, String id) throws IOException {
+    for (LeafReaderContext ctx : reader.leaves()) {
+      PostingsEnum postings = ctx.reader().postings(new Term(&quot;id&quot;, id));
+      if (postings != null &amp;&amp; postings.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        return ctx.docBase + postings.docID();
+      }
+    }
+    throw new AssertionError(&quot;no document with id &quot; + id);
+  }
+
+  /** The committed index, with soft deletes applied. */
+  private static DirectoryReader openCommitted(Directory dir) throws IOException {
+    return new SoftDeletesDirectoryReaderWrapper(DirectoryReader.open(dir), SOFT);
+  }
+
+  /** Un-delete x with tryUpdateDocValue (as its javadoc describes), then soft-delete it again. */
+  public void testSoftDeleteAfterTryUndeleteIsApplied() throws Exception {
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, config())) {
+      w.addDocument(doc(&quot;x&quot;));
+      w.addDocument(doc(&quot;y&quot;));
+      w.commit();
+      w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 1));
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;x is soft-deleted&quot;, 0, count(r, &quot;x&quot;));
+        long undelete =
+            w.tryUpdateDocValue(
+                r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, null));
+        assertTrue(&quot;tryUpdateDocValue succeeded&quot;, undelete &gt; 0);
+        long delete = w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 2));
+        assertTrue(&quot;the soft delete comes after the un-delete&quot;, undelete &lt; delete);
+      }
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;the later soft delete of x must apply&quot;, 0, count(r, &quot;x&quot;));
+      }
+    }
+  }
+
+  /** Control: the same calls with an NRT reader opened between the un-delete and the delete. */
+  public void testControlSoftDeleteAfterTryUndeleteAndRefresh() throws Exception {
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, config())) {
+      w.addDocument(doc(&quot;x&quot;));
+      w.addDocument(doc(&quot;y&quot;));
+      w.commit();
+      w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 1));
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertTrue(
+            w.tryUpdateDocValue(
+                    r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, null))
+                &gt; 0);
+      }
+      DirectoryReader.open(w).close(); // the only difference from the test above
+      w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 2));
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(&quot;the later soft delete of x applies&quot;, 0, count(r, &quot;x&quot;));
+      }
+    }
+  }
+
+  /** Un-delete x, then replace it with softUpdateDocument: exactly one live x must remain. */
+  public void testSoftUpdateAfterTryUndeleteLeavesOneLiveCopy() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config())) {
+        w.addDocument(doc(&quot;x&quot;));
+        w.addDocument(doc(&quot;y&quot;));
+        w.commit();
+        w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 1));
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertTrue(
+              w.tryUpdateDocValue(
+                      r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, null))
+                  &gt; 0);
+          w.softUpdateDocument(new Term(&quot;id&quot;, &quot;x&quot;), doc(&quot;x&quot;), new NumericDocValuesField(SOFT, 2));
+        }
+        w.commit();
+      }
+      TestUtil.checkIndex(dir); // the committed index is consistent
+      try (DirectoryReader r = openCommitted(dir)) {
+        assertEquals(&quot;exactly one live x in the commit&quot;, 1, count(r, &quot;x&quot;));
+      }
+    }
+  }
+
+  /**
+   * Segment {y, x} where x is soft-deleted. Un-delete x, then delete y: the segment is not empty (x
+   * is live again), so x must survive.
+   */
+  public void testTryUndeleteSurvivesDeleteOfOtherDoc() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config())) {
+        w.addDocument(doc(&quot;y&quot;));
+        Document x = doc(&quot;x&quot;);
+        x.add(new NumericDocValuesField(SOFT, 1)); // x is indexed soft-deleted
+        w.addDocument(x);
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertEquals(&quot;x is soft-deleted&quot;, 0, count(r, &quot;x&quot;));
+          long undelete =
+              w.tryUpdateDocValue(
+                  r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, null));
+          assertTrue(&quot;tryUpdateDocValue succeeded&quot;, undelete &gt; 0);
+          long delete = w.deleteDocuments(new Term(&quot;id&quot;, &quot;y&quot;));
+          assertTrue(&quot;the delete comes after the un-delete&quot;, undelete &lt; delete);
+        }
+        w.commit();
+      }
+      TestUtil.checkIndex(dir); // the committed index is consistent
+      try (DirectoryReader r = openCommitted(dir)) {
+        assertEquals(&quot;y is deleted&quot;, 0, count(r, &quot;y&quot;));
+        assertEquals(&quot;x must be live in the commit&quot;, 1, count(r, &quot;x&quot;));
+      }
+    }
+  }
+
+  /**
+   * No un-delete: soft-delete x twice, with soft=1 and then soft=2. The committed soft value must
+   * not depend on whether an NRT reader was opened in between (the IndexWriter class javadoc: a
+   * flush &quot;just moves the internal buffered state in IndexWriter into the index&quot;).
+   */
+  public void testSoftDeleteOutcomeDoesNotDependOnRefresh() throws Exception {
+    assertEquals(
+        &quot;committed soft value of x, without and with an NRT reader opened in between&quot;,
+        softValueAfterTwoSoftDeletes(false),
+        softValueAfterTwoSoftDeletes(true));
+  }
+
+  private static long softValueAfterTwoSoftDeletes(boolean refreshInBetween) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config())) {
+        w.addDocument(doc(&quot;x&quot;));
+        w.addDocument(doc(&quot;y&quot;));
+        w.flush();
+        w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 1));
+        if (refreshInBetween) {
+          DirectoryReader.open(w).close();
+        }
+        w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 2));
+        w.commit();
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        for (LeafReaderContext ctx : r.leaves()) {
+          PostingsEnum postings = ctx.reader().postings(new Term(&quot;id&quot;, &quot;x&quot;));
+          if (postings == null || postings.nextDoc() == DocIdSetIterator.NO_MORE_DOCS) {
+            continue;
+          }
+          NumericDocValues soft = ctx.reader().getNumericDocValues(SOFT);
+          assertNotNull(&quot;x has a soft value&quot;, soft);
+          assertTrue(&quot;x has a soft value&quot;, soft.advanceExact(postings.docID()));
+          return soft.longValue();
+        }
+      }
+      throw new AssertionError(&quot;no document with id x&quot;);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at ea57360912ed or later
+./gradlew :lucene:core:test --tests org.apache.lucene.index.TestTryUndeleteVsBufferedOps -Ptests.seed=DEADBEEF
+# assertions off: add -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>1 live x after the replace (K1c); x live after y is deleted (K2); 0 live x after the second soft delete (K1).</dd></div><div class='got'><dt>Observed</dt><dd>2 live x (<code>expected:&lt;1&gt; but was:&lt;2&gt;</code>); x gone (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>); 1 live x (<code>expected:&lt;0&gt; but was:&lt;1&gt;</code>). No exception; CheckIndex passes on the K1c and K2 commits.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-010/'>repro/LFV-010/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (337 lines) · 1,690 words</span></summary><div class='body'><p>A JUnit test with four bug tests and one passing control, public API only, a fixed writer config (soft-deletes field, <code class='nw'>NoMergePolicy</code>) so that the only flush and refresh points are the ones in the test. It is in package <code>org.apache.lucene.index</code> only to match Lucene's layout; <code class='nw'>newDirectory()</code> and the test framework still randomize the directory and the codec. It compiles on Lucene 9.1 and later (before 9.1, <code class='nw'>LuceneTestCase</code> and <code class='nw'>TestUtil</code> are in <code>org.apache.lucene.util</code>). Put it in <code>lucene/core/src/test/org/apache/lucene/index/</code> of a Lucene checkout and run the command below. Test ids: K1 = <code>testSoftDeleteAfterTryUndeleteIsApplied</code>, K1c = <code>testSoftUpdateAfterTryUndeleteLeavesOneLiveCopy</code>, K2 = <code>testTryUndeleteSurvivesDeleteOfOtherDoc</code>, C2 = <code>testSoftDeleteOutcomeDoesNotDependOnRefresh</code>. Below it: an edge-case test that is a good regression test for a PR, and the validated fix (option B).</p><div class="hd hd-3"><h3 id='code-2-h'>TestTrySoftUpdateEdgeCases.java (5 edge cases for a fix)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Committed soft-delete counts after an un-delete and after a <code class='nw'>try</code> soft delete (CheckIndex, a reopened writer), a force-merge right after an un-delete, an un-delete then re-delete under <code>SoftDeletesRetentionMergePolicy</code> plus a merge, and the mirror case (a <code class='nw'>try</code> soft delete followed by a term-based numeric update). On stock main 2 of the 5 fail, with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; with option B all pass.</p><figure class='code'><figcaption><span class='fname'>TestTrySoftUpdateEdgeCases.java (5 edge cases for a fix)</span><span class='meta'>259 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Edge cases around a soft-field change made with tryUpdateDocValue, for checking a fix that
+ * applies such a change to the live docs right away: the soft-delete counts written to the commit
+ * stay consistent (CheckIndex, a reopened writer), a merge right after an un-delete keeps the doc,
+ * and a later term-based update treats a document soft-deleted by tryUpdateDocValue the same way
+ * whether or not a reader was opened in between.
+ */
+public class TestTrySoftUpdateEdgeCases extends LuceneTestCase {
+
+  private static final String SOFT = &quot;soft_delete&quot;;
+
+  private static Document doc(String id) {
+    Document d = new Document();
+    d.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    d.add(new NumericDocValuesField(&quot;n&quot;, 1));
+    return d;
+  }
+
+  private static int count(IndexReader reader, String id) throws IOException {
+    return new IndexSearcher(reader).count(new TermQuery(new Term(&quot;id&quot;, id)));
+  }
+
+  private static int docIdIgnoringDeletes(IndexReader reader, String id) throws IOException {
+    for (LeafReaderContext ctx : reader.leaves()) {
+      PostingsEnum postings = ctx.reader().postings(new Term(&quot;id&quot;, id));
+      if (postings != null &amp;&amp; postings.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        return ctx.docBase + postings.docID();
+      }
+    }
+    throw new AssertionError(&quot;no document with id &quot; + id);
+  }
+
+  private static long valueOf(IndexReader reader, String field, String id) throws IOException {
+    for (LeafReaderContext ctx : reader.leaves()) {
+      PostingsEnum postings = ctx.reader().postings(new Term(&quot;id&quot;, id));
+      if (postings != null &amp;&amp; postings.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        NumericDocValues v = ctx.reader().getNumericDocValues(field);
+        if (v == null || v.advanceExact(postings.docID()) == false) {
+          return -1;
+        }
+        return v.longValue();
+      }
+    }
+    throw new AssertionError(&quot;no document with id &quot; + id);
+  }
+
+  private static int totalSoftDelCount(Directory dir) throws IOException {
+    int total = 0;
+    for (SegmentCommitInfo info : SegmentInfos.readLatestCommit(dir)) {
+      total += info.getSoftDelCount();
+    }
+    return total;
+  }
+
+  /** Un-delete, commit, reopen the writer: the committed soft-delete count is 0 and stays so. */
+  public void testUndeleteCommitReopenCounts() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig().setSoftDeletesField(SOFT).setMergePolicy(NoMergePolicy.INSTANCE);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.addDocument(doc(&quot;x&quot;));
+        w.addDocument(doc(&quot;y&quot;));
+        w.commit();
+        w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 1));
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertEquals(0, count(r, &quot;x&quot;));
+          assertTrue(
+              w.tryUpdateDocValue(
+                      r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, null))
+                  &gt; 0);
+        }
+        w.commit();
+      }
+      TestUtil.checkIndex(dir);
+      assertEquals(0, totalSoftDelCount(dir));
+      try (IndexWriter w =
+          new IndexWriter(
+              dir,
+              new IndexWriterConfig()
+                  .setSoftDeletesField(SOFT)
+                  .setMergePolicy(NoMergePolicy.INSTANCE))) {
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertEquals(1, count(r, &quot;x&quot;));
+          assertEquals(2, r.numDocs());
+        }
+      }
+      TestUtil.checkIndex(dir);
+    }
+  }
+
+  /** Soft-delete with tryUpdateDocValue, commit, reopen: the committed soft-delete count is 1. */
+  public void testTrySoftDeleteCommitReopenCounts() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig().setSoftDeletesField(SOFT).setMergePolicy(NoMergePolicy.INSTANCE);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.addDocument(doc(&quot;x&quot;));
+        w.addDocument(doc(&quot;y&quot;));
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertTrue(
+              w.tryUpdateDocValue(
+                      r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, 1))
+                  &gt; 0);
+        }
+        w.commit();
+      }
+      TestUtil.checkIndex(dir);
+      assertEquals(1, totalSoftDelCount(dir));
+      try (DirectoryReader r =
+          new SoftDeletesDirectoryReaderWrapper(DirectoryReader.open(dir), SOFT)) {
+        assertEquals(0, count(r, &quot;x&quot;));
+        assertEquals(1, r.numDocs());
+      }
+    }
+  }
+
+  /**
+   * Un-delete, then force-merge before any reader is opened: the merged segment keeps x live. (A
+   * log merge policy, so that no merge reclaims the soft-deleted x before the un-delete.)
+   */
+  public void testUndeleteThenForceMerge() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig().setSoftDeletesField(SOFT).setMergePolicy(new LogDocMergePolicy());
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.addDocument(doc(&quot;x&quot;));
+        w.addDocument(doc(&quot;y&quot;));
+        w.commit();
+        w.addDocument(doc(&quot;z&quot;));
+        w.commit(); // two segments
+        w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 1));
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertEquals(0, count(r, &quot;x&quot;));
+          assertTrue(
+              w.tryUpdateDocValue(
+                      r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, null))
+                  &gt; 0);
+        }
+        w.forceMerge(1);
+        w.commit();
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertEquals(1, r.leaves().size());
+          assertEquals(1, count(r, &quot;x&quot;));
+          assertEquals(3, r.numDocs());
+        }
+      }
+      TestUtil.checkIndex(dir);
+    }
+  }
+
+  /**
+   * Un-delete under a retention merge policy that keeps every soft-deleted doc, then soft-delete
+   * again by term and merge: x ends soft-deleted, retained, with the later soft value.
+   */
+  public void testUndeleteRedeleteRetentionMerge() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig()
+              .setSoftDeletesField(SOFT)
+              .setMergePolicy(
+                  new SoftDeletesRetentionMergePolicy(
+                      SOFT, MatchAllDocsQuery::new, new LogDocMergePolicy()));
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.addDocument(doc(&quot;x&quot;));
+        w.addDocument(doc(&quot;y&quot;));
+        w.commit();
+        w.addDocument(doc(&quot;z&quot;));
+        w.commit();
+        w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 1));
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertTrue(
+              w.tryUpdateDocValue(
+                      r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, null))
+                  &gt; 0);
+        }
+        w.updateDocValues(new Term(&quot;id&quot;, &quot;x&quot;), new NumericDocValuesField(SOFT, 2));
+        w.forceMerge(1);
+        w.commit();
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertEquals(0, count(r, &quot;x&quot;));
+          assertEquals(3, r.maxDoc()); // x is retained
+          assertEquals(2, valueOf(r, SOFT, &quot;x&quot;));
+        }
+      }
+      TestUtil.checkIndex(dir);
+    }
+  }
+
+  /**
+   * Soft-delete x with tryUpdateDocValue, then update its numeric field by term. The outcome must
+   * not depend on whether an NRT reader was opened in between.
+   */
+  public void testTermUpdateAfterTrySoftDeleteDoesNotDependOnRefresh() throws Exception {
+    assertEquals(
+        &quot;n of the soft-deleted x, without and with an NRT reader opened in between&quot;,
+        nAfterTrySoftDeleteThenTermUpdate(false),
+        nAfterTrySoftDeleteThenTermUpdate(true));
+  }
+
+  private static long nAfterTrySoftDeleteThenTermUpdate(boolean refresh) throws IOException {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig()
+              .setSoftDeletesField(SOFT)
+              .setMergePolicy(
+                  new SoftDeletesRetentionMergePolicy(
+                      SOFT, MatchAllDocsQuery::new, NoMergePolicy.INSTANCE));
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        w.addDocument(doc(&quot;x&quot;));
+        w.addDocument(doc(&quot;y&quot;));
+        try (DirectoryReader r = DirectoryReader.open(w)) {
+          assertTrue(
+              w.tryUpdateDocValue(
+                      r, docIdIgnoringDeletes(r, &quot;x&quot;), new NumericDocValuesField(SOFT, 1))
+                  &gt; 0);
+        }
+        if (refresh) {
+          DirectoryReader.open(w).close();
+        }
+        w.updateNumericDocValue(new Term(&quot;id&quot;, &quot;x&quot;), &quot;n&quot;, 42);
+        w.commit();
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        return valueOf(r, &quot;n&quot;, &quot;x&quot;);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>Fix option B: fix-b-apply-try-soft-update-now.diff</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>Fix option B: fix-b-apply-try-soft-update-now.diff</span><span class='meta'>78 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+index 45b59fa46dd..396b09f87e2 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/index/IndexWriter.java
+@@ -1772,7 +1772,7 @@ public class IndexWriter
+             }
+             for (DocValuesFieldUpdates updates : fieldUpdatesMap.values()) {
+               updates.finish();
+-              rld.addDVUpdate(updates);
++              rld.addTryDVUpdate(updates);
+             }
+           } finally {
+             bufferedUpdatesStream.finishedSegment(nextGen);
+diff --git a/lucene/core/src/java/org/apache/lucene/index/PendingDeletes.java b/lucene/core/src/java/org/apache/lucene/index/PendingDeletes.java
+index 2549677c661..4002c5d30b6 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/PendingDeletes.java
++++ b/lucene/core/src/java/org/apache/lucene/index/PendingDeletes.java
+@@ -229,6 +229,13 @@ class PendingDeletes {
+   void onDocValuesUpdate(FieldInfo info, DocValuesFieldUpdates.Iterator iterator)
+       throws IOException {}
+ 
++  /**
++   * Called when a doc values update that was resolved by document ID is added, before it is written
++   *
++   * @param update the resolved update
++   */
++  void onTryDocValuesUpdate(DocValuesFieldUpdates update) throws IOException {}
++
+   int numDeletesToMerge(MergePolicy policy, IOSupplier&lt;CodecReader&gt; readerIOSupplier)
+       throws IOException {
+     return policy.numDeletesToMerge(info, getDelCount(), readerIOSupplier);
+diff --git a/lucene/core/src/java/org/apache/lucene/index/PendingSoftDeletes.java b/lucene/core/src/java/org/apache/lucene/index/PendingSoftDeletes.java
+index 63c021660c7..0e05cc6bab3 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/PendingSoftDeletes.java
++++ b/lucene/core/src/java/org/apache/lucene/index/PendingSoftDeletes.java
+@@ -166,6 +166,16 @@ final class PendingSoftDeletes extends PendingDeletes {
+     dvGeneration = info.getDocValuesGen();
+   }
+ 
++  @Override
++  void onTryDocValuesUpdate(DocValuesFieldUpdates update) throws IOException {
++    if (this.field.equals(update.field)) {
++      // Apply it to the live docs now, as a delete by document ID is. When the pending updates are
++      // written, onDocValuesUpdate applies the newest value of each document again.
++      pendingDeleteCount += applySoftDeletes(update.iterator(), getMutableBits());
++      assert assertPendingDeletes();
++    }
++  }
++
+   private boolean assertPendingDeletes() {
+     assert pendingDeleteCount + info.getSoftDelCount() &gt;= 0
+         : &quot;illegal pending delete count: &quot; + (pendingDeleteCount + info.getSoftDelCount());
+diff --git a/lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java b/lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java
+index 4117d3bbec8..f56cf4e9fc3 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java
++++ b/lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java
+@@ -163,6 +163,21 @@ final class ReadersAndUpdates {
+     fieldUpdates.add(update);
+   }
+ 
++  /**
++   * Adds a doc values update that was resolved by document ID ({@link
++   * IndexWriter#tryUpdateDocValue}). Unlike the updates resolved from buffered terms, its effect on
++   * the live docs is applied right away, the same way {@link #delete(int)} applies {@link
++   * IndexWriter#tryDeleteDocument}. Otherwise term-based operations issued after it would be
++   * resolved against live docs that do not reflect it until the update is written.
++   */
++  public synchronized void addTryDVUpdate(DocValuesFieldUpdates update) throws IOException {
++    if (reader == null) {
++      getReader(IOContext.DEFAULT).decRef(); // pass a reader to initialize the pending deletes
++    }
++    addDVUpdate(update);
++    pendingDeletes.onTryDocValuesUpdate(update);
++  }
++
+   public synchronized long getNumDVUpdates() {
+     long count = 0;
+     for (List&lt;DocValuesFieldUpdates&gt; updates : pendingDVUpdates.values()) {
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed: affected. Also affected: every release from 7.4.0 to 10.5.2 (67 releases, Maven Central jars, SHA-1 checked; run with -ea, 7.4.0 also with -da; releases before 9.1 with the pre-9.1 copy of the test). 7.3.1 and earlier lack the soft-deletes API.</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestTryUndeleteVsBufferedOps &gt; testTryUndeleteSurvivesDeleteOfOtherDoc FAILED
+    java.lang.AssertionError: x must be live in the commit expected:&lt;1&gt; but was:&lt;0&gt;
+TestTryUndeleteVsBufferedOps &gt; testSoftUpdateAfterTryUndeleteLeavesOneLiveCopy FAILED
+    java.lang.AssertionError: exactly one live x in the commit expected:&lt;1&gt; but was:&lt;2&gt;
+TestTryUndeleteVsBufferedOps &gt; testSoftDeleteAfterTryUndeleteIsApplied FAILED
+    java.lang.AssertionError: the later soft delete of x must apply expected:&lt;0&gt; but was:&lt;1&gt;
+TestTryUndeleteVsBufferedOps &gt; testSoftDeleteOutcomeDoesNotDependOnRefresh FAILED
+    java.lang.AssertionError: committed soft value of x, without and with an NRT reader opened in between expected:&lt;2&gt; but was:&lt;1&gt;
+5 tests completed, 4 failed
+
+# the same calls step by step on stock main (sequence numbers and live copies of x)
+updateDocValues(id:x, soft=1) seq=5 | open NRT reader r: live x in r = 0
+tryUpdateDocValue(r, x, soft=null) seq=7 | updateDocValues(id:x, soft=2) seq=8
+fresh NRT reader: live x = 1 | commit: live x = 1</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc: "This can be used to un-delete a soft-deleted document"; the call succeeds (sequence number 7).</li><li>Sequence numbers give "the effective order in which each change was applied"; the later replace (8) acts as if the un-delete had not happened.</li><li>No javadoc asks for a refresh in between, and the lost-document form discards a successful un-delete outright.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>377 words</span></summary><div class='body'><ul><li><strong>The method's contract.</strong> <code>tryUpdateDocValue</code> (<code>IndexWriter.java:1707-1720</code>): for an NRT reader of this writer whose segment was not merged away "the update succeeds and this method returns a valid (&gt; 0) sequence number"; a null value removes the existing value, and "This can be used to un-delete a soft-deleted document since this method will apply the field update even if the document is marked as deleted." <code>CHANGES.txt:7390-7393</code> (LUCENE-8298): "This allows to undelete a soft-deleted document unless it's been claimed by a merge." Nothing is merged in the repro.</li><li><strong>The ordering contract.</strong> <code>IndexWriter.java:117-118</code>: a sequence number "expresses the effective order in which each change was applied". The skipped delete has sequence number 8, after the un-delete's 7. The javadoc does not define which documents a later term operation selects, but a later call that behaves as if the earlier, successful one had not happened appears inconsistent with that order.</li><li><strong>What term operations promise.</strong> <code class='nw'>updateDocValues</code> (<code>IndexWriter.java:2060-2061</code>): "Each field update is applied to the set of documents that are associated with the Term". <code>softUpdateDocument</code> (<code class='nw'>:1918-1919</code>): "first updating the document(s) containing term". Neither excepts a just-revived document.</li><li><strong>Soft equals hard.</strong> <code>IndexWriterConfig.java:543-545</code>: a soft-deleted document "is treated as if it has been hard-deleted". The hard twin, <code>tryDeleteDocument</code>, changes the live docs at once, so later term operations see it.</li><li><strong>No upstream test issues a term operation while an un-delete is pending.</strong> <code>TestSoftDeletesRetentionMergePolicy#testUndeleteDocument</code> (<code class='nw'>:595-625</code>) opens a new NRT reader right after the un-delete (<code class='nw'>:620</code>); the only two helpers that call <code>tryUpdateDocValue</code> (<code>TestSoftDeletesRetentionMergePolicy.java:781-792</code>, <code>TestMixedDocValuesUpdates.java:589-599</code>) open a fresh reader before every call. The nearest case, <code>testMixedSoftDeletesAndHardDeletes</code> (<code class='nw'>:696-745</code>), may issue a buffered delete (<code class='nw'>:735</code>) right after a <code class='nw'>try</code> soft <em>delete</em> (<code class='nw'>:721</code>); that is not one of this bug's forms (no un-delete, and term hard deletes are not filtered by the soft live docs).</li><li><strong>History.</strong> LUCENE-8290 (#9337, committed 2018-05-03) moved the soft-delete bookkeeping to write time "to be consistent with what is actually updated on disk", before un-delete existed. LUCENE-8298 (#9345, by @s1monw, +1 from @mikemccand and @jpountz; 2018-05-09) added un-delete without revisiting that; its thread does not discuss later operations issued while the reset is pending. #8398 (LUCENE-7344, open) is the same design family for delete-by-query.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>435 words</span></summary><div class='body'><p><strong>Strongest case for "intended":</strong> <code>IndexWriterConfig.java:557-559</code> says "Currently there is no API support to un-delete a soft-deleted document" and tells you to re-index instead; the same javadoc says documents "must be indexed via IndexWriter#softUpdateDocument" (<code>IndexWriterConfig.java:547-548</code>), and the repro uses <code class='nw'>addDocument</code>. The <code>tryUpdateDocValue</code> NOTE says it "can only update documents visible to the currently open NRT reader" (<code>IndexWriter.java:1717-1719</code>). Term operations resolve against the written live docs, and sequence numbers order operations without defining their target set. LUCENE-8290 deliberately keeps the live docs in sync with what is on disk, so term operations see the written state, and an application using the Expert <code class='nw'>try*</code> API could be expected to refresh after it. The independent reviewer from another model family (OpenAI GPT-5.6) built this argument itself and rated it moderate. The cross-model fact check of this page rated it moderate for K1/K1b/K1c, weak for K2, strong for C2 and moderate for the mirror case.</p><p><strong>Why it fails:</strong> that <code>IndexWriterConfig</code> paragraph predates the feature (it came with LUCENE-8233 and LUCENE-8298 never updated it); the later method javadoc, the CHANGES entry and the upstream un-delete test all support un-delete through <code>tryUpdateDocValue</code>. No javadoc states a refresh precondition; the call reports success with a sequence number that orders it first, and the result then follows hidden buffer state (the same calls are right after any refresh). The hard-delete twin is visible at once, and soft deletes are documented to behave like hard ones. Indexing with <code>softUpdateDocument</code> changes nothing: K1, K1c and K2 were reproduced that way. "Visible" in the NOTE contrasts the reader's segments with documents indexed after it (its next sentence); the same javadoc says the update applies "even if the document is marked as deleted", and the upstream helper finds the soft-deleted document through an <code>IncludeSoftDeletesWrapper</code>. The lost-document form is more than a visibility question: a successful, pending un-delete is discarded with its segment because the deleted count still counts x. The reviewer reached "real, high confidence" for the same reasons. <strong>Verdict: not intended for the un-delete forms (K1, K1c, K2).</strong></p><p><strong>Where "intended" has a point: C2.</strong> <code>TestSoftDeletesDirectoryReaderWrapper#testReuseUnchangedLeafReader</code> (<code class='nw'>:94-165</code>) expects a term-based soft update to leave an already soft-deleted, written document alone. C2 asks what two term-based soft deletes should give when nothing was written in between; no API promises refresh independence for this case. The study's verifiers split 4 "new bug" / 2 "intended" on a related form that un-deletes by term (<code>updateDocValues(term, soft=null)</code>); the soft=1-then-soft=2 form in the test was added later as adjudication evidence and was not voted on by itself. Present it as a question.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>B: apply a try* soft-field change to the live docs right away</strong></p><p class='short'>Option B: <code>tryUpdateDocValue</code> applies a soft-field change to the writer's live docs and deleted count at once, as <code>tryDeleteDocument</code> does, and still queues it for writing (+33/-1 in 4 files). K1, K1c and K2 pass, and so does the <code>org.apache.lucene.index</code> package except C2, which it does not change. Not covered: a <code class='nw'>try</code> update during a running merge (read, not tested).</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 1,168 words</span></summary><div class='body'><p>For the un-delete forms the gap is that a successful <code class='nw'>try*</code> change to the soft-deletes field reaches neither the live docs nor the deleted count until it is written. A fix either makes it visible at once (option B, validated) or writes it at once (option A, the study's diagnostic). C2 needs a separate decision. Option B was built and validated in a scratch worktree at <code class='nw'>ea57360912ed</code> (removed afterwards); the others are diagnostics or untested ideas.</p><div class="hd hd-3"><h3 id='fix-apply-now'>B: apply a try* soft-field change to the live docs right away <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-apply-now" target="_self" aria-label="Link to this section" aria-describedby="fix-apply-now"><span aria-hidden="true">#</span></a></div><p><code>tryUpdateDocValue</code> hands its resolved update to a new <code>ReadersAndUpdates.addTryDVUpdate</code>, which still queues it for writing and, if it touches the soft-deletes field, also applies it to the pending live docs and the pending soft-delete count, the way <code>tryDeleteDocument</code> applies its delete. When the pending updates are written later, <code>onDocValuesUpdate</code> applies the newest value of each document again: if the <code class='nw'>try</code> update is still the newest, nothing flips (<code class='nw'>applySoftDeletes</code> counts only bits it changes); if a later update of the same document exists, as in K1, the newer value wins, which is the intended result. +33/-1 lines in <code class='nw'>IndexWriter.java</code>, <code>ReadersAndUpdates.java</code>, <code>PendingDeletes.java</code> and <code>PendingSoftDeletes.java</code>.</p><pre class='snippet' tabindex='0'><code>// IndexWriter.tryUpdateDocValue
+-              rld.addDVUpdate(updates);
++              rld.addTryDVUpdate(updates);
+
+// ReadersAndUpdates
+public synchronized void addTryDVUpdate(DocValuesFieldUpdates update) throws IOException {
+  if (reader == null) {
+    getReader(IOContext.DEFAULT).decRef(); // pass a reader to initialize the pending deletes
+  }
+  addDVUpdate(update);
+  pendingDeletes.onTryDocValuesUpdate(update);   // no-op in PendingDeletes
+}
+
+// PendingSoftDeletes
+@Override
+void onTryDocValuesUpdate(DocValuesFieldUpdates update) throws IOException {
+  if (this.field.equals(update.field)) {
+    pendingDeleteCount += applySoftDeletes(update.iterator(), getMutableBits());
+    assert assertPendingDeletes();
+  }
+}</code></pre><p class='k'>Trade-offs</p><ul><li>It brings back, for the <code class='nw'>try*</code> path only, the eager bookkeeping that LUCENE-8290 removed for all updates because a retention merge policy could "see a deleted document but not it's value on disk". Updates pending when a merge starts are written before the merge reads the segment (<code>IndexWriter.java:5310</code>), and pending updates are written before an NRT reader is opened (<code class='nw'>:608</code>). Merge <em>selection</em> can still see the difference: <code>SoftDeletesRetentionMergePolicy.numDeletesToMerge</code> (<code class='nw'>:154-183</code>) runs its retention query on the on-disk values while the count already includes a pending <code class='nw'>try</code> soft delete, so it can over-count reclaimable documents until the update is written (read, not tested).</li><li>Not covered (read, not tested): a <code class='nw'>try</code> update that arrives while a merge of its segment is running is carried over to the merged segment with plain <code class='nw'>addDVUpdate</code> (<code>IndexWriter.java:4531-4540</code>), not <code class='nw'>addTryDVUpdate</code>, so on the merged segment the window can open again until the update is written. A complete fix would also have to handle that, or document it. There is no concurrent test for <code class='nw'>try</code> updates during a merge, merge carry-over, abort or rollback.</li><li>NRT readers that are already open keep their point-in-time live docs; option B changes what later writer operations resolve against.</li><li>No new doc-values generation per call (unlike option A); the added work is the in-memory bit update and, when the segment has no pooled reader yet, a defensive <code class='nw'>getReader</code>. A small cost probe (1,000 rounds of a <code class='nw'>try</code> soft-field change plus a term-based numeric update, in-memory directory, 3 runs of 3 rounds) found no clear slowdown: steady-state rounds took 57-155 ms with option B and 37-219 ms on stock, so the ranges overlap. Nine samples are not a benchmark.</li><li><code>tryUpdateDocValue</code> on a document that is also hard-deleted sets its live bit back: that is the separate bug LFV-008 (<code class='nw'>applySoftDeletes</code> ignores hard deletes), now hit inside the <code class='nw'>try</code> call with assertions on (stock: at the next NRT open); with assertions off both fail at the next NRT open (executed by the fact check). If LFV-008's fix lands, the new call should pass the hard live docs too (not tested together).</li><li>Does not fix C2 or the sister bug LFV-009 (an earlier buffered update overwriting a <code class='nw'>try</code> update).</li></ul><p class='k'>What the checks validated</p><ul><li>The repro: K1, K1c, K2 and the control pass with assertions on and off; only C2 still fails (it has no <code class='nw'>try*</code> call).</li><li>The study's original 15-test repro (10 bug tests including K1b, K2b, K2c and K2d, plus 5 controls): 15/15 pass with <code class='nw'>-ea</code> and <code class='nw'>-da</code> (stock: 10 of 15 fail). The reviewer's own repro: 2/2 pass. The edge test: 5/5 pass.</li><li><code>:lucene:core:test</code> on 22 targeted suites (the repro, the edge test, <code>TestPendingSoftDeletes</code>, <code>TestPendingDeletes</code>, <code>TestSoftDeletesRetentionMergePolicy</code>, <code>TestSoftDeletesDirectoryReaderWrapper</code>, <code>TestMixedDocValuesUpdates</code>, <code>TestNumericDocValuesUpdates</code>, <code>TestBinaryDocValuesUpdates</code>, <code>TestSortedNumericDocValuesUpdates</code>, <code>TestIncrementalDocValuesUpdates</code>, <code>TestDocValuesFieldUpdates</code>, <code>TestMergeCarryOverFromDisk</code>, <code>TestIndexWriterMergePolicy</code>, <code class='nw'>TestTryDelete</code>, <code>TestIndexWriterDelete</code>, <code>TestIndexWriterReader</code>, <code>TestIndexingSequenceNumbers</code>, <code class='nw'>TestIndexWriter</code>, <code class='nw'>TestStressNRT</code>, <code class='nw'>TestCheckIndex</code>, <code class='nw'>TestAddIndexes</code>): 408 tests, 1 failure (C2), with assertions on and with <code>-Ptests.asserts=false</code>.</li><li><code>--tests 'org.apache.lucene.index.*'</code>: 215 test classes, 1,404 tests as Gradle counts them, 1 failure (C2), 56 skipped.</li><li><code>:lucene:core:check -x test</code> passes (google-java-format, ecjLint, forbiddenApis) after <code class='nw'>tidy</code> re-wrapped one javadoc sentence of the patch and a few test lines.</li><li>After two comment corrections on 2026-10-26 (no code change): the changed files are google-java-format clean, and the repro (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), the edge test and the study's 15-test repro give the same results.</li></ul><div class="hd hd-3"><h3 id='fix-write-through'>A: write the try* soft-field update through at once (study diagnostic)</h3><a class="hlink" href="#fix-write-through" target="_self" aria-label="Link to this section" aria-describedby="fix-write-through"><span aria-hidden="true">#</span></a></div><p>After a <code class='nw'>try</code> update that touches the soft-deletes field, call <code>rld.writeFieldUpdates(...)</code> and <code class='nw'>checkpoint()</code> inside <code>tryUpdateDocValue</code> (+18 lines in <code class='nw'>IndexWriter.java</code>). Partly checked: on <code class='nw'>ea57360912ed</code> K1, K1c and K2 pass and C2 fails; in the study (main <code class='nw'>7cecf79523</code>) its 15-test repro and 19 upstream soft-deletes tests passed. Not run against the module test suites here.</p><p class='k'>Trade-offs</p><ul><li>A new doc-values generation (files) per call. In the same cost probe steady-state rounds took 404-1,184 ms against 37-219 ms on stock.</li><li>It writes only updates whose delete generation is at most <code class='nw'>completedDelGen</code> (<code>ReadersAndUpdates.java:870-882</code>), so while another thread is still applying an older packet, the new <code class='nw'>try</code> update is not written (other eligible pending updates may be) and the window stays open (read, not tested).</li></ul><div class="hd hd-3"><h3 id='fix-hard-live-docs'>C: getHardLiveDocs() at FrozenBufferedUpdates.java:321 (diagnostic only)</h3><a class="hlink" href="#fix-hard-live-docs" target="_self" aria-label="Link to this section" aria-describedby="fix-hard-live-docs"><span aria-hidden="true">#</span></a></div><p>Term-based updates would then reach soft-deleted documents too. K1, K1c and C2 pass, K2 still fails.</p><p class='k'>Trade-offs</p><p>Not a fix: it breaks <code>TestSoftDeletesDirectoryReaderWrapper#testReuseUnchangedLeafReader</code> (its <code class='nw'>assertSame</code> on the unchanged leaf fails; the stock run passes), so it changes intended semantics.</p><div class="hd hd-3"><h3 id='fix-c2-design'>D: for C2, make term-resolved soft deletes visible to later resolution (untested)</h3><a class="hlink" href="#fix-c2-design" target="_self" aria-label="Link to this section" aria-describedby="fix-c2-design"><span aria-hidden="true">#</span></a></div><p>If the maintainers agree that a later term-based soft update should skip a document that an earlier, unwritten soft delete already covers (what <code>testReuseUnchangedLeafReader</code> expects once it is written), term-resolved soft-field updates must reach the live docs before later resolution.</p><p class='k'>Trade-offs</p><p>Needs the eager hook for those updates too, which undoes LUCENE-8290's move, plus tracking inside one packet, because a packet's updates are handed to the segment only after all of them are resolved (<code>FrozenBufferedUpdates.java:351-357</code>). A design question for the issue.</p><div class="hd hd-3"><h3 id='fix-document'>E: document the behaviour (untested)</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>State on <code>tryUpdateDocValue</code> and <code>setSoftDeletesField</code> that a <code class='nw'>try*</code> soft-field change is not seen by term-based operations, and can be lost with its segment, until the pending update is written.</p><p class='k'>Trade-offs</p><p>The cheapest change, but it contradicts the sequence-number contract and makes K2 documented data loss. Independent of any fix, the stale <code>IndexWriterConfig.java:557-559</code> paragraph should be updated.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Not attacker-driven: the application issues the un-delete and the later calls itself, so it is out of scope of SECURITY.md. Downstream, a delete or replace by term that skips a revived document leaves it searchable: a system that relies on deletes for access control or retention could show a record it deleted (hypothetical, not tested).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Model-based randomized testing: an AI-written harness compared every reader with an executable reference model of the writer and flagged this 704 s into a run (5 s combined with LFV-009's operations). TLA+, Alloy, P, Dafny, JBMC and OpenJML re-found it when hinted. The study was pointed at this area by an earlier bug, not at this one.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>167 words</span></summary><div class='body'><p><strong>Method: model-based randomized testing</strong> (the study's non-formal baseline); formal tools re-found it after being told about it.</p><ul><li>A 2026-10-22 study of Lucene by AI tools covered the IndexWriter/NRT layer because the owner's earlier bug there (now #16900) was the study's starting point. So the area was hinted; this bug was not.</li><li>An AI tool wrote a model-based testing harness: an executable reference model of the writer, random operation sequences, and a comparison of every reader against the model. Its model-value comparison flagged this bug 704 s into a run on its own, and after 5 s when combined with the operations of the sister bug LFV-009.</li><li>TLA+ (the TLC model checker), Alloy, P, Dafny, JBMC and OpenJML checks then re-found it with hints; the TLC model also pinned the root cause of the lost-document form.</li><li>Independent AI verifiers reproduced it and voted "new bug"; this hunt re-verified it on <code class='nw'>ea57360912ed</code>, ran the release history and the prior-art search, had it reviewed adversarially, and validated a fix.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No matching report found: 183 queries over GitHub issues and PRs, mailing lists, JIRA, commits, downstream code and the web, and no open PR that changes this path (2026-10-25); upstream has not fixed it. Cite #8398 (open, the same family) and #9337/#9345 (the history); file together with the sister bug LFV-009.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>No report of this defect was found, and upstream has not fixed it. Cite #8398 as related and #9337/#9345 as the history; file together with the sister bug LFV-009. The stale <code>IndexWriterConfig</code> javadoc is unreported too.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene), with migrated JIRA issues</th><td class='when'>2026-10-25</td><td>90 queries from the scripted prior-report search (class and method names such as tryUpdateDocValue(s), PendingSoftDeletes, getHardLiveDocs, applySoftDeletes, isFullyDeleted, softUpdateDocument; symptoms such as "undelete lost", "duplicate live documents", "100% deleted"), plus manual <code>gh search</code> phrasings with comment matching</td><td>no report; closest: #8398 (open, related family), #9337 (LUCENE-8290, the write-time design), #9345 and #9344 (the null reset and the API; no discussion of this), #9280 (origin of the stale javadoc), #9431 (an older, fixed PendingSoftDeletes assertion bug), #11428 (open redesign idea), #16900 (a different bug in the same area)</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-25</td><td>the 30 of 412 open PRs touching the relevant index files, changed lines grepped for getLiveDocs, getHardLiveDocs, onDocValuesUpdate, applySoftDeletes, isFullyDeleted, tryUpdateDocValue, addDVUpdate, undelete, acceptDocs and similar</td><td>none changes this mechanism (#13398 is an early exit relying on the same count; #12557, #16571, #16847 and others are optimizations or refactors)</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@)</th><td class='when'>2026-10-25</td><td>56 queries, plus direct full-text searches for undelete, un-delete, tryUpdateDocValue(s), softUpdateDocument, PendingSoftDeletes, getHardLiveDocs</td><td>notifications, CI mails and unrelated user questions only</td></tr><tr><th scope='row'>JIRA archive (LUCENE)</th><td class='when'>2026-10-25</td><td>14 queries, plus <code>text ~ undelete</code> (16 issues), tryUpdateDocValue(s), softUpdateDocument, "soft deletes" AND "fully deleted"</td><td>the 2018 design and accounting issues above; no report</td></tr><tr><th scope='row'>Commits, downstream code, web</th><td class='when'>2026-10-25</td><td>6 commit queries and <code>git log -i -E --grep</code> over the full history (44 commits), 5 downstream queries (Elasticsearch, OpenSearch, Solr), 12 web queries</td><td>no fix on main; no downstream callers of tryUpdateDocValue; only generic web pages</td></tr><tr><th scope='row'>Study searches</th><td class='when'>2026-10-22</td><td>gh search issues and PRs, git log, web (verifier README section 4)</td><td>the same related items, no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-8298 (#9345, 2018, first released in 7.4.0), which documented un-delete through <code>tryUpdateDocValue</code> without changing when live docs change; the C2 form goes back to LUCENE-8233. All 67 releases from 7.4.0 to 10.5.2 and main are affected, pinned by commit-level runs; 7.3.1 lacks the API.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>12 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-8298 "Allow DocValues updates to reset a value" (#9345, @s1monw; JIRA-era patch), committed 2018-05-09 as <code class='nw'>0c65af048b3</code> on the 7.x line (first released in <strong>7.4.0</strong>) and <code class='nw'>a3c86373e47</code> on master. It let <code>tryUpdateDocValue</code> reset the soft-deletes field and documented that as un-delete, without changing when live bits change. The C2 form (no un-delete) is older: it is present from LUCENE-8233, which added soft deletes (2018-04-04), and is not caused by LUCENE-8290 (it fails just before and just after the 7.x backport of that change). The release runs used assertions on (7.4.0 also off); releases before 9.1 ran the pre-9.1 copy of the test. Every release since 7.4.0 is affected, and main is not fixed.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>7.3.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>the test does not compile: setSoftDeletesField, SoftDeletesDirectoryReaderWrapper, softUpdateDocument and NumericDocValuesField(String, Long) do not exist</td></tr><tr><th scope='row'>7.4.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first affected</span></td><td>4 of 5 fail (also with -da)</td></tr><tr><th scope='row'>7.5.0-7.7.3 (6 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 of 5 fail</td></tr><tr><th scope='row'>8.0.0-8.11.4 (27 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 of 5 fail</td></tr><tr><th scope='row'>9.0.0-9.12.3 (21 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 of 5 fail</td></tr><tr><th scope='row'>10.0.0-10.5.2 (12 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 of 5 fail; 10.5.2 with -ea and -da</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>4 of 5 fail with -ea and -da, 6 seeds; the study's 15-test repro: 10 of 15 fail</td></tr><tr><th scope='row'>7.x <code class='nw'>51fff3c7095</code> / master <code class='nw'>cf568904005</code> (parents of LUCENE-8233)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>do not compile (no setSoftDeletesField)</td></tr><tr><th scope='row'>7.x <code class='nw'>02fa5a0b059</code> / master <code class='nw'>ecc17f90233</code> (LUCENE-8233)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> C2 only</span></td><td>the adapted C2 test fails (2 vs 1); the un-delete tests cannot be written yet</td></tr><tr><th scope='row'>7.x <code class='nw'>52e72467bb2</code> / master <code class='nw'>7873cf845e1</code> (parents of LUCENE-8298)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> C2 only</span></td><td>the un-delete tests do not compile on either line (no null value yet); the C2 test, run on its own at 7.x <code class='nw'>52e72467bb2</code>, fails (2 vs 1)</td></tr><tr><th scope='row'>7.x <code class='nw'>0c65af048b3</code> / master <code class='nw'>a3c86373e47</code> (LUCENE-8298)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> commit-level</span></td><td>K1, K1c, K2 and C2 fail, the control passes</td></tr><tr><th scope='row'>option B on <code class='nw'>ea57360912ed</code></th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> fixed except C2</span></td><td>K1, K1c, K2 pass, C2 fails; study repro 15/15 pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Study verifiers voted "new bug"; a hunt re-verification and an adversarial cross-model review with its own repro confirmed it. Three checks of this doc (a fact check that re-ran the repro, a cross-model fact check and a diagram check) confirmed the bug and its numbers; every error they found in the text and the diagrams was fixed.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>404 words</span></summary><div class='body'><p>The hunt re-ran or re-read the claims on this page on <code class='nw'>ea57360912ed</code>, except where a source names the study. Then three checks reviewed the text and the diagrams; how each of their findings was handled is in the appendix (the resolution).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Study verifiers</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> K: new bug</span></td><td>model-based testing verifier, Alloy verifier, TLA+ verifier, Dafny verifier, P-model verifier, JBMC verifier and JML verifier each reproduced or modelled K and voted new. C2 was merged in by adjudication: 4 new / 2 intended votes on a related, term-based un-delete form; the test's soft=1-then-soft=2 form was added afterwards as evidence.</td></tr><tr><th scope='row'>Public-list rerun</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces</span></td><td>The study repro on main <code class='nw'>b83101cdd2</code>: Tests run 15, Failures 10.</td></tr><tr><th scope='row'>Hunt re-verification</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Minimal 5-test JUnit fails 4 of 5 on main with -ea and -da, 6 seeds and 10 iterations, on 10.5.2 and 9.12.3; the refresh control passes.</td></tr><tr><th scope='row'>Cross-model refute review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high confidence</span></td><td>OpenAI GPT-5.6 wrote its own test with documents added through <code>softUpdateDocument</code> and <code>SoftDeletesRetentionMergePolicy</code>, reproduced K1 with -ea and -da, rated the intended-behaviour argument moderate, and did not adjudicate K1c, K2 or C2.</td></tr><tr><th scope='row'>History</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> since 7.4.0</span></td><td>All 67 releases 7.4.0-10.5.2 affected; the un-delete forms pinned to LUCENE-8298 by commit-level runs; C2 present from LUCENE-8233.</td></tr><tr><th scope='row'>Prior art</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new</span></td><td>183 tool queries plus manual searches; no report, no fix, no open PR.</td></tr><tr><th scope='row'>Fix validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> option B validated</span></td><td>Passes the un-delete tests, the study's 15-test repro, the reviewer's repro, the edge test, 22 targeted suites with -ea and -da, the index test package and <code>:lucene:core:check</code>; C2 unchanged.</td></tr><tr><th scope='row'>Line-321 diagnostic</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not a fix</span></td><td>Re-checked here: <code>getHardLiveDocs()</code> at <code>FrozenBufferedUpdates.java:321</code> breaks <code>testReuseUnchangedLeafReader</code>, as the study's JML verifier verifier reported.</td></tr><tr><th scope='row'>Security screen</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> out of scope of SECURITY.md</span></td><td>Downstream-relevant, out of scope of SECURITY.md, public.</td></tr><tr><th scope='row'>Independent fact check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> sound, 7 text fixes</span></td><td>Re-ran the repro 9 ways (Gradle and harness, -ea and -da, 7.4.0 to main), a probe of its own and option B; found 1 medium and 6 low text errors and 3 missing caveats, all fixed.</td></tr><tr><th scope='row'>Cross-model fact check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> sound, 8 text fixes</span></td><td>OpenAI GPT-5.6, read-only: the bug and mechanism hold; 8 factual errors (1 high: option B and running merges), 8 overclaims and 8 missing caveats, all fixed in the text.</td></tr><tr><th scope='row'>Diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> 2 fixes, re-rendered</span></td><td>Every value on screen matched the code and the runs.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-010/bug.png' download='try-undelete-ignored-by-buffered-ops-bug.png' target='_self'>PNG</a> <span class='n'>515 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>623 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-010, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>A try* un-delete or pending soft-delete change is ignored or lost by later term-based operations</dd></div><div><dt>Area</dt><dd>index / soft deletes</dd></div><div><dt>Priority</dt><dd>Medium, rank 18: Soft-deletes users who un-delete with try* and then update or delete by term before a refresh get durable duplicate live keys or lose the revived document with ordinary timing, but un-delete is a niche pattern that the IndexWriterConfig javadoc calls unsupported.</dd></div><div><dt>Impact class</dt><dd>data corruption</dd></div><div><dt>Impact note</dt><dd>Users of the opt-in soft-deletes field who un-delete with try* or change the soft field by term and then issue term-based operations; the outcome depends on whether a flush, NRT open/close or a small RAM buffer intervened; released.</dd></div><div><dt>Summary</dt><dd>With a soft-deletes field, you revive a document with tryUpdateDocValue (or change its soft field by term) and then issue term-based deletes or updates. You expect the later operations to see the revived or newly soft-deleted state. Instead term-based ops resolve against live docs that are only materialized when doc-values updates are written, so the revived document is skipped (duplicate live keys) or lost when its segment looks 100% deleted.</dd></div><div><dt>Introduced</dt><dd>LUCENE-8298 (#9345; 0c65af048b3 on branch_7x, a3c86373e47 on master) [exec: commit-level runs]; the C2 form dates from LUCENE-8233 (soft deletes, 2018-04-04) (2018-05-09)</dd></div><div><dt>First affected version</dt><dd>7.4.0 [exec]</dd></div><div><dt>Affected versions</dt><dd>7.4.0 to 10.5.2 (all 67 releases) and main [exec]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed in the earlier formal verification study by independent AI checks and a rerun on Lucene main; also a cross-model review that agreed; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal baseline: randomized/MBT; also reached by TLA+/TLC, Alloy, P, Dafny, JBMC, KeY/OpenJML</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (study searches 2026-10-22; public-list check 2026-10-20..23); related #8398</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (2026-10-25/26), assertions on and off, 6 seeds and 10 iterations; the Maven Central jars of all 67 releases from 7.4.0 to 10.5.2 (assertions on; 7.4.0 also off) and of 7.3.1; commit-level runs at LUCENE-8233, LUCENE-8253 and LUCENE-8298 and their parents on the 7.x and master lines, and at the 7.x backport of LUCENE-8290 and its parent (the C2 test only, except at LUCENE-8298 and its parents); fix option B in a scratch worktree at <code class='nw'>ea57360912ed</code> (the repro, the study's 15-test repro, the reviewer's repro, an edge-case test, 22 targeted suites with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, the <code>org.apache.lucene.index</code> test package and <code>:lucene:core:check</code>).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>SECURITY.md:28 (threat model)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:117-118, 596, 608, 1688-1696, 1707-1720, 1775, 3819-3827, 6726-6733, 6750-6752; DocumentsWriterDeleteQueue.java:616-629 (the reserved sequence numbers)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/ReadersAndUpdates.java:153-164, 429; PendingSoftDeletes.java:126-149, 151-167; PendingDeletes.java:108-112, 219-221, 243-246; FrozenBufferedUpdates.java:321, 327, 341</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:117-118, 131-133, 1688-1696, 1707-1720, 1918-1919, 2060-2061; IndexWriterConfig.java:543-548, 557-559</code></li><li><code>Lucene main ea57360912ed: lucene/CHANGES.txt:7384-7393 (LUCENE-8297, LUCENE-8298)</code></li><li><code>Lucene main ea57360912ed: lucene/core/src/test/org/apache/lucene/index/TestSoftDeletesRetentionMergePolicy.java:595-625, 696-745, 781-792; TestMixedDocValuesUpdates.java:589-599; TestSoftDeletesDirectoryReaderWrapper.java:94-165</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>Lucene main ea57360912ed: lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:608, 4531-4540, 5310; ReadersAndUpdates.java:416-429, 870-882; DocValuesFieldUpdates.java:153-168; FrozenBufferedUpdates.java:351-357; SoftDeletesRetentionMergePolicy.java:154-183</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestTryUndeleteVsBufferedOps.java (the repro: 4 bug tests + 1 control): <a href='../repro/LFV-010/TestTryUndeleteVsBufferedOps.java'><code>repro/LFV-010/TestTryUndeleteVsBufferedOps.java</code></a> (217 lines)</li><li>TestTrySoftUpdateEdgeCases.java (5 edge cases for a fix): <a href='../repro/LFV-010/TestTrySoftUpdateEdgeCases.java'><code>repro/LFV-010/TestTrySoftUpdateEdgeCases.java</code></a> (259 lines)</li><li>Fix option B: fix-b-apply-try-soft-update-now.diff: <a href='../repro/LFV-010/fix-b-apply-try-soft-update-now.diff'><code>repro/LFV-010/fix-b-apply-try-soft-update-now.diff</code></a> (78 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the gap between the queue of unwritten doc-values changes and the live docs and deleted count that later term-based operations consult, for the two main cases: the duplicate key (K1c) and the lost document (K2). The still is the summary card. An independent check compared every value, API line and order of events with the code.</p><ul class='paths'><li><a href='../assets/LFV-010/bug.png'><code>assets/LFV-010/bug.png</code></a> (515 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

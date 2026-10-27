@@ -1,0 +1,20 @@
+; Same expression as sigm_core_nan_witness.smt2. Obligation: NaN happens ONLY when K = +Inf, or K = 0 and P = 0
+; (i.e. only when Math.pow(pivot, a) overflows or underflows). Expected: unsat.
+(set-logic QF_FP)
+(define-sort D () (_ FloatingPoint 11 53))
+(define-sort F () (_ FloatingPoint 8 24))
+(declare-const K D)
+(declare-const P D)
+(declare-const wf F)
+(define-fun w () D ((_ to_fp 11 53) RNE wf))
+(define-fun one () D ((_ to_fp 11 53) RNE 1.0))
+(define-fun dzero () D (_ +zero 11 53))
+(define-fun score () F ((_ to_fp 8 24) RNE (fp.mul RNE w (fp.sub RNE one (fp.div RNE K (fp.add RNE P K))))))
+(assert (fp.geq K dzero)) (assert (not (fp.isNaN K)))
+(assert (fp.geq P dzero)) (assert (not (fp.isNaN P)))
+(assert (fp.gt wf (_ +zero 8 24))) (assert (fp.leq wf ((_ to_fp 8 24) RNE 64.0)))
+(assert (fp.isNaN score))
+; VACUITY MUTANT: K = +Inf exclusion dropped
+(assert (not (and (fp.isZero K) (fp.isZero P))))
+(check-sat)
+(exit)

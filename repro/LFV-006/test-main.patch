@@ -1,0 +1,122 @@
+From c072f7a419f8eef0bf3099f6dd65017a5477e876 Mon Sep 17 00:00:00 2001
+From: the owner's git identity
+Date: Fri, 23 Oct 2026 21:22:01 +0000
+Subject: [PATCH] Tests: PointInSetQuery on points fields with data dimensions
+ (selective indexing)
+
+---
+ .../lucene/search/TestPointQueries.java       | 93 +++++++++++++++++++
+ 1 file changed, 93 insertions(+)
+
+diff --git a/lucene/core/src/test/org/apache/lucene/search/TestPointQueries.java b/lucene/core/src/test/org/apache/lucene/search/TestPointQueries.java
+index 2b3a91b55bf..0b51ba19f1f 100644
+--- a/lucene/core/src/test/org/apache/lucene/search/TestPointQueries.java
++++ b/lucene/core/src/test/org/apache/lucene/search/TestPointQueries.java
+@@ -41,6 +41,7 @@ import org.apache.lucene.document.BinaryPoint;
+ import org.apache.lucene.document.Document;
+ import org.apache.lucene.document.DoublePoint;
+ import org.apache.lucene.document.Field;
++import org.apache.lucene.document.FieldType;
+ import org.apache.lucene.document.FloatPoint;
+ import org.apache.lucene.document.IntPoint;
+ import org.apache.lucene.document.LongPoint;
+@@ -2667,4 +2668,96 @@ public class TestPointQueries extends LuceneTestCase {
+     assertEquals(
+         (double) expectedRamBytesUsed, (double) actualRamBytesUsed, actualRamBytesUsed / 20.d);
+   }
++
++  /** Doc with a single points field "f" whose dimensions hold the given ints. */
++  private static Document docWithPackedInts(FieldType type, int... values) {
++    byte[] packed = new byte[values.length * Integer.BYTES];
++    for (int i = 0; i < values.length; i++) {
++      IntPoint.encodeDimension(values[i], packed, i * Integer.BYTES);
++    }
++    Document doc = new Document();
++    doc.add(new Field("f", packed, type));
++    return doc;
++  }
++
++  /** 2 dimensions, only the first one is indexed (selective indexing). */
++  private static FieldType oneIndexDimOneDataDim() {
++    FieldType type = new FieldType();
++    type.setDimensions(2, 1, Integer.BYTES);
++    type.freeze();
++    return type;
++  }
++
++  public void testSetQueryOnFieldWithDataDimension() throws IOException {
++    FieldType type = oneIndexDimOneDataDim();
++    try (Directory dir = newDirectory()) {
++      IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
++      try (IndexWriter w = new IndexWriter(dir, iwc)) {
++        // (indexed value, data value)
++        w.addDocument(docWithPackedInts(type, 30, 5));
++        w.addDocument(docWithPackedInts(type, 10, 5));
++        w.addDocument(docWithPackedInts(type, 20, 5));
++        w.addDocument(docWithPackedInts(type, 40, 9));
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        assertEquals(1, r.leaves().size());
++        IndexSearcher s = new IndexSearcher(r);
++        // exact and range queries on the indexed dimension are right
++        assertEquals(1, s.count(IntPoint.newExactQuery("f", 10)));
++        assertEquals(1, s.count(IntPoint.newExactQuery("f", 30)));
++        assertEquals(3, s.count(IntPoint.newRangeQuery("f", 10, 30)));
++        // set queries on the same values
++        assertEquals(
++            List.of(1, 1, 2),
++            List.of(
++                s.count(IntPoint.newSetQuery("f", 10)),
++                s.count(IntPoint.newSetQuery("f", 30)),
++                s.count(IntPoint.newSetQuery("f", 10, 30))));
++      }
++    }
++  }
++
++  public void testSetQueryOnFieldWithDataDimensionAfterMerge() throws IOException {
++    FieldType type = oneIndexDimOneDataDim();
++    try (Directory dir = newDirectory()) {
++      IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
++      try (IndexWriter w = new IndexWriter(dir, iwc)) {
++        w.addDocument(docWithPackedInts(type, 30, 5));
++        w.addDocument(docWithPackedInts(type, 10, 5));
++        w.commit();
++        w.addDocument(docWithPackedInts(type, 20, 5));
++        w.addDocument(docWithPackedInts(type, 40, 9));
++        w.commit();
++        try (DirectoryReader r = DirectoryReader.open(w)) {
++          assertEquals(2, r.leaves().size());
++          assertEquals(2, new IndexSearcher(r).count(IntPoint.newSetQuery("f", 10, 30)));
++        }
++        w.forceMerge(1);
++        try (DirectoryReader r = DirectoryReader.open(w)) {
++          assertEquals(1, r.leaves().size());
++          assertEquals(2, new IndexSearcher(r).count(IntPoint.newSetQuery("f", 10, 30)));
++        }
++      }
++    }
++  }
++
++  public void testMultiDimSetQueryOnFieldWithDataDimension() throws IOException {
++    FieldType type = new FieldType();
++    type.setDimensions(3, 2, Integer.BYTES); // 3 dimensions, the first 2 are indexed
++    type.freeze();
++    try (Directory dir = newDirectory()) {
++      IndexWriterConfig iwc = new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec());
++      try (IndexWriter w = new IndexWriter(dir, iwc)) {
++        w.addDocument(docWithPackedInts(type, 1, 2, 100));
++        w.addDocument(docWithPackedInts(type, 1, 2, 200));
++        w.addDocument(docWithPackedInts(type, 3, 4, 300));
++        w.addDocument(docWithPackedInts(type, 5, 6, 7));
++      }
++      try (DirectoryReader r = DirectoryReader.open(dir)) {
++        assertEquals(1, r.leaves().size());
++        IndexSearcher s = new IndexSearcher(r);
++        assertEquals(2, s.count(newMultiDimIntSetQuery("f", 2, 1, 2)));
++      }
++    }
++  }
+ }
+-- 
+2.47.3
+

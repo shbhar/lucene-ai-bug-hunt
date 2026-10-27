@@ -1,0 +1,708 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>A reordered addIndexes of SortingCodecReader inputs writes vectors onto the wrong documents</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-278 &middot; merged-vector-iterator-ignores-sub-ord</p><h1 id='top'>A reordered addIndexes of SortingCodecReader inputs writes vectors onto the wrong documents</h1><p class='tldr'>Re-sort segments with <code>SortingCodecReader</code>, add them in one <code class='nw'>addIndexes</code> call to a writer whose merge policy reorders documents (such as <code>BPReorderingMergePolicy</code>), and the documents get other documents' vectors: 8 of 8 in the repro. Nothing throws, <code class='nw'>CheckIndex</code> reports the index clean, and every 10.x release is affected.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 82</span><span class='sub'>Vectors silently land on the wrong document, CheckIndex does not catch it, and it is released since 10.0, but it needs a rare opt-in SortingCodecReader and reordering-merge mix, so it is the last released row before the unreleased rows.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>data corruption</span></dd></div><div><dt>Since</dt><dd>10.0.0 (#13779, 2024)<span class='sub'>introduced 2024-09-28 &middot; about 2 years</span></dd></div><div><dt>Affected</dt><dd>10.0.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>randomized differential testing of a merged reader view</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Three opt-in pieces meet: <code>SortingCodecReader</code>, a re-sorted view that leaves each vector at its original position; one <code class='nw'>addIndexes</code> call with several inputs; and a merge policy that reorders. To reorder, Lucene joins the inputs into a merged view, and that view counts vectors by position instead of asking each input where its vectors are.</p><ol class='steps'><li><span>Build two small segments, ids 0-3 and ids 10-13, where each document's vector is <code>{id, 100 - id}</code>, so a vector names its owner. Re-sort each with <code>SortingCodecReader</code> by descending rank, so id 3 comes first.</span></li><li><span>Add both in one <code>addIndexes(sa, sb)</code> call to a writer with no index sort whose merge policy reorders the merge: <code>BPReorderingMergePolicy</code>, or a custom <code class='nw'>OneMerge#reorder</code> that returns the identity and moves nothing.</span></li><li><span>You expect every document to keep its vector: doc 0 (id 3) should hold <code>[3.0, 97.0]</code>, as it does when the merge policy does not reorder.</span></li><li><span>Instead Lucene joins the inputs into one merged view that numbers vectors 0, 1, 2, 3 in the new order but looks number k up at the input's original position k. Doc 0 (id 3) gets id 0's vector <code>[0.0, 100.0]</code>; all 8 documents get another document's float and byte vector.</span></li><li><span>No error with assertions on or off, <code class='nw'>CheckIndex</code> is clean, and kNN search ranks by the wrong embeddings until the segment is rebuilt. If id 0 was deleted before the call, its vector still lands on live id 3.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that pass two or more inputs, at least one a <code>SortingCodecReader</code>, to one <code>addIndexes(CodecReader...)</code> call on a writer with no index sort whose merge policy reorders addIndexes merges (<code>BPReorderingMergePolicy</code> or a custom <code class='nw'>OneMerge#reorder</code>). All opt-in; no scale needed. Two safe, tested usage patterns and regular merges over the built-in segment readers are not affected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>730 words</span></summary><div class='body'><p><code>SortingCodecReader</code>'s javadoc suggests re-sorting an index by wrapping its readers and passing them to <code>IndexWriter#addIndexes(CodecReader...)</code>. When two or more inputs go into one such call (at least one a <code>SortingCodecReader</code>, built from a <code class='nw'>Sort</code> or from a <code class='nw'>Sorter.DocMap</code> such as <code>BPIndexReorderer.reorder</code>'s output), the target writer has no index sort (and no input has document blocks without a parent field), and the merge policy's <code class='nw'>OneMerge#reorder</code> returns a DocMap (misc <code>BPReorderingMergePolicy</code> computes one for every addIndexes merge, unless its reorderer runs out of RAM; an identity DocMap is enough), <code class='nw'>IndexWriter</code> reorders through a merged view, <code>SlowCompositeCodecReaderWrapper</code>. Its vector iterator numbers ordinals by position while its <code class='nw'>vectorValue(ord)</code> reads in each input's own ordinal space, and a <code>SortingCodecReader</code> keeps its vectors at their original ordinals. So within each re-sorted input the k-th document in sorted order is written with the vector at original ordinal k: in the repro all 8 documents get another document's float and byte vector, and a deleted document's vector lands on a live one. Nothing throws, <code class='nw'>CheckIndex</code> reports the index clean, and kNN search ranks by other documents' embeddings until the segment is rebuilt. All 12 10.x releases (10.0.0-10.5.2) and main are affected; it was introduced by #13779, and a two-line change (one line changed, one removed) fixes it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Ordinal</strong>: a vector's index inside a field's vector values. An iterator's <code class='nw'>index()</code> gives the ordinal of its current document, and <code class='nw'>vectorValue(ord)</code> reads that vector.</li><li><strong><code>SortingCodecReader</code></strong>: a merge-only view of a segment in a new document order. It does not move the vectors: it visits documents in the new order, and its <code class='nw'>index()</code> returns each document's <em>original</em> ordinal (its javadoc: "index() may skip around, not increasing monotonically").</li><li><strong>Reordered <code class='nw'>addIndexes</code></strong>: when the target writer has no index sort, <code class='nw'>addIndexes</code> joins all inputs of one merge into a merged view (<code>SlowCompositeCodecReaderWrapper</code>) and asks <code class='nw'>OneMerge#reorder</code> for a new document order (unless an input has document blocks but no parent field). <code>BPReorderingMergePolicy</code> computes one for every addIndexes merge with a live document, unless its reorderer runs out of RAM.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>The merged view's iterator numbers ordinals 0, 1, 2, ... as it walks the documents: <code class='nw'>++ord</code> per document (<code>SlowCompositeCodecReaderWrapper.java:342</code> at <code class='nw'>ea57360912ed</code>) and <code>ord = current.ordStart - 1</code> on moving to the next input (<code class='nw'>:352</code>).</li><li>Its <code class='nw'>vectorValue(ord)</code> looks the ordinal up in the input's own ordinal space, <code>sub.vectorValue(ord - sub.ordStart)</code> (<code class='nw'>:912-920</code> float, <code class='nw'>:1011-1019</code> float16, <code class='nw'>:1060-1069</code> byte), with the comment that this random access exists "to support callers like SortingCodecReader that rely on it". That caller is the <code>SortingCodecReader</code> wrapped around the view (item 4); the comment does not speak to sorted inputs of the view, and nothing excludes them.</li><li>The two agree only if each input's <code class='nw'>index()</code> equals its iteration position. On-disk segments satisfy that; a <code>SortingCodecReader</code> does not: <code class='nw'>index()</code> returns <code class='nw'>docToOrd[doc]</code> and <code class='nw'>vectorValue(ord)</code> reads the wrapped reader at that ordinal (<code>SortingCodecReader.java:265-290</code>, <code class='nw'>:323-326</code>).</li><li><code>IndexWriter.addIndexesReaderMerge</code> builds <code>SortingCodecReader.wrap(SlowCompositeCodecReaderWrapper.wrap(readers), docMap, null)</code> whenever the writer has no index sort, no input has document blocks without a parent field, and the reorder returns a DocMap (<code>IndexWriter.java:3548-3565</code>). The outer reader records the merged iterator's ordinal for each document, and the codec's merge writes the vector read at that ordinal (<code>current.values.vectorValue(current.index())</code>, <code>KnnVectorsWriter.java:484</code>).</li><li>Input A re-sorted descending is visited as ids 3, 2, 1, 0 and gets merged ordinals 0, 1, 2, 3. Ordinal 0 is A's original ordinal 0, id 0's vector. So id 3 is written with id 0's vector, id 2 with id 1's, and so on; input B the same. The reorder itself does not matter: an identity DocMap takes the same path.</li><li>The codec merge code written in the same commit reads each input's own ordinal, <code>current.values.vectorValue(current.index())</code> (<code>KnnVectorsWriter.java:484</code>, <code class='nw'>:643</code>). Only the merged view assumes positional ordinals.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>target merge policy</th><th>doc 0 (id 3) gets</th><th>documents with another document's vector</th></tr></thead><tbody><tr><td><code>LogDocMergePolicy</code> (no reorder), control</td><td><code>[3.0, 97.0]</code></td><td>0 of 8</td></tr><tr><td>identity <code class='nw'>OneMerge#reorder</code></td><td><code>[0.0, 100.0]</code> (id 0's)</td><td>8 of 8, float and byte</td></tr><tr><td>identity reorder, id 0 deleted before the call</td><td><code>[0.0, 100.0]</code> (deleted id 0's)</td><td>7 of 7 live documents</td></tr><tr><td><code>BPReorderingMergePolicy(LogDocMergePolicy, BPIndexReorderer)</code></td><td><code>[0.0, 100.0]</code></td><td>fails on doc 0 (float test)</td></tr><tr><td>either reorder, with the fix</td><td><code>[3.0, 97.0]</code></td><td>0</td></tr></tbody></table></div><p>Nothing throws with assertions on or off, and <code class='nw'>CheckIndex</code> reports the new index clean: every stored vector is valid, just on the wrong document.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>411 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> An <code>addIndexes(CodecReader...)</code> merge with two or more inputs, at least one a <code>SortingCodecReader</code> (from <code>SortingCodecReader.wrap(reader, Sort)</code>, or from a <code class='nw'>Sorter.DocMap</code>, for example misc <code>BPIndexReorderer.reorder(...)</code>, which returns one), into a writer with no index sort whose merge policy's <code class='nw'>OneMerge#reorder</code> returns a DocMap for the addIndexes merge (misc <code>BPReorderingMergePolicy</code>, or any custom reorder, even the identity). The default <code>findMerges(CodecReader...)</code> puts all inputs in one merge. A tool that re-sorts or imports segments into a writer configured with <code>BPReorderingMergePolicy</code> would hit it; no such tool is known.</li><li><strong>Executed triggers.</strong> Inputs re-sorted by a <code class='nw'>Sort</code>; two <code>BPIndexReorderer.reorder</code> outputs with no <code class='nw'>Sort</code> at all; one <code>SortingCodecReader</code> next to a plain input (only the sorted input's vectors move). Float and byte vectors were executed; float16 vectors (main only) use the same iterator and mismatched in the finder's differential harness, but no JUnit covers them.</li><li><strong>Not affected.</strong> Two safe, tested in-tree usage patterns (executed; neither is documented as a requirement): a target writer with the same index sort as the inputs (no reorder runs) and one <code class='nw'>BPIndexReorderer</code> output per <code class='nw'>addIndexes</code> call (no merged view is built). Regular segment merges over the built-in segment readers, by code reading: their ordinals are positional, and <code class='nw'>wrapForMerge</code> may not reorder doc IDs; a custom codec or <code class='nw'>wrapForMerge</code> wrapper with non-positional vector ordinals was not ruled out.</li><li><strong>Opt-in.</strong> <code>SortingCodecReader</code> and <code class='nw'>OneMerge#reorder</code> are <code>@lucene.experimental</code>; <code>BPReorderingMergePolicy</code> is a misc-module class. Nothing else is non-default: the tests pin the default codec and use the test framework's randomized directories.</li><li><strong>Scale and frequency.</strong> 8 documents in 2 segments; deterministic (over 10 iterations all 20 bug-test runs failed and all 10 control runs passed). Once on that path, every document with a vector whose input's <code class='nw'>index()</code> differs from its position in that input's iteration order gets a wrong vector; documents whose ordinal equals their position keep theirs.</li><li><strong>Silent and lasting.</strong> No exception, <code class='nw'>CheckIndex</code> clean; the wrong vectors are written to the new segment, so kNN search and any code that reads vectors back see them until the segment is rebuilt from source data. A code fix stops new damage only.</li><li><strong>Intact.</strong> Ids, stored fields, postings and doc values; vectors stayed inside their own input in every executed case.</li><li><strong>Downstream (read, not tested).</strong> No <code>BPReorderingMergePolicy</code> in Elasticsearch's code (code search); Solr makes it configurable (apache/solr#2641), but whether any Solr path also feeds <code>SortingCodecReader</code> inputs to <code class='nw'>addIndexes</code> was not checked; the OpenSearch, Solr and OpenSearch k-NN code searches hit a rate limit.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit for Lucene's core tests, public API only: two 4-document inputs re-sorted with <code>SortingCodecReader</code>, one <code class='nw'>addIndexes</code> call through an identity <code class='nw'>OneMerge#reorder</code>, then a check that every document's float and byte vector is its own. A third test deletes a document first. The control without a reorder passes.</p><figure class='code'><figcaption><span class='fname'>TestReorderedAddIndexesVectors.java (JUnit for Lucene&#x27;s core tests, 3 tests)</span><span class='meta'>179 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executor;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnByteVectorField;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * addIndexes(CodecReader...) must keep every document&#x27;s vectors when the inputs were re-sorted with
+ * SortingCodecReader and the merge policy reorders the addIndexes merge (OneMerge#reorder, as
+ * BPReorderingMergePolicy does). The reorder here is the identity, so it moves nothing.
+ */
+public class TestReorderedAddIndexesVectors extends LuceneTestCase {
+
+  /** A document&#x27;s vectors name their owner: {id, 100 - id}. */
+  private static float[] floatVector(int id) {
+    return new float[] {id, 100 - id};
+  }
+
+  private static byte[] byteVector(int id) {
+    return new byte[] {(byte) id, (byte) (100 - id)};
+  }
+
+  /** One segment with ids firstId .. firstId + 3, rank = id; optionally delete the first id. */
+  private static Directory buildInput(int firstId, boolean deleteFirstId) throws IOException {
+    Directory dir = newDirectory();
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setMergePolicy(NoMergePolicy.INSTANCE);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int id = firstId; id &lt; firstId + 4; id++) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;id&quot;, Integer.toString(id), Field.Store.NO));
+        doc.add(new StoredField(&quot;idnum&quot;, id));
+        doc.add(new NumericDocValuesField(&quot;rank&quot;, id));
+        doc.add(new KnnFloatVectorField(&quot;float&quot;, floatVector(id)));
+        doc.add(new KnnByteVectorField(&quot;byte&quot;, byteVector(id)));
+        w.addDocument(doc);
+      }
+      w.commit();
+      if (deleteFirstId) {
+        w.deleteDocuments(new Term(&quot;id&quot;, Integer.toString(firstId)));
+      }
+    }
+    return dir;
+  }
+
+  /** An addIndexes merge whose OneMerge#reorder returns the identity DocMap. */
+  private static MergePolicy identityReorderOnAddIndexes() {
+    return new FilterMergePolicy(new LogDocMergePolicy()) {
+      @Override
+      public MergeSpecification findMerges(CodecReader... readers) {
+        MergeSpecification spec = new MergeSpecification();
+        spec.add(
+            new OneMerge(readers) {
+              @Override
+              public Sorter.DocMap reorder(CodecReader reader, Directory dir, Executor executor) {
+                final int maxDoc = reader.maxDoc();
+                return new Sorter.DocMap() {
+                  @Override
+                  public int oldToNew(int docID) {
+                    return docID;
+                  }
+
+                  @Override
+                  public int newToOld(int docID) {
+                    return docID;
+                  }
+
+                  @Override
+                  public int size() {
+                    return maxDoc;
+                  }
+                };
+              }
+            });
+        return spec;
+      }
+    };
+  }
+
+  /**
+   * Inputs: ids 0-3 and ids 10-13, each re-sorted by descending rank with SortingCodecReader, added
+   * in one addIndexes call to a writer without an index sort. Returns the documents whose float or
+   * byte vector belongs to another document.
+   */
+  private static List&lt;String&gt; addIndexesAndFindWrongVectors(
+      MergePolicy mergePolicy, boolean deleteId0) throws IOException {
+    Sort byRankDesc = new Sort(new SortField(&quot;rank&quot;, SortField.Type.LONG, true));
+    List&lt;String&gt; wrong = new ArrayList&lt;&gt;();
+    try (Directory a = buildInput(0, deleteId0);
+        Directory b = buildInput(10, false);
+        DirectoryReader ra = DirectoryReader.open(a);
+        DirectoryReader rb = DirectoryReader.open(b);
+        Directory target = newDirectory()) {
+      CodecReader sa =
+          SortingCodecReader.wrap((CodecReader) ra.leaves().get(0).reader(), byRankDesc);
+      CodecReader sb =
+          SortingCodecReader.wrap((CodecReader) rb.leaves().get(0).reader(), byRankDesc);
+      IndexWriterConfig iwc =
+          new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()).setMergePolicy(mergePolicy);
+      try (IndexWriter w = new IndexWriter(target, iwc)) {
+        w.addIndexes(sa, sb);
+      }
+      try (DirectoryReader r = DirectoryReader.open(target)) {
+        assertEquals(1, r.leaves().size());
+        LeafReader leaf = r.leaves().get(0).reader();
+        assertEquals(deleteId0 ? 7 : 8, leaf.numDocs());
+        StoredFields storedFields = leaf.storedFields();
+        FloatVectorValues floats = leaf.getFloatVectorValues(&quot;float&quot;);
+        KnnVectorValues.DocIndexIterator it = floats.iterator();
+        for (int doc = it.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = it.nextDoc()) {
+          int id = storedFields.document(doc).getField(&quot;idnum&quot;).numericValue().intValue();
+          int owner = (int) floats.vectorValue(it.index())[0];
+          if (owner != id) {
+            wrong.add(&quot;doc &quot; + doc + &quot; (id &quot; + id + &quot;) has the float vector of id &quot; + owner);
+          }
+        }
+        ByteVectorValues bytes = leaf.getByteVectorValues(&quot;byte&quot;);
+        it = bytes.iterator();
+        for (int doc = it.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = it.nextDoc()) {
+          int id = storedFields.document(doc).getField(&quot;idnum&quot;).numericValue().intValue();
+          int owner = bytes.vectorValue(it.index())[0];
+          if (owner != id) {
+            wrong.add(&quot;doc &quot; + doc + &quot; (id &quot; + id + &quot;) has the byte vector of id &quot; + owner);
+          }
+        }
+      }
+    }
+    return wrong;
+  }
+
+  /** Control: without a reorder, the same addIndexes call keeps every vector on its document. */
+  public void testNoReorder() throws IOException {
+    List&lt;String&gt; wrong = addIndexesAndFindWrongVectors(new LogDocMergePolicy(), false);
+    assertTrue(wrong.toString(), wrong.isEmpty());
+  }
+
+  public void testIdentityReorder() throws IOException {
+    List&lt;String&gt; wrong = addIndexesAndFindWrongVectors(identityReorderOnAddIndexes(), false);
+    assertTrue(wrong.size() + &quot; wrong: &quot; + wrong, wrong.isEmpty());
+  }
+
+  /** The vector of a document deleted before addIndexes must not reappear on a live document. */
+  public void testIdentityReorderWithDeletedDocument() throws IOException {
+    List&lt;String&gt; wrong = addIndexesAndFindWrongVectors(identityReorderOnAddIndexes(), true);
+    assertTrue(wrong.size() + &quot; wrong: &quot; + wrong, wrong.isEmpty());
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at ea57360912ed (or later, while SlowCompositeCodecReaderWrapper.java:342 is unchanged)
+cp $REPRO/TestReorderedAddIndexesVectors.java lucene/core/src/test/org/apache/lucene/index/
+./gradlew :lucene:core:test --tests org.apache.lucene.index.TestReorderedAddIndexesVectors -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Every document keeps its own vectors: doc 0 (id 3) holds <code>[3.0, 97.0]</code>, as in the no-reorder control.</dd></div><div class='got'><dt>Observed</dt><dd><code>16 wrong</code>: doc 0 (id 3) holds id 0's vector <code>[0.0, 100.0]</code>, and so on for all 8 documents, float and byte; with id 0 deleted, live id 3 carries its vector. No exception.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-278/'>repro/LFV-278/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (182 lines) · 1,370 words</span></summary><div class='body'><p><code>TestReorderedAddIndexesVectors</code> goes into <code>lucene/core/src/test/org/apache/lucene/index/</code> (package <code>org.apache.lucene.index</code>, as Lucene's index tests are; only public API: <code>FilterMergePolicy</code>, <code class='nw'>OneMerge#reorder</code>, <code class='nw'>Sorter.DocMap</code>, <code>SortingCodecReader</code>). It pins the default codec, so every seed takes the same codec path (the test framework still randomizes the directories), and it passes the build's format and lint checks. It also runs unchanged on the 10.5.2 and 10.0.0 jars; it does not compile on 9.x, which has no <code class='nw'>KnnVectorValues</code> iterator API.</p><p>The second file is the finder's misc-module test, which adds the shipped <code>BPReorderingMergePolicy</code> (float vectors only). The third is the fix with its comment and assertion.</p><div class="hd hd-3"><h3 id='code-2-h'>The finder&#x27;s test: TestReorderedAddIndexesOfSortingReaders.java (misc module, BPReorderingMergePolicy)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The finder&#x27;s test: TestReorderedAddIndexesOfSortingReaders.java (misc module, BPReorderingMergePolicy)</span><span class='meta'>158 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.misc.index;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.concurrent.Executor;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.CodecReader;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FilterMergePolicy;
+import org.apache.lucene.index.FloatVectorValues;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.KnnVectorValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.SortingCodecReader;
+import org.apache.lucene.index.Sorter;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * SortingCodecReader&#x27;s javadoc: re-sort an index &quot;by wrapping all readers of the index with this
+ * reader and adding it to a fresh IndexWriter via IndexWriter#addIndexes(CodecReader...)&quot;. When
+ * that writer&#x27;s merge reorders documents (BPReorderingMergePolicy, or any OneMerge.reorder), the
+ * concatenated view of the input readers numbers vector ordinals by iteration position and ignores
+ * the ordinal that a SortingCodecReader&#x27;s iterator reports, so vectors end up on the wrong
+ * documents in the new index. Only public API is used.
+ */
+public class TestReorderedAddIndexesOfSortingReaders extends LuceneTestCase {
+
+  private static float[] vectorFor(int id) {
+    return new float[] {id, 100 - id};
+  }
+
+  private static Directory buildIndex(int firstId, int numDocs) throws IOException {
+    Directory dir = newDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (int id = firstId; id &lt; firstId + numDocs; id++) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;id&quot;, Integer.toString(id), Field.Store.YES));
+        doc.add(new StoredField(&quot;idnum&quot;, id));
+        doc.add(new NumericDocValuesField(&quot;rank&quot;, id));
+        doc.add(new KnnFloatVectorField(&quot;vector&quot;, vectorFor(id)));
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+    return dir;
+  }
+
+  private void addAndCheck(MergePolicy mergePolicy) throws IOException {
+    Directory a = buildIndex(0, 4);
+    Directory b = buildIndex(10, 4);
+    // re-sort each input by descending rank, as in the SortingCodecReader javadoc
+    Sort byRankDesc = new Sort(new SortField(&quot;rank&quot;, SortField.Type.LONG, true));
+    try (DirectoryReader ra = DirectoryReader.open(a);
+        DirectoryReader rb = DirectoryReader.open(b);
+        Directory target = newDirectory()) {
+      CodecReader sa = SortingCodecReader.wrap((CodecReader) ra.leaves().get(0).reader(), byRankDesc);
+      CodecReader sb = SortingCodecReader.wrap((CodecReader) rb.leaves().get(0).reader(), byRankDesc);
+      try (IndexWriter w =
+          new IndexWriter(target, new IndexWriterConfig().setMergePolicy(mergePolicy))) {
+        w.addIndexes(sa, sb);
+      }
+      try (DirectoryReader r = DirectoryReader.open(target)) {
+        assertEquals(1, r.leaves().size());
+        LeafReader leaf = r.leaves().get(0).reader();
+        StoredFields storedFields = leaf.storedFields();
+        FloatVectorValues vectors = leaf.getFloatVectorValues(&quot;vector&quot;);
+        assertEquals(8, vectors.size());
+        KnnVectorValues.DocIndexIterator it = vectors.iterator();
+        for (int doc = it.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = it.nextDoc()) {
+          int id = storedFields.document(doc).getField(&quot;idnum&quot;).numericValue().intValue();
+          float[] actual = vectors.vectorValue(it.index());
+          assertArrayEquals(
+              &quot;doc &quot; + doc + &quot; (id &quot; + id + &quot;) has vector &quot; + Arrays.toString(actual),
+              vectorFor(id),
+              actual,
+              0f);
+        }
+      }
+    } finally {
+      a.close();
+      b.close();
+    }
+  }
+
+  /** Control: without reordering, the same addIndexes call keeps every vector on its document. */
+  public void testControlWithoutReordering() throws IOException {
+    addAndCheck(new LogDocMergePolicy());
+  }
+
+  /** The stock reordering merge policy with default settings. */
+  public void testBPReorderingMergePolicy() throws IOException {
+    addAndCheck(new BPReorderingMergePolicy(new LogDocMergePolicy(), new BPIndexReorderer()));
+  }
+
+  /** Any reorder() that returns a non-null DocMap triggers it, even the identity. */
+  public void testIdentityReorder() throws IOException {
+    addAndCheck(
+        new FilterMergePolicy(new LogDocMergePolicy()) {
+          @Override
+          public MergeSpecification findMerges(CodecReader... readers) {
+            MergeSpecification spec = new MergeSpecification();
+            spec.add(
+                new OneMerge(readers) {
+                  @Override
+                  public Sorter.DocMap reorder(CodecReader reader, Directory dir, Executor ex) {
+                    final int maxDoc = reader.maxDoc();
+                    return new Sorter.DocMap() {
+                      @Override
+                      public int oldToNew(int docID) {
+                        return docID;
+                      }
+
+                      @Override
+                      public int newToOld(int docID) {
+                        return docID;
+                      }
+
+                      @Override
+                      public int size() {
+                        return maxDoc;
+                      }
+                    };
+                  }
+                });
+            return spec;
+          }
+        });
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cd $LUCENE
+cp $REPRO/TestReorderedAddIndexesOfSortingReaders.java lucene/misc/src/test/org/apache/lucene/misc/index/
+./gradlew :lucene:misc:test --tests org.apache.lucene.misc.index.TestReorderedAddIndexesOfSortingReaders -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>The fix: merged-iterator-uses-sub-index.diff</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The fix: merged-iterator-uses-sub-index.diff</span><span class='meta'>24 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java b/lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java
+index 4fdeeb3a566..8ba55769af7 100644
+--- a/lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java
++++ b/lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java
+@@ -339,7 +339,10 @@ final class SlowCompositeCodecReaderWrapper extends CodecReader {
+         if (current.sub != null) {
+           int next = currentIterator.nextDoc();
+           if (next != NO_MORE_DOCS) {
+-            ++ord;
++            // Use the sub&#x27;s own ordinal: it need not follow the doc order (a SortingCodecReader
++            // sub reports the ordinals of the reader it wraps), and vectorValue(ord) reads there.
++            ord = current.ordStart + currentIterator.index();
++            assert ord &gt;= current.ordStart &amp;&amp; ord &lt; current.ordStart + current.sub.size();
+             return doc = current.docStart + next;
+           }
+         }
+@@ -349,7 +352,6 @@ final class SlowCompositeCodecReaderWrapper extends CodecReader {
+         }
+         current = it.next();
+         currentIterator = currentIterator();
+-        ord = current.ordStart - 1;
+       }
+     }
+ 
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main ea57360912ed: affected; also the 10.5.2 and 10.0.0 release jars (fail); the finder&#x27;s test fails on all 12 releases 10.0.0-10.5.2, and a portable probe passes on 9.9.0-9.12.3</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main ea57360912ed, seed DEADBEEF (assertions off: the same failures and messages)
+TestReorderedAddIndexesVectors &gt; testIdentityReorder FAILED
+    java.lang.AssertionError: 16 wrong: [doc 0 (id 3) has the float vector of id 0, doc 1 (id 2) has the float vector of id 1, doc 2 (id 1) has the float vector of id 2, doc 3 (id 0) has the float vector of id 3, doc 4 (id 13) has the float vector of id 10, doc 5 (id 12) has the float vector of id 11, doc 6 (id 11) has the float vector of id 12, doc 7 (id 10) has the float vector of id 13, doc 0 (id 3) has the byte vector of id 0, doc 1 (id 2) has the byte vector of id 1, doc 2 (id 1) has the byte vector of id 2, doc 3 (id 0) has the byte vector of id 3, doc 4 (id 13) has the byte vector of id 10, doc 5 (id 12) has the byte vector of id 11, doc 6 (id 11) has the byte vector of id 12, doc 7 (id 10) has the byte vector of id 13]
+TestReorderedAddIndexesVectors &gt; testIdentityReorderWithDeletedDocument FAILED
+    java.lang.AssertionError: 14 wrong: [doc 0 (id 3) has the float vector of id 0, doc 1 (id 2) has the float vector of id 1, doc 2 (id 1) has the float vector of id 2, doc 3 (id 13) has the float vector of id 10, doc 4 (id 12) has the float vector of id 11, doc 5 (id 11) has the float vector of id 12, doc 6 (id 10) has the float vector of id 13, doc 0 (id 3) has the byte vector of id 0, doc 1 (id 2) has the byte vector of id 1, doc 2 (id 1) has the byte vector of id 2, doc 3 (id 13) has the byte vector of id 10, doc 4 (id 12) has the byte vector of id 11, doc 5 (id 11) has the byte vector of id 12, doc 6 (id 10) has the byte vector of id 13]
+3 tests completed, 2 failed
+
+TestReorderedAddIndexesOfSortingReaders &gt; testIdentityReorder FAILED
+    doc 0 (id 3) has vector [0.0, 100.0]: arrays first differed at element [0]; expected:&lt;3.0&gt; but was:&lt;0.0&gt;
+TestReorderedAddIndexesOfSortingReaders &gt; testBPReorderingMergePolicy FAILED
+    doc 0 (id 3) has vector [0.0, 100.0]: arrays first differed at element [0]; expected:&lt;3.0&gt; but was:&lt;0.0&gt;
+3 tests completed, 2 failed
+# (gradle prints the misc failures without the exception class, org.junit.internal.ArrayComparisonFailure)
+
+# campaign JUnit runner: main -ea / -da, 10.5.2 -ea / -da, 10.0.0 -ea: 2 of 3 fail each; 10 iterations: 20 of 30;
+# with the fix as a shadow class (-ea, -da): 3 of 3 pass</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>index()</code> must return "the value index (aka "ordinal" or "ord") corresponding to the current doc"; the merged view's <code class='nw'>index()</code> names another document's vector.</li><li>The merged view's random access is there "to support callers like SortingCodecReader", whose <code class='nw'>index()</code> "may skip around"; nothing rejects sorted inputs.</li><li>An identity reorder moves no document, yet the vectors move; 9.9.0-9.12.3 keep them in place.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>369 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>KnnVectorValues.DocIndexIterator.index()</code>: "return the value index (aka "ordinal" or "ord") corresponding to the current doc" (<code>KnnVectorValues.java:140</code>). The merged iterator's <code class='nw'>index()</code> names another document's vector.</li><li><strong>The merged view is built to serve <code>SortingCodecReader</code>.</strong> "We need to implement fully random-access API here in order to support callers like SortingCodecReader that rely on it" (<code>SlowCompositeCodecReaderWrapper.java:914-915</code>, also <code class='nw'>:1014-1015</code>, <code class='nw'>:1063-1064</code>). The caller meant is the <code>SortingCodecReader</code> wrapped around the view, as <code class='nw'>IndexWriter</code> builds it; the comment does not speak to sorted inputs of the view, but that outer reader only works if the view's ordinals match its vectors, and nothing keeps sorted readers out.</li><li><strong><code>SortingCodecReader</code> documents both its ordinals and this use.</strong> "index() may skip around, not increasing monotonically as iteration proceeds" (<code>SortingCodecReader.java:265-266</code>), and "This can be used to re-sort and index after it's been created by wrapping all readers of the index with this reader and adding it to a fresh IndexWriter via IndexWriter#addIndexes(CodecReader...)" (<code class='nw'>:48-50</code>).</li><li><strong><code class='nw'>OneMerge#reorder</code> only renumbers doc IDs.</strong> "Extend this method if you wish to renumber doc IDs. This method will be called when index sorting is disabled on a merged view of the OneMerge" (<code>MergePolicy.java:312-313</code>). An identity DocMap renumbers nothing and still moves the vectors.</li><li><strong>No precondition, no rejection.</strong> Nothing documents that <code class='nw'>addIndexes</code> inputs need positional vector ordinals; <code>validateMergeReader</code> checks an input's sort only when the writer has an index sort (<code>IndexWriter.java:3228</code>).</li><li><strong>History.</strong> #13779 (<code class='nw'>6053e1e3137</code>, 2024) added both halves in one commit; before it the merged view returned the current input's vector at the current document and 9.x <code>SortingCodecReader</code> copied vectors into the new order. None of its 37 inline review comments is on <code>SlowCompositeCodecReaderWrapper</code> or <code>SortingCodecReader</code>, and none says that an input's ordinals must be positional. The codec merge path of the same commit reads each input's <code class='nw'>index()</code> (<code>KnnVectorsWriter.java:484</code>, <code class='nw'>:643</code>).</li><li><strong>Why tests missed it.</strong> <code>TestSortingCodecReader</code> always gives the target the same index sort (no reorder); <code>TestBPReorderingMergePolicy.testReorderOnAddIndexes</code> adds plain inputs and checks stored fields, never vectors; <code>MockRandomMergePolicy</code> does not reorder addIndexes merges.</li><li><strong>Precedent.</strong> Upstream fixed other defects in this merged view as bugs (#14092) and an ordinal-tracking defect of the same kind in <code>KnnVectorsWriter.MergedByteVectorValues</code> (#14992 / #15553).</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>194 words</span></summary><div class='body'><p>The strongest "works as designed" case (the intended-behaviour check, the intended-behaviour devil's advocate, and the cross-model lenses): the merged view is package-private and "primarily targeted at merging, not searching"; <code>SortingCodecReader</code> and <code class='nw'>OneMerge#reorder</code> are <code>@lucene.experimental</code>; the two in-tree usage patterns are safe (a target with the same index sort, one reordered reader per <code class='nw'>addIndexes</code> call; executed); the trigger sorts the data twice; and <code class='nw'>++ord</code> is correct for every on-disk reader.</p><p>Why it fails: the failure happens during a merge, the use the view exists for, and the view names <code>SortingCodecReader</code> as a caller to support (as its wrapper). Experimental status allows API changes, not silently wrong data. Neither safe pattern is documented as required; <code class='nw'>addIndexes</code> is varargs, the default policy puts all inputs in one merge, <code>BPReorderingMergePolicy</code> deliberately reorders addIndexes merges, and nothing rejects or documents against the combination. An identity reorder sorts nothing and still corrupts. What remains on the other side is rarity: an unusual stack of opt-in APIs (and <code>BPReorderingMergePolicy</code> skips the reorder when its reorderer runs out of RAM) and no report since 10.0.0. The likely reply is "real, niche, fix it", not "by design"; no source supports by design.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Use each input's own ordinal in the merged iterator (validated)</strong></p><p class='short'>In <code>MergedDocIterator.nextDoc</code>, take the input's own ordinal, <code>ord = current.ordStart + currentIterator.index()</code>, instead of <code class='nw'>++ord</code>, and drop the reset on moving to the next input. With it every repro passes, and so do the default <code class='nw'>lucene/core</code> and <code class='nw'>lucene/misc</code> test tasks (with their usual skips), assertions on and off.</p><pre class='snippet' tabindex='0'><code>if (next != NO_MORE_DOCS) {
+  // Use the sub&#x27;s own ordinal: it need not follow the doc order (a SortingCodecReader
+  // sub reports the ordinals of the reader it wraps), and vectorValue(ord) reads there.
+  ord = current.ordStart + currentIterator.index();   // was: ++ord
+  assert ord &gt;= current.ordStart &amp;&amp; ord &lt; current.ordStart + current.sub.size();
+  return doc = current.docStart + next;
+}
+...
+current = it.next();
+currentIterator = currentIterator();
+// removed: ord = current.ordStart - 1;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 609 words</span></summary><div class='body'><p>One option was built and validated; the others are listed with their trade-offs.</p><div class="hd hd-3"><h3 id='fix-use-sub-index'>Use each input's own ordinal in the merged iterator (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-use-sub-index" target="_self" aria-label="Link to this section" aria-describedby="fix-use-sub-index"><span aria-hidden="true">#</span></a></div><p><code>SlowCompositeCodecReaderWrapper.MergedDocIterator.nextDoc</code>: <code>ord = current.ordStart + currentIterator.index()</code> instead of <code class='nw'>++ord</code>, and remove <code>ord = current.ordStart - 1</code> (1 changed line, 1 removed line, plus a comment and an assertion). The merged ordinal then names the same vector that the merged <code class='nw'>vectorValue(ord)</code> reads.</p><p>It stays in range: <code>Sorter.DocMap.size()</code> "must be equal to the number of documents" of the reader it sorts, so a <code>SortingCodecReader</code> input reports every ordinal of the reader it wraps and <code>ordStart + index()</code> stays inside the input's <code>[ordStart, ordStart + size())</code> slot. The added assertion checks that; it held in every run with assertions on. A DocMap that drops documents is outside that contract (flagged by the adjudication, untested); the assertion would catch it.</p><pre class='snippet' tabindex='0'><code>if (next != NO_MORE_DOCS) {
+  // Use the sub&#x27;s own ordinal: it need not follow the doc order (a SortingCodecReader
+  // sub reports the ordinals of the reader it wraps), and vectorValue(ord) reads there.
+  ord = current.ordStart + currentIterator.index();   // was: ++ord
+  assert ord &gt;= current.ordStart &amp;&amp; ord &lt; current.ordStart + current.sub.size();
+  return doc = current.docStart + next;
+}
+...
+current = it.next();
+currentIterator = currentIterator();
+// removed: ord = current.ordStart - 1;</code></pre><p class='k'>Trade-offs</p><ul><li>One <code class='nw'>index()</code> call per vector in a reordered merge, next to the vector read itself; no benchmark was run.</li><li>Plain inputs and regular merges over the built-in segment readers get the same ordinals as before (<code class='nw'>index()</code> equals the position there).</li><li>Prevents new damage only: indexes already written through this path keep the wrong vectors and must be rebuilt.</li><li>Leaves a separate question open (read, not run): with misc <code>BpVectorReorderer</code> as the reorderer, each reorder thread calls <code class='nw'>vectors.copy()</code> on the merged view (<code>BpVectorReorderer.java:110</code>, <code class='nw'>:619-624</code>), which copies every input, and <code>Sorting*VectorValues.copy()</code> throws <code>UnsupportedOperationException</code> (<code>SortingCodecReader.java:345-348</code>); its sparse-field path also counts ordinals by position (<code class='nw'>:735-770</code>). By code reading that combination ends in the exception, with or without this fix, once the merged view is large enough to be split (<code class='nw'>:208-217</code>); below that the reorder is the identity and this fix applies.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree at <code class='nw'>ea57360912ed</code> (removed afterwards): this doc's test and the finder's misc test fail 2 of 3 each on stock and pass 3 of 3 each with the fix, assertions on and off.</li><li>With the fix, the default <code class='nw'>lucene/core</code> test task (8,868 tests, 322-325 skipped) and <code class='nw'>lucene/misc</code> test task (318 tests, 9 skipped), with assertions on and off, and <code>check -x test</code> for both modules pass (0 failures).</li><li>The same patched class as a shadow class: the independent reproducer's 6 tests, the security probe's 3 and the devil's advocate's 3 reach probes pass. The finder's variant without the assertion also passed four upstream BP and wrapper test classes and fixed the bug at the introducing commit.</li></ul><div class="hd hd-3"><h3 id='fix-positional-sorting-reader'>Make SortingCodecReader expose positional ordinals (not run)</h3><a class="hlink" href="#fix-positional-sorting-reader" target="_self" aria-label="Link to this section" aria-describedby="fix-positional-sorting-reader"><span aria-hidden="true">#</span></a></div><p>Copy or remap vectors into the new order, as 9.x did.</p><p class='k'>Trade-offs</p><p>Turns a memory-light merge-only reader into one that buffers or remaps every vector, and leaves the merged view still assuming positional inputs for any future input with non-positional ordinals (for example the on-disk iterator of open PR #15430, read only). Not recommended.</p><div class="hd hd-3"><h3 id='fix-refuse-or-skip'>Refuse or skip the reorder for such inputs (not run)</h3><a class="hlink" href="#fix-refuse-or-skip" target="_self" aria-label="Link to this section" aria-describedby="fix-refuse-or-skip"><span aria-hidden="true">#</span></a></div><p>Throw in <code class='nw'>addIndexes</code>, or skip the reorder, when an input's vector ordinals are not positional.</p><p class='k'>Trade-offs</p><p>Turns silent corruption into an error or a lost reorder, but there is no cheap general way to detect non-positional ordinals, and it blocks a combination the javadocs invite. A stop-gap at most.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Out of scope of SECURITY.md: only the application's own configuration reaches this code, and SECURITY.md trusts configuration. Downstream, the effect crosses deletion and access boundaries and lasts: a filtered kNN search returned public documents at score 1.0 computed from a deleted and a private document's embeddings. Filters held; no ids or stored fields leaked.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Randomized differential testing: the finder, an AI tool, compared the merged reader view that <code class='nw'>addIndexes</code> uses for reordering against each input's own data and saw vector mismatches only when <code>SortingCodecReader</code> inputs were present. A small Z3 model then stated the hidden assumption, and a public-API JUnit confirmed it on the stock jars.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>208 words</span></summary><div class='body'><ul><li><strong>Unit and method.</strong> A hunt unit (codec-reader wrappers), 2026-10-26. The finder's randomized differential harness compared <code>SlowCompositeCodecReaderWrapper</code>'s merged view, and <code class='nw'>addIndexes</code> through it with an identity reorder, against the per-input data: 3 runs x 150 iterations with <code>SortingCodecReader</code> inputs allowed. It reported float, byte and float16 vector mismatches (for example 7 float, 41 byte and 3 float16 in one run) only in the runs with <code>SortingCodecReader</code> inputs.</li><li><strong>The model.</strong> A small Z3 model of the merged iterator stated the hidden assumption, for inputs of 2 to 4 vectors: with monotone input ordinals no document can be given another document's vector (unsat); with an arbitrary permutation, as a <code>SortingCodecReader</code> allows, one can (sat: a witness exists). The first signal was the random differential, so this counts as a non-formal find.</li><li><strong>Then.</strong> A public-API JUnit on the stock jars; a cross-model review by a reviewer from another model family (OpenAI GPT-5.6, read-only, refute and intended lenses); an independent reproducer with its own tests and a 9.x port; a GPT-5.6 root-cause adversary; an intended-behaviour devil's advocate with reach probes; an adjudication (confirmed, high); a history sweep with commit builds; a prior-report search; a security assessment and probe; a registry re-run with fresh seeds; and this doc's own test and fix validation.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-26: GitHub issues, PRs and commits, all 413 open PRs' changed files, the lucene.apache.org lists, the JIRA archive, downstream repositories and the web; 23 hits read). Not fixed upstream. Closest: open PR #16879, which reuses HNSW graphs through the same merge path but does not touch this iterator.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>Nobody has reported or discussed this bug, and no open PR changes <code>MergedDocIterator</code>. Closest items, none the same bug:</p><ul><li>#16879 (open, 0 comments): HNSW graph reuse through the same <code>SortingCodecReader</code>-over-merged-view path. It does not touch the iterator; if both land, a reused graph and the flat vectors could disagree for <code>SortingCodecReader</code> inputs (not analysed).</li><li>#13779: the PR that introduced the code.</li><li>#14092: an earlier, different defect in the same merged view, fixed as a bug.</li><li>#15430 (open, stale): an on-disk vector iterator with non-positional <code class='nw'>index()</code>; if it lands, plain <code>addIndexes(CodecReader...)</code> could hit the same assumption without any reorder (read, not executed).</li><li>#14992 / #15553: an ordinal-tracking defect of the same kind in another class, fixed.</li></ul><p>Limits: GitHub search is keyword-based and some queries needed retries after rate limiting; the downstream code searches for <code>BPReorderingMergePolicy</code> in OpenSearch, Solr and the OpenSearch k-NN plugin are unchecked; private security reports cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene)</th><td class='when'>2026-10-26</td><td>a scripted prior-report search twice (8 and 16 issue/PR queries) and own read-only searches: SortingCodecReader, BPReorderingMergePolicy, SlowCompositeCodecReaderWrapper, MergedDocIterator, addIndexes vectors wrong, vector ordinal mismatch merge, reorder addIndexes vectors</td><td>no report; closest #16879, #13779, #14092, #15430, #14992 / #15553</td></tr><tr><th scope='row'>Open PRs by changed file</th><td class='when'>2026-10-26</td><td>the file lists of all 413 open apache/lucene PRs, filtered on the defect files and their neighbours</td><td>none changes MergedDocIterator; #16847, #16879, #13342 touch the file for other reasons</td></tr><tr><th scope='row'>Commits and upstream history</th><td class='when'>2026-10-26</td><td>commit search (2 and 3 queries) and the history of the three defect files</td><td>the defect line is unchanged since 6053e1e3137 (#13779)</td></tr><tr><th scope='row'>Mailing lists (lists.apache.org)</th><td class='when'>2026-10-26</td><td>12 and 20 queries over dev@, java-user@, issues@ and commits@, plus direct searches</td><td>only PR notification mails; no report</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>2026-10-26</td><td>4 queries in each tool run</td><td>only items from before 10.0, before the code existed</td></tr><tr><th scope='row'>Downstream (Elasticsearch, OpenSearch, OpenSearch k-NN, Solr) and the web</th><td class='when'>2026-10-26</td><td>issue searches, code searches for BPReorderingMergePolicy, 4 web queries</td><td>no report; Solr makes BPReorderingMergePolicy configurable; some code searches rate-limited</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 10.0.0 by #13779 (<code class='nw'>6053e1e3137</code>, merged 2024-09-28), which added both halves: positional counting in the merged view and original-order ordinals in <code>SortingCodecReader</code>. All 12 10.x releases and main are affected; 9.9.0-9.12.3 are not. The commit and its parent were built and compared.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #13779 "First-class random access API for KnnVectorValues" (@msokolov, for issue #13778, merged 2024-09-28 as <code class='nw'>6053e1e3137</code>, milestone 10.0.0). <code>git blame</code> gives it every ordinal line of <code>MergedDocIterator</code> and <code>SortingValuesIterator</code>; <code class='nw'>branch_10_0</code> was cut after it, so 10.0.0 has the commit itself. The addIndexes reorder path that reaches the code is older: #12622 (<code class='nw'>f7cab164501</code>, @jpountz, 2023-11-23, first released in 9.9.0).</p><p>Executed: javac builds of <code class='nw'>6053e1e3137</code> fail the finder's test (assertions on and off) and a version-portable probe (assertions on); its parent <code class='nw'>7b4b0238d70</code> passes the probe (on and off); the fix applied at the commit passes both. Release branches after 10.5.2 were not run; by source inspection on 2026-10-26 the heads of main, <code class='nw'>branch_10x</code>, <code class='nw'>branch_10_6</code> and <code class='nw'>branch_10_5</code> all still have <code class='nw'>++ord</code> and the <code>ordStart - 1</code> reset.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 2 of 3 through gradle and the runner, assertions on and off; the finder's, the reproducer's and the security probe's tests fail too</td></tr><tr><th scope='row'>10.0.0 - 10.5.2 (12 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test and the portable probe fail 2 of 3 on each; this doc's test fails on 10.5.2 (-ea, -da) and 10.0.0</td></tr><tr><th scope='row'><code class='nw'>6053e1e3137</code> (#13779) vs its parent <code class='nw'>7b4b0238d70</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>the commit fails the finder's test (-ea and -da) and the probe (-ea); the parent passes the probe (-ea and -da); the commit plus the fix passes both</td></tr><tr><th scope='row'>9.9.0 - 9.12.3 (10 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the portable probe passes; its precondition shows the reorder ran over the merged view of both inputs</td></tr><tr><th scope='row'>9.8.0 and older</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not applicable</span></td><td>no addIndexes reorder hook, BPReorderingMergePolicy or merged view (the probe does not compile)</td></tr><tr><th scope='row'>fix (<code>merged-iterator-uses-sub-index.diff</code>)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>every repro passes, and so do the default <code class='nw'>lucene/core</code> test task (8,868 tests, 322-325 skipped) and <code class='nw'>lucene/misc</code> test task (318 tests, 9 skipped), with assertions on and off, and <code>check -x test</code> for both modules</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder, an independent reproducer, an intended-behaviour devil's advocate and an adjudication say real (adjudication: confirmed, high). A read-only reviewer from another model family agreed with the root cause in all lenses; its "not real" and "uncertain" verdicts were procedural. A security assessment and the strict re-evaluation of 2026-10-27 rate it out of scope of SECURITY.md; a fresh-seed re-run reproduced it.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>278 words</span></summary><div class='body'><p>Every check ran on main <code class='nw'>ea57360912ed</code> unless noted.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder (a hunt unit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-API misc JUnit fails 2 of 3 on main (-ea, -da), 10.5.2 and 10.0.0; passes with the fix, as do four upstream BP and wrapper test classes.</td></tr><tr><th scope='row'>Cross-model review (OpenAI GPT-5.6, read-only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> refute lens: not real (low, procedural); intended lens: real (medium)</span></td><td>Could not run Java; agreed with the root cause, rated the inputs in contract and the works-as-designed argument weak. A separate run re-ran the repro each time (2 of 3 fail).</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 6-test JUnit fails 3 of 6 on main (-ea, -da), 10.5.2 and 10.0.0 with 3 controls passing; own misc test with BPReorderingMergePolicy fails; a 9.x port passes on 9.12.3; own fix passes.</td></tr><tr><th scope='row'>Root-cause adversary (OpenAI GPT-5.6, read-only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> uncertain (medium), procedural</span></td><td>Agreed with the root cause; inputs in contract; works-as-designed case weak.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the strongest by-design case and showed why it fails; the two in-tree usage patterns are safe; two BPIndexReorderer outputs with no Sort fail on main and 10.5.2.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high), data corruption</span></td><td>Re-ran the independent reproduction's tests, the independent reproduction's misc test, the finder's repro and the independent reproduction's fix; flagged the DocMap-that-drops-documents edge for the patch.</td></tr><tr><th scope='row'>Security assessment</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> out of scope of SECURITY.md</span></td><td>Probe: a deleted and a private document's vectors on public documents, filtered kNN at score 1.0, CheckIndex clean; passes with the fix.</td></tr><tr><th scope='row'>Registry re-run (fresh seeds)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced</span></td><td>Finder's test and the independent reproduction's test fail with -ea and -da, the security probe with -da; all pass with the fix.</td></tr></tbody></table></div></div></details></div></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources and repro files</span><span class='n'>1,581 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-278, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>SlowCompositeCodecReaderWrapper's merged vector iterator numbers ordinals by position and ignores each input's own index(), so addIndexes of two or more SortingCodecReader inputs through a reordering merge policy writes vectors onto the wrong documents</dd></div><div><dt>Area</dt><dd>index / addIndexes reorder path: SlowCompositeCodecReaderWrapper merged vector values (MergedDocIterator) over SortingCodecReader inputs</dd></div><div><dt>Priority</dt><dd>Medium, rank 82: Vectors silently land on the wrong document, CheckIndex does not catch it, and it is released since 10.0, but it needs a rare opt-in SortingCodecReader and reordering-merge mix, so it is the last released row before the unreleased rows.</dd></div><div><dt>Impact class</dt><dd>data corruption</dd></div><div><dt>Impact note</dt><dd>Applications on 10.0.0 through 10.5.2 or main that call IndexWriter.addIndexes(CodecReader...) with two or more SortingCodecReader inputs (re-sorted by a Sort or by a BPIndexReorderer DocMap) into a writer with no index sort whose merge policy reorders addIndexes merges (misc BPReorderingMergePolicy, or any custom OneMerge#reorder, even an identity one) silently get float and byte vectors (and, on main, float16 vectors) persisted on other documents of the same input, so kNN search on the new index ranks documents by other documents' embeddings until the segment is rebuilt; nothing throws with -ea or -da and CheckIndex reports the index clean; every piece is opt-in and experimental, no scale is needed, and regular segment merges (by code reading) and the two documented recipes (a target with the same index sort, or one reordered reader per addIndexes call; executed) are not affected.</dd></div><div><dt>Summary</dt><dd>You re-sort two or more segments with SortingCodecReader and pass them to one IndexWriter.addIndexes(CodecReader...) call on a writer that has no index sort but uses a merge policy that reorders addIndexes merges, such as BPReorderingMergePolicy (an identity OneMerge#reorder is enough), and you expect every document to keep the vector it was indexed with, as it does without the reorder. Instead the merged view that IndexWriter builds for the reorder (SlowCompositeCodecReaderWrapper) numbers vectors by iteration position, while each SortingCodecReader input reports and reads vectors by its original ordinal, so in each input the k-th document in sorted order is written with the vector at original ordinal k. Nothing throws, with or without assertions, CheckIndex reports the new index clean, and kNN search then scores documents by other documents' vectors, in an executed probe including the vector of a document deleted before the call.</dd></div><div><dt>Introduced</dt><dd>6053e1e31378378f6d310a05ea6d7dcdfc45f48b (apache/lucene#13779 'First-class random access API for KnnVectorValues', msokolov, for issue #13778) [exec: javac source builds of this commit fail the finder repro and the version-portable probe with -ea and -da, its parent 7b4b0238d70 passes the probe, and the one-line fix applied at the commit passes both; read: git log -L over MergedDocIterator lists only f7cab164501 and this commit, and git blame attributes '++ord', 'ord = current.ordStart - 1', the merged vectorValue(ord) bodies and SortingCodecReader.SortingValuesIterator (index() returns docToOrd, javadoc 'may skip around') to it]. The one commit added both halves: positional ordinal counting in the merged view and non-positional ordinals in SortingCodecReader; before it the merged view returned the current input's vector at the current document and SortingCodecReader copied vectors into new-document order. The addIndexes reorder path that reaches the code is older: f7cab164501 (#12622, jpountz, 2023-11-23, first released in 9.9.0) (2024-09-28)</dd></div><div><dt>First affected version</dt><dd>10.0.0 [exec] (tagged 2024-10-14; branch_10_0 was cut from main after the commit, merge-base 22ac47c07ad, so 10.0.0 has the commit itself, not a backport)</dd></div><div><dt>Affected versions</dt><dd>all 12 10.x releases (10.0.0, 10.1.0, 10.2.0, 10.2.1, 10.2.2, 10.3.0, 10.3.1, 10.3.2, 10.4.0, 10.5.0, 10.5.1, 10.5.2) and main ea57360912ed [exec: the finder repro and the portable probe fail 3 run / 2 failed on each, 10.5.2 and main also with -da; the independent reproduction's test fails on main, 10.5.2 and 10.0.0]; not affected: the ten releases 9.9.0 to 9.12.3 and the parent commit 7b4b0238d70 [exec: the portable probe passes and its non-vacuity check shows the reorder ran over the merged view of both inputs; the independent reproduction's 9.x port passes on 9.12.3]; not applicable: 9.8.0 and older, which have no reorder hook, BPReorderingMergePolicy or SlowCompositeCodecReaderWrapper [exec: the probe does not compile on 9.8.0]; float16 vectors exist only on main (#16383) and mismatched there in the finder's differential sweep [exec]; not fixed on main; release branches after 10.5.2 (for example branch_10_6) were not checked</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, the prior-report record plus the finder's run: the scripted prior-report search twice (run 1: 8 GitHub, 2 commit, 12 list and 4 JIRA queries, 3920 hits, 1 high and 11 medium overlap; run 2: 45 queries, 16 GitHub, 3 commit, 2 downstream, 20 list over dev@, java-user@, issues@ and commits@, 4 JIRA, 322 hits, 0 high and 8 medium overlap), own read-only gh searches in apache/lucene and in downstream repositories (Elasticsearch, OpenSearch, the OpenSearch k-NN plugin, Solr), the changed files of all 413 open apache/lucene PRs, the upstream commit history of the three defect files, direct lists.apache.org searches and 4 web queries; 23 hits read, none the same bug); not fixed upstream (main ea57360912ed, the upstream HEAD at search time, still has '++ord' in MergedDocIterator.nextDoc, and no open PR changes it); closest items, not reports: #16879 (open, 0 comments; HNSW graph reuse through the same SortingCodecReader-over-merged-view path, does not touch MergedDocIterator), #13779 (the introducing PR), #14092 (an earlier, different defect in the same merged vector view, fixed as a bug), #15430 (open, stale since 2025-12; adds an on-disk vector iterator with non-positional index(), which could widen the trigger if it lands; read, not executed) and #14992 / #15553 (an ordinal-tracking defect of the same class in KnnVectorsWriter.MergedByteVectorValues, fixed)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>ea57360912ed</code> (commit of 2026-10-24; tested 2026-10-26): this doc's test through gradle in a scratch worktree (stock fails 2 of 3 with assertions on and off; with the fix it passes, and so do the default <code class='nw'>lucene/core</code> test task (8,868 tests, 322-325 skipped) and <code class='nw'>lucene/misc</code> test task (318 tests, 9 skipped), with assertions on and off, and <code>check -x test</code> for both modules; the worktree was removed afterwards) and through the hunt's JUnit runner on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>, 10 iterations) and on the Maven Central jars of 10.5.2 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>) and 10.0.0; the finder's test on every 10.x release and a version-portable probe on every release 9.9.0-10.5.2 (fail from 10.0.0) and on javac builds of the introducing commit <code class='nw'>6053e1e3137</code> and its parent <code class='nw'>7b4b0238d70</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java:45-56 (at ea57360912ed) (class javadoc &#x27;targeted at merging, not searching&#x27;; wrap() returns a single reader unchanged), :331-354 (MergedDocIterator: index() returns ord; nextDoc &#x27;++ord&#x27; at :342, &#x27;ord = current.ordStart - 1&#x27; on a sub switch at :352), :826-840 (ordStart = running sum of earlier subs&#x27; vector counts), :912-920, :1011-1019, :1060-1069 (float, float16 and byte vectorValue(ord) -&gt; sub.vectorValue(ord - ordStart), with the comment &#x27;to support callers like SortingCodecReader that rely on it&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SortingCodecReader.java:47-54 (at ea57360912ed) (class javadoc: re-sort by wrapping all readers and IndexWriter#addIndexes(CodecReader...); @lucene.experimental), :265-267 (SortingValuesIterator javadoc &#x27;index() may skip around, not increasing monotonically&#x27;), :287-290 (index() returns docToOrd[doc] at :289), :323-326 (vectorValue: &#x27;ords are interpreted in the delegate&#x27;s ord-space&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3548-3565 (at ea57360912ed) (addIndexesReaderMerge: no reorder with an index sort; otherwise SlowCompositeCodecReaderWrapper.wrap(readers), merge.reorder(...) and SortingCodecReader.wrap(mergedReader, docMap, null))</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/KnnVectorValues.java:136-141 (at ea57360912ed) (DocIndexIterator.index(): &#x27;the value index (aka &quot;ordinal&quot; or &quot;ord&quot;) corresponding to the current doc&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/MergePolicy.java:627-631 (at ea57360912ed) (findMerges(CodecReader...) puts all inputs in one OneMerge) and :304 (wrapForMerge may not reorder); lucene/misc/src/java/org/apache/lucene/misc/index/BPReorderingMergePolicy.java:199-202 (&#x27;addIndexes is considered a forced merge&#x27;, reorders it); lucene/core/src/java/org/apache/lucene/codecs/KnnVectorsWriter.java:484 and :643 (the codec merge path reads current.values.vectorValue(current.index()), the correct pattern)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java:49-58, (at ea57360912ed) :331-354 (MergedDocIterator; &#x27;++ord&#x27; :342, reset :352), :824-840 (ordStart), :912-920, :1011-1019, :1060-1069 (vectorValue(ord - ordStart); comment :914-915)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SortingCodecReader.java:47-54 (at ea57360912ed) (class javadoc), :244-261 (docToOrd), :265-290 (SortingValuesIterator, index() :287-290), :323-326 (delegate ord-space)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3548-3565 (at ea57360912ed) (addIndexesReaderMerge reorder path)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/KnnVectorValues.java:136-141 (at ea57360912ed) (DocIndexIterator.index())</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/KnnVectorsWriter.java:484, (at ea57360912ed) :643 (vectorValue(current.index()); :582 is the float16 path, added later by #16383), :76-107 (mergeOneField writes vectorValue(iter.index()))</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SegmentMerger.java:271-276 (at ea57360912ed) (vectors merged by the codec&#x27;s KnnVectorsWriter)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/MergePolicy.java:301-309 (at ea57360912ed) (wrapForMerge may not reorder), :311-327 (OneMerge#reorder, @lucene.experimental :323), :627-631 (findMerges(CodecReader...) puts all inputs in one OneMerge)</code></li><li><code>lucene/misc/src/java/org/apache/lucene/misc/index/BPReorderingMergePolicy.java:199-202 (at ea57360912ed) (&#x27;addIndexes is considered a forced merge&#x27;), :103-105 and :136 (at least one live document), :139 and javadoc :35-38 (skips the reorder on NotEnoughRAMException)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3548-3560 (at ea57360912ed) (no reorder with an index sort, or with document blocks but no parent field)</code></li><li><code>lucene/misc/src/java/org/apache/lucene/misc/index/BPIndexReorderer.java:838-841 (at ea57360912ed) (reorder returns SortingCodecReader.wrap(reader, docMap, null))</code></li><li><code>lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java:684-697 (at ea57360912ed) (one SortingCodecReader per addIndexes call)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/KnnVectorValues.java:140 (at ea57360912ed)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java:44-47 (at ea57360912ed) (class javadoc), :914-915, :1014-1015, :1063-1064</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/SortingCodecReader.java:47-54, (at ea57360912ed) :265-266</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/MergePolicy.java:312-313, (at ea57360912ed) :323</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3228 (at ea57360912ed) (validateMergeReader)</code></li><li><code>lucene/core/src/test/org/apache/lucene/index/TestSortingCodecReader.java:122, (at ea57360912ed) :227; lucene/misc/src/test/org/apache/lucene/misc/index/TestBPReorderingMergePolicy.java:146-246; lucene/test-framework/src/java/org/apache/lucene/tests/index/MockRandomMergePolicy.java (no findMerges(CodecReader...) override)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/Sorter.java:61-66 (at ea57360912ed) (DocMap.size() must equal maxDoc), :70-75 (isConsistent)</code></li><li><code>lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java:101-113, (at ea57360912ed) :208-217, :619-624 (per-thread vectors.copy() once a partition is split), :735-770 (valueMapToDocMap); lucene/core/src/java/org/apache/lucene/index/SortingCodecReader.java:345-348, (at ea57360912ed) :392-395, :435-438 (copy() throws); SlowCompositeCodecReaderWrapper.java:903-909 (merged copy() copies each input)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestReorderedAddIndexesVectors.java (JUnit for Lucene&#x27;s core tests, 3 tests): <a href='../repro/LFV-278/TestReorderedAddIndexesVectors.java'><code>repro/LFV-278/TestReorderedAddIndexesVectors.java</code></a> (179 lines)</li><li>The finder&#x27;s test: TestReorderedAddIndexesOfSortingReaders.java (misc module, BPReorderingMergePolicy): <a href='../repro/LFV-278/TestReorderedAddIndexesOfSortingReaders.java'><code>repro/LFV-278/TestReorderedAddIndexesOfSortingReaders.java</code></a> (158 lines)</li><li>The fix: merged-iterator-uses-sub-index.diff: <a href='../repro/LFV-278/merged-iterator-uses-sub-index.diff'><code>repro/LFV-278/merged-iterator-uses-sub-index.diff</code></a> (24 lines)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

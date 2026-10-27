@@ -1,0 +1,1215 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Multi-valued range facet counts drop values that do not arrive in ascending order</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-303 &middot; facet-range-counter-assumes-ascending-multivalues</p><h1 id='top'>Multi-valued range facet counts drop values that do not arrive in ascending order</h1><p class='tldr'>Lucene's range facet counter assumes a document's values arrive smallest first and skips any later value at or below what it already counted. A document whose distances arrive as 3.0 km, then 0.5 km, is missing from "&lt; 1 km" and "&lt; 2 km", though their drill-down queries find it.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 168</span><span class='sub'>Multi-valued range facet counts come out silently too low for the javadoc&#x27;s own distance-source use case, which is more plausible than the fastMatchQuery trigger.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>8.10.0 (2021), LUCENE-9946 (#127); custom sources since 9.1.0 (#543)<span class='sub'>introduced 2021-05-30 &middot; about 5 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>every release from 8.10.0 to 10.5.2, and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>Z3 SMT model of the range counter (semi-formal)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>A range facet counts, per range, the documents with at least one value in it. For a multi-valued document, <code>LongRangeCounter.addMultiValued</code> keeps the highest interval it has counted and returns early for any later value at or below it. That is only right when values arrive in ascending order, which nothing guarantees.</p><figure class='visual' id='facet-range-counter-assumes-ascending-multivalues-short-visual'><div class='frame'><a class='still' href='../assets/LFV-303/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-303/bug.png' alt='Summary card: a number line split into the elementary intervals E0 to E4 of the ranges &lt; 1 km, &lt; 2 km and &lt; 5 km. The document&#x27;s first value, 3.0, marks E3 and sets lastSeen to 3; the second value, 0.5, is at or below boundaries[3], so addMultiValued returns and E1 is never marked. Expected counts (each range&#x27;s drill-down): 1, 1, 1; actual getAllChildren on main: 0, 0, 1.' width='1920' height='1080'></a></div><figcaption>One document's distances, 3.0 km then 0.5 km, through the range counter: 3.0 marks the interval [2, 5), 0.5 is at or below that interval's top and is skipped, so "&lt; 1 km" and "&lt; 2 km" end at 0 while their drill-downs find the document. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You count distance ranges "&lt; 1 km", "&lt; 2 km" and "&lt; 5 km" with <code>DoubleRangeFacetCounts</code>. A document has two locations, so your own <code>MultiDoubleValuesSource</code> returns two distances in storage order: 3.0 km, then 0.5 km.</span></li><li><span>You expect the document in all three ranges, counts 1, 1, 1: each range's drill-down query (<code>DoubleRange.getQuery</code>) matches it.</span></li><li><span>You get 0, 0, 1. The counter put 3.0 in the interval [2, 5) and then skips every later value at or below that interval's top, so 0.5 is never placed.</span></li><li><span>At scale, 1,000 documents with two random distances in 0-10 km give 85, 180, 494 instead of 154, 325, 740. Lucene's own <code class='nw'>fromDoubleField</code> and the <code>DoubleRangeFacetCounts(String, ...)</code> constructor can do the same for raw-bit doubles with two negative values: -1.0 arrives before -5.0, and -5.0 is skipped.</span></li><li><span>No error: counts and the total are only ever too low. Every release from 8.10.0 to 10.5.2 is affected; ascending inputs such as long fields are not.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that range-facet multi-valued numbers whose values are not ascending: a custom <code>MultiDoubleValuesSource</code> or <code>MultiLongValuesSource</code>, such as distances to a document's several locations; raw-bit doubles or floats with two or more negative values per document; or <code class='nw'>fromField</code> with a decreasing decoder. Default settings, every release since 8.10.0. Long fields are not affected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>891 words</span></summary><div class='body'><p><code>LongRangeFacetCounts</code> and <code>DoubleRangeFacetCounts</code> count, for each range, the documents that have at least one value in it. For a document with several values, <code>LongRangeCounter.addMultiValued</code> remembers the highest elementary interval it has counted for that document and returns early for any later value at or below that interval's upper end; its field comment states the assumption, "this takes advantage of the fact that values within a given doc are sorted". Nothing guarantees that order: <code>MultiLongValues.nextValue</code> and <code>MultiDoubleValues.nextValue</code> promise none, so a custom source such as the distances from the user to each of a document's locations (the use case both class javadocs name) is counted in delivery order, and Lucene's own <code class='nw'>fromDoubleField</code> and the <code>DoubleRangeFacetCounts(String, ...)</code> constructor read raw-bit doubles in signed-long order, which reverses negative values: two different negative values in one document reach the counter in descending order. A document with distances 3.0 km and 0.5 km is counted under "&lt; 5 km" but not under "&lt; 1 km" or "&lt; 2 km", although those ranges' drill-down queries find it; across 1,000 such documents the counts are 85, 180, 494 instead of 154, 325, 740. Counts and <code>FacetResult.value</code> are only ever too low, and nothing fails. Every release from 8.10.0 to 10.5.2, and main, is affected.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Range facet counts.</strong> <code>LongRangeFacetCounts</code> and <code>DoubleRangeFacetCounts</code> count, for each requested range, the documents that have at least one value in it; the result's value (<code>FacetResult.value</code>) is the number of documents that hit any range. Doubles are mapped to sortable longs, so both classes share one counter, <code class='nw'>LongRangeCounter</code>.</li><li><strong>Elementary intervals.</strong> The counter cuts the number line at the range bounds; <code class='nw'>boundaries()</code> holds each interval's inclusive upper end, the last one <code class='nw'>Long.MAX_VALUE</code> (<code>range/LongRangeCounter.java:90-92</code>, <code class='nw'>:169-170</code>). For "&lt; 1 km", "&lt; 2 km", "&lt; 5 km": E0 below 0, E1 [0, 1), E2 [1, 2), E3 [2, 5), E4 [5, +inf). Non-overlapping ranges use <code>ExclusiveLongRangeCounter</code>, overlapping ones <code>OverlappingLongRangeCounter</code> (<code class='nw'>:52-58</code>).</li><li><strong>Multi-valued sources.</strong> <code>MultiLongValues.nextValue()</code> and <code>MultiDoubleValues.nextValue()</code>: "Iterates to the next value in the current document", with no ordering (<code>MultiLongValues.java:42-46</code>, <code>MultiDoubleValues.java:42-46</code>). Custom sources are the stated purpose of #543 (9.1.0).</li><li><strong>Raw-bit doubles.</strong> <code>SortedNumericDocValuesField(Double.doubleToRawLongBits(v))</code>, the encoding <code class='nw'>fromDoubleField</code> decodes (<code>Double::longBitsToDouble</code>, <code>MultiDoubleValuesSource.java:80-83</code>) and the <code>DoubleRangeFacetCounts(String, ...)</code> constructor documents ("assumes that the field was indexed with DoubleDocValuesField", <code>range/DoubleRangeFacetCounts.java:53-56</code>). <code class='nw'>SortedNumeric</code> returns the longs in signed order, and for negative doubles the raw bits sort in reverse: <code>0xBFF0000000000000</code> (-1.0) is below <code>0xC014000000000000</code> (-5.0).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>For a document with more than one value the callers call <code>startMultiValuedDoc()</code>, <code>addMultiValued(v)</code> for each value, then <code>endMultiValuedDoc()</code> (<code>range/LongRangeFacetCounts.java:200-212</code>, <code>range/DoubleRangeFacetCounts.java:227-239</code>, <code>range/RangeFacetCounts.java:169-181</code>). Only a document for which <code>endMultiValuedDoc()</code> returns true is added to the total (<code>RangeFacetCounts.java:179-181</code>, <code class='nw'>:213</code>).</li><li><code class='nw'>addMultiValued</code> (<code>range/LongRangeCounter.java:116-161</code>) keeps <code>multiValuedDocLastSeenElementaryInterval</code>, reset to -1 per document (<code class='nw'>:66-68</code>). If it is set and <code>v &lt;= boundaries[lastSeen]</code>, it returns at once (<code class='nw'>:125-130</code>); otherwise it binary-searches only the intervals above <code class='nw'>lastSeen</code> (<code class='nw'>:139-160</code>). The field comment: "this takes advantage of the fact that values within a given doc are sorted" (<code class='nw'>:45-49</code>).</li><li>Distances 3.0, then 0.5: 3.0 lands in E3 and <code class='nw'>lastSeen</code> becomes 3; 0.5 is <code>&lt;= boundaries[3]</code> (just below 5.0), so the method returns. E1 is never marked: "&lt; 1 km" and "&lt; 2 km" get 0.</li><li>If the first value lies above every range (<code>{500, 5}</code> with <code>[0, 10)</code>, <code>[10, 100)</code>), <code class='nw'>lastSeen</code> is the last interval, every later value is skipped, and the document also drops out of the total.</li><li>Raw-bit doubles with the sign bit set come in reverse order through <code class='nw'>fromDoubleField</code> and through the field constructor, which maps with <code>NumericUtils.sortableDoubleBits</code> (<code>range/DoubleRangeFacetCounts.java:272-275</code>): two different negative values arrive descending, and so do -0.0 and a negative value. An out-of-order value is lost only when it falls in a lower elementary interval than one already counted (raw <code>{-5.0, -6.0}</code> with <code>[-10, -2]</code>, <code>[-2, 0]</code>, both in one interval, is counted right). Without -0.0 or NaN, a document with at most one negative value arrives ascending and is counted right. One more edge: through <code class='nw'>fromDoubleField</code>, a NaN with the sign bit set arrives first but maps above every finite value, so the next value is skipped (executed: <code>{NaN, 5.0}</code> in <code>[0, 10]</code> counts 0, total 0).</li><li>Both counters lose the skipped values. The exclusive one relies on the shortcut to count each interval at most once per document ("We can do this without fear of double-counting since we know the requested ranges don't overlap", <code>range/ExclusiveLongRangeCounter.java:122-132</code>).</li><li>Counts can only go down: a value that is searched always lands in its true interval, and no interval is counted twice for one document.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>One document per test: distances 3.0, 0.5 give <code>[0, 0, 1]</code> instead of <code>[1, 1, 1]</code>; longs <code>{30, 5}</code> with <code>[0, 10)</code>, <code>[10, 100)</code> give <code>[0, 1]</code> instead of <code>[1, 1]</code>; <code>{500, 5}</code> gives <code>[0, 0]</code> and total 0 instead of <code>[1, 0]</code> and total 1; raw-bit <code>{-1.0, -5.0}</code> with <code>[-10, -2]</code>, <code>[-2, 0]</code> gives <code>[0, 1]</code> instead of <code>[1, 1]</code>, through <code class='nw'>fromDoubleField</code> and through the field constructor. 1,000 documents with two random distances in [0, 10) km: <code>[85, 180, 494]</code>, total 494, against drill-down <code>[154, 325, 740]</code>. Two random raw-bit temperatures in [-20, 20): <code>[-20, -10)</code> counts 271, drill-down 390.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>362 words</span></summary><div class='body'><ul><li><strong>Custom sources.</strong> Both class javadocs name per-request values such as "distance from the user's location, '&lt; 1 km', '&lt; 2 km', etc." (<code>range/DoubleRangeFacetCounts.java:36-39</code>, <code>range/LongRangeFacetCounts.java:33-37</code>), and #543 says "This change allows users to provide custom multi-valued 'value sources' for numeric faceting". Such a source returns one value per location in whatever order it computes them; nothing asks it to sort them.</li><li><strong>Raw-bit doubles.</strong> The field constructor documents the raw-bit encoding (<code>DoubleDocValuesField</code> encodes "via Double#doubleToRawLongBits"), <code class='nw'>fromDoubleField</code> decodes it, the <code>MultiLongValuesSource</code> javadoc recommends <code>fromDoubleField(f).toMultiLongValuesSource()</code> for double fields, and upstream's own multi-valued tests index the IEEE bits (<code class='nw'>doubleToLongBits</code> / <code>doubleToRawLongBits</code>, the same bits for non-NaN values) with values in [0, 1) only. A document with two or more different negative values (western longitudes, sub-zero temperatures) reaches the counter in descending order and loses a later value that falls in a lower elementary interval; -0.0 next to a negative value does the same. <code class='nw'>fromFloatField</code> over raw float bits behaves the same.</li><li><strong>Not affected</strong> (executed controls): long fields through <code class='nw'>fromLongField</code>/<code class='nw'>fromIntField</code>; <code class='nw'>DoubleField</code> (sortable encoding) read with <code>fromField(f, NumericUtils::sortableLongToDouble)</code>; raw-bit documents with at most one negative value and no -0.0 or NaN; single-valued documents; ascending custom sources.</li><li><strong>Default vs opt-in.</strong> Default codec, <code>IndexWriterConfig</code> and searcher; no setting. But each trigger needs a less common API shape: an <code>@lucene.experimental</code> custom source, hand-encoded raw-bit multi-valued doubles, or a decreasing decoder.</li><li><strong>Effect.</strong> Per-range counts and <code>FacetResult.value</code> are silently too low and disagree with the range's drill-down; a document whose first value lies above every range vanishes from all of them. Never too high, no error, nothing written to the index. With 1,000 documents and two random distances each, one third of the documents are missing from "&lt; 5 km" (494 of 740).</li><li><strong>Likelihood.</strong> Plausible: wrong on every affected document, but these paths are uncommon, upstream tests never deliver unordered values, and no public report was found in the recorded searches, although the code has shipped since 8.10.0 (2021).</li><li><strong>Same assumption elsewhere.</strong> <code>LongValueFacetCounts</code> de-duplicates a document's values only against the previous value, so a source that returns 5, 3, 5 counts 5 twice for one document (tracked with this bug; needs its own change).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit class for <code class='nw'>lucene/facet</code>, public API only, one document per test. Each range's facet count is compared with the drill-down count of the same range, and the result's total with 1. Five tests fail on main and 10.5.2, with assertions on and off; the ascending-order control passes.</p><figure class='code'><figcaption><span class='fname'>TestRangeFacetMultiValuedOrder.java (lucene/facet, public API)</span><span class='meta'>319 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet.range;
+
+import java.io.IOException;
+import java.util.Arrays;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.facet.FacetResult;
+import org.apache.lucene.facet.Facets;
+import org.apache.lucene.facet.FacetsCollector;
+import org.apache.lucene.facet.FacetsCollectorManager;
+import org.apache.lucene.facet.MultiDoubleValues;
+import org.apache.lucene.facet.MultiDoubleValuesSource;
+import org.apache.lucene.facet.MultiLongValues;
+import org.apache.lucene.facet.MultiLongValuesSource;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Multi-valued range facet counts must not depend on the order in which a document&#x27;s values arrive:
+ * a range counts every document with at least one value in it, which is exactly what the range&#x27;s
+ * own drill-down query matches. MultiLongValues and MultiDoubleValues promise no order.
+ *
+ * &lt;p&gt;Every test indexes one document and compares each range&#x27;s facet count, and the result&#x27;s total,
+ * with the drill-down count of the same range over the same values.
+ */
+public class TestRangeFacetMultiValuedOrder extends LuceneTestCase {
+
+  private static final LongRange[] LONG_RANGES = {
+    new LongRange(&quot;[0, 10)&quot;, 0, true, 10, false), new LongRange(&quot;[10, 100)&quot;, 10, true, 100, false)
+  };
+
+  private static final DoubleRange[] DISTANCE_RANGES = {
+    new DoubleRange(&quot;&lt; 1 km&quot;, 0.0, true, 1.0, false),
+    new DoubleRange(&quot;&lt; 2 km&quot;, 0.0, true, 2.0, false),
+    new DoubleRange(&quot;&lt; 5 km&quot;, 0.0, true, 5.0, false)
+  };
+
+  private static final DoubleRange[] NEGATIVE_RANGES = {
+    new DoubleRange(&quot;[-10, -2]&quot;, -10.0, true, -2.0, true),
+    new DoubleRange(&quot;[-2, 0]&quot;, -2.0, true, 0.0, true)
+  };
+
+  /** A document with two locations, 3.0 km and 0.5 km from the user (overlapping ranges). */
+  public void testDistancesFromCustomSource() throws Exception {
+    MultiDoubleValuesSource distances = new FixedDoubles(3.0, 0.5);
+    try (Directory dir = newDirectory()) {
+      index(dir, new Document());
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        Facets facets = new DoubleRangeFacetCounts(&quot;d&quot;, distances, hits(s), DISTANCE_RANGES);
+        assertCounts(s, facets, &quot;d&quot;, drillDowns(DISTANCE_RANGES, distances), new int[] {1, 1, 1});
+      }
+    }
+  }
+
+  /** Custom long values {30, 5} with non-overlapping ranges: no floating point, no encoding. */
+  public void testLongValuesFromCustomSource() throws Exception {
+    MultiLongValuesSource values = new FixedLongs(30, 5);
+    try (Directory dir = newDirectory()) {
+      index(dir, new Document());
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        Facets facets = new LongRangeFacetCounts(&quot;x&quot;, values, hits(s), LONG_RANGES);
+        assertCounts(s, facets, &quot;x&quot;, drillDowns(LONG_RANGES, values), new int[] {1, 1});
+      }
+    }
+  }
+
+  /** Values {500, 5}: 5 is in [0, 10), 500 in no range. The document drops out of the total. */
+  public void testDocumentDropsOutOfTotal() throws Exception {
+    MultiLongValuesSource values = new FixedLongs(500, 5);
+    try (Directory dir = newDirectory()) {
+      index(dir, new Document());
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        Facets facets = new LongRangeFacetCounts(&quot;x&quot;, values, hits(s), LONG_RANGES);
+        assertCounts(s, facets, &quot;x&quot;, drillDowns(LONG_RANGES, values), new int[] {1, 0});
+      }
+    }
+  }
+
+  /**
+   * Doubles -1.0 and -5.0 indexed as raw bits (the DoubleDocValuesField encoding, which
+   * fromDoubleField decodes). SortedNumeric sorts the raw bits as signed longs, which returns -1.0
+   * before -5.0.
+   */
+  public void testRawBitDoublesFromDoubleField() throws Exception {
+    MultiDoubleValuesSource source = MultiDoubleValuesSource.fromDoubleField(&quot;f&quot;);
+    try (Directory dir = newDirectory()) {
+      index(dir, rawBitDoubles(-1.0, -5.0));
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        Facets facets = new DoubleRangeFacetCounts(&quot;f&quot;, source, hits(s), NEGATIVE_RANGES);
+        assertCounts(s, facets, &quot;f&quot;, drillDowns(NEGATIVE_RANGES, source), new int[] {1, 1});
+      }
+    }
+  }
+
+  /** The same document through the constructor that reads the field itself. */
+  public void testRawBitDoublesFieldConstructor() throws Exception {
+    MultiDoubleValuesSource source = MultiDoubleValuesSource.fromDoubleField(&quot;f&quot;);
+    try (Directory dir = newDirectory()) {
+      index(dir, rawBitDoubles(-1.0, -5.0));
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        Facets facets = new DoubleRangeFacetCounts(&quot;f&quot;, hits(s), NEGATIVE_RANGES);
+        assertCounts(s, facets, &quot;f&quot;, drillDowns(NEGATIVE_RANGES, source), new int[] {1, 1});
+      }
+    }
+  }
+
+  /** Control: the same values in ascending order are counted correctly today. */
+  public void testAscendingOrderControl() throws Exception {
+    MultiDoubleValuesSource distances = new FixedDoubles(0.5, 3.0);
+    MultiLongValuesSource values = new FixedLongs(5, 30);
+    try (Directory dir = newDirectory()) {
+      index(dir, rawBitDoubles(-5.0, 0.0)); // one negative value: delivered ascending
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        FacetsCollector fc = hits(s);
+        assertCounts(
+            s,
+            new DoubleRangeFacetCounts(&quot;d&quot;, distances, fc, DISTANCE_RANGES),
+            &quot;d&quot;,
+            drillDowns(DISTANCE_RANGES, distances),
+            new int[] {1, 1, 1});
+        assertCounts(
+            s,
+            new LongRangeFacetCounts(&quot;x&quot;, values, fc, LONG_RANGES),
+            &quot;x&quot;,
+            drillDowns(LONG_RANGES, values),
+            new int[] {1, 1});
+        assertCounts(
+            s,
+            new DoubleRangeFacetCounts(&quot;f&quot;, fc, NEGATIVE_RANGES),
+            &quot;f&quot;,
+            drillDowns(NEGATIVE_RANGES, MultiDoubleValuesSource.fromDoubleField(&quot;f&quot;)),
+            new int[] {1, 1});
+      }
+    }
+  }
+
+  private static void index(Directory dir, Document doc) throws IOException {
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      w.addDocument(doc);
+    }
+  }
+
+  private static Document rawBitDoubles(double... values) {
+    Document doc = new Document();
+    for (double v : values) {
+      doc.add(new SortedNumericDocValuesField(&quot;f&quot;, Double.doubleToRawLongBits(v)));
+    }
+    return doc;
+  }
+
+  private static FacetsCollector hits(IndexSearcher s) throws IOException {
+    return s.search(MatchAllDocsQuery.INSTANCE, new FacetsCollectorManager());
+  }
+
+  private static Query[] drillDowns(DoubleRange[] ranges, MultiDoubleValuesSource source) {
+    return Arrays.stream(ranges).map(r -&gt; r.getQuery(null, source)).toArray(Query[]::new);
+  }
+
+  private static Query[] drillDowns(LongRange[] ranges, MultiLongValuesSource source) {
+    return Arrays.stream(ranges).map(r -&gt; r.getQuery(null, source)).toArray(Query[]::new);
+  }
+
+  /**
+   * Checks that the drill-down counts are the expected ones, then that the facet counts equal them
+   * and the result&#x27;s total is 1 (the single document has a value in at least one range).
+   */
+  private static void assertCounts(
+      IndexSearcher s, Facets facets, String dim, Query[] drillDowns, int[] expected)
+      throws IOException {
+    int[] drillDown = new int[drillDowns.length];
+    for (int i = 0; i &lt; drillDowns.length; i++) {
+      drillDown[i] = s.count(drillDowns[i]);
+    }
+    assertArrayEquals(&quot;drill-down counts&quot;, expected, drillDown);
+    FacetResult res = facets.getAllChildren(dim);
+    int[] facet = new int[res.labelValues.length];
+    for (int i = 0; i &lt; facet.length; i++) {
+      facet[i] = res.labelValues[i].value.intValue();
+    }
+    String want = &quot;counts &quot; + Arrays.toString(drillDown) + &quot;, total 1&quot;;
+    String got = &quot;counts &quot; + Arrays.toString(facet) + &quot;, total &quot; + res.value;
+    if (want.equals(got) == false) {
+      fail(&quot;facet result vs drill-down: expected &quot; + want + &quot;, got &quot; + got);
+    }
+  }
+
+  /** Returns the same values, in the given order, for every document. */
+  private static final class FixedDoubles extends MultiDoubleValuesSource {
+    private final double[] values;
+
+    FixedDoubles(double... values) {
+      this.values = values;
+    }
+
+    @Override
+    public MultiDoubleValues getValues(LeafReaderContext ctx) {
+      return new MultiDoubleValues() {
+        int upto;
+
+        @Override
+        public long getValueCount() {
+          return values.length;
+        }
+
+        @Override
+        public double nextValue() {
+          return values[upto++];
+        }
+
+        @Override
+        public boolean advanceExact(int doc) {
+          upto = 0;
+          return true;
+        }
+      };
+    }
+
+    @Override
+    public boolean isCacheable(LeafReaderContext ctx) {
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(values);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof FixedDoubles f &amp;&amp; Arrays.equals(values, f.values);
+    }
+
+    @Override
+    public String toString() {
+      return &quot;FixedDoubles&quot; + Arrays.toString(values);
+    }
+  }
+
+  /** Returns the same values, in the given order, for every document. */
+  private static final class FixedLongs extends MultiLongValuesSource {
+    private final long[] values;
+
+    FixedLongs(long... values) {
+      this.values = values;
+    }
+
+    @Override
+    public MultiLongValues getValues(LeafReaderContext ctx) {
+      return new MultiLongValues() {
+        int upto;
+
+        @Override
+        public long getValueCount() {
+          return values.length;
+        }
+
+        @Override
+        public long nextValue() {
+          return values[upto++];
+        }
+
+        @Override
+        public boolean advanceExact(int doc) {
+          upto = 0;
+          return true;
+        }
+      };
+    }
+
+    @Override
+    public boolean isCacheable(LeafReaderContext ctx) {
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(values);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof FixedLongs f &amp;&amp; Arrays.equals(values, f.values);
+    }
+
+    @Override
+    public String toString() {
+      return &quot;FixedLongs&quot; + Arrays.toString(values);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestRangeFacetMultiValuedOrder.java $LUCENE/lucene/facet/src/test/org/apache/lucene/facet/range/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:facet:test --tests TestRangeFacetMultiValuedOrder -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Every range counts the document, as its drill-down query does: "&lt; 1 km", "&lt; 2 km", "&lt; 5 km" = 1, 1, 1 (and <code>[1, 1]</code> in the long and raw-bit tests).</dd></div><div class='got'><dt>Observed</dt><dd>"&lt; 1 km", "&lt; 2 km", "&lt; 5 km" = 0, 0, 1; the long and raw-bit tests get <code>[0, 1]</code>, and <code>{500, 5}</code> gets <code>[0, 0]</code> with total 0 instead of 1.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-303/'>repro/LFV-303/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (544 lines) · 2,900 words</span></summary><div class='body'><p>Six tests, formatted by the module's <code class='nw'>tidy</code> task: <code>testDistancesFromCustomSource</code> (lead: a custom <code>MultiDoubleValuesSource</code> returning 3.0, then 0.5, overlapping ranges), <code>testLongValuesFromCustomSource</code> (longs 30, 5 with non-overlapping ranges: no floating point, no encoding), <code>testDocumentDropsOutOfTotal</code> (500, 5: the document leaves the total), <code>testRawBitDoublesFromDoubleField</code> and <code>testRawBitDoublesFieldConstructor</code> (-1.0 and -5.0 stored as raw bits in a <code>SortedNumericDocValuesField</code>), and <code>testAscendingOrderControl</code> (the same inputs in ascending order; passes). Deterministic: fixed values, the seed does not matter.</p><p>The test compiles unchanged on 10.5.2 and main; older branches need <code>new MatchAllDocsQuery()</code>, <code class='nw'>getTopChildren</code> and counts looked up by label. Below it: a randomized test against a brute-force count (custom source in random order, <code class='nw'>fromDoubleField</code> over raw bits, the field constructor), which also fails on main and is the stronger test for a fix; the finder's shorter 3-test JUnit (fails on 9.1.0 to 10.5.2 and main); and a <code class='nw'>main()</code> probe with 1,000 documents that prints facet counts next to drill-down counts.</p><div class="hd hd-3"><h3 id='code-2-h'>TestRangeFacetMultiValuedOrderRandom.java (randomized, brute-force oracle)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails on main (gradle and standalone runner, assertions on and off), for example <code>custom source, 2 ranges: expected counts [228, 196], total 242, got counts [193, 196], total 242</code>; passes 30 of 30 seeds with the recommended fix. For each random range set it checks the custom source first and stops at the first mismatch; in every recorded stock run that was the custom source, so its raw-bit and field-constructor checks run to the end only with a fix (the deterministic tests show both failing on stock).</p><figure class='code'><figcaption><span class='fname'>TestRangeFacetMultiValuedOrderRandom.java (randomized, brute-force oracle)</span><span class='meta'>194 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet.range;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Random;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.facet.FacetResult;
+import org.apache.lucene.facet.Facets;
+import org.apache.lucene.facet.FacetsCollector;
+import org.apache.lucene.facet.FacetsCollectorManager;
+import org.apache.lucene.facet.MultiDoubleValuesSource;
+import org.apache.lucene.facet.MultiLongValues;
+import org.apache.lucene.facet.MultiLongValuesSource;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Randomized check: multi-valued range facet counts, and the result&#x27;s total, equal a brute-force
+ * count whatever the order of each document&#x27;s values. Three inputs: a custom source that delivers
+ * each document&#x27;s values in the (random) order they were generated, and raw-bit doubles in a
+ * SortedNumeric field read through fromDoubleField and through the field constructor.
+ */
+public class TestRangeFacetMultiValuedOrderRandom extends LuceneTestCase {
+
+  public void testRandomValueOrder() throws Exception {
+    Random random = random();
+    int numDocs = atLeast(200);
+    long[][] values = new long[numDocs][];
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (int d = 0; d &lt; numDocs; d++) {
+          values[d] = new long[TestUtil.nextInt(random, 1, 6)];
+          Document doc = new Document();
+          doc.add(new NumericDocValuesField(&quot;id&quot;, d));
+          for (int j = 0; j &lt; values[d].length; j++) {
+            values[d][j] = TestUtil.nextLong(random, -50, 50); // duplicates allowed
+            doc.add(new SortedNumericDocValuesField(&quot;f&quot;, Double.doubleToRawLongBits(values[d][j])));
+          }
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        FacetsCollector fc = s.search(MatchAllDocsQuery.INSTANCE, new FacetsCollectorManager());
+        MultiLongValuesSource custom = new GeneratedOrder(values);
+        MultiDoubleValuesSource rawBits = MultiDoubleValuesSource.fromDoubleField(&quot;f&quot;);
+        int iters = atLeast(50);
+        for (int iter = 0; iter &lt; iters; iter++) {
+          int numRanges = TestUtil.nextInt(random, 1, 5);
+          LongRange[] longRanges = new LongRange[numRanges];
+          DoubleRange[] doubleRanges = new DoubleRange[numRanges];
+          for (int i = 0; i &lt; numRanges; i++) {
+            long a = TestUtil.nextLong(random, -60, 60);
+            long b = TestUtil.nextLong(random, -60, 60);
+            long min = Math.min(a, b);
+            long max = Math.max(a, b);
+            longRanges[i] = new LongRange(&quot;r&quot; + i, min, true, max, true);
+            doubleRanges[i] = new DoubleRange(&quot;r&quot; + i, min, true, max, true);
+          }
+          String expected = bruteForce(values, longRanges);
+          check(&quot;custom source&quot;, expected, new LongRangeFacetCounts(&quot;f&quot;, custom, fc, longRanges));
+          check(
+              &quot;fromDoubleField over raw bits&quot;,
+              expected,
+              new DoubleRangeFacetCounts(&quot;f&quot;, rawBits, fc, doubleRanges));
+          check(
+              &quot;field constructor over raw bits&quot;,
+              expected,
+              new DoubleRangeFacetCounts(&quot;f&quot;, fc, doubleRanges));
+        }
+      }
+    }
+  }
+
+  /** Per range: the documents with at least one value in it; total: those with a value in any. */
+  private static String bruteForce(long[][] values, LongRange[] ranges) {
+    int[] counts = new int[ranges.length];
+    int total = 0;
+    for (long[] doc : values) {
+      boolean inAnyRange = false;
+      for (int i = 0; i &lt; ranges.length; i++) {
+        for (long v : doc) {
+          if (v &gt;= ranges[i].min &amp;&amp; v &lt;= ranges[i].max) {
+            counts[i]++;
+            inAnyRange = true;
+            break;
+          }
+        }
+      }
+      if (inAnyRange) {
+        total++;
+      }
+    }
+    return &quot;counts &quot; + Arrays.toString(counts) + &quot;, total &quot; + total;
+  }
+
+  private static void check(String input, String expected, Facets facets) throws IOException {
+    FacetResult res = facets.getAllChildren(&quot;f&quot;);
+    int[] counts = new int[res.labelValues.length];
+    for (int i = 0; i &lt; counts.length; i++) {
+      counts[i] = res.labelValues[i].value.intValue();
+    }
+    String got = &quot;counts &quot; + Arrays.toString(counts) + &quot;, total &quot; + res.value;
+    if (expected.equals(got) == false) {
+      fail(
+          input + &quot;, &quot; + res.labelValues.length + &quot; ranges: expected &quot; + expected + &quot;, got &quot; + got);
+    }
+  }
+
+  /** Delivers each document&#x27;s values in the order they were generated (looked up by &quot;id&quot;). */
+  private static final class GeneratedOrder extends MultiLongValuesSource {
+    private final long[][] values;
+
+    GeneratedOrder(long[][] values) {
+      this.values = values;
+    }
+
+    @Override
+    public MultiLongValues getValues(LeafReaderContext ctx) throws IOException {
+      NumericDocValues ids = DocValues.getNumeric(ctx.reader(), &quot;id&quot;);
+      return new MultiLongValues() {
+        long[] current;
+        int upto;
+
+        @Override
+        public long getValueCount() {
+          return current.length;
+        }
+
+        @Override
+        public long nextValue() {
+          return current[upto++];
+        }
+
+        @Override
+        public boolean advanceExact(int doc) throws IOException {
+          if (ids.advanceExact(doc) == false) {
+            return false;
+          }
+          current = values[(int) ids.longValue()];
+          upto = 0;
+          return true;
+        }
+      };
+    }
+
+    @Override
+    public boolean isCacheable(LeafReaderContext ctx) {
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return this == o;
+    }
+
+    @Override
+    public String toString() {
+      return &quot;GeneratedOrder&quot;;
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cp $REPRO/TestRangeFacetMultiValuedOrderRandom.java $LUCENE/lucene/facet/src/test/org/apache/lucene/facet/range/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:facet:test --tests TestRangeFacetMultiValuedOrderRandom -Ptests.seed=0A0D3034
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestRangeFacetUnsortedMultiValues.java (the finder&#x27;s 3-test JUnit)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Fails 3 of 3 on main (<code class='nw'>ea57360912ed</code> and <code class='nw'>a9779ef3c193</code>, assertions on and off), 10.5.2 and 9.12.3, and in a mechanical port on every release from 9.1.0; passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestRangeFacetUnsortedMultiValues.java (the finder&#x27;s 3-test JUnit)</span><span class='meta'>181 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.facet.range;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.facet.FacetResult;
+import org.apache.lucene.facet.FacetsCollector;
+import org.apache.lucene.facet.FacetsCollectorManager;
+import org.apache.lucene.facet.MultiDoubleValues;
+import org.apache.lucene.facet.MultiDoubleValuesSource;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Multi-valued range facet counting drops matches when a document&#x27;s values do not reach the
+ * counter in ascending order. Neither MultiDoubleValues nor MultiLongValues promises any order, and
+ * even Lucene&#x27;s own MultiDoubleValuesSource.fromDoubleField (raw IEEE bits in a SortedNumeric
+ * field) delivers two negative values in descending order.
+ *
+ * &lt;p&gt;Every test has one document and checks each range count against the document&#x27;s values and
+ * against the range&#x27;s own drill-down query (DoubleRange#getQuery), which matches the document.
+ */
+public class TestRangeFacetUnsortedMultiValues extends LuceneTestCase {
+
+  private static final DoubleRange[] RANGES = {
+    new DoubleRange(&quot;[-10, -2]&quot;, -10.0, true, -2.0, true),
+    new DoubleRange(&quot;[-2, 0]&quot;, -2.0, true, 0.0, true)
+  };
+
+  /**
+   * One document with values -1.0 and -5.0, indexed as raw bits (the encoding fromDoubleField
+   * decodes with Double::longBitsToDouble). -5.0 is in the first range, -1.0 in the second.
+   */
+  private static Directory indexRawBitsNegatives(Directory dir) throws IOException {
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      Document doc = new Document();
+      doc.add(new SortedNumericDocValuesField(&quot;f&quot;, Double.doubleToRawLongBits(-1.0)));
+      doc.add(new SortedNumericDocValuesField(&quot;f&quot;, Double.doubleToRawLongBits(-5.0)));
+      w.addDocument(doc);
+    }
+    return dir;
+  }
+
+  private static void assertCounts(IndexSearcher s, FacetResult res, MultiDoubleValuesSource src)
+      throws IOException {
+    for (int i = 0; i &lt; RANGES.length; i++) {
+      int drillDown = s.count(RANGES[i].getQuery(null, src));
+      assertEquals(&quot;drill-down of &quot; + RANGES[i], 1, drillDown);
+      assertEquals(
+          &quot;facet count of &quot; + RANGES[i] + &quot; (drill-down finds &quot; + drillDown + &quot;)&quot;,
+          drillDown,
+          res.labelValues[i].value.intValue());
+    }
+  }
+
+  public void testFromDoubleFieldRawBits() throws Exception {
+    try (Directory dir = indexRawBitsNegatives(newDirectory());
+        DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      FacetsCollector fc = s.search(MatchAllDocsQuery.INSTANCE, new FacetsCollectorManager());
+      MultiDoubleValuesSource src = MultiDoubleValuesSource.fromDoubleField(&quot;f&quot;);
+      FacetResult res = new DoubleRangeFacetCounts(&quot;f&quot;, src, fc, RANGES).getAllChildren(&quot;f&quot;);
+      assertCounts(s, res, src); // [-10, -2] gets 0 on main
+    }
+  }
+
+  public void testFieldConstructorRawBits() throws Exception {
+    // the DoubleRangeFacetCounts(String, ...) constructor reads the SortedNumeric field itself and
+    // maps each raw value with NumericUtils.sortableDoubleBits
+    try (Directory dir = indexRawBitsNegatives(newDirectory());
+        DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      FacetsCollector fc = s.search(MatchAllDocsQuery.INSTANCE, new FacetsCollectorManager());
+      FacetResult res = new DoubleRangeFacetCounts(&quot;f&quot;, fc, RANGES).getAllChildren(&quot;f&quot;);
+      assertCounts(s, res, MultiDoubleValuesSource.fromDoubleField(&quot;f&quot;));
+    }
+  }
+
+  /**
+   * A user-defined source, e.g. the distances from a query point to each of a document&#x27;s
+   * locations, has no reason to be sorted. Overlapping &quot;&amp;lt; 1 km / &amp;lt; 2 km / &amp;lt; 5 km&quot; ranges.
+   */
+  public void testCustomSourceOverlappingRanges() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        w.addDocument(new Document());
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        FacetsCollector fc = s.search(MatchAllDocsQuery.INSTANCE, new FacetsCollectorManager());
+        MultiDoubleValuesSource distances = new FixedValues(3.0, 0.5);
+        DoubleRange[] ranges = {
+          new DoubleRange(&quot;&lt; 1 km&quot;, 0.0, true, 1.0, false),
+          new DoubleRange(&quot;&lt; 2 km&quot;, 0.0, true, 2.0, false),
+          new DoubleRange(&quot;&lt; 5 km&quot;, 0.0, true, 5.0, false)
+        };
+        FacetResult res = new DoubleRangeFacetCounts(&quot;d&quot;, distances, fc, ranges).getAllChildren(&quot;d&quot;);
+        for (int i = 0; i &lt; ranges.length; i++) {
+          int drillDown = s.count(ranges[i].getQuery(null, distances));
+          assertEquals(&quot;drill-down of &quot; + ranges[i], 1, drillDown);
+          // &quot;&lt; 1 km&quot; and &quot;&lt; 2 km&quot; get 0 on main: the 0.5 km value is skipped
+          assertEquals(&quot;facet count of &quot; + ranges[i], drillDown, res.labelValues[i].value.intValue());
+        }
+      }
+    }
+  }
+
+  /** Returns the same values, in the given order, for every document. */
+  private static final class FixedValues extends MultiDoubleValuesSource {
+    private final double[] values;
+
+    FixedValues(double... values) {
+      this.values = values;
+    }
+
+    @Override
+    public MultiDoubleValues getValues(LeafReaderContext ctx) {
+      return new MultiDoubleValues() {
+        int upto;
+
+        @Override
+        public long getValueCount() {
+          return values.length;
+        }
+
+        @Override
+        public double nextValue() {
+          return values[upto++];
+        }
+
+        @Override
+        public boolean advanceExact(int doc) {
+          upto = 0;
+          return true;
+        }
+      };
+    }
+
+    @Override
+    public boolean isCacheable(LeafReaderContext ctx) {
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return java.util.Arrays.hashCode(values);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof FixedValues f &amp;&amp; java.util.Arrays.equals(values, f.values);
+    }
+
+    @Override
+    public String toString() {
+      return &quot;FixedValues&quot; + java.util.Arrays.toString(values);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>RangeOrderScaleProbe.java (main(), 1,000 documents)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Prints facet counts next to drill-down counts for two random distances per document (custom source) and two random raw-bit temperatures (field constructor); exits 1 on a mismatch. Fixed data: <code>java.util.Random(42)</code>.</p><figure class='code'><figcaption><span class='fname'>RangeOrderScaleProbe.java (main(), 1,000 documents)</span><span class='meta'>169 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Random;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.facet.FacetResult;
+import org.apache.lucene.facet.Facets;
+import org.apache.lucene.facet.FacetsCollector;
+import org.apache.lucene.facet.FacetsCollectorManager;
+import org.apache.lucene.facet.MultiDoubleValues;
+import org.apache.lucene.facet.MultiDoubleValuesSource;
+import org.apache.lucene.facet.range.DoubleRange;
+import org.apache.lucene.facet.range.DoubleRangeFacetCounts;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+
+/**
+ * Scale probe (not a test): 1,000 documents, each with two values in random order. (a) Distances
+ * from the user to two locations, uniform in [0, 10) km, through a custom MultiDoubleValuesSource.
+ * (b) Two temperatures, uniform in [-20, 20), stored as raw-bit doubles in a SortedNumeric field and
+ * counted through the DoubleRangeFacetCounts(String, ...) constructor. Prints facet counts next to
+ * the drill-down counts of the same ranges. Exits 1 if any facet count differs.
+ */
+public class RangeOrderScaleProbe {
+  static final int DOCS = 1000;
+
+  public static void main(String[] args) throws Exception {
+    Random random = new Random(42);
+    double[][] distances = new double[DOCS][];
+    double[][] temperatures = new double[DOCS][];
+    boolean mismatch = false;
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (int d = 0; d &lt; DOCS; d++) {
+          distances[d] = new double[] {10 * random.nextDouble(), 10 * random.nextDouble()};
+          temperatures[d] = new double[] {-20 + 40 * random.nextDouble(), -20 + 40 * random.nextDouble()};
+          Document doc = new Document();
+          doc.add(new NumericDocValuesField(&quot;id&quot;, d));
+          for (double t : temperatures[d]) {
+            doc.add(new SortedNumericDocValuesField(&quot;temp&quot;, Double.doubleToRawLongBits(t)));
+          }
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        FacetsCollector fc = s.search(MatchAllDocsQuery.INSTANCE, new FacetsCollectorManager());
+
+        MultiDoubleValuesSource dist = new PerDoc(distances);
+        DoubleRange[] distRanges = {
+          new DoubleRange(&quot;&lt; 1 km&quot;, 0.0, true, 1.0, false),
+          new DoubleRange(&quot;&lt; 2 km&quot;, 0.0, true, 2.0, false),
+          new DoubleRange(&quot;&lt; 5 km&quot;, 0.0, true, 5.0, false)
+        };
+        mismatch |=
+            report(&quot;distances, custom source&quot;, s, new DoubleRangeFacetCounts(&quot;d&quot;, dist, fc, distRanges), &quot;d&quot;, distRanges, dist);
+
+        MultiDoubleValuesSource temp = MultiDoubleValuesSource.fromDoubleField(&quot;temp&quot;);
+        DoubleRange[] tempRanges = {
+          new DoubleRange(&quot;[-20, -10)&quot;, -20.0, true, -10.0, false),
+          new DoubleRange(&quot;[-10, 0)&quot;, -10.0, true, 0.0, false),
+          new DoubleRange(&quot;[0, 10)&quot;, 0.0, true, 10.0, false),
+          new DoubleRange(&quot;[10, 20)&quot;, 10.0, true, 20.0, false)
+        };
+        mismatch |=
+            report(&quot;temperatures, raw bits, field constructor&quot;, s, new DoubleRangeFacetCounts(&quot;temp&quot;, fc, tempRanges), &quot;temp&quot;, tempRanges, temp);
+      }
+    }
+    System.exit(mismatch ? 1 : 0);
+  }
+
+  static boolean report(String what, IndexSearcher s, Facets facets, String dim, DoubleRange[] ranges, MultiDoubleValuesSource src)
+      throws IOException {
+    FacetResult res = facets.getAllChildren(dim);
+    int[] facet = new int[ranges.length];
+    int[] drill = new int[ranges.length];
+    for (int i = 0; i &lt; ranges.length; i++) {
+      facet[i] = res.labelValues[i].value.intValue();
+      drill[i] = s.count(ranges[i].getQuery(null, src));
+    }
+    System.out.println(what + &quot;: ranges &quot; + Arrays.toString(Arrays.stream(ranges).map(x -&gt; x.label).toArray()));
+    System.out.println(&quot;  facet counts      &quot; + Arrays.toString(facet) + &quot;, total &quot; + res.value);
+    System.out.println(&quot;  drill-down counts &quot; + Arrays.toString(drill));
+    return Arrays.equals(facet, drill) == false;
+  }
+
+  /** Delivers each document&#x27;s values in the generated order (looked up by &quot;id&quot;). */
+  static final class PerDoc extends MultiDoubleValuesSource {
+    final double[][] values;
+
+    PerDoc(double[][] values) {
+      this.values = values;
+    }
+
+    @Override
+    public MultiDoubleValues getValues(LeafReaderContext ctx) throws IOException {
+      NumericDocValues ids = DocValues.getNumeric(ctx.reader(), &quot;id&quot;);
+      return new MultiDoubleValues() {
+        double[] cur;
+        int upto;
+
+        @Override
+        public long getValueCount() {
+          return cur.length;
+        }
+
+        @Override
+        public double nextValue() {
+          return cur[upto++];
+        }
+
+        @Override
+        public boolean advanceExact(int doc) throws IOException {
+          if (ids.advanceExact(doc) == false) {
+            return false;
+          }
+          cur = values[(int) ids.longValue()];
+          upto = 0;
+          return true;
+        }
+      };
+    }
+
+    @Override
+    public boolean isCacheable(LeafReaderContext ctx) {
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return this == o;
+    }
+
+    @Override
+    public String toString() {
+      return &quot;PerDoc&quot;;
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT) and 10.5.2: reproduced (this test, assertions on and off); every release from 8.10.0 to 10.5.2: reproduced (history sweep with the field-constructor probe and the finder&#x27;s test); 8.9.0: rejects the multi-valued field (multi-valued range faceting arrived in 8.10.0)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at a9779ef3c193 or a later main (LongRangeCounter.java is unchanged since 2021)
+cp $REPRO/TestRangeFacetMultiValuedOrder.java lucene/facet/src/test/org/apache/lucene/facet/range/
+./gradlew :lucene:facet:test --tests TestRangeFacetMultiValuedOrder -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (same failures)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, assertions on, seed 0A0D3034 (excerpt, failures regrouped)
+TestRangeFacetMultiValuedOrder &gt; testDistancesFromCustomSource FAILED
+    java.lang.AssertionError: facet result vs drill-down: expected counts [1, 1, 1], total 1, got counts [0, 0, 1], total 1
+TestRangeFacetMultiValuedOrder &gt; testLongValuesFromCustomSource FAILED
+    java.lang.AssertionError: facet result vs drill-down: expected counts [1, 1], total 1, got counts [0, 1], total 1
+TestRangeFacetMultiValuedOrder &gt; testRawBitDoublesFromDoubleField FAILED
+    java.lang.AssertionError: facet result vs drill-down: expected counts [1, 1], total 1, got counts [0, 1], total 1
+TestRangeFacetMultiValuedOrder &gt; testRawBitDoublesFieldConstructor FAILED
+    java.lang.AssertionError: facet result vs drill-down: expected counts [1, 1], total 1, got counts [0, 1], total 1
+TestRangeFacetMultiValuedOrder &gt; testDocumentDropsOutOfTotal FAILED
+    java.lang.AssertionError: facet result vs drill-down: expected counts [1, 0], total 1, got counts [0, 0], total 0
+TestRangeFacetMultiValuedOrderRandom &gt; testRandomValueOrder FAILED
+    java.lang.AssertionError: custom source, 2 ranges: expected counts [228, 196], total 242, got counts [193, 196], total 242
+7 tests completed, 6 failed
+# assertions off, seed 0A0D3035: the same five deterministic messages; the randomized test draws other data:
+#   custom source, 3 ranges: expected counts [269, 186, 146], total 269, got counts [243, 137, 127], total 243
+# 10.5.2 (standalone runner, assertions on and off): the same five deterministic messages
+
+# RangeOrderScaleProbe, stock main
+distances, custom source: ranges [&lt; 1 km, &lt; 2 km, &lt; 5 km]
+  facet counts      [85, 180, 494], total 494
+  drill-down counts [154, 325, 740]
+temperatures, raw bits, field constructor: ranges [[-20, -10), [-10, 0), [0, 10), [10, 20)]
+  facet counts      [271, 455, 457, 436], total 1000
+  drill-down counts [390, 455, 457, 436]</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>MultiLongValues</code> and <code>MultiDoubleValues</code> promise no order; "values within a given doc are sorted" is only a comment in a package-private class.</li><li>The same range's drill-down query checks every value and finds the document.</li><li>The shortcut was added in review when every input was sorted; unordered sources came in 9.1.0 without any discussion of order.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>216 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>MultiLongValues.java:22-46</code> and <code>MultiDoubleValues.java:22-46</code>: "Documents may produce multiple values"; <code class='nw'>nextValue()</code> "Iterates to the next value in the current document". No ordering, then or now. The precondition lives only in the field comment of the package-private <code class='nw'>LongRangeCounter</code> (<code>range/LongRangeCounter.java:40</code>, <code class='nw'>:45-49</code>).</li><li><strong>What a count means.</strong> The upstream random multi-valued tests count a document once per range if any of its values is in it ("ensure each doc can contribute at most 1 count to each range", <code>range/TestRangeFacetCounts.java:1015</code>, <code class='nw'>:1358</code>) and assert that the facet count and the drill-down count both equal that (<code class='nw'>:1053</code>, <code class='nw'>:1072</code>, <code class='nw'>:1399</code>, <code class='nw'>:1420</code>).</li><li><strong>The same API disagrees with itself.</strong> <code>DoubleRange/LongRange.getQuery(fastMatchQuery, Multi*ValuesSource)</code>, "Create a Query that matches documents in this range", accepts a document if any value is in the range, in any order (<code>range/DoubleRange.java:298-302</code>, <code>range/LongRange.java:285-289</code>).</li><li><strong>History.</strong> #127 (LUCENE-9946, 8.10.0) first searched from interval 0 with a per-document bitset; after a reviewer asked whether it took advantage of "the sortedness of <code class='nw'>SORTED_NUMERIC</code>", revision <code class='nw'>923d35eb0cee</code> added the last-seen-interval search. At the time every multi-valued input was sorted. #543 (LUCENE-10245, 9.1.0) then fed unordered <code class='nw'>Multi*Values</code> into the unchanged counter; its review, issue and dev@ thread never mention order.</li><li><strong>Tests.</strong> No upstream test builds a custom multi-valued source, and no multi-valued test uses negative doubles.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>221 words</span></summary><div class='body'><p>Strongest case (built by the devil's advocate; a reviewer from another model family rated it moderate): (a) the counter documents its precondition and the review asked for it; (b) <code class='nw'>Multi*Values</code> copy the <code>SortedNumericDocValues</code> shape, and every consumer in the module assumes ascending values; (c) <code>SortedNumericDocValuesField</code> says doubles need <code class='nw'>NumericUtils</code> encoding "with proper sort order", and in #11997 a committer noted that raw-bit multi-valued doubles are not ordered within a document; (d) the classes are <code>@lucene.experimental</code>.</p><p>Why it fails: (a) is a package-private invariant that no public API passes on; (b) is unwritten, and Lucene's own <code class='nw'>fromDoubleField</code> and field constructor break it; (c) does not touch the custom-source trigger, and the facet API documents and decodes raw bits, while with the sortable encoding the field constructor mis-decodes negatives (<code>{-5.0, -6.0}</code> lands in <code>[-2, 0]</code> instead of <code>[-10, -2]</code>, executed), so for that constructor neither encoding is reliable for documents with two or more negative values (the sortable encoding mis-decodes every negative value; raw bits drop a lower value that arrives second, as with <code>{-1.0, -5.0}</code>, while raw <code>{-5.0, -6.0}</code>, both in one interval, is counted right); (d) experimental is not unsupported, and custom sources are the purpose of #543. <strong>Verdict: a defect.</strong> Lead with the custom source; expect "use the sortable encoding" only for the raw-bit trigger.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Order-independent addMultiValued with the ascending fast path kept (validated)</strong></p><p class='short'>Make <code>LongRangeCounter.addMultiValued</code> order-independent: keep today's path for ascending values, but search all intervals when a value falls below the last counted one, and count each interval once per document with a small bitset (one file, +43/-25). The new tests, the three independent repros and all 313 facet tests pass, assertions on and off.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 840 words</span></summary><div class='body'><p>Option A was built and validated with gradle in a scratch worktree at <code class='nw'>a9779ef3c193</code>; option B (the finder's patch) was re-run there; option C ran as a shadow class in independent checks; option D was not run. Any fix should also go with LFV-314's separate change in <code>LongValueFacetCounts</code> (merged into this bug), which the range-counter fix does not touch. By reading, the sandbox <code>LongRangeFacetCutter</code> (<code>LongRangeFacetCutter.java:324-352</code>) keeps a similar per-document <code class='nw'>lastIntervalSeen</code> shortcut; it was not run, and none of these options touches it.</p><div class="hd hd-3"><h3 id='fix-order-independent-counter'>Order-independent addMultiValued with the ascending fast path kept (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-order-independent-counter" target="_self" aria-label="Link to this section" aria-describedby="fix-order-independent-counter"><span aria-hidden="true">#</span></a></div><p>One file, <code>range/LongRangeCounter.java</code>: a per-document <code class='nw'>FixedBitSet</code> of counted elementary intervals, allocated once and cleared in <code>startMultiValuedDoc()</code>. A value above the highest counted interval is searched from there, as today; a value inside that interval returns, as today; a value below it is searched over all intervals. Each interval is passed to <code>processMultiValuedHit</code> at most once per document.</p><pre class='snippet' tabindex='0'><code>final int lastSeen = multiValuedDocLastSeenElementaryInterval;
+final int firstCandidateElementaryInterval;
+if (lastSeen == -1 || v &gt; boundaries[lastSeen]) {
+  firstCandidateElementaryInterval = lastSeen + 1; // ascending: as today
+} else if (lastSeen == 0 || v &gt; boundaries[lastSeen - 1]) {
+  return; // same interval as the last one counted
+} else {
+  firstCandidateElementaryInterval = 0; // out of order
+}
+// ... unchanged binary search from firstCandidateElementaryInterval -&gt; idx
+if (multiValuedDocCountedElementaryIntervals.getAndSet(idx) == false) {
+  processMultiValuedHit(idx);
+}
+if (idx &gt; lastSeen) {
+  multiValuedDocLastSeenElementaryInterval = idx;
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Fixes every caller at once: the source paths of both facet classes, the field constructor, and both counters.</li><li>Cost: ascending input takes the same path as today plus one bitset write per counted interval and a clear per multi-valued document (intervals / 64 words); each out-of-order value pays a full binary search and one bitset write, even when its interval was already counted. Not benchmarked; not reviewed upstream.</li><li><code>OverlappingLongRangeCounter</code> already keeps its own per-document interval bitset; a maintainer may prefer to share it.</li><li><code>LongRangeCounter.java</code> is unchanged since 2021, so the patch applies to every affected branch. Open PR #16439 also edits this file (its single-valued, exclusive path); expect a small merge.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree at <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: the new tests fail 6 of 7 on stock and pass 7 of 7 with the fix; with <code>TestRangeFacetCounts</code>, 29 tests, 0 failures, assertions on and off; the randomized test passes 30 of 30 seeds (<code>-Ptests.iters=30 -Ptests.multiplier=2</code>).</li><li>The whole facet module: 41 suites, 313 tests (306 upstream + 7 new), 0 failures, with assertions on (7 skipped) and off (8 skipped); <code>:lucene:facet:check -x test</code> (google-java-format, ecjLint, forbiddenApis) passes.</li><li>Standalone runner with the patched class: the finder's JUnit (3 of 3), the independent reproducer's (15 of 15), the devil's advocate's probes (3 of 3) and the scale probe (facet counts equal drill-down: <code>[154, 325, 740]</code>, total 740) pass; the patched class also passes both tests against the 10.5.2 jars.</li><li>Edge cases, added after the fact checks (8 tests, standalone runner): raw <code>{-0.0, -5.0}</code> and <code>{NaN with the sign bit set, 5.0}</code> through <code class='nw'>fromDoubleField</code> and the field constructor, custom longs <code>{Long.MAX_VALUE, Long.MIN_VALUE}</code>, <code>{100, 10, 9}</code> on exact range bounds, and <code>{50, 5, 50, 5, 7}</code> (a lower interval that comes back) with exclusive and overlapping ranges: stock main fails 7 of 8 (assertions on and off), 10.5.2 fails 7 of 8 (assertions on), and with the fix all 8 pass (assertions on and off). Not run through gradle.</li></ul><div class="hd hd-3"><h3 id='fix-sort-per-document'>Sort and de-duplicate each document's values at the callers (the finder's patch, validated) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-sort-per-document" target="_self" aria-label="Link to this section" aria-describedby="fix-sort-per-document"><span aria-hidden="true">#</span></a></div><p>Three files (<code class='nw'>RangeFacetCounts</code>, <code>LongRangeFacetCounts</code>, <code>DoubleRangeFacetCounts</code>, +34/-24): buffer each multi-valued document's mapped values, sort them, and feed the distinct ones to the unchanged counter.</p><p class='k'>Trade-offs</p><p>Keeps the counter's precondition true, but every multi-valued document pays a buffer copy and an O(k log k) sort even when already sorted (a sortedness check could avoid it), and any new caller must remember to sort.</p><p class='k'>What the checks validated</p><p>On <code class='nw'>a9779ef3c193</code> the new tests and <code>TestRangeFacetCounts</code> pass (29 tests); on <code class='nw'>ea57360912ed</code> the finder's repro (3 of 3) and <code>TestRangeFacetCounts</code> (22 of 22). Format not checked.</p><div class="hd hd-3"><h3 id='fix-full-search'>Always search all intervals, with the per-document bitset (shadow-validated) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-full-search" target="_self" aria-label="Link to this section" aria-describedby="fix-full-search"><span aria-hidden="true">#</span></a></div><p>The simplest code, and essentially what #127 did before its review added the shortcut.</p><p class='k'>Trade-offs</p><p>Gives up the ascending fast path that the original review asked for: every value pays a full binary search.</p><p class='k'>What the checks validated</p><p>As a shadow class it turned the independent reproducer's 15 tests green and passes the history probes on 8.10.0, 9.1.0 and main.</p><div class="hd hd-3"><h3 id='fix-document-order'>Document an ascending-order contract on Multi*Values.nextValue (a possible API decision; not run, not enough alone)</h3><a class="hlink" href="#fix-document-order" target="_self" aria-label="Link to this section" aria-describedby="fix-document-order"><span aria-hidden="true">#</span></a></div><p>Say that values must arrive in ascending order.</p><p class='k'>Trade-offs</p><p>No counter change, but Lucene's own <code class='nw'>fromDoubleField</code>, <code class='nw'>fromFloatField</code> and the field constructor break that contract for raw-bit negatives and would need fixing too, and existing custom sources would stay silently wrong. Paired with those repairs it is a coherent choice a maintainer may prefer: the #127 author relied on sorted input on purpose.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>A read-only code search of the default branches of Elasticsearch, OpenSearch and Solr found no use of these range-facet classes, so the exposure is mainly applications that embed Lucene's facet module directly.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Semi-formal: a Z3 model of <code class='nw'>LongRangeCounter</code> turned its comment "values within a given doc are sorted" into proof obligations. The solver found wrong hits once the order is free, and that raw-bit doubles can arrive unsorted, though never when both are non-negative (why upstream tests in [0, 1) pass). A bounded-exhaustive run of the real counters and JUnit tests followed.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>186 words</span></summary><div class='body'><p><strong>Method: SMT solving with Z3</strong> (the semi-formal tier: a hypothesis formed while modelling, then witnessed by the tool), in a hunt unit on facet taxonomy and range counting. The finder tagged it formal; the registry records it as semi-formal because the key obligation was posed as an expected counterexample search from the code comment.</p><ul><li>Obligations on a model of <code class='nw'>addMultiValued</code>: with the ascending precondition the per-document hit set equals the true set (unsatisfiable, so it always holds); without it a mismatch exists (satisfiable); raw-bit <code class='nw'>SortedNumeric</code> order is not ascending in sortable space (satisfiable) but is when both values are non-negative (unsatisfiable), which is why the upstream random tests, all in [0, 1), pass.</li><li>A bounded-exhaustive run of the real counters: 93,196 range sequences, 0 mismatches with ascending values, 92,376 sequences mis-count when the same documents are fed in descending order; a 24-seed randomized differential against a brute-force oracle classified every mismatch.</li><li>Then a public-API JUnit on the stock jars, an independent reproducer, read-only reviews by a model from another family (OpenAI GPT-5.6), a devil's advocate, an adjudication, a history sweep and a security scope check.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-26, upstream re-checked 2026-10-27): GitHub issues and PRs, JIRA, four mailing lists, downstream projects, the web and all 411 open PRs. The PR that added the shortcut (#127) and the one that added unordered sources (#543) never discuss value order.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>, confidence high but not certain. The nearest items introduced the shortcut, added unordered sources, or noted raw-bit double order elsewhere; none describes this failure. Not filed by the owner.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues and PRs (open and closed, migrated LUCENE issues), commits, downstream repositories</th><td class='when'>2026-10-26</td><td>two runs of a scripted prior-report search (103 queries in all; 538 distinct hits in the follow-up run, comments of the top 20 read) and 30 GraphQL searches over apache/lucene, apache/lucenenet, Elasticsearch, OpenSearch, Solr and Hibernate Search</td><td>no report; related #127 / #10985 (introduced the shortcut on purpose), #543 / #11281 (unordered sources, order not discussed), #11997 (raw-bit multi-valued doubles not ordered within a document; facets unchanged), #11085 (an earlier, different de-dup bug in the same loop)</td></tr><tr><th scope='row'>JIRA archive, dev@, java-user@, issues@, commits@</th><td class='when'>2026-10-26</td><td>20 list and 5 JIRA queries through the tool, plus 22 manual list queries and JIRA queries</td><td>no report; the 2021-10 dev@ design thread for multi-valued sources does not discuss order</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>10 queries</td><td>no report; Stack Overflow 59361094 (Lucene.NET 4.8, 2019) shows a similar symptom in code without multi-valued range faceting, before the shortcut existed; SOLR-11043 is Solr's own code</td></tr><tr><th scope='row'>Open apache/lucene PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 411 open PRs</td><td>7 touch these files; none changes <code class='nw'>addMultiValued</code>, the multi-valued loops or the <code class='nw'>Multi*Values</code> contracts (#16439 edits only the single-valued path)</td></tr><tr><th scope='row'>Upstream main and search re-check</th><td class='when'>2026-10-27</td><td>GitHub API: commits to <code>LongRangeCounter.java</code>, compare <code>a9779ef3c193...a95c754ee003</code>; searches "addMultiValued" (issues), "LongRangeCounter" (PRs)</td><td>last commit to the file is still <code class='nw'>d669ddebc538</code> (2021); no facet file changed since <code class='nw'>a9779ef3c193</code>; no new report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 8.10.0 by LUCENE-9946 (#127, merged 2021-05-31 UTC), whose review added the ascending-order shortcut; 9.1.0 (#543) let unordered custom sources reach it. All 40 releases from 8.10.0 to 10.5.2 and main fail; 8.9.0 has no multi-valued range faceting. Never fixed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #127 "LUCENE-9946: Support multi-value fields in range facet counting" (gsmiller, issue #10985), merged 2021-05-31 UTC (commit date 2021-05-30, -0700) as <code class='nw'>d669ddebc538</code>; branch_8x backport <code class='nw'>e1ffcb11d9c2</code> (lucene-solr #2507, 2021-06-24); first released in 8.10.0. The shortcut entered with PR revision <code class='nw'>923d35eb0cee</code> ("optimize the bsearch for multi-valued cases"); the first public trigger, the field constructor over raw-bit doubles with two negatives, existed at once. <strong>Exposure widened by</strong> #543 (LUCENE-10245, <code class='nw'>82703757fe05</code>, 2022-01-10, 9.1.0), which added <code>Multi*Values(Source)</code>. <strong>Not fixed:</strong> <code>LongRangeCounter.java</code> has no commit after <code class='nw'>d669ddebc538</code> on main (upstream <code class='nw'>a95c754ee003</code>) or <code class='nw'>branch_10x</code>; unreleased 10.6.0 was not run, but <code class='nw'>branch_10_6</code> carries a byte-identical <code>LongRangeCounter.java</code> (read).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 5 of 6 (gradle and standalone, assertions on and off); the randomized test fails; passes with the fix</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's JUnit fails 3 of 3 (assertions on and off); every independent check reproduced it</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 5 of 6, assertions on and off; the finder's JUnit 3 of 3</td></tr><tr><th scope='row'>9.1.0 to 10.5.2 (32 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's JUnit (a mechanical port for 9.1.0-10.3.x) fails 3 of 3 on every release; 9.1.0 also with assertions off</td></tr><tr><th scope='row'>8.10.0 to 9.0.0</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> field constructor only</span></td><td>the field-constructor probe over raw-bit doubles fails on every release; the source API does not exist yet</td></tr><tr><th scope='row'>8.9.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the multi-valued field is rejected (<code>IllegalStateException: unexpected docvalues type SORTED_NUMERIC</code>); multi-valued range faceting arrived in 8.10.0 (LUCENE-9946)</td></tr><tr><th scope='row'>8.10.0, 9.1.0, main + order-independent shadow</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> root cause</span></td><td>changing only <code class='nw'>addMultiValued</code> makes every probe pass: the shortcut is the whole cause</td></tr><tr><th scope='row'>fix (scratch worktree at <code class='nw'>a9779ef3c193</code>)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>7 of 7; facet module 313 tests, 0 failures</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Confirmed by an independent reproducer, a devil's advocate, read-only reviews by a model from another family (OpenAI GPT-5.6), the adjudication and the follow-up's history and security runs; this doc's tests and fix were run with gradle on main <code class='nw'>a9779ef3c193</code>. An executed cross-model review is still owed.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>514 words</span></summary><div class='body'><p>Each executing check wrote and ran its own test or probe on the stock jars; the ascending-order controls pass everywhere.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Z3 obligations, a bounded-exhaustive run of the real counters (92,376 of 93,196 descending sequences mis-count, 0 ascending), and a 3-test public-API JUnit: 3 of 3 fail on main (assertions on and off), 10.5.2 and 9.12.3. Its sort-per-document fix passes the repro and <code>TestRangeFacetCounts</code> 22 of 22.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real, low (procedural)</span></td><td>Read-only, ran no Java; its <code class='nw'>not_real</code> is procedural (it could not execute, and its notes say static reading strongly favours a real defect): agreed with the root cause and that the inputs are legal, rated the intended-behaviour argument moderate, and 9 of its 11 evidence items support a real bug. The harness re-ran the repro: 3 of 3 fail.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnits from the claim alone: 9 of 15 fail on main (assertions on and off), 10.5.2 and 9.12.3, 8 of 13 on 9.1.0; exclusive and overlapping counters, custom long and double sources, <code class='nw'>fromFloatField</code>, a decreasing decoder, the dimension total; the 6 controls pass. A shadow <code class='nw'>LongRangeCounter</code> that changes only <code class='nw'>addMultiValued</code> turns all 15 green.</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>The model read the code only and ran no Java: intended-behaviour argument moderate, root cause agrees. A separate verifier in the same step ran its own test (custom long source 30, 5): 2 of 4 fail on main and 10.5.2; its ascending controls pass.</td></tr><tr><th scope='row'>devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>No intended or misuse argument survives (section above). Own probes fail on main (assertions on and off) and 10.5.2, including <code>fromDoubleField(f).toMultiLongValuesSource()</code>; its sortable-encoding control passes.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the finder's JUnit with a new seed (3 of 3 fail) and its own <code class='nw'>main()</code> probe: custom long source 30, 5 and raw-bit -1.0, -5.0 give facet 0 vs drill-down 1, assertions on and off. Advised leading with the custom-source trigger.</td></tr><tr><th scope='row'>Follow-up: history and security</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> 8.10.0 to 10.5.2 affected; security none</span></td><td>Release sweep over 41 versions; root-cause shadow on 8.10.0, 9.1.0 and main. Security scope check (300 random documents, 6 range sets, 4 sources, 2 seeds): counts never too high, no effect across documents, no slowdown.</td></tr><tr><th scope='row'>re-check on main <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>The finder's JUnit fails 3 of 3 with assertions on and off, with the same messages as on <code class='nw'>ea57360912ed</code>.</td></tr><tr><th scope='row'>this doc's tests and fix</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Gradle in a scratch worktree: 6 of 7 fail on stock; the recommended fix passes the new tests, <code>TestRangeFacetCounts</code> and the whole facet module, assertions on and off.</td></tr><tr><th scope='row'>fact-check follow-up: edge cases</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> edge cases reproduce; fix passes</span></td><td>An 8-test JUnit for the edge values the checks raised (signed zero, a NaN with the sign bit set, extreme longs, exact bounds, a lower interval that comes back): 7 of 8 fail on stock main (assertions on and off) and on 10.5.2 (assertions on); the field-constructor NaN control passes; with the recommended fix 8 of 8 pass.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-303/bug.png' download='facet-range-counter-assumes-ascending-multivalues-bug.png' target='_self'>PNG</a> <span class='n'>369 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,359 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-303, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>Multi-valued range facet counts drop matches when a document's values do not arrive in ascending order (custom MultiLongValuesSource/MultiDoubleValuesSource, or raw-bit doubles with two or more negative values): LongRangeCounter.addMultiValued assumes sorted values</dd></div><div><dt>Area</dt><dd>facet / range facet counts (LongRangeCounter multi-valued path, exclusive and overlapping counters)</dd></div><div><dt>Priority</dt><dd>Medium, rank 168: Multi-valued range facet counts come out silently too low for the javadoc&#x27;s own distance-source use case, which is more plausible than the fastMatchQuery trigger.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that range-facet multi-valued numbers whose values reach the counter out of ascending order get per-range counts (and FacetResult.value) that are silently too low and disagree with the range's own drill-down query: a custom MultiLongValuesSource or MultiDoubleValuesSource such as per-request distances to each of a document's locations (the use case the class javadoc names), MultiDoubleValuesSource.fromDoubleField/fromFloatField or the DoubleRangeFacetCounts(String, ...) constructor over raw-bit SortedNumeric doubles when a document has two or more negative values, or fromField with a decreasing decoder; default codec, IndexWriterConfig and searcher, any scale (one document with two values suffices), released 8.10.0-10.5.2; long fields, fromLongField/fromIntField and sortable-encoded doubles are not affected, and counts are only ever too low, never too high.</dd></div><div><dt>Summary</dt><dd>You compute range facet counts over a multi-valued source, for example the distances from the user to each of a document's locations computed by your own MultiDoubleValuesSource, or doubles stored as raw bits in a SortedNumeric field and read with fromDoubleField or the DoubleRangeFacetCounts(String, ...) constructor. You expect each range to count every document that has at least one value in it, which is exactly what the range's own drill-down query finds. Instead, when a document's values arrive in descending order (a custom source in its natural order, or raw-bit doubles whenever the document has two or more negative values), the counter skips every later value that sorts below an interval it already counted for that document, so a document with distances {3.0, 0.5} is missing from '&lt; 1 km' and '&lt; 2 km'.</dd></div><div><dt>Introduced</dt><dd>d669ddebc538 (LUCENE-9946, PR #127 'Support multi-value fields in range facet counting', by GitHub gsmiller), released first in 8.10.0 through the lucene-solr branch_8x backport e1ffcb11d9c2 (PR #2507) [read: git log -S 'multiValuedDocLastSeenElementaryInterval' finds only d669ddebc538; git blame -w on LongRangeCounter.java:45-50 and 117-161; read-only GitHub API for the PR revisions and the backport's containment in the 8.10.0 but not the 8.9.0 release commit; exec: 8.9.0 rejects multi-valued range faceting, 8.10.0 fails]. The ascending-order shortcut came in during review (PR revision 923d35eb0cee 'optimize the bsearch for multi-valued cases', after rmuir asked about using the sortedness of SORTED_NUMERIC); the PR's earlier search from interval 0 did not depend on order. Exposure widened by 82703757fe05 (LUCENE-10245, PR #543, 9.1.0), which fed MultiLong/MultiDoubleValues, whose nextValue() promises no order, into the unchanged counter. A shortcut that was valid while SortedNumericDocValues was the only multi-valued input, not a later regression (2021-05-30 (d669ddebc538, -0700; 2021-05-31 UTC); branch_8x backport 2021-06-24; exposure widened 2022-01-10 (82703757fe05))</dd></div><div><dt>First affected version</dt><dd>8.10.0 [exec] (DoubleRangeFacetCounts(String, ...) over raw-bit doubles with two or more negative values per document); 9.1.0 [exec] for the custom-source and fromDoubleField/fromFloatField/fromField(decoder) triggers</dd></div><div><dt>Affected versions</dt><dd>String-constructor raw-bit trigger: every release from 8.10.0 to 10.5.2 (8.10.0, 8.10.1, 8.11.0-8.11.4, 9.0.0-9.12.3, 10.0.0-10.5.2) and main ea57360912ed; source-based triggers: every release from 9.1.0 to 10.5.2 and main [exec: 40 releases with the String-constructor probe and the 32 releases from 9.1.0 on with the source-path repro, each failing with the bug's assertion and with ascending controls passing; -da also on 8.10.0, 9.1.0, 9.12.3, 10.5.2 and main]; not affected: 8.9.0 and earlier, where multi-valued range faceting does not exist (IllegalStateException on the SORTED_NUMERIC field) [exec]; unreleased 10.6.0 very likely affected (LongRangeCounter.java unchanged on upstream main and branch_10x as of 2026-10-26) but not verified [read]; not fixed anywhere</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, follow-up prior-report record verdict new, confidence high but not certain: the follow-up's scripted prior-report search with 58 queries (22 GitHub issue/PR, 3 commit, 2 downstream-repo, 20 mailing-list over dev@, java-user@, issues@ and commits@, 5 JIRA-archive, 6 web; 538 distinct hits, none the same bug, comments of the top 20 read), the finder's scripted prior-report search (45 queries) and 25+ gh searches, 30 manual GraphQL searches (GitHub's search rate limit was exhausted) over apache/lucene, apache/lucenenet, Elasticsearch, OpenSearch, Solr and Hibernate Search, 22 manual list queries, JIRA queries, and a file-level scan of all 411 open apache/lucene PRs: 7 touch these files and none changes addMultiValued, the multi-valued loops or the Multi*Values contracts; upstream main e1c4184cb983 and branch_10x still carry LongRangeCounter.java from d669ddebc538); related, not reports of this bug: #127 / #10985 (LUCENE-9946: introduced the shortcut on purpose while SortedNumericDocValues was the only multi-valued input; nobody discussed unordered inputs), #543 / #11281 (LUCENE-10245: added unordered sources without discussing order), #11997 (jpountz noted that raw-bit multi-valued doubles are not ordered within a document; facets were not changed), #11085 (LUCENE-10047: an earlier de-dup bug in the same loop, fixed in 9.0.0), StackOverflow 59361094 (Lucene.NET 4.8, a similar symptom without multi-valued range faceting, predates the shortcut), SOLR-11043 (Solr's own code); gaps: GitHub REST search rate-limited (repeated through GraphQL with the same strings), apache/lucene has no GitHub Discussions, list search covers dev@, java-user@, issues@ and commits@ only</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) with gradle in a scratch worktree and with the hunt's standalone JUnit runner, assertions on and off; the 10.5.2 release jars (this doc's test). The hunt, the independent checks and the follow-up ran on main <code class='nw'>ea57360912ed</code>, whose facet module is identical, and on the release jars from 8.9.0 to 10.5.2 (the history sweep). The recommended fix was validated in the scratch worktree: the new tests, <code>TestRangeFacetCounts</code> and the whole facet module (313 tests), assertions on and off, plus the module's format, ecjLint and forbiddenApis checks. After the fact checks, an 8-test edge-case JUnit (signed zero, a NaN with the sign bit set, extreme longs, exact bounds, a lower interval that comes back) ran through the standalone runner on main (stock and with the fix, assertions on and off) and on 10.5.2.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/range/LongRangeCounter.java:23-24 (&#x27;Works for both single- and multi-valued cases (assuming you use it correctly)&#x27;), :45-50 (&#x27;this takes advantage of the fact that values within a given doc are sorted&#x27;), :117-161 (addMultiValued; early return at :127-130, binary search from lastSeen+1 at :139-160)</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/MultiLongValues.java:36-46 and MultiDoubleValues.java:36-46 (nextValue: &#x27;Iterates to the next value in the current document&#x27;, no ordering); MultiDoubleValuesSource.java:76-88 (fromField(decoder); fromDoubleField = Double::longBitsToDouble; fromFloatField = Float.intBitsToFloat)</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/range/RangeFacetCounts.java:160-182 (String-field multi-valued loop with mapDocValue); DoubleRangeFacetCounts.java:36-56 (class javadoc: per-request values such as distance; String constructor: multi-valued SortedNumeric, assumes DoubleDocValuesField encoding), :217-240 (source loop), :272-275 (mapDocValue = NumericUtils.sortableDoubleBits); LongRangeFacetCounts.java:190-213 (source loop)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/range/LongRangeCounter.java:45-49, :52-58, :66-68, :90-92, :116-161, :169-170</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/range/LongRangeFacetCounts.java:200-212; range/DoubleRangeFacetCounts.java:53-56, :227-239, :272-275; range/RangeFacetCounts.java:169-181, :213</code></li><li><code>lucene/facet/src/java/org/apache/lucene/facet/MultiLongValues.java:42-46; MultiDoubleValues.java:42-46; MultiDoubleValuesSource.java:80-83; range/ExclusiveLongRangeCounter.java:122-132</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/range/DoubleRangeFacetCounts.java:36-39, :48-56; range/LongRangeFacetCounts.java:33-37; MultiLongValuesSource.java:37-41</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/DoubleDocValuesField.java:20-21</code></li><li><code>lucene/facet/src/test/org/apache/lucene/facet/range/TestRangeFacetCounts.java:1268; MultiValuesSourceTestCase.java:83</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/facet/src/java/org/apache/lucene/facet/MultiLongValues.java:22-46; MultiDoubleValues.java:22-46; range/LongRangeCounter.java:40, :45-49; range/DoubleRange.java:298-302, :340; range/LongRange.java:285-289, :327</code></li><li><code>lucene/facet/src/test/org/apache/lucene/facet/range/TestRangeFacetCounts.java:995-1015, :1053, :1072, :1338-1358, :1399, :1420</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/SortedNumericDocValuesField.java:33-38</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/sandbox/src/java/org/apache/lucene/sandbox/facet/cutters/ranges/LongRangeFacetCutter.java:324-352 (read)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestRangeFacetMultiValuedOrder.java (lucene/facet, public API): <a href='../repro/LFV-303/TestRangeFacetMultiValuedOrder.java'><code>repro/LFV-303/TestRangeFacetMultiValuedOrder.java</code></a> (319 lines)</li><li>TestRangeFacetMultiValuedOrderRandom.java (randomized, brute-force oracle): <a href='../repro/LFV-303/TestRangeFacetMultiValuedOrderRandom.java'><code>repro/LFV-303/TestRangeFacetMultiValuedOrderRandom.java</code></a> (194 lines)</li><li>TestRangeFacetUnsortedMultiValues.java (the finder&#x27;s 3-test JUnit): <a href='../repro/LFV-303/TestRangeFacetUnsortedMultiValues.java'><code>repro/LFV-303/TestRangeFacetUnsortedMultiValues.java</code></a> (181 lines)</li><li>RangeOrderScaleProbe.java (main(), 1,000 documents): <a href='../repro/LFV-303/RangeOrderScaleProbe.java'><code>repro/LFV-303/RangeOrderScaleProbe.java</code></a> (169 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture made in parallel with this doc from an executed probe of the custom-source example on main <code class='nw'>a9779ef3c193</code> (stock and the finder's sort-per-document fix, option B, assertions on and off); every number on screen is parsed from the probe's output. the diagram's last step shows that option B fix; the summary card (the PNG) names the recommended order-independent <code class='nw'>addMultiValued</code> first, and the same probe re-run with it shadowed in also gives <code>[1, 1, 1]</code>.</p><ul class='paths'><li><a href='../assets/LFV-303/bug.png'><code>assets/LFV-303/bug.png</code></a> (369 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

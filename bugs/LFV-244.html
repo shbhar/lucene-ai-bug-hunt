@@ -1,0 +1,1251 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>addIndexes(CodecReader) with a term-vector field that has zero terms writes a chunk the default codec cannot read back, and every later merge that re-encodes the segment closes the IndexWriter</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-244 &middot; tv-zero-term-field-corrupts-chunk-and-poisons-merges</p><h1 id='top'>addIndexes(CodecReader) with a term-vector field that has zero terms writes a chunk the default codec cannot read back, and every later merge that re-encodes the segment closes the IndexWriter</h1><p class='tldr'>If <code>addIndexes(CodecReader)</code> copies a document whose term-vector field has no terms left, the default codec writes a chunk it cannot read back, and on current releases every later merge that re-encodes that segment closes the IndexWriter. Confirmed on 11 versions from 4.2.0 to main; <code class='nw'>CheckIndex</code> at its default level reports clean.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 155</span><span class='sub'>A term-removing filter reader fed to addIndexes writes an unreadable term-vector chunk and every later merge closes the writer, but that expert pattern makes it rarer than LFV-249.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>data corruption</span></dd></div><div><dt>Since</dt><dd>4.2.0 (2013, LUCENE-4599)<span class='sub'>introduced 2013-01-21 &middot; over 13 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>4.2.0 to 10.5.2 and main (11 versions run)</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>an SMT (Z3) model of the term-vector chunk layout, then a failing test</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a formal tool&#x27;s own output and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-27.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The copier behind <code>addIndexes(CodecReader)</code> hands the codec a field with zero terms. The default term-vector writer then stores per-field floats that its reader does not expect when no term of the chunk has offsets, and the reader lists the field but returns no terms for it, so the next merge counts one field too many.</p><figure class='visual' id='tv-zero-term-field-corrupts-chunk-and-poisons-merges-short-visual'><div class='frame'><a class='still' href='../assets/LFV-244/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-244/bug.png' alt='Summary frame. Example 1: doc 0 has a = &quot;secret&quot; with term vectors and offsets, doc 1 has body = &quot;here public text&quot;; a filter drops &quot;secret&quot; from the postings and term vectors; addIndexes(SlowCodecReaderWrapper.wrap(filtered)), commit, read doc 1&#x27;s term vectors. Expected: body = [here, public, text]. Actual: IOException: offset 0 is invalid, while CheckIndex at its default level reports clean. Example 2, the same filter with a without offsets, plus doc 2: deleteDocuments(id:2) plus commit merges the segment; doc 0 declares 1 field and writes 0; Wrong number of values added, expected: 2, got: 1, and the IndexWriter closes on every retry. A six-box flow: field a listed with 0 terms; addAllDocVectors calls startField(a, 0); the writer sees the OFFSETS flag and writes 2 floats, 8 bytes; the reader sees 0 offsets and does not read them; LZ4 from byte 21 fails with offset 0 is invalid; terms(&quot;a&quot;) is null, so merges fail. Affected 4.2.0 to 10.5.2 and main (executed on 11 versions); a fix sketch in addAllDocVectors passes.' width='1920' height='1080'></a></div><figcaption>The repro step by step: the filter leaves <code class='nw'>a</code> listed with 0 terms, the copier forwards it, the writer adds 8 bytes of floats that the reader does not skip, the read of doc 1 fails, and the next merge counts 2 fields but writes 1. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Copy a 2-document index with <code>addIndexes(SlowCodecReaderWrapper.wrap(r))</code>, where <code class='nw'>r</code> removes the term "secret" from field <code class='nw'>a</code> in both the postings and the term vectors. Doc 0's <code class='nw'>a</code> held only "secret" and stores offsets, so its term vectors now list <code class='nw'>a</code> with 0 terms.</span></li><li><span>You expect doc 1's term vectors to read back as <code>body=[here, public, text]</code>. Instead the read throws <code>IOException: offset 0 is invalid</code>: the writer stored 8 bytes (one float per field of the chunk) that the reader does not expect, so it decodes the term bytes from the wrong place. A chunk holds up to 128 documents; its other documents with term vectors fail the same way.</span></li><li><span>Copy again with <code class='nw'>a</code> not storing offsets, plus a doc 2. Delete doc 2 and <code class='nw'>commit()</code>. You expect the merge to succeed. Instead it throws <code>Wrong number of values added, expected: 2, got: 1</code> and the IndexWriter closes; every fresh writer whose merge re-encodes the segment fails the same way.</span></li><li><span>Why the merge fails: the copied segment lists <code class='nw'>a</code> for doc 0 but returns no terms for it, and the merge copier counts the field before it skips it. Normal indexing never writes a zero-term field, so ordinary indexes are not affected.</span></li><li><span>No warning: <code class='nw'>addIndexes</code> and <code class='nw'>commit</code> succeed, and <code class='nw'>CheckIndex</code> at its default level reports the index clean (here levels 2 and 3 report the segment broken; without offsets only level 3 does).</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that copy or rewrite an index through <code>addIndexes(CodecReader)</code> with their own reader that removes terms from term-vector fields: default codec and config, any size, 4.2.0 to 10.5.2 and main. One document whose term-vector field holds only removed terms is enough. Normal indexing never produces it.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>805 words</span></summary><div class='body'><p><code>IndexWriter.addIndexes(CodecReader...)</code> copies the term vectors of a reader that is not a same-format segment through the codec-agnostic copier <code>TermVectorsWriter.addAllDocVectors</code>. If the reader removes terms (a <code class='nw'>FilterLeafReader</code> that drops a term from the postings and, consistently, from the term vectors), a document whose term-vector field held only removed terms reaches the codec as a field with <code>numTerms = 0</code>. The default Lucene90 term-vector writer then writes one 4-byte AvgCharsPerTerm float per field of the chunk because the field has the OFFSETS flag, while its reader reads those floats only when the chunk has at least one offset, so the chunk's other documents with term vectors (a chunk holds up to 128 documents) cannot be read. The same reader lists the zero-term field but returns <code class='nw'>null</code> from <code class='nw'>terms()</code>, so the next merge that re-encodes the segment (a deletion rules out the bulk copy once the merge policy picks the segment) declares a field it never writes and, on 9.0.0 and later, closes the IndexWriter, again for every new writer. <code class='nw'>CheckIndex</code> at its default level reports the index clean. Normal indexing never produces a zero-term term-vector field; the trigger is an application-written term-removing reader. Confirmed on 11 versions from 4.2.0 (2013) to 10.5.2 and main. Before 9.0.0 (merges) and 10.4.0 (chunk reads), runs without assertions could fail silently: a merge wrote one document's term vectors under another, and chunk reads returned wrong bytes or threw <code>ArrayIndexOutOfBoundsException</code>.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Term vectors</strong>: an optional per-document copy of a field's terms (with positions, offsets, payloads), stored by the default codec in compressed <strong>chunks</strong> of up to 128 documents, flushed once their term bytes reach 4 KB (<code>Lucene90TermVectorsFormat.java:68</code>, <code class='nw'>:170</code>).</li><li><strong>The copier</strong>: <code>TermVectorsWriter.addAllDocVectors</code>, the codec-agnostic path that writes one document's term vectors from any <code class='nw'>Fields</code>. <code>addIndexes(CodecReader...)</code> through <code>SlowCodecReaderWrapper</code> uses it, and so does any merge of a segment with deletions (<code>Lucene90CompressingTermVectorsWriter.java:915-931</code>, bulk-merge test <code class='nw'>:953-967</code>).</li><li><strong>A zero-term field</strong>: a document's term vectors list field <code class='nw'>a</code>, but its <code class='nw'>Terms</code> has no terms. A term-removing <code class='nw'>FilterLeafReader</code> produces it when a document's field held only removed terms. The indexing chain never does: <code>TermVectorsConsumerPerField.finish()</code> skips fields with no terms (<code>TermVectorsConsumerPerField.java:69-71</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><strong>The copier declares before it looks.</strong> It calls <code>startDocument(vectors.size())</code> (<code>TermVectorsWriter.java:242-251</code>; the javadoc at <code class='nw'>:64-69</code> promises <code class='nw'>startField</code> will then be called that many times), forwards an empty <code class='nw'>Terms</code> as <code>startField(numTerms = 0)</code> (<code class='nw'>:278-289</code>), and skips a null <code class='nw'>Terms</code> with <code class='nw'>continue</code> ("FieldsEnum shouldn't lie...", <code class='nw'>:267-271</code>).</li><li><strong>Writer and reader disagree about one chunk section.</strong> The writer's <code class='nw'>flushOffsets</code> sets <code>hasOffsets |= fd.hasOffsets</code> for every field instance (<code>Lucene90CompressingTermVectorsWriter.java:629</code>) and, if set, writes one AvgCharsPerTerm float per distinct field (<code class='nw'>:643-657</code>). The reader computes <code class='nw'>totalOffsets</code> from the term frequencies of OFFSETS fields, to which a zero-term field adds nothing (<code>Lucene90CompressingTermVectorsReader.java:551-561</code>), and reads the floats only <code>if (totalOffsets &gt; 0)</code> (<code class='nw'>:587-591</code>).</li><li><strong>So the chunk is shifted.</strong> With a zero-term OFFSETS field and no other offset in the chunk, the reader starts decoding the LZ4-compressed term bytes 4 bytes per field too early. It sees a zero match offset and throws <code>IOException("offset 0 is invalid")</code> (<code class='nw'>LZ4.java:113-116</code>, since #15570 in 10.4.0). The zero-term document itself reads back; the other documents of the chunk that have term vectors do not.</li><li><strong>And the next merge miscounts.</strong> The same reader lists the zero-term field in <code class='nw'>iterator()</code> and <code class='nw'>size()</code> (<code>Lucene90CompressingTermVectorsReader.java:879-902</code>, <code class='nw'>:948-950</code>) but returns <code class='nw'>null</code> from <code class='nw'>terms()</code> ("no term", <code class='nw'>:918-921</code>). A merge that re-encodes the segment gives that <code class='nw'>Fields</code> to the copier, which declares the field and skips it. The writer sizes its packed field table for the declared total (<code>Lucene90CompressingTermVectorsWriter.java:436-450</code>, <code class='nw'>:483-498</code>), and <code>DirectWriter.finish()</code> throws <code>Wrong number of values added</code> (<code class='nw'>:495</code>); with no other field in the chunk, <code class='nw'>flushFieldNums</code> fails first (<code class='nw'>:465-466</code>). <code class='nw'>IndexWriter</code> treats it as tragic.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>The independent reproduction's documents, default codec, main <code class='nw'>a9779ef3c193</code>: doc 0 <code class='nw'>a</code> = "secret" (term vectors with offsets), doc 1 <code class='nw'>body</code> = "here public text" (no offsets). After the filtered <code class='nw'>addIndexes</code>, the chunk's sections end at byte 21; the writer put 2 floats (fields <code class='nw'>a</code> and <code class='nw'>body</code>) as 8 zero bytes at [21, 29) and the compressed terms at 29; the reader starts decoding at 21. Decoding from 29 gives "herepublictext"; from 21 it throws. Without offsets and with a doc 2 that is then deleted, the commit's merge sees 2 declared fields (doc 0 <code class='nw'>a</code>, doc 1 <code class='nw'>body</code>) and 1 written: <code>expected: 2, got: 1</code>. <code class='nw'>CheckIndex</code>: level 1 (default) clean; level 2 <code>test: term vectors ERROR [offset 0 is invalid]</code>; level 3 a <code>NullPointerException</code> on the null <code class='nw'>Terms</code>; both report the whole segment as broken. Without offsets (the intended-behaviour check's probe), level 2 is clean and only level 3 fails.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>456 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications that copy, prune or rewrite an index through <code>IndexWriter.addIndexes(CodecReader...)</code> with their own reader that removes terms from fields that store term vectors (for example stripping a blocked vocabulary while copying an index without re-analysing the source). By reading, the same copier serves merges whose readers the application wraps (<code>MergePolicy.OneMerge#wrapForMerge</code>) and custom codec merges (not executed). Default codec and <code>IndexWriterConfig</code>, any index size.</li><li><strong>The pattern is used.</strong> Lucene's own <code>TestFilterLeafReader</code> passes a term-filtering <code class='nw'>FilterLeafReader</code> (only terms containing 'e') to <code>addIndexes(SlowCodecReaderWrapper.wrap(reader))</code>; it filters postings only. A 2016 java-user thread passes a filtering reader to <code class='nw'>addIndexes</code> to archive part of an index. No Lucene-shipped reader produces the zero-term shape from an ordinarily written segment, and no downstream engine checked does.</li><li><strong>What it takes.</strong> Once such a copy runs, ordinary content triggers it. The merge failure needs only the emptied field and a later merge that re-encodes the segment; a deletion rules out the bulk copy once the merge policy picks the segment; in the test, one deletion of three and a <code class='nw'>commit()</code> with the default merge policy were enough. The unreadable chunk also needs the emptied field to store offsets and no other offset in its chunk.</li><li><strong>What breaks.</strong> Up to 127 other documents of the chunk (those with term vectors) have unreadable term vectors (term-vector highlighting, term-vector "more like this" and term-vector APIs fail for them). On 9.0.0 and later every merge that re-encodes the segment closes the IndexWriter, and a fresh writer fails again, so indexing stops and the segment's partial deletions cannot be reclaimed by such a merge (a segment whose documents are all deleted is still dropped without one). A merge without deletions copies the bad chunk unchanged into the merged segment.</li><li><strong>Silent until then.</strong> <code class='nw'>addIndexes</code> and <code class='nw'>commit</code> succeed; <code class='nw'>CheckIndex</code> at its default level reports clean. With offsets, levels 2 and 3 report the whole segment broken; without offsets, level 2 is clean and level 3 fails. When it reports the segment broken, <code class='nw'>-exorcise</code> would remove all its documents.</li><li><strong>Older releases, without assertions.</strong> Before 9.0.0 the merge "succeeds" and writes one document's term vectors under another document; before 10.4.0 some chunk reads return wrong bytes and others throw <code>ArrayIndexOutOfBoundsException</code> (on 9.12.3 the security probe counted 30,572 exceptions and 10,388 silent wrong reads). With assertions on, these releases throw <code class='nw'>AssertionError</code>.</li><li><strong>What stays intact.</strong> The bug adds no damage to postings, stored fields or doc values beyond what the filter itself does (it removes the term from the postings on purpose; the postings writer drops the emptied field). One side effect: when the merge fails inside <code class='nw'>commit()</code>, that commit's deletion is not committed.</li><li><strong>How likely.</strong> Rare: an expert pattern, and the searches found no report since 2013.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit file for <code class='nw'>lucene/core</code>, public API plus the test framework, default codec. It copies a 2- or 3-document index through a <code class='nw'>FilterLeafReader</code> that removes the term "secret", then reads doc 1's term vectors, and in the merge tests deletes doc 2 and commits. All 3 tests fail on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestAddIndexesZeroTermVectorField.java (lucene/core, 3 tests)</span><span class='meta'>397 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.store.BaseDirectoryWrapper;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.FixedBitSet;
+import org.apache.lucene.util.IOUtils;
+
+/**
+ * addIndexes(CodecReader) from a reader that removes one term of field &quot;a&quot; consistently from the
+ * postings and the term vectors. Doc 0&#x27;s &quot;a&quot; held only that term, so the reader lists &quot;a&quot; in doc
+ * 0&#x27;s term vectors with a Terms that has no terms. The segment that addIndexes writes must read
+ * back and merge like any other.
+ */
+public class TestAddIndexesZeroTermVectorField extends LuceneTestCase {
+
+  private static FieldType tvType(boolean offsets) {
+    FieldType ft = new FieldType(TextField.TYPE_NOT_STORED);
+    ft.setOmitNorms(true);
+    ft.setStoreTermVectors(true);
+    ft.setStoreTermVectorPositions(true);
+    ft.setStoreTermVectorOffsets(offsets);
+    ft.freeze();
+    return ft;
+  }
+
+  private static IndexWriterConfig iwc() {
+    IndexWriterConfig c = new IndexWriterConfig(new StandardAnalyzer());
+    c.setCodec(TestUtil.getDefaultCodec());
+    c.setMergeScheduler(new SerialMergeScheduler());
+    return c;
+  }
+
+  private static Document doc(String id, String field, String text, FieldType ft) {
+    Document d = new Document();
+    d.add(new StringField(&quot;id&quot;, id, Field.Store.NO));
+    if (field != null) {
+      d.add(new Field(field, text, ft));
+    }
+    return d;
+  }
+
+  /** Writes docs into src (one segment), then addIndexes(src without &quot;secret&quot; in &quot;a&quot;). */
+  private static void addFiltered(Directory src, IndexWriter dst, Document... docs)
+      throws IOException {
+    try (IndexWriter w = new IndexWriter(src, iwc().setMergePolicy(NoMergePolicy.INSTANCE))) {
+      for (Document d : docs) {
+        w.addDocument(d);
+      }
+    }
+    try (DirectoryReader r = DirectoryReader.open(src)) {
+      assertEquals(1, r.leaves().size());
+      LeafReader filtered = new DropTermReader(getOnlyLeafReader(r), &quot;a&quot;, new BytesRef(&quot;secret&quot;));
+      dst.addIndexes(SlowCodecReaderWrapper.wrap(filtered));
+      dst.commit();
+    }
+  }
+
+  private static String tvTerms(IndexReader r, int doc, String field) {
+    try {
+      Fields fields = r.termVectors().get(doc);
+      if (fields == null) {
+        return &quot;no vectors&quot;;
+      }
+      Terms terms = fields.terms(field);
+      if (terms == null) {
+        return &quot;null&quot;;
+      }
+      List&lt;String&gt; out = new ArrayList&lt;&gt;();
+      TermsEnum te = terms.iterator();
+      for (BytesRef t = te.next(); t != null; t = te.next()) {
+        out.add(t.utf8ToString());
+      }
+      return out.toString();
+    } catch (Throwable t) {
+      return t.toString();
+    }
+  }
+
+  /** CheckIndex with slow checks; &quot;true&quot; if clean, else the first line of the error. */
+  private static String checkIndexClean(Directory dir) {
+    try {
+      return Boolean.toString(TestUtil.checkIndex(dir).clean);
+    } catch (Throwable t) {
+      String m = t.toString();
+      int nl = m.indexOf(&#x27;\n&#x27;);
+      return nl &lt; 0 ? m : m.substring(0, nl);
+    }
+  }
+
+  /** &quot;a&quot; stores offsets; nothing else in the chunk has offsets. Doc 1 must stay readable. */
+  public void testOtherDocumentOfChunkReadable() throws Exception {
+    try (Directory src = newDirectory();
+        BaseDirectoryWrapper dst = newDirectory()) {
+      dst.setCheckIndexOnClose(false);
+      try (IndexWriter w = new IndexWriter(dst, iwc())) {
+        addFiltered(
+            src,
+            w,
+            doc(&quot;0&quot;, &quot;a&quot;, &quot;secret&quot;, tvType(true)),
+            doc(&quot;1&quot;, &quot;body&quot;, &quot;here public text&quot;, tvType(false)));
+      }
+      String observed;
+      try (DirectoryReader r = DirectoryReader.open(dst)) {
+        observed =
+            &quot;maxDoc=&quot;
+                + r.maxDoc()
+                + &quot; doc1.body=&quot;
+                + tvTerms(r, 1, &quot;body&quot;)
+                + &quot; checkIndexClean=&quot;
+                + checkIndexClean(dst);
+      }
+      assertEquals(&quot;maxDoc=2 doc1.body=[here, public, text] checkIndexClean=true&quot;, observed);
+    }
+  }
+
+  /** &quot;a&quot; without offsets. A merge that re-encodes the term vectors must succeed. */
+  public void testReencodingMergeSucceeds() throws Exception {
+    runReencodingMerge(
+        doc(&quot;0&quot;, &quot;a&quot;, &quot;secret&quot;, tvType(false)),
+        doc(&quot;1&quot;, &quot;body&quot;, &quot;here public text&quot;, tvType(false)),
+        doc(&quot;2&quot;, &quot;body&quot;, &quot;to be deleted&quot;, tvType(false)));
+  }
+
+  /** Same, but no other surviving document of the chunk has a term-vector field. */
+  public void testReencodingMergeSucceedsSingleField() throws Exception {
+    runReencodingMerge(
+        doc(&quot;0&quot;, &quot;a&quot;, &quot;secret&quot;, tvType(false)),
+        doc(&quot;1&quot;, null, null, null),
+        doc(&quot;2&quot;, &quot;body&quot;, &quot;to be deleted&quot;, tvType(false)));
+  }
+
+  private void runReencodingMerge(Document... docs) throws Exception {
+    try (Directory src = newDirectory();
+        BaseDirectoryWrapper dst = newDirectory()) {
+      dst.setCheckIndexOnClose(false);
+      IndexWriter w = new IndexWriter(dst, iwc());
+      String observed;
+      try {
+        addFiltered(src, w, docs);
+        String step = &quot;deleteDocuments&quot;;
+        Throwable mergeFailure = null;
+        try {
+          // the segment has a deletion now, so its term vectors are re-encoded, not bulk-copied
+          w.deleteDocuments(new Term(&quot;id&quot;, &quot;2&quot;));
+          step = &quot;commit&quot;;
+          w.commit(); // with the default merge policy this already runs the merge
+          step = &quot;forceMerge&quot;;
+          w.forceMerge(1);
+        } catch (Throwable t) {
+          mergeFailure = t;
+        }
+        observed =
+            &quot;merge=&quot; + (mergeFailure == null ? &quot;ok&quot; : &quot;failed in &quot; + step + &quot;: &quot; + mergeFailure);
+        observed += &quot;, tragic=&quot; + w.getTragicException();
+        if (mergeFailure == null) {
+          w.commit();
+          try (DirectoryReader r = DirectoryReader.open(dst)) {
+            observed += &quot;, segments=&quot; + r.leaves().size() + &quot;, deleted=&quot; + r.numDeletedDocs();
+          }
+        }
+      } finally {
+        IOUtils.closeWhileHandlingException(w);
+      }
+      assertEquals(&quot;merge=ok, tragic=null, segments=1, deleted=0&quot;, observed);
+    }
+  }
+
+  /**
+   * Hides one term of one field, consistently in the postings and in the term vectors. Its Terms
+   * report size() == -1 (allowed by the Terms javadoc) and recompute the other statistics from the
+   * remaining terms.
+   */
+  static final class DropTermReader extends FilterLeafReader {
+    private final String field;
+    private final BytesRef dropped;
+
+    DropTermReader(LeafReader in, String field, BytesRef dropped) {
+      super(in);
+      this.field = field;
+      this.dropped = dropped;
+    }
+
+    @Override
+    public Terms terms(String f) {
+      try {
+        Terms t = in.terms(f);
+        return t == null || field.equals(f) == false ? t : new DropTerms(t, dropped, maxDoc());
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+    @Override
+    public TermVectors termVectors() throws IOException {
+      final TermVectors orig = super.termVectors();
+      return new TermVectors() {
+        @Override
+        public Fields get(int doc) throws IOException {
+          Fields fields = orig.get(doc);
+          if (fields == null) {
+            return null;
+          }
+          return new FilterFields(fields) {
+            @Override
+            public Terms terms(String f) {
+              try {
+                Terms t = in.terms(f);
+                return t == null || field.equals(f) == false ? t : new DropTerms(t, dropped, 1);
+              } catch (IOException e) {
+                throw new UncheckedIOException(e);
+              }
+            }
+          };
+        }
+      };
+    }
+
+    @Override
+    public CacheHelper getCoreCacheHelper() {
+      return null;
+    }
+
+    @Override
+    public CacheHelper getReaderCacheHelper() {
+      return null;
+    }
+  }
+
+  /** Terms without the dropped term; statistics recomputed from the remaining terms. */
+  static final class DropTerms extends Terms {
+    private final Terms in;
+    private final BytesRef dropped;
+    private final long sumTotalTermFreq;
+    private final long sumDocFreq;
+    private final int docCount;
+
+    DropTerms(Terms in, BytesRef dropped, int maxDoc) throws IOException {
+      this.in = in;
+      this.dropped = dropped;
+      long ttf = 0;
+      long df = 0;
+      FixedBitSet docs = new FixedBitSet(Math.max(1, maxDoc));
+      TermsEnum te = iterator();
+      PostingsEnum pe = null;
+      while (te.next() != null) {
+        ttf += te.totalTermFreq();
+        df += te.docFreq();
+        pe = te.postings(pe, PostingsEnum.NONE);
+        for (int d = pe.nextDoc(); d != DocIdSetIterator.NO_MORE_DOCS; d = pe.nextDoc()) {
+          docs.set(d);
+        }
+      }
+      this.sumTotalTermFreq = ttf;
+      this.sumDocFreq = df;
+      this.docCount = docs.cardinality();
+    }
+
+    @Override
+    public TermsEnum iterator() throws IOException {
+      return new DropTermsEnum(in.iterator(), dropped);
+    }
+
+    @Override
+    public long size() {
+      return -1; // &quot;-1 if this measure isn&#x27;t stored&quot;
+    }
+
+    @Override
+    public long getSumTotalTermFreq() {
+      return sumTotalTermFreq;
+    }
+
+    @Override
+    public long getSumDocFreq() {
+      return sumDocFreq;
+    }
+
+    @Override
+    public int getDocCount() {
+      return docCount;
+    }
+
+    @Override
+    public boolean hasFreqs() {
+      return in.hasFreqs();
+    }
+
+    @Override
+    public boolean hasOffsets() {
+      return in.hasOffsets();
+    }
+
+    @Override
+    public boolean hasPositions() {
+      return in.hasPositions();
+    }
+
+    @Override
+    public boolean hasPayloads() {
+      return in.hasPayloads();
+    }
+  }
+
+  /** TermsEnum that skips the dropped term; supports next() and seekCeil(), not ords. */
+  static final class DropTermsEnum extends BaseTermsEnum {
+    private final TermsEnum in;
+    private final BytesRef dropped;
+
+    DropTermsEnum(TermsEnum in, BytesRef dropped) {
+      this.in = in;
+      this.dropped = dropped;
+    }
+
+    @Override
+    public BytesRef next() throws IOException {
+      BytesRef t;
+      do {
+        t = in.next();
+      } while (t != null &amp;&amp; t.equals(dropped));
+      return t;
+    }
+
+    @Override
+    public SeekStatus seekCeil(BytesRef text) throws IOException {
+      SeekStatus s = in.seekCeil(text);
+      if (s != SeekStatus.END &amp;&amp; in.term().equals(dropped)) {
+        return next() == null ? SeekStatus.END : SeekStatus.NOT_FOUND;
+      }
+      return s;
+    }
+
+    @Override
+    public void seekExact(long ord) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public long ord() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BytesRef term() throws IOException {
+      return in.term();
+    }
+
+    @Override
+    public int docFreq() throws IOException {
+      return in.docFreq();
+    }
+
+    @Override
+    public long totalTermFreq() throws IOException {
+      return in.totalTermFreq();
+    }
+
+    @Override
+    public PostingsEnum postings(PostingsEnum reuse, int flags) throws IOException {
+      return in.postings(reuse, flags);
+    }
+
+    @Override
+    public ImpactsEnum impacts(int flags) throws IOException {
+      return in.impacts(flags);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.index.TestAddIndexesZeroTermVectorField -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>doc 1's term vectors read back as <code>[here, public, text]</code>, <code class='nw'>CheckIndex</code> is clean, and the delete + commit merge succeeds.</dd></div><div class='got'><dt>Observed</dt><dd>doc 1 throws <code>IOException: offset 0 is invalid</code>, and the commit's merge throws <code>Wrong number of values added, expected: 2, got: 1</code> and closes the IndexWriter.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-244/'>repro/LFV-244/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>1 more file (500 lines) · 2,599 words</span></summary><div class='body'><p>The filter (<code class='nw'>DropTermReader</code>, nested in the test) removes one term of one field consistently from the postings and from every document's term vectors, recomputes the statistics and reports <code class='nw'>Terms.size()</code> as -1, which the <code class='nw'>Terms</code> javadoc allows. Its <code class='nw'>TermsEnum</code> extends <code class='nw'>BaseTermsEnum</code>, so <code class='nw'>seekExact</code> and <code class='nw'>prepareSeekExact</code> go through the filtered <code class='nw'>seekCeil</code>. <code>SerialMergeScheduler</code> makes the merge run inside <code class='nw'>commit()</code>; with the default <code>ConcurrentMergeScheduler</code> the merge fails on a merge thread and <code class='nw'>commit()</code> throws "this writer hit an unrecoverable error" with the same root cause.</p><ul><li><code>testOtherDocumentOfChunkReadable</code>: doc 0 <code class='nw'>a</code> = "secret" with offsets, doc 1 <code class='nw'>body</code> = "here public text"; reads doc 1 and runs <code>TestUtil.checkIndex</code> (slow level).</li><li><code>testReencodingMergeSucceeds</code>: <code class='nw'>a</code> without offsets, plus doc 2 <code class='nw'>body</code> = "to be deleted"; <code>deleteDocuments(id:2)</code>, <code class='nw'>commit()</code>, <code class='nw'>forceMerge(1)</code>.</li><li><code>testReencodingMergeSucceedsSingleField</code>: the same, but doc 1 has no term-vector field.</li></ul><p>It needs <code>IndexReader.termVectors()</code> (9.5 and later); the history sweep used era-adapted <code class='nw'>main()</code> probes for 4.2.0 to 9.4.2.</p><div class="hd hd-3"><h3 id='code-2-h'>The recommended fix with the test: fix-with-test.diff</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The recommended fix with the test: fix-with-test.diff</span><span class='meta'>500 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/java/org/apache/lucene/codecs/TermVectorsWriter.java b/lucene/core/src/java/org/apache/lucene/codecs/TermVectorsWriter.java
+index daa935c9b49..3c6cb9881f6 100644
+--- a/lucene/core/src/java/org/apache/lucene/codecs/TermVectorsWriter.java
++++ b/lucene/core/src/java/org/apache/lucene/codecs/TermVectorsWriter.java
+@@ -21,7 +21,6 @@ import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
+ import java.io.Closeable;
+ import java.io.IOException;
+ import java.util.ArrayList;
+-import java.util.Iterator;
+ import java.util.List;
+ import org.apache.lucene.index.DocIDMerger;
+ import org.apache.lucene.index.FieldInfo;
+@@ -239,24 +238,45 @@ public abstract class TermVectorsWriter implements Closeable, Accountable {
+       return;
+     }
+ 
+-    int numFields = vectors.size();
+-    if (numFields == -1) {
+-      // count manually! TODO: Maybe enforce that Fields.size() returns something valid?
+-      numFields = 0;
+-      for (final Iterator&lt;String&gt; it = vectors.iterator(); it.hasNext(); ) {
+-        it.next();
+-        numFields++;
++    // Only fields with at least one term carry a term vector. Skip the others (a Fields may list
++    // a field whose Terms is null or empty, e.g. through a filtering reader) so that the codec
++    // never sees a field with zero terms and numFields matches the fields actually written.
++    final List&lt;String&gt; fieldNames = new ArrayList&lt;&gt;();
++    final List&lt;Terms&gt; fieldTerms = new ArrayList&lt;&gt;();
++    final List&lt;Integer&gt; fieldNumTerms = new ArrayList&lt;&gt;();
++    TermsEnum termsEnum = null;
++    for (String fieldName : vectors) {
++      final Terms terms = vectors.terms(fieldName);
++      if (terms == null) {
++        continue;
++      }
++      int numTerms = (int) terms.size();
++      if (numTerms == -1) {
++        // count manually. It is stupid, but needed, as Terms.size() is not a mandatory statistics
++        // function
++        numTerms = 0;
++        termsEnum = terms.iterator();
++        while (termsEnum.next() != null) {
++          numTerms++;
++        }
++      }
++      if (numTerms == 0) {
++        continue;
+       }
++      fieldNames.add(fieldName);
++      fieldTerms.add(terms);
++      fieldNumTerms.add(numTerms);
+     }
++    final int numFields = fieldNames.size();
+     startDocument(numFields);
+ 
+     String lastFieldName = null;
+ 
+-    TermsEnum termsEnum = null;
+     PostingsEnum docsAndPositionsEnum = null;
+ 
+     int fieldCount = 0;
+-    for (String fieldName : vectors) {
++    for (int f = 0; f &lt; numFields; f++) {
++      final String fieldName = fieldNames.get(f);
+       fieldCount++;
+       final FieldInfo fieldInfo = mergeState.mergeFieldInfos.fieldInfo(fieldName);
+ 
+@@ -264,27 +284,13 @@ public abstract class TermVectorsWriter implements Closeable, Accountable {
+           : &quot;lastFieldName=&quot; + lastFieldName + &quot; fieldName=&quot; + fieldName;
+       lastFieldName = fieldName;
+ 
+-      final Terms terms = vectors.terms(fieldName);
+-      if (terms == null) {
+-        // FieldsEnum shouldn&#x27;t lie...
+-        continue;
+-      }
+-
++      final Terms terms = fieldTerms.get(f);
+       final boolean hasPositions = terms.hasPositions();
+       final boolean hasOffsets = terms.hasOffsets();
+       final boolean hasPayloads = terms.hasPayloads();
+       assert !hasPayloads || hasPositions;
+ 
+-      int numTerms = (int) terms.size();
+-      if (numTerms == -1) {
+-        // count manually. It is stupid, but needed, as Terms.size() is not a mandatory statistics
+-        // function
+-        numTerms = 0;
+-        termsEnum = terms.iterator();
+-        while (termsEnum.next() != null) {
+-          numTerms++;
+-        }
+-      }
++      final int numTerms = fieldNumTerms.get(f);
+ 
+       startField(fieldInfo, numTerms, hasPositions, hasOffsets, hasPayloads);
+       termsEnum = terms.iterator();
+diff --git a/lucene/core/src/test/org/apache/lucene/index/TestAddIndexesZeroTermVectorField.java b/lucene/core/src/test/org/apache/lucene/index/TestAddIndexesZeroTermVectorField.java
+new file mode 100644
+index 00000000000..b6937cacd90
+--- /dev/null
++++ b/lucene/core/src/test/org/apache/lucene/index/TestAddIndexesZeroTermVectorField.java
+@@ -0,0 +1,397 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the &quot;License&quot;); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.lucene.index;
++
++import java.io.IOException;
++import java.io.UncheckedIOException;
++import java.util.ArrayList;
++import java.util.List;
++import org.apache.lucene.analysis.standard.StandardAnalyzer;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.Field;
++import org.apache.lucene.document.FieldType;
++import org.apache.lucene.document.StringField;
++import org.apache.lucene.document.TextField;
++import org.apache.lucene.search.DocIdSetIterator;
++import org.apache.lucene.store.Directory;
++import org.apache.lucene.tests.store.BaseDirectoryWrapper;
++import org.apache.lucene.tests.util.LuceneTestCase;
++import org.apache.lucene.tests.util.TestUtil;
++import org.apache.lucene.util.BytesRef;
++import org.apache.lucene.util.FixedBitSet;
++import org.apache.lucene.util.IOUtils;
++
++/**
++ * addIndexes(CodecReader) from a reader that removes one term of field &quot;a&quot; consistently from the
++ * postings and the term vectors. Doc 0&#x27;s &quot;a&quot; held only that term, so the reader lists &quot;a&quot; in doc
++ * 0&#x27;s term vectors with a Terms that has no terms. The segment that addIndexes writes must read
++ * back and merge like any other.
++ */
++public class TestAddIndexesZeroTermVectorField extends LuceneTestCase {
++
++  private static FieldType tvType(boolean offsets) {
++    FieldType ft = new FieldType(TextField.TYPE_NOT_STORED);
++    ft.setOmitNorms(true);
++    ft.setStoreTermVectors(true);
++    ft.setStoreTermVectorPositions(true);
++    ft.setStoreTermVectorOffsets(offsets);
++    ft.freeze();
++    return ft;
++  }
++
++  private static IndexWriterConfig iwc() {
++    IndexWriterConfig c = new IndexWriterConfig(new StandardAnalyzer());
++    c.setCodec(TestUtil.getDefaultCodec());
++    c.setMergeScheduler(new SerialMergeScheduler());
++    return c;
++  }
++
++  private static Document doc(String id, String field, String text, FieldType ft) {
++    Document d = new Document();
++    d.add(new StringField(&quot;id&quot;, id, Field.Store.NO));
++    if (field != null) {
++      d.add(new Field(field, text, ft));
++    }
++    return d;
++  }
++
++  /** Writes docs into src (one segment), then addIndexes(src without &quot;secret&quot; in &quot;a&quot;). */
++  private static void addFiltered(Directory src, IndexWriter dst, Document... docs)
++      throws IOException {
++    try (IndexWriter w = new IndexWriter(src, iwc().setMergePolicy(NoMergePolicy.INSTANCE))) {
++      for (Document d : docs) {
++        w.addDocument(d);
++      }
++    }
++    try (DirectoryReader r = DirectoryReader.open(src)) {
++      assertEquals(1, r.leaves().size());
++      LeafReader filtered = new DropTermReader(getOnlyLeafReader(r), &quot;a&quot;, new BytesRef(&quot;secret&quot;));
++      dst.addIndexes(SlowCodecReaderWrapper.wrap(filtered));
++      dst.commit();
++    }
++  }
++
++  private static String tvTerms(IndexReader r, int doc, String field) {
++    try {
++      Fields fields = r.termVectors().get(doc);
++      if (fields == null) {
++        return &quot;no vectors&quot;;
++      }
++      Terms terms = fields.terms(field);
++      if (terms == null) {
++        return &quot;null&quot;;
++      }
++      List&lt;String&gt; out = new ArrayList&lt;&gt;();
++      TermsEnum te = terms.iterator();
++      for (BytesRef t = te.next(); t != null; t = te.next()) {
++        out.add(t.utf8ToString());
++      }
++      return out.toString();
++    } catch (Throwable t) {
++      return t.toString();
++    }
++  }
++
++  /** CheckIndex with slow checks; &quot;true&quot; if clean, else the first line of the error. */
++  private static String checkIndexClean(Directory dir) {
++    try {
++      return Boolean.toString(TestUtil.checkIndex(dir).clean);
++    } catch (Throwable t) {
++      String m = t.toString();
++      int nl = m.indexOf(&#x27;\n&#x27;);
++      return nl &lt; 0 ? m : m.substring(0, nl);
++    }
++  }
++
++  /** &quot;a&quot; stores offsets; nothing else in the chunk has offsets. Doc 1 must stay readable. */
++  public void testOtherDocumentOfChunkReadable() throws Exception {
++    try (Directory src = newDirectory();
++        BaseDirectoryWrapper dst = newDirectory()) {
++      dst.setCheckIndexOnClose(false);
++      try (IndexWriter w = new IndexWriter(dst, iwc())) {
++        addFiltered(
++            src,
++            w,
++            doc(&quot;0&quot;, &quot;a&quot;, &quot;secret&quot;, tvType(true)),
++            doc(&quot;1&quot;, &quot;body&quot;, &quot;here public text&quot;, tvType(false)));
++      }
++      String observed;
++      try (DirectoryReader r = DirectoryReader.open(dst)) {
++        observed =
++            &quot;maxDoc=&quot;
++                + r.maxDoc()
++                + &quot; doc1.body=&quot;
++                + tvTerms(r, 1, &quot;body&quot;)
++                + &quot; checkIndexClean=&quot;
++                + checkIndexClean(dst);
++      }
++      assertEquals(&quot;maxDoc=2 doc1.body=[here, public, text] checkIndexClean=true&quot;, observed);
++    }
++  }
++
++  /** &quot;a&quot; without offsets. A merge that re-encodes the term vectors must succeed. */
++  public void testReencodingMergeSucceeds() throws Exception {
++    runReencodingMerge(
++        doc(&quot;0&quot;, &quot;a&quot;, &quot;secret&quot;, tvType(false)),
++        doc(&quot;1&quot;, &quot;body&quot;, &quot;here public text&quot;, tvType(false)),
++        doc(&quot;2&quot;, &quot;body&quot;, &quot;to be deleted&quot;, tvType(false)));
++  }
++
++  /** Same, but no other surviving document of the chunk has a term-vector field. */
++  public void testReencodingMergeSucceedsSingleField() throws Exception {
++    runReencodingMerge(
++        doc(&quot;0&quot;, &quot;a&quot;, &quot;secret&quot;, tvType(false)),
++        doc(&quot;1&quot;, null, null, null),
++        doc(&quot;2&quot;, &quot;body&quot;, &quot;to be deleted&quot;, tvType(false)));
++  }
++
++  private void runReencodingMerge(Document... docs) throws Exception {
++    try (Directory src = newDirectory();
++        BaseDirectoryWrapper dst = newDirectory()) {
++      dst.setCheckIndexOnClose(false);
++      IndexWriter w = new IndexWriter(dst, iwc());
++      String observed;
++      try {
++        addFiltered(src, w, docs);
++        String step = &quot;deleteDocuments&quot;;
++        Throwable mergeFailure = null;
++        try {
++          // the segment has a deletion now, so its term vectors are re-encoded, not bulk-copied
++          w.deleteDocuments(new Term(&quot;id&quot;, &quot;2&quot;));
++          step = &quot;commit&quot;;
++          w.commit(); // with the default merge policy this already runs the merge
++          step = &quot;forceMerge&quot;;
++          w.forceMerge(1);
++        } catch (Throwable t) {
++          mergeFailure = t;
++        }
++        observed =
++            &quot;merge=&quot; + (mergeFailure == null ? &quot;ok&quot; : &quot;failed in &quot; + step + &quot;: &quot; + mergeFailure);
++        observed += &quot;, tragic=&quot; + w.getTragicException();
++        if (mergeFailure == null) {
++          w.commit();
++          try (DirectoryReader r = DirectoryReader.open(dst)) {
++            observed += &quot;, segments=&quot; + r.leaves().size() + &quot;, deleted=&quot; + r.numDeletedDocs();
++          }
++        }
++      } finally {
++        IOUtils.closeWhileHandlingException(w);
++      }
++      assertEquals(&quot;merge=ok, tragic=null, segments=1, deleted=0&quot;, observed);
++    }
++  }
++
++  /**
++   * Hides one term of one field, consistently in the postings and in the term vectors. Its Terms
++   * report size() == -1 (allowed by the Terms javadoc) and recompute the other statistics from the
++   * remaining terms.
++   */
++  static final class DropTermReader extends FilterLeafReader {
++    private final String field;
++    private final BytesRef dropped;
++
++    DropTermReader(LeafReader in, String field, BytesRef dropped) {
++      super(in);
++      this.field = field;
++      this.dropped = dropped;
++    }
++
++    @Override
++    public Terms terms(String f) {
++      try {
++        Terms t = in.terms(f);
++        return t == null || field.equals(f) == false ? t : new DropTerms(t, dropped, maxDoc());
++      } catch (IOException e) {
++        throw new UncheckedIOException(e);
++      }
++    }
++
++    @Override
++    public TermVectors termVectors() throws IOException {
++      final TermVectors orig = super.termVectors();
++      return new TermVectors() {
++        @Override
++        public Fields get(int doc) throws IOException {
++          Fields fields = orig.get(doc);
++          if (fields == null) {
++            return null;
++          }
++          return new FilterFields(fields) {
++            @Override
++            public Terms terms(String f) {
++              try {
++                Terms t = in.terms(f);
++                return t == null || field.equals(f) == false ? t : new DropTerms(t, dropped, 1);
++              } catch (IOException e) {
++                throw new UncheckedIOException(e);
++              }
++            }
++          };
++        }
++      };
++    }
++
++    @Override
++    public CacheHelper getCoreCacheHelper() {
++      return null;
++    }
++
++    @Override
++    public CacheHelper getReaderCacheHelper() {
++      return null;
++    }
++  }
++
++  /** Terms without the dropped term; statistics recomputed from the remaining terms. */
++  static final class DropTerms extends Terms {
++    private final Terms in;
++    private final BytesRef dropped;
++    private final long sumTotalTermFreq;
++    private final long sumDocFreq;
++    private final int docCount;
++
++    DropTerms(Terms in, BytesRef dropped, int maxDoc) throws IOException {
++      this.in = in;
++      this.dropped = dropped;
++      long ttf = 0;
++      long df = 0;
++      FixedBitSet docs = new FixedBitSet(Math.max(1, maxDoc));
++      TermsEnum te = iterator();
++      PostingsEnum pe = null;
++      while (te.next() != null) {
++        ttf += te.totalTermFreq();
++        df += te.docFreq();
++        pe = te.postings(pe, PostingsEnum.NONE);
++        for (int d = pe.nextDoc(); d != DocIdSetIterator.NO_MORE_DOCS; d = pe.nextDoc()) {
++          docs.set(d);
++        }
++      }
++      this.sumTotalTermFreq = ttf;
++      this.sumDocFreq = df;
++      this.docCount = docs.cardinality();
++    }
++
++    @Override
++    public TermsEnum iterator() throws IOException {
++      return new DropTermsEnum(in.iterator(), dropped);
++    }
++
++    @Override
++    public long size() {
++      return -1; // &quot;-1 if this measure isn&#x27;t stored&quot;
++    }
++
++    @Override
++    public long getSumTotalTermFreq() {
++      return sumTotalTermFreq;
++    }
++
++    @Override
++    public long getSumDocFreq() {
++      return sumDocFreq;
++    }
++
++    @Override
++    public int getDocCount() {
++      return docCount;
++    }
++
++    @Override
++    public boolean hasFreqs() {
++      return in.hasFreqs();
++    }
++
++    @Override
++    public boolean hasOffsets() {
++      return in.hasOffsets();
++    }
++
++    @Override
++    public boolean hasPositions() {
++      return in.hasPositions();
++    }
++
++    @Override
++    public boolean hasPayloads() {
++      return in.hasPayloads();
++    }
++  }
++
++  /** TermsEnum that skips the dropped term; supports next() and seekCeil(), not ords. */
++  static final class DropTermsEnum extends BaseTermsEnum {
++    private final TermsEnum in;
++    private final BytesRef dropped;
++
++    DropTermsEnum(TermsEnum in, BytesRef dropped) {
++      this.in = in;
++      this.dropped = dropped;
++    }
++
++    @Override
++    public BytesRef next() throws IOException {
++      BytesRef t;
++      do {
++        t = in.next();
++      } while (t != null &amp;&amp; t.equals(dropped));
++      return t;
++    }
++
++    @Override
++    public SeekStatus seekCeil(BytesRef text) throws IOException {
++      SeekStatus s = in.seekCeil(text);
++      if (s != SeekStatus.END &amp;&amp; in.term().equals(dropped)) {
++        return next() == null ? SeekStatus.END : SeekStatus.NOT_FOUND;
++      }
++      return s;
++    }
++
++    @Override
++    public void seekExact(long ord) {
++      throw new UnsupportedOperationException();
++    }
++
++    @Override
++    public long ord() {
++      throw new UnsupportedOperationException();
++    }
++
++    @Override
++    public BytesRef term() throws IOException {
++      return in.term();
++    }
++
++    @Override
++    public int docFreq() throws IOException {
++      return in.docFreq();
++    }
++
++    @Override
++    public long totalTermFreq() throws IOException {
++      return in.totalTermFreq();
++    }
++
++    @Override
++    public PostingsEnum postings(PostingsEnum reuse, int flags) throws IOException {
++      return in.postings(reuse, flags);
++    }
++
++    @Override
++    public ImpactsEnum impacts(int flags) throws IOException {
++      return in.impacts(flags);
++    }
++  }
++}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle and harness): 3 of 3 fail; 10.5.2 and 9.12.3 release jars: 3 of 3 fail; every executed release from 4.2.0 is affected</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE   # an apache/lucene checkout at a9779ef3c193 (or a later main where these files are unchanged)
+cp $REPRO/TestAddIndexesZeroTermVectorField.java lucene/core/src/test/org/apache/lucene/index/
+./gradlew :lucene:core:test --tests org.apache.lucene.index.TestAddIndexesZeroTermVectorField -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (test 3 then shows ArrayIndexOutOfBoundsException instead of AssertionError)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF -Ptests.asserts=true; trimmed
+TestAddIndexesZeroTermVectorField &gt; testReencodingMergeSucceedsSingleField FAILED
+    org.junit.ComparisonFailure: expected:&lt;merge=[ok, tragic=null, segments=1, deleted=0]&gt;
+      but was:&lt;merge=[failed in commit: java.lang.AssertionError, tragic=java.lang.AssertionError]&gt;
+TestAddIndexesZeroTermVectorField &gt; testOtherDocumentOfChunkReadable FAILED
+    org.junit.ComparisonFailure: expected:&lt;maxDoc=2 doc1.body=[[here, public, text] checkIndexClean=true]&gt;
+      but was:&lt;maxDoc=2 doc1.body=[java.io.IOException: offset 0 is invalid checkIndexClean=java.lang.RuntimeException: CheckIndex failed]&gt;
+    (CheckIndex:  test: term vectors........ERROR [Cannot invoke &quot;org.apache.lucene.index.Terms.iterator()&quot; because &quot;terms&quot; is null])
+TestAddIndexesZeroTermVectorField &gt; testReencodingMergeSucceeds FAILED
+    org.junit.ComparisonFailure: expected:&lt;merge=[ok, tragic=null, segments=1, deleted=0]&gt;
+      but was:&lt;merge=[failed in commit: java.lang.IllegalStateException: Wrong number of values added, expected: 2, got: 1,
+               tragic=java.lang.IllegalStateException: Wrong number of values added, expected: 2, got: 1]&gt;
+3 tests completed, 3 failed
+
+# -Ptests.asserts=false: the same, except
+testReencodingMergeSucceedsSingleField: failed in commit: java.lang.ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 0
+
+# 10.5.2 release jars: identical to main, mode for mode
+# 9.12.3 release jars: test 1 reads java.lang.AssertionError (-ea) or
+#   java.lang.ArrayIndexOutOfBoundsException: Index -57336 out of bounds for length 24 (-da); the merges fail the same way</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code>TermVectorsWriter.startDocument</code> promises <code class='nw'>startField</code> will be called <code class='nw'>numVectorFields</code> times; the copier in the same class declares a field, then skips it.</li><li>No javadoc forbids an empty <code class='nw'>Terms</code>; <code class='nw'>CheckIndex</code>'s slow-level postings and term-vector checks report no error on the filtered reader, and the postings writer simply drops the emptied field.</li><li>The default codec writes a segment it cannot read.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>341 words</span></summary><div class='body'><ul><li><strong>Lucene's own contract.</strong> <code class='nw'>startDocument</code>: "<code class='nw'>startField(...)</code> will be called <code class='nw'>numVectorFields</code> times" (<code>TermVectorsWriter.java:64-69</code>). <code class='nw'>addAllDocVectors</code> declares <code class='nw'>vectors.size()</code> (<code class='nw'>:251</code>) and skips a null <code class='nw'>Terms</code> (<code class='nw'>:268-271</code>).</li><li><strong>No <code>numTerms &gt;= 1</code> anywhere.</strong> <code class='nw'>startField</code>: "<code class='nw'>startTerm</code> will be called <code class='nw'>numTerms</code> times" (<code class='nw'>:74-80</code>). <code class='nw'>Fields</code>, <code class='nw'>Terms</code>, <code class='nw'>TermVectors</code>, <code>addIndexes(CodecReader...)</code> (only "empty segments are dropped", <code>IndexWriter.java:3254-3275</code>) and <code>SlowCodecReaderWrapper</code> ("Wraps arbitrary readers for merging", <code>SlowCodecReaderWrapper.java:37-40</code>) state no such rule. The test framework's <code>AssertingTermVectorsFormat</code> checks that the declared counts match, not that terms exist.</li><li><strong>Empty <code class='nw'>Terms</code> from filtering are anticipated.</strong> <code class='nw'>Terms.getMax()</code>: "empty: only possible from a FilteredTermsEnum..." (<code class='nw'>Terms.java:157</code>, <code class='nw'>:174</code>, both in <code class='nw'>getMax()</code>); <code class='nw'>getMin()</code> "returns null when there are no terms" (<code class='nw'>:139-141</code>). <code class='nw'>CheckIndex</code> tolerates the postings "ghost field" (<code>CheckIndex.java:2244-2249</code>) and has the TODO "really the codec should not return a field from FieldsEnum if it has no Terms... but we do this today" (<code class='nw'>:1519-1522</code>).</li><li><strong>The format expected zero-term fields.</strong> The reader's <code>numTerms == 0</code> branch ("no term", <code>Lucene90CompressingTermVectorsReader.java:918-921</code>) dates from the format's first commit in 2013, yet the reader keeps listing the field.</li><li><strong>Lucene's own checks accept the input.</strong> <code>CheckIndex.testPostings</code> and <code class='nw'>testTermVectors</code> at <code>MIN_LEVEL_FOR_SLOW_CHECKS</code> report no error on the filtered reader (they are not a complete validator of arbitrary readers); the postings path drops the same emptied field and stays clean.</li><li><strong>Input versus output.</strong> The filter lists the field and returns a non-null, empty <code class='nw'>Terms</code>, which nothing forbids. After the copy, the Lucene90 reader lists the field and returns <code class='nw'>null</code> from <code class='nw'>terms()</code>, which conflicts with <code class='nw'>Fields.terms</code>: "This will return null if the field does not exist" (<code class='nw'>Fields.java:38</code>). The shape the merge copier then mishandles is Lucene's own output.</li><li><strong>Tests and precedent.</strong> <code>TestParallelReaderEmptyIndex.testEmptyIndexWithVectors</code>: "Adding this index to another index should not throw any exception" (weak precedent: ordinary indexing has already omitted the empty field there). LUCENE-1918 (#2993, 2009) fixed an <code class='nw'>addAllDocVectors</code> crash on unusual <code class='nw'>addIndexes</code> input as a bug. 4.1.0, and 4.2.0 with the older Lucene40 term-vector format, handle the same input.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>212 words</span></summary><div class='body'><p>The strongest case for "not supported" (built by the devil's-advocate checker and the cross-model reviewer): the codec SPI and <code class='nw'>Fields</code> are <code>@lucene.experimental</code>; the indexing chain and <code class='nw'>MemoryIndex</code> enforce <code>numTerms &gt; 0</code> on purpose (<code>TermVectorsConsumerPerField.java:69-71</code>; <code class='nw'>MemoryIndex</code> filters <code>numTokens &gt; 0</code> in its <code class='nw'>Fields</code> iterator and <code class='nw'>size()</code>, <code>MemoryIndex.java:1834</code>, <code class='nw'>:1898</code>; a comment there, "ensure infos.numTokens &gt; 0 invariant; needed for correct operation of terms()", stood from 2005 until LUCENE-7091 removed it in 2016); the copier's comment "FieldsEnum shouldn't lie..." shows its author assumed a listed field has terms; and in #9450 / LUCENE-8403 maintainers declined "filtered" term vectors. So "your reader should hide a field once it has no terms left". The cross-model reviewer rated this argument moderate.</p><p>Why it fails: the restriction is written nowhere; Lucene's own Lucene90 reader produces exactly such a listing, which its own copier and <code class='nw'>CheckIndex</code> (level 3) then cannot handle; LUCENE-8403 was about term vectors that disagree with the postings, while this filter keeps them identical; and the result is not a rejected input but a segment the default codec cannot fully read and that closes every writer whose merge re-encodes it. An <code>IllegalArgumentException</code> at <code class='nw'>addIndexes</code> time would be a defensible answer; silent corruption is not. <strong>Verdict: a defect</strong> (adjudication: confirmed, high confidence).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>The copier forwards only fields with at least one term, and declares exactly that many</strong></p><p class='short'>In <code>TermVectorsWriter.addAllDocVectors</code>, first collect the fields that have at least one term, call <code class='nw'>startDocument</code> with that count, and write only those (+32/-26, one file). The codec never sees a zero-term field and the declared count always matches. The test and the closest suites pass; a chunk already written with offsets stays unreadable.</p><pre class='snippet' tabindex='0'><code>final List&lt;String&gt; fieldNames = new ArrayList&lt;&gt;();
+final List&lt;Terms&gt; fieldTerms = new ArrayList&lt;&gt;();
+final List&lt;Integer&gt; fieldNumTerms = new ArrayList&lt;&gt;();
+for (String fieldName : vectors) {
+  final Terms terms = vectors.terms(fieldName);
+  if (terms == null) continue;
+  int numTerms = (int) terms.size();   // counted with the iterator when -1
+  if (numTerms == 0) continue;
+  fieldNames.add(fieldName); fieldTerms.add(terms); fieldNumTerms.add(numTerms);
+}
+final int numFields = fieldNames.size();
+startDocument(numFields);
+// then write exactly these fields</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 759 words</span></summary><div class='body'><p>One fix was built and validated in a scratch worktree of main <code class='nw'>a9779ef3c193</code>; a codec-side hardening was run and is not enough alone; two more options are listed.</p><p><strong>Workaround until fixed:</strong> a term-removing reader should hide a term-vector field whose remaining <code class='nw'>Terms</code> is empty (leave it out of the per-document <code class='nw'>Fields</code> iterator and <code class='nw'>size()</code>). Not executed.</p><div class="hd hd-3"><h3 id='fix-copier-skips-empty'>The copier forwards only fields with at least one term, and declares exactly that many <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-copier-skips-empty" target="_self" aria-label="Link to this section" aria-describedby="fix-copier-skips-empty"><span aria-hidden="true">#</span></a></div><p>In <code>TermVectorsWriter.addAllDocVectors</code> (<code>TermVectorsWriter.java:235-328</code>), first collect the fields whose <code class='nw'>Terms</code> is non-null and has at least one term (counting with the iterator when <code class='nw'>size()</code> is -1, as the code already does), call <code class='nw'>startDocument</code> with that count, then write those fields. This is what the indexing chain already guarantees (<code>TermVectorsConsumerPerField.java:69-71</code>) and what the postings writer does with an emptied field. It is the common copier of Lucene's shipped non-bulk term-vector merge paths (another contributor's codec that overrides <code>merge(MergeState)</code> would need its own check). It removes both symptoms: no zero-term instance is written, and a later merge of a segment whose reader lists a null-<code class='nw'>Terms</code> field no longer miscounts. The finder's patch, with its now-unused <code>java.util.Iterator</code> import removed.</p><pre class='snippet' tabindex='0'><code>final List&lt;String&gt; fieldNames = new ArrayList&lt;&gt;();
+final List&lt;Terms&gt; fieldTerms = new ArrayList&lt;&gt;();
+final List&lt;Integer&gt; fieldNumTerms = new ArrayList&lt;&gt;();
+for (String fieldName : vectors) {
+  final Terms terms = vectors.terms(fieldName);
+  if (terms == null) continue;
+  int numTerms = (int) terms.size();   // counted with the iterator when -1
+  if (numTerms == 0) continue;
+  fieldNames.add(fieldName); fieldTerms.add(terms); fieldNumTerms.add(numTerms);
+}
+final int numFields = fieldNames.size();
+startDocument(numFields);
+// then write exactly these fields</code></pre><p class='k'>Trade-offs</p><ul><li>Terms are counted in the first loop instead of the second, so the number of passes is unchanged; it keeps one document's field names, <code class='nw'>Terms</code> objects and term counts in three small lists. Not benchmarked; this is already the slow per-document path.</li><li>Already-written segments (two-phase probe: written by stock main, merged with the fix): without offsets the merge now succeeds and <code class='nw'>CheckIndex</code> at level 3 is clean; with offsets the chunk is already unreadable, so the merge still fails reading it (<code>offset 0 is invalid</code>, tragic). The fix cannot repair those bytes; rebuilding the segment from the source documents avoids it, and salvage with a tolerant reader was not investigated.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle in the scratch worktree, <code>-Ptests.seed=DEADBEEF</code>: the new test passes 3 of 3 with assertions on and off.</li><li>The closest suites, gradle with the fix, seed DEADBEEF: core <code class='nw'>*TermVector*</code>, <code class='nw'>TestAddIndexes</code>, <code>TestFilterLeafReader</code>, <code>TestParallelReaderEmptyIndex</code>, <code>TestParallelLeafReader</code>, <code class='nw'>TestCheckIndex</code> and the new test, 19 classes and 151 tests, 0 failures with assertions on and off; codecs <code class='nw'>*TermVector*</code> (SimpleText, whose merges use the same copier), 20 tests, 0 failures, 1 skipped; <code>:lucene:core:check -x test</code> (google-java-format, ecjLint, forbiddenApis) passes.</li><li>Repro harness with the fix shadowed: the new test 3/0 with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the independent reproduction's test 3/0 with <code class='nw'>-ea</code> and <code class='nw'>-da</code> (registry step). Earlier, on a separate build host: 92 upstream tests (<code class='nw'>TestTermVectors</code>, <code>TestTermVectorsWriter</code>, <code>TestTermVectorsReader</code>, <code class='nw'>TestAddIndexes</code>, <code>TestLucene90TermVectorsFormat</code>) pass with <code class='nw'>-ea</code>.</li></ul><div class="hd hd-3"><h3 id='fix-codec-condition'>Write AvgCharsPerTerm under the reader's condition (executed: not enough alone)</h3><a class="hlink" href="#fix-codec-condition" target="_self" aria-label="Link to this section" aria-describedby="fix-codec-condition"><span aria-hidden="true">#</span></a></div><p>In <code>Lucene90CompressingTermVectorsWriter.flushOffsets</code>, <code>hasOffsets |= fd.hasOffsets &amp;&amp; fd.numTerms &gt; 0;</code> (+2/-1), so the floats are written only when the reader will read them (<code>totalOffsets &gt; 0</code>).</p><pre class='snippet' tabindex='0'><code>// the reader reads AvgCharsPerTerm only if the chunk has an offset (totalOffsets &gt; 0)
+hasOffsets |= fd.hasOffsets &amp;&amp; fd.numTerms &gt; 0;</code></pre><p class='k'>Trade-offs</p><p>Run with the new test (<code class='nw'>-ea</code> and <code class='nw'>-da</code>): doc 1 now reads back as <code>[here, public, text]</code>, but <code class='nw'>CheckIndex</code> (level 3) still fails on the listed zero-term field and both merge tests fail as before. It only changes what the writer emits for zero-term OFFSETS instances, which normal indexing never produces. Useful next to the recommended fix, so that no other caller of the codec API can produce the mismatched layout.</p><div class="hd hd-3"><h3 id='fix-reject'>Reject the input</h3><a class="hlink" href="#fix-reject" target="_self" aria-label="Link to this section" aria-describedby="fix-reject"><span aria-hidden="true">#</span></a></div><p>Throw <code>IllegalArgumentException</code> from <code class='nw'>addAllDocVectors</code> (or the Lucene90 <code class='nw'>startField</code>) on <code>numTerms == 0</code> or on a listed field with null <code class='nw'>Terms</code>.</p><p class='k'>Trade-offs</p><p>Defensible, but it turns a valid filtered copy into an error the application must work around, and it leaves an already-written segment with a null-<code class='nw'>Terms</code> listing permanently unmergeable. Not run.</p><div class="hd hd-3"><h3 id='fix-reader-skips-empty'>Make the Lucene90 reader stop listing zero-term fields</h3><a class="hlink" href="#fix-reader-skips-empty" target="_self" aria-label="Link to this section" aria-describedby="fix-reader-skips-empty"><span aria-hidden="true">#</span></a></div><p>Skip <code>numTerms == 0</code> instances in <code>TVFields.iterator()</code> and <code class='nw'>size()</code>.</p><p class='k'>Trade-offs</p><p>Fixes the merge miscount for existing segments too, but not the layout mismatch, and touches the read path. Not run. Separately, <code>CheckIndex.testTermVectors</code> could report a listed field with null <code class='nw'>Terms</code> instead of throwing a <code>NullPointerException</code> (<code>CheckIndex.java:4360-4362</code>).</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Only an application's own term-removing reader can trigger it (no Lucene-shipped reader, and none of the Elasticsearch, OpenSearch or Solr merge and <code class='nw'>addIndexes</code> paths read for this check, removes term-vector terms), and on releases before 10.4.0 run without assertions the misreads are silent and can carry fragments of neighbouring documents' terms.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An AI tool's SMT model (Z3) of which optional sections the Lucene90 term-vector writer emits and its reader expects found one disagreement: an OFFSETS field with zero terms. The AI tool then found a public-API path that produces such a field, <code class='nw'>addIndexes</code> with a term-removing reader, and found the merge failure by running it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>190 words</span></summary><div class='body'><p><strong>Method: SMT model checking with Z3 4.12.2</strong> (the hunt's formal tier), by an AI tool working the hunt's unit on the compressing term-vector format, on main <code class='nw'>ea57360912ed</code>.</p><ul><li>The model encodes, per field instance of one chunk, the flags (positions, offsets, payloads), the term count and the term frequencies, and for each optional section of the chunk when the writer emits it and when the reader reads it, each mapped to file:line.</li><li>Obligation L1, "AvgCharsPerTerm presence agrees for every chunk the codec API accepts", is satisfiable for 1 to 4 field instances; the counterexample is an OFFSETS instance with <code>numTerms == 0</code>. L2, the same under <code>numTerms &gt;= 1</code> (what the indexing chain guarantees), and L3, the block value counts, are unsatisfiable.</li><li>The AI tool then searched for a public-API path that delivers <code>numTerms == 0</code> to the writer, found <code>addIndexes(CodecReader)</code> with a term-filtering reader that <code class='nw'>CheckIndex</code> accepts, and found the second symptom, the poisoned merge, by running it.</li><li>Independent checks followed: a reproducer with its own filter and tests, a cross-model review, a devil's-advocate checker, an adjudication, a history sweep and a security probe (see the checks below).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (two automated runs of 51 queries, 73 GitHub searches, JIRA, four mailing lists, downstream projects, all 413 open PRs; 2026-10-26). Closest: LUCENE-8403, a declined request for filtered term vectors; LUCENE-8277, open, about validating <code class='nw'>addIndexes</code> input; LUCENE-1918, a fixed 2009 crash in the same copier.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p><strong>Verdict: new.</strong> 30 hits were read; none is this bug. Not fixed upstream: no commit changes the conditions, and no open PR changes <code class='nw'>flushOffsets</code>, the AvgCharsPerTerm conditions, the <code class='nw'>numTerms</code> handling or <code>TermVectorsWriter.java</code>.</p><p>Closest items, worth citing: <strong>#9450 / LUCENE-8403</strong> "Support 'filtered' term vectors" (closed Won't Fix, 2019: someone else's uncommitted patch there hit reader and <code class='nw'>CheckIndex</code> trouble with fields emptied by its own modified writer, a different malformed shape; maintainers declined term vectors that disagree with the postings; nobody reports stock Lucene writing an unreadable chunk or a segment whose merges fail). <strong>#9324 / LUCENE-8277</strong> "Better validate CodecReaders in addIndexes" (open; its check runs without slow checks and would not reject this input). <strong>#2993 / LUCENE-1918</strong> (fixed 2009: an <code class='nw'>addAllDocVectors</code> crash on unusual <code class='nw'>addIndexes</code> input, pre-4.0 code). <strong>#15570</strong> (2026-01) introduced the <code>offset 0 is invalid</code> message this bug now shows.</p><p>Gaps: GitHub search reads only the first page per query; the mailing lists were searched through the archive API; one web query was refused (HTTP 429); private security reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene)</th><td class='when'>2026-10-26</td><td>two prior-art runs (16 issue/PR and 3 commit queries each) and 73 GraphQL searches: addAllDocVectors, flushOffsets, charsPerTerm, AvgCharsPerTerm, "offset 0 is invalid", "Wrong number of values added", empty or ghost term-vector fields, SlowCodecReaderWrapper term vectors, involves:shbhar</td><td>no report; related #9450, #9324, #2993, #15570</td></tr><tr><th scope='row'>Open PRs (apache/lucene)</th><td class='when'>2026-10-26</td><td>the touched files of all 413 open PRs</td><td>none touches TermVectorsWriter.java; #1003, #14397, #14716, #15194 and #16480 touch the Lucene90 term-vector files without changing these conditions</td></tr><tr><th scope='row'>JIRA archive</th><td class='when'>2026-10-26</td><td>4 archive queries per run and 9 REST queries (AvgCharsPerTerm, empty term vector, FilterCodecReader); resolutions of LUCENE-8403, 8277, 1918</td><td>no report</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@)</th><td class='when'>2026-10-26</td><td>20 queries per run through the archive API</td><td>no report; a 2016 java-user thread uses a filtering reader with addIndexes (documents, not terms)</td></tr><tr><th scope='row'>Downstream projects and the web</th><td class='when'>2026-10-26</td><td>Elasticsearch, OpenSearch, Solr, lucene-solr, Lucene.NET; 14 web queries</td><td>no relevant hit</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 4.2.0 (2013) by LUCENE-4599, the compressing term-vector format, which LUCENE-4733 made the default: 4.1.0 passes, 4.2.0 fails, and 4.2.0 with the older Lucene40 format passes. Every executed release from 4.2.0 to 10.5.2 and main fails. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>5837fe83bd8</code> (2013-01-21, @jpountz, "LUCENE-4599: New compressed TVF impl: CompressingTermVectorsFormat", issue #5664; Subversion era, no pull request; branch_4x backport <code class='nw'>4a62a579a70</code>, the commit in the 4.2.0 tag): the AvgCharsPerTerm write and read conditions and the reader's <code>numTerms == 0 -&gt; null</code> branch all date from it. <strong>Made the default</strong> by <code class='nw'>94b17a28de5</code> (2013-02-02, LUCENE-4733, #5798; branch_4x <code class='nw'>e3710747d87</code>). The copier's declare-first, skip-null behaviour is older (<code class='nw'>873f1999244</code>, 2011, LUCENE-2621) and was harmless with the Lucene40 format, whose reader returns an empty <code class='nw'>Terms</code> for such a field.</p><p>Only the versions below were run. Git pickaxe shows the same code fragments (<code>hasOffsets |= fd.hasOffsets</code>, <code>totalOffsets &gt; 0</code>, <code class='nw'>charsPerTerm</code>) carried through the format's copies and refactors (LUCENE-5969, LUCENE-9705, #15712), so the releases in between appear affected.</p><p><strong>Symptom changes, not fixes:</strong> <code class='nw'>873ac5f162a</code> (LUCENE-9907, #72, 9.0.0) moved the field tables to <code class='nw'>DirectWriter</code>, whose count check makes the poisoned merge throw instead of silently writing one document's term vectors under another; #15570 (<code class='nw'>473dd7b5865</code>, 10.4.0) made LZ4 reject offset 0, so the shifted read throws instead of returning wrong bytes.</p><p>All runs on Linux aarch64 with JDK 25.0.3; release jars SHA-1 checked; each with assertions on and off.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 3 of 3 fail (gradle and harness, assertions on and off; 30/30 over random seeds)</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 3 of 3 fail: <code>offset 0 is invalid</code>, <code>Wrong number of values added</code></td></tr><tr><th scope='row'>9.0.0, 9.4.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>chunk read: AssertionError with assertions, ArrayIndexOutOfBoundsException or wrong bytes without; merge: <code>Wrong number of values added</code>, tragic</td></tr><tr><th scope='row'>4.2.0, 4.10.4, 5.5.5, 6.6.6, 7.0.0, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> silent without -ea</span></td><td>with assertions both fail; without, doc 1 reads wrong bytes (4.2.0: 6 NUL bytes), doc 2 throws <code>ArrayIndexOutOfBoundsException</code>, and the merge "succeeds" but writes one document's term vectors under another</td></tr><tr><th scope='row'>4.2.0 with the destination's term-vector format set to Lucene40</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> control</span></td><td>passes: the failure follows the compressing format</td></tr><tr><th scope='row'>4.1.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>passes (Lucene40 term-vector format is the default)</td></tr><tr><th scope='row'>fix on main <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the test 3/3 pass; closest suites pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's-advocate checker and an adjudication confirmed it with their own runs; an OpenAI GPT-5.6 review (reading only, it could not run code) agreed on the root cause. This doc re-ran it on <code class='nw'>a9779ef3c193</code> with a new single-file test and validated the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>513 words</span></summary><div class='body'><p>The verifier checks ran on main <code class='nw'>ea57360912ed</code>; this doc and the main-refresh re-runs used <code class='nw'>a9779ef3c193</code> (none of the 7 commits in between touches the term-vector, LZ4, <code class='nw'>DirectWriter</code>, <code class='nw'>CheckIndex</code> or <code class='nw'>IndexWriter</code> files). The cross-model review ran reading only, because its runner could not execute code.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Z3 model L1 SAT; JUnit fails 2 of 3 on main (-ea, -da) and 10.5.2, and 2 of 2 (its 9.x variant without the control) on 9.12.3 and 9.5.0; its control (CheckIndex on the filtered reader) passes. Its own CheckIndex assertion ran at level 0 and was vacuous.</td></tr><tr><th scope='row'>cross-model review</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> no verdict</span></td><td>5 attempts failed (reading only).</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own filter and tests written from the claim: 3 of 3 fail on main (-ea, -da), 10.5.2 and 9.12.3; 30 of 30 over random seeds; control passes at the slow CheckIndex level; two fresh writers fail again; CheckIndex by level 1/2/3.</td></tr><tr><th scope='row'>Refute review (OpenAI GPT-5.6, reading only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real (procedural), medium</span></td><td>It could not run Java, and its rubric then requires "not real"; it agreed on the root cause ("strongly corroborates both reported failure mechanisms"). Its one concrete objection (the finder's filter did not override <code class='nw'>prepareSeekExact</code>) was re-tested with a filter that does: still fails.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the strongest misuse case and rebutted it; re-ran on main and 10.5.2; its probe shows docs 1 and 2 unreadable and the 3-document segment broken at CheckIndex levels 2 and 3.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's test with a fresh seed: 3 of 3 fail with -ea and -da; asked for the CheckIndex level, the symptom conditions and the version wording to be stated.</td></tr><tr><th scope='row'>History sweep</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> introduced in 4.2.0</span></td><td>Fails on 4.2.0, 4.10.4, 5.5.5, 6.6.6, 7.0.0, 8.11.4, 9.0.0, 9.4.2, 9.12.3, 10.5.2 and main; passes on 4.1.0 and on 4.2.0 with the Lucene40 format.</td></tr><tr><th scope='row'>Security screen</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not security-sensitive</span></td><td>Application-only trigger, out of scope of SECURITY.md; probe of 1,000 random chunk layouts: silent cross-document misreads only on releases before 10.4.0 without assertions.</td></tr><tr><th scope='row'>Main refresh</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>The finder's and the independent reproduction's tests fail on a9779ef3c193 as on ea57360912ed.</td></tr><tr><th scope='row'>This doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced on a9779ef3c193; fix validated</span></td><td>New 3-test JUnit: 3/3 fail through gradle and the harness (assertions on and off), 30/30 over random seeds, 3/3 on 10.5.2 and 9.12.3; with the fix 3/3 pass and the closest suites pass; the codec-side alternative fixes only the read; a segment already written with offsets stays unreadable.</td></tr><tr><th scope='row'>Doc fact checks</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> wording fixed</span></td><td>An independent fact check (it re-ran the test, the fix and the model), a cross-model fact check (OpenAI GPT-5.6, reading only) and a diagram check confirmed the bug, the mechanism and the fix, and found wording that went beyond the evidence: the headline's merge scope, the version notes, the chunk bounds, the CheckIndex levels without offsets, a quote from a comment that no longer exists, and two summary-card and step-5 labels. All were fixed in this doc, the brief and the diagrams.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-244/bug.png' download='tv-zero-term-field-corrupts-chunk-and-poisons-merges-bug.png' target='_self'>PNG</a> <span class='n'>489 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,548 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-244, snapshot of 2026-10-27</p><dl class='card'><div><dt>Registry title</dt><dd>addIndexes(CodecReader) from a reader whose term vectors list a field with zero terms writes a term-vector chunk that the default codec cannot read back, and every later merge that re-encodes the segment closes the IndexWriter</dd></div><div><dt>Area</dt><dd>core / codecs: term vectors (TermVectorsWriter.addAllDocVectors merge copier; Lucene90 compressing term-vector writer and reader), reached through IndexWriter.addIndexes(CodecReader)</dd></div><div><dt>Priority</dt><dd>Medium, rank 155: A term-removing filter reader fed to addIndexes writes an unreadable term-vector chunk and every later merge closes the writer, but that expert pattern makes it rarer than LFV-249.</dd></div><div><dt>Impact class</dt><dd>data corruption</dd></div><div><dt>Impact note</dt><dd>Applications that pass their own term-removing reader (a FilterLeafReader or FilterCodecReader that drops terms from the postings and term vectors, an expert pattern) to IndexWriter.addIndexes(CodecReader...) or to a merge whose readers they wrap are hit, with the default codec and IndexWriterConfig, at any index size and in every release since 4.2.0, as soon as one document's term-vector field is left listed with zero terms: every later merge that re-encodes that segment (a plain delete plus commit is enough) closes the IndexWriter tragically, on every retry (before 9.0.0 with assertions off it instead silently writes one document's term vectors under another document), and when that field stores offsets and nothing else in its chunk of up to 128 documents has offsets, the other documents' term vectors in the chunk are unreadable, while CheckIndex at its default level reports the index clean; normal indexing never produces such a field.</dd></div><div><dt>Summary</dt><dd>You copy an index with IndexWriter.addIndexes(CodecReader...) through a reader that removes some terms consistently from the postings and the term vectors (CheckIndex at its strictest level accepts this reader), so one document's term-vector field is left with zero terms. You expect the new segment to read back and merge like any other, as the postings do (the postings writer simply drops the emptied field). Instead the default term-vector format writes per-field AvgCharsPerTerm floats that its own reader does not expect, so when the emptied field stores offsets the other documents of the chunk throw 'offset 0 is invalid' on read, and because the reader lists the emptied field but returns null for it, the next merge that re-encodes the segment fails with 'Wrong number of values added' and closes the IndexWriter, on every retry.</dd></div><div><dt>Introduced</dt><dd>5837fe83bd813b021d133c9f806cbcf215d24f67 ('LUCENE-4599: New compressed TVF impl: CompressingTermVectorsFormat', Adrien Grand (jpountz), 2013-01-21, Subversion r1436556, no pull request; LUCENE-4599 = apache/lucene#5664; branch_4x backport 4a62a579a70): the writer writes AvgCharsPerTerm when any field instance of the chunk has the OFFSETS flag while the reader reads it only when the chunk has an offset occurrence, and the reader returns null from terms() for a listed zero-term field; made the default term-vector format by 94b17a28de5 (LUCENE-4733 = apache/lucene#5798, 2013-02-02; branch_4x e3710747d87). Latent precondition: 873f1999244 (LUCENE-2621 = apache/lucene#3695, rmuir, 2011-11-16) added the codec-agnostic merge copier TermVectorsWriter.addAllDocVectors with startDocument(Fields.size()) before the fields are inspected, the null-Terms skip and startField(numTerms = 0) for an empty Terms, harmless with Lucene40TermVectorsFormat [exec: 4.1.0 and the 4.2.0 control]. Symptom change, not the bug: 873ac5f162a (LUCENE-9907, apache/lucene#72, 2021-04-15, first released in 9.0.0) moved flushFields/flushFlags to DirectWriter, whose count check makes the poisoned merge throw instead of silently writing wrong-document term vectors [read: git blame -w -C -C -M and git log -S in the full-history clone; exec: follow-up history probes] (2013-01-21 (compressing term-vector format, LUCENE-4599); 2013-02-02 (made the default, LUCENE-4733); the merge-copier part dates from 2011-11-16 (LUCENE-2621))</dd></div><div><dt>First affected version</dt><dd>4.2.0 [exec] (tag 2013-03-11; the first release whose default term-vector format is the compressing one; on the 4.x API the trigger is addIndexes(IndexReader...) with a FilterAtomicReader, from 5.0.0 addIndexes(CodecReader...) with SlowCodecReaderWrapper); 4.1.0 is not affected [exec], and the 4.2.0 jars with only the destination term-vector format switched back to Lucene40TermVectorsFormat are not affected either [exec]</dd></div><div><dt>Affected versions</dt><dd>every release from 4.2.0 through 10.5.2 and main ea57360912ed. [exec] with a filter that removes the term from both the postings and the term vectors: 4.2.0, 4.10.4, 5.5.5, 6.6.6, 7.0.0, 8.11.4, 9.0.0 and 9.4.2 (follow-up history probes, -ea and -da), 9.5.0 and 9.12.3 (finder src-9x), 10.5.2 and main (-ea and -da): all fail; the independent reproduction's independent test fails on main (-ea, -da), 10.5.2 (-ea) and 9.12.3 (-ea, -da); the security probe also ran 10.3.2 and 10.4.0 (-da). Symptoms differ by version: before 9.0.0 with -da the re-encoding merge succeeds but writes one document's term vectors under another document (4.2.0-8.11.4), from 9.0.0 it throws 'Wrong number of values added' and closes the writer; chunk reads before 10.4.0 with -da return silently wrong bytes (including other documents' term bytes on 9.12.3 and 10.3.2) or throw ArrayIndexOutOfBoundsException, from 10.4.0 (#15570) they throw IOException 'offset 0 is invalid'. [read] every release in between has the same lines by blame; 5.0.0-5.2.x not executed (older Terms#iterator API). Not affected: 4.1.0 and older [exec 4.1.0; no compressing format before 4.2.0]. Not fixed on main [read: ea57360912ed was upstream main HEAD on 2026-10-26; no open PR changes the code]. All runs on aarch64 with JDK 25.0.3.</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that disputed it (the adjudication ruled it real), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>formal: Z3/cvc5</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, plus the finder's interrupted scripted prior-report search; the prior-report record verdict new: two scripted prior-report searches of 51 queries each over apache/lucene issues and PRs, commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web, 73 GitHub GraphQL searches including downstream repositories and involves:shbhar, 9 JIRA REST queries, the touched files of all 413 open apache/lucene PRs and a local git pickaxe; 30 hits listed, none is this bug); related prior items, not duplicates: #9450 / LUCENE-8403 (closed Won't Fix 2019: a feature request for term vectors that omit terms; someone else's uncommitted patch there hit reader and CheckIndex trouble with fields emptied by its own modified writer, which declared all terms and then skipped some, and maintainers declined term vectors that disagree with the postings, which this trigger avoids), #9324 / LUCENE-8277 (open since 2018: validate CodecReaders in addIndexes; its proposed check runs without slow checks and would not reject this input), #2993 / LUCENE-1918 (fixed 2009: a precedent, the same kind of addAllDocVectors crash on unusual addIndexes input in pre-4.0 code), #15570 (merged 2026-01: introduced the 'offset 0 is invalid' message this bug now shows); not fixed upstream: ea57360912ed is the upstream main HEAD of 2026-10-26, and no open PR changes flushOffsets, the AvgCharsPerTerm conditions, the numTerms handling or TermVectorsWriter.java</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26): this doc's JUnit through gradle in a scratch worktree (assertions on and off) and through the hunt repro harness (assertions on and off, 30 of 30 over 10 random-seed iterations); the 10.5.2 and 9.12.3 release jars; the recommended fix with the closest core and codecs suites, a codec-side alternative, and a two-phase probe over a segment written by stock main. The verifiers, the history sweep (4.1.0 to 10.5.2) and the security probe ran on main <code class='nw'>ea57360912ed</code>; none of the 7 commits in between touches the term-vector, LZ4, <code class='nw'>DirectWriter</code>, <code class='nw'>CheckIndex</code> or <code class='nw'>IndexWriter</code> files (one adds a vector-values override to <code>SlowCodecReaderWrapper</code>, which moves its cited javadoc by one line), and the main-refresh step re-ran the finder's and the independent reproduction's tests on <code class='nw'>a9779ef3c193</code> with the same failures.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout @ ea57360912ed: lucene/core/src/java/org/apache/lucene/codecs/TermVectorsWriter.java:235-289 (startDocument at 251, null-Terms skip at 268-270); lucene/core/src/java/org/apache/lucene/codecs/lucene90/compressing/Lucene90CompressingTermVectorsWriter.java:629 (hasOffsets |= fd.hasOffsets), 643-656 (AvgCharsPerTerm written), 464-465 (flushFieldNums assert and fieldNums[numDistinctFields - 1]), 495 (DirectWriter finish in flushFields); lucene/core/src/java/org/apache/lucene/codecs/lucene90/compressing/Lucene90CompressingTermVectorsReader.java:587-591 (read only if totalOffsets &gt; 0), 918-921 (numTerms == 0 -&gt; null); lucene/core/src/java/org/apache/lucene/index/TermVectorsConsumerPerField.java:69-74 (the indexing chain skips zero-term fields); lucene/core/src/java/org/apache/lucene/codecs/lucene90/Lucene90TermVectorsFormat.java (chunk of 1 &lt;&lt; 12 bytes or 128 documents)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/TermVectorsWriter.java:64-69 (startDocument javadoc), :74-80 (startField javadoc), :235-328 (addAllDocVectors; :242-251 count and startDocument, :259 loop, :267-271 null skip, :278-289 numTerms and startField, :326 assert)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene90/compressing/Lucene90CompressingTermVectorsWriter.java:318-340 (startDocument, startField), :383-421 (flush), :436-450 (flushNumFields), :465-466 (flushFieldNums), :483-498 (flushFields, :495 finish), :623-657 (flushOffsets; :629, :643, :654-657), :915-931 (merge, :929 addAllDocVectors), :953-967 (canPerformBulkMerge)</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene90/compressing/Lucene90CompressingTermVectorsReader.java:551-561 (totalOffsets), :587-591 (AvgCharsPerTerm read), :879-902 (iterator), :918-921 (terms returns null), :948-950 (size)</code></li><li><code>lucene/core/src/java/org/apache/lucene/util/compress/LZ4.java:113-116; lucene/core/src/java/org/apache/lucene/codecs/lucene90/Lucene90TermVectorsFormat.java:170; lucene/core/src/java/org/apache/lucene/index/TermVectorsConsumerPerField.java:69-71</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/test/org/apache/lucene/index/TestFilterLeafReader.java:35-53, :156-161</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:4128-4141, :6429-6434 (fully deleted segments are dropped)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/codecs/TermVectorsWriter.java:64-80, :251, :267-271</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/Fields.java:22-46 (:38 terms javadoc); lucene/core/src/java/org/apache/lucene/index/Terms.java:98-103, :157, :174; lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3254-3275; lucene/core/src/java/org/apache/lucene/index/SlowCodecReaderWrapper.java:37-40</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:1519-1522, :2244-2249</code></li><li><code>lucene/core/src/java/org/apache/lucene/codecs/lucene90/compressing/Lucene90CompressingTermVectorsReader.java:918-921</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/codecs/asserting/AssertingTermVectorsFormat.java:119-144</code></li><li><code>lucene/core/src/test/org/apache/lucene/index/TestParallelReaderEmptyIndex.java:71-74</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/CheckIndex.java:4360-4362</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestAddIndexesZeroTermVectorField.java (lucene/core, 3 tests): <a href='../repro/LFV-244/TestAddIndexesZeroTermVectorField.java'><code>repro/LFV-244/TestAddIndexesZeroTermVectorField.java</code></a> (397 lines)</li><li>The recommended fix with the test: fix-with-test.diff: <a href='../repro/LFV-244/fix-with-test.diff'><code>repro/LFV-244/fix-with-test.diff</code></a> (500 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made from an executed tracing probe of the independent reproduction's documents on main <code class='nw'>a9779ef3c193</code> (chunk sections, byte ranges, reader reads, merge exceptions, retries, and the fix shadowed in). Re-rendered on 2026-10-27 after the diagram check: the summary card labels its two examples, and step 5 states what the fix does for segments written before it (without offsets they merge again; a chunk written with offsets stays unreadable) and what the codec-side change alone does. The alt text follows the final PNG.</p><ul class='paths'><li><a href='../assets/LFV-244/bug.png'><code>assets/LFV-244/bug.png</code></a> (489 KB)</li></ul><p class='meta built'>Built 2026-10-27 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-27. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

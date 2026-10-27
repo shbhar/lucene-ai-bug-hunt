@@ -1,0 +1,102 @@
+diff --git a/lucene/analysis/kuromoji/src/java/org/apache/lucene/analysis/ja/JapaneseNumberFilter.java b/lucene/analysis/kuromoji/src/java/org/apache/lucene/analysis/ja/JapaneseNumberFilter.java
+index a1188e9..6441605 100644
+--- a/lucene/analysis/kuromoji/src/java/org/apache/lucene/analysis/ja/JapaneseNumberFilter.java
++++ b/lucene/analysis/kuromoji/src/java/org/apache/lucene/analysis/ja/JapaneseNumberFilter.java
+@@ -175,6 +175,11 @@ public class JapaneseNumberFilter extends TokenFilter {
+     int startOffset = 0;
+     int endOffset = 0;
+     State preCompositionState = captureState();
++    // The composed number must carry the attributes of the tokens it is made of, not those of the
++    // look-ahead token read to find its end: keep the state of the last composed token and the
++    // position increment of the first one.
++    State lastNumeralState = null;
++    final int firstPositionIncrement = posIncrAttr.getPositionIncrement();
+     String term = termAttr.toString();
+     boolean numeralTerm = isNumeral(term);
+ 
+@@ -186,6 +191,7 @@ public class JapaneseNumberFilter extends TokenFilter {
+       }
+ 
+       endOffset = offsetAttr.endOffset();
++      lastNumeralState = captureState();
+       moreTokens = input.incrementToken();
+       if (moreTokens == false) {
+         exhausted = true;
+@@ -204,7 +210,8 @@ public class JapaneseNumberFilter extends TokenFilter {
+ 
+       if (moreTokens) {
+         term = termAttr.toString();
+-        numeralTerm = isNumeral(term) || isNumeralPunctuation(term);
++        // a keyword token is not part of the number: it ends the number and is emitted unchanged
++        numeralTerm = !keywordAttr.isKeyword() && (isNumeral(term) || isNumeralPunctuation(term));
+       }
+     }
+ 
+@@ -214,12 +221,16 @@ public class JapaneseNumberFilter extends TokenFilter {
+         // capture the state of this token and emit it on our next incrementToken()
+         state = captureState();
+       }
++      restoreState(lastNumeralState);
++      posIncrAttr.setPositionIncrement(firstPositionIncrement);
+ 
+       String normalizedNumber = normalizeNumber(numeral.toString());
+ 
+       termAttr.setEmpty();
+       termAttr.append(normalizedNumber);
+       offsetAttr.setOffset(startOffset, endOffset);
++      // the number is made of non-keyword tokens only; do not keep the look-ahead token's flag
++      keywordAttr.setKeyword(false);
+ 
+       numeral = new StringBuilder();
+       return true;
+diff --git a/lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/KoreanNumberFilter.java b/lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/KoreanNumberFilter.java
+index 4348dad..c74aea3 100644
+--- a/lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/KoreanNumberFilter.java
++++ b/lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/KoreanNumberFilter.java
+@@ -164,6 +164,11 @@ public class KoreanNumberFilter extends TokenFilter {
+     int startOffset = 0;
+     int endOffset = 0;
+     State preCompositionState = captureState();
++    // The composed number must carry the attributes of the tokens it is made of, not those of the
++    // look-ahead token read to find its end: keep the state of the last composed token and the
++    // position increment of the first one.
++    State lastNumeralState = null;
++    final int firstPositionIncrement = posIncrAttr.getPositionIncrement();
+     String term = termAttr.toString();
+     boolean numeralTerm = isNumeral(term);
+ 
+@@ -175,6 +180,7 @@ public class KoreanNumberFilter extends TokenFilter {
+       }
+ 
+       endOffset = offsetAttr.endOffset();
++      lastNumeralState = captureState();
+       moreTokens = input.incrementToken();
+       if (moreTokens == false) {
+         exhausted = true;
+@@ -193,7 +199,8 @@ public class KoreanNumberFilter extends TokenFilter {
+ 
+       if (moreTokens) {
+         term = termAttr.toString();
+-        numeralTerm = isNumeral(term) || isNumeralPunctuation(term);
++        // a keyword token is not part of the number: it ends the number and is emitted unchanged
++        numeralTerm = !keywordAttr.isKeyword() && (isNumeral(term) || isNumeralPunctuation(term));
+       }
+     }
+ 
+@@ -203,12 +210,16 @@ public class KoreanNumberFilter extends TokenFilter {
+         // capture the state of this token and emit it on our next incrementToken()
+         state = captureState();
+       }
++      restoreState(lastNumeralState);
++      posIncrAttr.setPositionIncrement(firstPositionIncrement);
+ 
+       String normalizedNumber = normalizeNumber(numeral.toString());
+ 
+       termAttr.setEmpty();
+       termAttr.append(normalizedNumber);
+       offsetAttr.setOffset(startOffset, endOffset);
++      // the number is made of non-keyword tokens only; do not keep the look-ahead token's flag
++      keywordAttr.setKeyword(false);
+ 
+       numeral = new StringBuilder();
+       return true;
