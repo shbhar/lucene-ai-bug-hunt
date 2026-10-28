@@ -2,6 +2,8 @@
 
 Bug LFV-787 · Area: suggest / document suggester (CompletionFieldsConsumer type check at flush and merge; core flush and merge abort paths) · Priority: medium · Impact: index unusable · Novelty: new
 
+Bug page: [../../bugs/LFV-787.html](../../bugs/LFV-787.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a SuggestField document and a ContextSuggestField document under the s
 
 ## Expected vs actual
 
-- Expected: You expect an input error that leaves the writer and your other documents alone.
-- Actual: The type is compared only in CompletionFieldsConsumer while postings are written, so the IllegalArgumentException 'single field name has mixed types' fires inside flush or merge, where IndexWriter treats every exception as tragic: the writer closes and drops every uncommitted document.
+- Expected: `forceMerge(1)` of the two committed segments leaves the writer open (or rejects the merge), and documents 1, 2 and 3 stay in the index.
+- Actual: `IllegalArgumentException: single field name has mixed types` closes the `IndexWriter` and document 3 is lost; 6 of 8 tests fail this way, at commit, forceMerge, a natural merge and in a new writer.
 
 ## Files
 
@@ -49,6 +51,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMixedSuggestFieldTypes.java](TestMixedSuggestFieldTypes.java)
+- [TestCompletionMixedTypesClosesWriter.java](TestCompletionMixedTypesClosesWriter.java)
+- [TestCompletionMixedTypes.java](TestCompletionMixedTypes.java)
+- [CompletionMixedTypesMain.java](CompletionMixedTypesMain.java)
+- [TestMixedMarkerFixProbe.java](TestMixedMarkerFixProbe.java)
 
 ## Feedback
 

@@ -1,0 +1,959 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>BBoxStrategy&#x27;s overlap-ratio score counts only one of the two overlaps of two dateline-crossing boxes, so the score is too low</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-369 &middot; bbox-overlap-ratio-two-piece-dateline-intersection</p><h1 id='top'>BBoxStrategy&#x27;s overlap-ratio score counts only one of the two overlaps of two dateline-crossing boxes, so the score is too low</h1><p class='tldr'>When a query box and a document box both cross the dateline and overlap twice, BBoxStrategy's overlap-ratio score counts only the overlap across the dateline: 0.1032 instead of 0.1548 in the example, so the document ranks too low. Confirmed on main and 15 releases since 4.10.0; spatial matching is unaffected.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 361</span><span class='sub'>A spatial-extras overlap-ratio score.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>4.10.0 (LUCENE-5714/5779, 2014)<span class='sub'>introduced 2014-07-08 &middot; over 12 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>4.10.0 to 10.5.2 (15 releases run, the line unchanged in all 103 release tags read) and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive checking of the real jar against the class-javadoc formula</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>BBoxStrategy</code> (spatial-extras) indexes rectangles and can rank documents by how much their box overlaps the query box (<code>makeOverlapRatioValueSource</code>). A box with minX &gt; maxX crosses the dateline and covers everything except one gap. Two such boxes whose gaps are strictly separated (and whose latitudes overlap) meet twice: across the dateline and on the far side.</p><figure class='visual' id='bbox-overlap-ratio-two-piece-dateline-intersection-short-visual'><div class='frame'><a class='still' href='../assets/LFV-369/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-369/bug.png' alt='Two longitude bands: the query box covers 10°E east across the dateline to 170°W (180°), the document box covers 170°E east across the dateline to 20°E (210°). Their overlap has two pieces, 170°E to 170°W across the dateline (20°) and 10°E to 20°E (10°), 30° in total; Lucene uses a width of 20°, so the score is 0.1032 instead of 0.1548.' width='1920' height='1080'></a></div><figcaption>The longitude circle with the query box (10°E east to 170°W) and the document box (170°E east to 20°E): they overlap across the dateline (20°) and again from 10°E to 20°E (10°), but the score counts only the first piece. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>In the default geo context, index a document box that runs from 170°E east across the dateline to 20°E (<code>rect(170, 20, -10, 10)</code>, 210° wide) with <code class='nw'>BBoxStrategy</code>, and score it with <code>makeOverlapRatioValueSource(rect(10, -170, -10, 10), 0.5)</code>: a query box from 10°E across the dateline to 170°W (180° wide).</span></li><li><span>The two boxes overlap twice: from 170°E to 170°W across the dateline (20°) and from 10°E to 20°E on the far side of the globe (10°). You expect the documented score with an intersection of 30° x 20°: 600/3600 x 0.5 + 600/4200 x 0.5 = 0.1548.</span></li><li><span>You get 0.1032. When both boxes cross, the code takes the width as min(maxX) - max(minX) + 360 = -170 - 170 + 360 = 20°: only the piece across the dateline.</span></li><li><span>Move both boxes 30° west, so only the document crosses, and the score is 0.1548: that branch adds both pieces. Sorting by the score puts a worse match, a box overlapping only 10°E to 35°E (0.1389, computed correctly), above this document.</span></li><li><span>No error: BBoxStrategy's spatial matching is unaffected, this defect throws nothing, and it only ever lowers the score.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that rank, sort or boost by BBoxStrategy's overlap ratio in a geo context (an opt-in, experimental spatial-extras API; Solr exposes it as <code>score=overlapRatio</code>), when the query box and a document box both cross the dateline and overlap twice. One document suffices, with default settings. Spatial matching is unaffected; a filter built on this score is affected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>693 words</span></summary><div class='body'><p><code>BBoxStrategy.makeOverlapRatioValueSource</code> scores a document by how much its box overlaps the query box, with the documented formula <code>intersectionArea / queryArea * p + intersectionArea / targetArea * (1 - p)</code>. A box that crosses the dateline covers the whole longitude circle except one gap. When the query box and the document box both cross the dateline, their latitudes overlap and their gaps are strictly separated (disjoint and not touching), each box covers the other's gap and the two boxes overlap twice: once across the dateline and once on the far side of the globe (this needs their widths to add up to more than 360°, but that alone is not enough). The both-cross branch of <code>BBoxOverlapRatioValueSource.score</code> computes the width as <code>min(maxX) - max(minX) + 360</code>, which is only the piece across the dateline. Query <code>rect(10, -170, -10, 10)</code> and document <code>rect(170, 20, -10, 10)</code> share 170..-170 (20°) and 10..20 (10°), but the score uses a width of 20 instead of 30: 0.10317460317460317 instead of 0.15476190476190477 at <code>p = 0.5</code>. The same pair moved 30° west, so only the document crosses, scores 0.15476190476190477. Sorting by the value puts a worse match first. BBoxStrategy's spatial predicates and the index are unaffected; a filter an application builds on this score is affected. This defect only ever lowers the score and does not throw. Confirmed on main and on every release run (15, from 4.10.0, the class's first release, to 10.5.2); every release tag read has the line. Fix: add the second piece in the both-cross branch (+9 lines, validated).</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>BBoxStrategy</strong> (<code>lucene/spatial-extras</code>, <code>@lucene.experimental</code>): indexes a spatial4j rectangle as four coordinates plus a dateline flag. <code class='nw'>makeQuery</code> matches documents; <code>makeOverlapRatioValueSource(queryBox, p)</code> returns a <code>DoubleValuesSource</code> for ranking, sorting or boosting by overlap.</li><li><strong>Overlap ratio</strong>: the class javadoc defines <code class='nw'>intersectionArea</code> as "the area of the intersection between the query and target envelopes", <code>queryRatio = intersectionArea / queryArea</code>, <code>targetRatio = intersectionArea / targetArea</code>, and score = <code>queryRatio * p + targetRatio * (1 - p)</code> (<code>BBoxOverlapRatioValueSource.java:28-48</code>). Areas are width x height in degrees.</li><li><strong>Dateline-crossing box</strong>: spatial4j <code>rect(minX, maxX, minY, maxY)</code> with <code>minX &gt; maxX</code> covers <code>[minX, 180] + [-180, maxX]</code>. Its uncovered <strong>gap</strong> is <code>(maxX, minX)</code>.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-what-happens-step-by-step-main-a9779ef3c193-lucene-spatial-e'>What happens, step by step (main <code class='nw'>a9779ef3c193</code>, <code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/</code>)</h3><a class="hlink" href="#what-the-bug-is-what-happens-step-by-step-main-a9779ef3c193-lucene-spatial-e" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-happens-step-by-step-main-a9779ef3c193-lucene-spatial-e"><span aria-hidden="true">#</span></a></div><ol><li><code>makeOverlapRatioValueSource</code> builds <code>new BBoxOverlapRatioValueSource(makeShapeValueSource(), ctx.isGeo(), queryBox, p, 0.0)</code> (<code>BBoxStrategy.java:232-235</code>). For each document, the value source reads the document's box from doc values and calls <code class='nw'>score</code>.</li><li><code class='nw'>score</code> (<code>BBoxOverlapRatioValueSource.java:146-265</code>) computes the intersection height, then the width. When both boxes cross or both do not (<code class='nw'>:163</code>), it takes <code>left = max(a.minX, b.minX)</code> and <code>right = min(a.maxX, b.maxX)</code> (<code class='nw'>:165-166</code>). For both crossing it sets <code>width = right - left + 360</code> (<code class='nw'>:180-181</code>): the arc from <code class='nw'>left</code> east across the dateline to <code class='nw'>right</code>.</li><li>If the two gaps are strictly separated (touching gaps leave a second piece of width 0) and the latitudes overlap, each box also covers the arc between the gaps, away from the dateline: <code>[a.minX, b.maxX]</code> when <code>b.maxX &gt; a.minX</code>, or <code>[b.minX, a.maxX]</code> when <code>a.maxX &gt; b.minX</code> (at most one holds). That arc is never added.</li><li>When only one box crosses (<code class='nw'>:183-203</code>), the code adds a west and an east piece (<code class='nw'>:189-195</code>), so the same geometry moved off the dateline is scored in full.</li><li>Every later step is non-decreasing in the width (<code class='nw'>calcArea</code>, <code class='nw'>:268-270</code>; the ratios, <code class='nw'>:208-232</code>; the convex combination, <code class='nw'>:236-238</code>), so this defect only ever lowers the score. <code class='nw'>explain()</code> prints the same short width (<code class='nw'>:249</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-examples-executed-on-main'>Examples (executed on main)</h3><a class="hlink" href="#what-the-bug-is-examples-executed-on-main" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-examples-executed-on-main"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>query</th><th>document</th><th>expected</th><th>actual</th></tr></thead><tbody><tr><td><code>rect(10, -170, -10, 10)</code></td><td><code>rect(170, 20, -10, 10)</code></td><td>overlap 20 + 10 = 30, score 0.15476190476190477</td><td>width 20, <strong>0.10317460317460317</strong></td></tr><tr><td><code>rect(-20, 160, -10, 10)</code> (the pair moved 30° west)</td><td><code>rect(140, -10, -10, 10)</code> (only the document crosses)</td><td>0.15476190476190477</td><td>0.15476190476190477</td></tr><tr><td><code>rect(10, -170, -10, 10)</code>, sorted descending</td><td>A = <code>rect(170, 20, ...)</code>, B = <code>rect(-145, 35, ...)</code> (overlap 10..35, no crossing)</td><td>A (0.1548) before B (0.1389)</td><td><strong>B (0.1389) before A (0.1032)</strong></td></tr><tr><td><code>rect(60, -60, -30, 30)</code> (independent reproducer)</td><td><code>rect(140, 100, -30, 30)</code></td><td>overlap 160 + 40 = 200, 0.7291666666666667</td><td>width 160, <strong>0.5833333333333333</strong></td></tr></tbody></table></div></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>369 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Users of <code>makeOverlapRatioValueSource</code> (or <code>BBoxOverlapRatioValueSource</code> directly) in a geo context. <code class='nw'>BBoxStrategy</code> is in the opt-in <code class='nw'>spatial-extras</code> module and is <code>@lucene.experimental</code>. Within that API nothing special is needed: the default spatial4j <code>SpatialContext.GEO</code>, BBoxStrategy's default field type, the default codec and a plain <code>IndexWriterConfig</code> (executed: a probe with <code>new IndexWriterConfig()</code> on main, assertions on and off, gives the same value). Downstream, Solr's <code class='nw'>BBoxField</code> exposes the class as <code>score=overlapRatio</code> ("a relevancy sort/boost"), and geo-catalogue software asks for that score; Elasticsearch and OpenSearch do not use it (read-only code search, not run).</li><li><strong>What it takes.</strong> Both boxes cross the dateline, their latitudes overlap and their uncovered gaps are strictly separated (disjoint and not touching). That needs their widths to add up to more than 360° (necessary, not sufficient): for example a map view wider than half the globe centred on the Pacific, against a near-global dataset extent that also wraps. Deterministic, the same with assertions on and off.</li><li><strong>What goes wrong.</strong> The document's score, sort value and explanation are too low by the dropped piece's share, so it ranks below worse matches. For ordinary boxes at p = 0.5 the deficits shown here are 0.052 (the example) and 0.146 (the independent reproducer's pair). The largest deficit on the hunt's probe grid, 0.69 (0.069 instead of 0.759), is a degenerate pair: two zero-height boxes (horizontal lines at latitude -90, scored as a ratio of widths) at p = 0.</li><li><strong>Not affected.</strong> Which documents BBoxStrategy's spatial predicates match: <code>BBoxStrategy.makeQuery</code> never uses this value source (executed: the <code class='nw'>Intersects</code> query still matches). A filter that an application builds on this score is affected (executed: with a threshold of 0.12 on the example pair, a positive filter drops the document and a deny rule lets it through). Also not affected: the index, deletions, and other documents' scores (a document's value depends only on its own box and the query box). This defect does not throw and cannot push a score above its exact value (so not above 1); the work per document does not change.</li><li><strong>How likely.</strong> Rare: two crossing boxes that together span more than 360° are uncommon, and no prior report was found in the documented searches, 12 years after 4.10.0.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit file on the public API (<code class='nw'>BBoxStrategy</code> indexing, <code>makeOverlapRatioValueSource</code>), no randomness in its inputs (randomized test directory and writer config; a plain <code>IndexWriterConfig</code> gives the same value). The both-cross pair fails (0.1032 instead of 0.1548), a sorted search ranks the worse match first, and the control, the same pair moved 30° west, passes.</p><figure class='code'><figcaption><span class='fname'>TestBBoxOverlapRatioBothCrossDateline.java (3 tests incl. 1 control)</span><span class='meta'>141 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.bbox;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.DoubleValues;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+
+/**
+ * Two boxes that both cross the dateline can overlap twice: once across the dateline and once on
+ * the far side of the globe. BBoxStrategy&#x27;s overlap-ratio score counts only the first piece.
+ *
+ * &lt;p&gt;Query [10, 180] + [-180, -170] (180 degrees wide) and document [170, 180] + [-180, 20] (210
+ * degrees wide), both 20 degrees tall: they share 170..-170 across the dateline (20 degrees) and
+ * 10..20 (10 degrees), so the intersection is 30 x 20.
+ */
+public class TestBBoxOverlapRatioBothCrossDateline extends LuceneTestCase {
+
+  private static final SpatialContext CTX = SpatialContext.GEO;
+  private static final double P = 0.5; // queryTargetProportion
+
+  private static Rectangle rect(double minX, double maxX, double minY, double maxY) {
+    return CTX.getShapeFactory().rect(minX, maxX, minY, maxY);
+  }
+
+  /**
+   * The documented formula: intersectionArea / queryArea * p + intersectionArea / docArea * (1-p).
+   */
+  private static double documented(double intersectionArea, double queryArea, double docArea) {
+    return intersectionArea / queryArea * P + intersectionArea / docArea * (1 - P);
+  }
+
+  /** Indexes one document with BBoxStrategy defaults and returns its overlap-ratio value. */
+  private static double overlapRatio(Rectangle query, Rectangle doc) throws IOException {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(CTX, &quot;bbox&quot;);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter writer = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document d = new Document();
+        for (Field f : strategy.createIndexableFields(doc)) {
+          d.add(f);
+        }
+        writer.addDocument(d);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        DoubleValuesSource overlap = strategy.makeOverlapRatioValueSource(query, P);
+        DoubleValues values = overlap.getValues(reader.leaves().get(0), null);
+        assertTrue(values.advanceExact(0));
+        return values.doubleValue();
+      }
+    }
+  }
+
+  /** Fails: the score is 0.10317460317460317 (width 20) instead of 0.15476190476190477 (30). */
+  public void testBothCrossDatelineTwoPieceOverlap() throws IOException {
+    Rectangle query = rect(10, -170, -10, 10);
+    Rectangle doc = rect(170, 20, -10, 10);
+    assertTrue(query.getCrossesDateLine() &amp;&amp; doc.getCrossesDateLine());
+    double expected = documented(30 * 20, 180 * 20, 210 * 20); // 0.15476190476190477
+    assertEquals(expected, overlapRatio(query, doc), 1e-9);
+  }
+
+  /**
+   * Control, passes: the same two boxes moved 30 degrees west, so only the document crosses the
+   * dateline. Moving both boxes by the same longitude does not change their overlap, and this
+   * branch of the code adds up both pieces: 0.15476190476190477.
+   */
+  public void testSamePairMovedWestSoOnlyTheDocumentCrosses() throws IOException {
+    Rectangle query = rect(-20, 160, -10, 10); // [-20, 160]
+    Rectangle doc = rect(140, -10, -10, 10); // [140, 180] + [-180, -10]
+    assertFalse(query.getCrossesDateLine());
+    assertTrue(doc.getCrossesDateLine());
+    double expected = documented(30 * 20, 180 * 20, 210 * 20);
+    assertEquals(expected, overlapRatio(query, doc), 1e-9);
+  }
+
+  /**
+   * Fails: sorting by the overlap ratio puts the worse match first. Document A is the box above
+   * (true score 0.1548, computed 0.1032). Document B, [-145, 35], overlaps the query only in 10..35
+   * and does not cross the dateline, so its score 0.1389 is computed correctly.
+   */
+  public void testSortByOverlapRatioRanksTheBetterMatchSecond() throws IOException {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(CTX, &quot;bbox&quot;);
+    Rectangle query = rect(10, -170, -10, 10);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter writer = new IndexWriter(dir, newIndexWriterConfig())) {
+        for (String id : new String[] {&quot;A&quot;, &quot;B&quot;}) {
+          Rectangle box = id.equals(&quot;A&quot;) ? rect(170, 20, -10, 10) : rect(-145, 35, -10, 10);
+          Document d = new Document();
+          d.add(new StoredField(&quot;id&quot;, id));
+          for (Field f : strategy.createIndexableFields(box)) {
+            d.add(f);
+          }
+          writer.addDocument(d);
+        }
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        DoubleValuesSource overlap = strategy.makeOverlapRatioValueSource(query, P);
+        TopFieldDocs top =
+            searcher.search(new MatchAllDocsQuery(), 2, new Sort(overlap.getSortField(true)));
+        StringBuilder ranking = new StringBuilder();
+        for (int i = 0; i &lt; top.scoreDocs.length; i++) {
+          FieldDoc hit = (FieldDoc) top.scoreDocs[i];
+          String id = searcher.storedFields().document(hit.doc).get(&quot;id&quot;);
+          ranking.append(i + 1).append(&quot;. &quot;).append(id).append(&#x27;=&#x27;).append(hit.fields[0]);
+          ranking.append(&#x27; &#x27;);
+        }
+        String first = searcher.storedFields().document(top.scoreDocs[0].doc).get(&quot;id&quot;);
+        assertEquals(&quot;A has the larger overlap; ranking: &quot; + ranking, &quot;A&quot;, first);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:spatial-extras:test --tests org.apache.lucene.spatial.bbox.TestBBoxOverlapRatioBothCrossDateline -Ptests.seed=DEADBEEF
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>The two boxes overlap in 30° x 20°, so the score is 0.15476190476190477, and document A sorts above document B (0.1389).</dd></div><div class='got'><dt>Observed</dt><dd>The score is 0.10317460317460317 (width 20°), and B sorts above A; the same pair moved 30° west scores 0.15476190476190477.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-369/'>repro/LFV-369/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (478 lines) · 2,908 words</span></summary><div class='body'><p><code>TestBBoxOverlapRatioBothCrossDateline</code> (package <code>org.apache.lucene.spatial.bbox</code>, 3 tests): the both-cross pair with the documented score worked out by hand; the control with both boxes moved 30° west (only the document crosses), which scores exactly; and a two-document search sorted by <code>getSortField(true)</code> of the value source. Cases 1 and 3 fail on main (assertions on and off) and on 10.5.2 and 9.12.3 (assertions on; the finder's one-test JUnit also fails there with assertions off); all 3 pass with the fix on main.</p><p>The other files are the hunt's: the finder's one-test JUnit, the independent reproducer's 5-test JUnit with its own pair (a 30° grid sweep: 660 of 660 both-cross two-piece pairs wrong, 0 outside that class) and the credibility audit's rotation test, which needs no hand-computed expected value. They ran through the hunt's classpath runner, not gradle.</p><div class="hd hd-3"><h3 id='code-2-h'>TestOverlapRatioRotationAudit.java (credibility audit, metamorphic, 2 tests incl. 1 control)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Rotating both boxes by the same longitude must not change the score. The wide pair scores 0.15476190476190477 with only the document crossing and 0.10317460317460317 with both crossing; a pair that never reaches the both-cross branch is rotation invariant. Fails 1 of 2 on main with -da; passes 2 of 2 with the hunt's fix.</p><figure class='code'><figcaption><span class='fname'>TestOverlapRatioRotationAudit.java (credibility audit, metamorphic, 2 tests incl. 1 control)</span><span class='meta'>95 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.bbox;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.DoubleValues;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+
+/**
+ * Metamorphic oracle: in a geo context, rotating both the query box and the document box by the
+ * same longitude offset does not change their overlap, so the overlap-ratio score must not change.
+ * No hand-computed expected value is used.
+ */
+public class TestOverlapRatioRotationAudit extends LuceneTestCase {
+
+  private static final SpatialContext CTX = SpatialContext.GEO;
+
+  private static double norm(double lon) {
+    double x = lon;
+    while (x &gt; 180) x -= 360;
+    while (x &lt; -180) x += 360;
+    return x;
+  }
+
+  private static Rectangle rot(double minX, double maxX, double minY, double maxY, double d) {
+    return CTX.getShapeFactory().rect(norm(minX + d), norm(maxX + d), minY, maxY);
+  }
+
+  private static double score(Rectangle query, Rectangle doc) throws IOException {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(CTX, &quot;bbox&quot;);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document d = new Document();
+        for (Field f : strategy.createIndexableFields(doc)) d.add(f);
+        w.addDocument(d);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        DoubleValuesSource vs = strategy.makeOverlapRatioValueSource(query, 0.5);
+        DoubleValues v = vs.getValues(r.leaves().get(0), null);
+        assertTrue(v.advanceExact(0));
+        return v.doubleValue();
+      }
+    }
+  }
+
+  /** Control: a pair that never needs both boxes to cross; scores must be rotation invariant. */
+  public void testControlOneCrossingRotations() throws IOException {
+    double ref = score(rot(-60, 60, -10, 10, 0), rot(30, 100, -10, 10, 0));
+    for (double d : new double[] {130, 150, 170, -170}) {
+      Rectangle q = rot(-60, 60, -10, 10, d);
+      Rectangle t = rot(30, 100, -10, 10, d);
+      assertEquals(&quot;rot &quot; + d + &quot; q=&quot; + q + &quot; t=&quot; + t, ref, score(q, t), 1e-9);
+    }
+  }
+
+  /**
+   * Query covers 180 degrees and the document 210 degrees, both wrapping. Offset -30 makes only the
+   * document cross the dateline; offset 0 makes both cross.
+   */
+  public void testWideWrappingPairRotation() throws IOException {
+    Rectangle qOne = rot(10, -170, -10, 10, -30); // [-20,160], no crossing
+    Rectangle tOne = rot(170, 20, -10, 10, -30); // [140,-10], crosses
+    assertFalse(qOne.getCrossesDateLine());
+    assertTrue(tOne.getCrossesDateLine());
+    Rectangle qBoth = rot(10, -170, -10, 10, 0);
+    Rectangle tBoth = rot(170, 20, -10, 10, 0);
+    assertTrue(qBoth.getCrossesDateLine());
+    assertTrue(tBoth.getCrossesDateLine());
+    double one = score(qOne, tOne);
+    double both = score(qBoth, tBoth);
+    assertEquals(&quot;one-crossing=&quot; + one + &quot; both-crossing=&quot; + both, one, both, 1e-9);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestOverlapRatioBothCrossVerifyV1.java (independent reproducer, 5 tests)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim alone with its own pair (query <code>rect(60, -60, -30, 30)</code>, document <code>rect(140, 100, -30, 30)</code>: 0.5833 instead of 0.7292), the swapped pair, a ranking inversion, a grid sweep and a one-crossing control. 4 of 5 fail on main (-ea, -da), 10.5.2 and 9.12.3; 5 of 5 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestOverlapRatioBothCrossVerifyV1.java (independent reproducer, 5 tests)</span><span class='meta'>315 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.bbox;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.DoubleValues;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.search.Explanation;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.TopFieldDocs;
+import org.apache.lucene.spatial.ShapeValues;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+
+/**
+ * Independent verification: BBoxOverlapRatioValueSource (via BBoxStrategy#makeOverlapRatioValueSource)
+ * when both the query box and the indexed box cross the dateline and their longitude intersection
+ * consists of two disjoint arcs.
+ *
+ * &lt;p&gt;Uses only public API: BBoxStrategy#createIndexableFields, #makeShapeValueSource,
+ * #makeOverlapRatioValueSource, DoubleValuesSource#getValues/#explain/#getSortField. The class sits
+ * in the bbox package only by convention.
+ *
+ * &lt;p&gt;Oracle: the class javadoc formula, score = (I/queryArea)*p + (I/targetArea)*(1-p) where I is
+ * &quot;the area of the intersection between the query and target envelopes&quot; (degree space, as the
+ * class computes areas as width*height in degrees). I is computed independently by intersecting the
+ * longitude arcs of the two boxes.
+ */
+public class TestOverlapRatioBothCrossVerifyV1 extends LuceneTestCase {
+
+  private static final double EPS = 1e-9;
+  private final SpatialContext ctx = SpatialContext.GEO;
+
+  private Rectangle rect(double minX, double maxX, double minY, double maxY) {
+    return ctx.getShapeFactory().rect(minX, maxX, minY, maxY);
+  }
+
+  /** Longitude arcs covered by a box, as [lo, hi] intervals inside [-180, 180]. */
+  private static double[][] lonArcs(Rectangle r) {
+    if (r.getCrossesDateLine()) {
+      return new double[][] {{r.getMinX(), 180}, {-180, r.getMaxX()}};
+    }
+    return new double[][] {{r.getMinX(), r.getMaxX()}};
+  }
+
+  /** Total length of the intersection of the two boxes&#x27; longitude coverage. */
+  private static double lonIntersection(Rectangle a, Rectangle b) {
+    double w = 0;
+    for (double[] x : lonArcs(a)) {
+      for (double[] y : lonArcs(b)) {
+        w += Math.max(0, Math.min(x[1], y[1]) - Math.max(x[0], y[0]));
+      }
+    }
+    return w;
+  }
+
+  /** Number of disjoint pieces of the intersection on the longitude circle (a touch is not one). */
+  private static int lonPieces(Rectangle a, Rectangle b) {
+    List&lt;double[]&gt; pieces = new ArrayList&lt;&gt;();
+    for (double[] x : lonArcs(a)) {
+      for (double[] y : lonArcs(b)) {
+        double lo = Math.max(x[0], y[0]);
+        double hi = Math.min(x[1], y[1]);
+        if (hi &gt; lo) {
+          pieces.add(new double[] {lo, hi});
+        }
+      }
+    }
+    int n = pieces.size();
+    // pieces that end at +180 and start at -180 are one arc on the circle
+    boolean at180 = false, atMinus180 = false;
+    for (double[] p : pieces) {
+      if (p[1] == 180) at180 = true;
+      if (p[0] == -180) atMinus180 = true;
+    }
+    if (at180 &amp;&amp; atMinus180) n--;
+    return n;
+  }
+
+  /** Javadoc formula with minSideLength = 0, for boxes with positive width and height. */
+  private static double expectedScore(Rectangle query, Rectangle target, double p) {
+    double height =
+        Math.min(query.getMaxY(), target.getMaxY()) - Math.max(query.getMinY(), target.getMinY());
+    if (height &lt; 0) return 0;
+    double inter = lonIntersection(query, target) * height;
+    double qArea = query.getWidth() * query.getHeight();
+    double tArea = target.getWidth() * target.getHeight();
+    return inter / qArea * p + inter / tArea * (1 - p);
+  }
+
+  /** Indexes the given boxes (one doc each, stored &quot;id&quot; = index) and returns an open reader. */
+  private DirectoryReader index(Directory dir, BBoxStrategy strategy, List&lt;Rectangle&gt; boxes)
+      throws Exception {
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (int i = 0; i &lt; boxes.size(); i++) {
+        Document doc = new Document();
+        doc.add(new StoredField(&quot;id&quot;, i));
+        for (Field f : strategy.createIndexableFields(boxes.get(i))) {
+          doc.add(f);
+        }
+        w.addDocument(doc);
+      }
+    }
+    return DirectoryReader.open(dir);
+  }
+
+  /** Score of the single indexed doc through the public DoubleValues API. */
+  private static double valueOf(DoubleValuesSource vs, DirectoryReader reader) throws Exception {
+    assertEquals(1, reader.maxDoc());
+    LeafReaderContext leaf = reader.leaves().get(0);
+    DoubleValues dv = vs.getValues(leaf, null);
+    assertTrue(dv.advanceExact(0));
+    return dv.doubleValue();
+  }
+
+  /**
+   * Query covers [60,180] U [-180,-60] (240 deg wide), target covers [140,180] U [-180,100] (320 deg
+   * wide), both 60 deg tall. Their longitude intersection is [140,180] U [-180,-60] (160 deg, the
+   * arc through the dateline) plus [60,100] (40 deg): 200 deg in two disjoint pieces.
+   */
+  public void testBothCrossTwoPieceIntersection() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(ctx, &quot;bbox&quot;);
+    Rectangle query = rect(60, -60, -30, 30);
+    Rectangle target = rect(140, 100, -30, 30);
+    assertTrue(query.getCrossesDateLine());
+    assertTrue(target.getCrossesDateLine());
+    assertEquals(240.0, query.getWidth(), 0);
+    assertEquals(320.0, target.getWidth(), 0);
+    assertEquals(200.0, lonIntersection(query, target), 0);
+    assertEquals(2, lonPieces(query, target));
+
+    // independent arithmetic: I = 200*60 = 12000, Aq = 240*60 = 14400, At = 320*60 = 19200
+    double expected = 0.5 * 12000.0 / 14400.0 + 0.5 * 12000.0 / 19200.0; // 0.7291666...
+    assertEquals(expected, expectedScore(query, target, 0.5), EPS);
+
+    try (Directory dir = newDirectory();
+        DirectoryReader reader = index(dir, strategy, List.of(target))) {
+      DoubleValuesSource vs = strategy.makeOverlapRatioValueSource(query, 0.5);
+      double actual = valueOf(vs, reader);
+      Explanation e =
+          vs.explain(reader.leaves().get(0), 0, Explanation.match(0f, &quot;unused score&quot;));
+      // the explanation is printed so the reported intersection width is visible in the log
+      System.out.println(&quot;VERIFY-V1 query=&quot; + query + &quot; target=&quot; + target);
+      System.out.println(&quot;VERIFY-V1 expected=&quot; + expected + &quot; actual=&quot; + actual);
+      System.out.println(&quot;VERIFY-V1 explain:\n&quot; + e);
+      assertEquals(
+          &quot;score must use the full intersection (both longitude pieces, width 200)&quot;,
+          expected,
+          actual,
+          EPS);
+    }
+  }
+
+  /** Same pair with query and target swapped: the formula is symmetric in the intersection. */
+  public void testBothCrossTwoPieceIntersectionSwapped() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(ctx, &quot;bbox&quot;);
+    Rectangle query = rect(140, 100, -30, 30);
+    Rectangle target = rect(60, -60, -30, 30);
+    double expected = 0.5 * 12000.0 / 19200.0 + 0.5 * 12000.0 / 14400.0;
+    try (Directory dir = newDirectory();
+        DirectoryReader reader = index(dir, strategy, List.of(target))) {
+      double actual = valueOf(strategy.makeOverlapRatioValueSource(query, 0.5), reader);
+      System.out.println(&quot;VERIFY-V1 swapped expected=&quot; + expected + &quot; actual=&quot; + actual);
+      assertEquals(expected, actual, EPS);
+    }
+  }
+
+  /**
+   * Control (expected to PASS): the same query against a NON-crossing target whose intersection is
+   * also two disjoint pieces. The one-crossing branch sums both pieces, so the class does intend a
+   * two-piece intersection to count fully.
+   */
+  public void testControlOneCrossTwoPieceIsSummed() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(ctx, &quot;bbox&quot;);
+    Rectangle query = rect(60, -60, -30, 30); // crosses
+    Rectangle target = rect(-170, 170, -30, 30); // does not cross; 340 wide
+    assertFalse(target.getCrossesDateLine());
+    assertEquals(220.0, lonIntersection(query, target), 0); // [60,170] U [-170,-60]
+    assertEquals(2, lonPieces(query, target));
+    double expected = expectedScore(query, target, 0.5);
+    try (Directory dir = newDirectory();
+        DirectoryReader reader = index(dir, strategy, List.of(target))) {
+      double actual = valueOf(strategy.makeOverlapRatioValueSource(query, 0.5), reader);
+      System.out.println(&quot;VERIFY-V1 control expected=&quot; + expected + &quot; actual=&quot; + actual);
+      assertEquals(expected, actual, EPS);
+    }
+  }
+
+  /**
+   * Ranking consequence through a real sorted search: doc A (the two-piece target) truly overlaps
+   * the query more than doc B (a plain box), but is ranked below it.
+   */
+  public void testRankingInversion() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(ctx, &quot;bbox&quot;);
+    Rectangle query = rect(60, -60, -30, 30);
+    Rectangle docA = rect(140, 100, -30, 30); // true score 0.7291666
+    Rectangle docB = rect(40, 160, -30, 30); // true score 0.625 (I = 100*60)
+    double trueA = expectedScore(query, docA, 0.5);
+    double trueB = expectedScore(query, docB, 0.5);
+    assertEquals(0.625, trueB, EPS);
+    assertTrue(trueA &gt; trueB);
+    try (Directory dir = newDirectory();
+        DirectoryReader reader = index(dir, strategy, List.of(docA, docB))) {
+      IndexSearcher searcher = newSearcher(reader);
+      DoubleValuesSource vs = strategy.makeOverlapRatioValueSource(query, 0.5);
+      TopFieldDocs top = searcher.search(new MatchAllDocsQuery(), 2, new Sort(vs.getSortField(true)));
+      int firstId =
+          searcher.storedFields().document(top.scoreDocs[0].doc).getField(&quot;id&quot;).numericValue().intValue();
+      System.out.println(
+          &quot;VERIFY-V1 ranking trueA=&quot; + trueA + &quot; trueB=&quot; + trueB + &quot; top-ranked id=&quot; + firstId
+              + &quot; (0=A, 1=B)&quot;);
+      assertEquals(&quot;doc A has the larger true overlap and must rank first&quot;, 0, firstId);
+    }
+  }
+
+  /**
+   * Sweep over all geo boxes with longitudes on a 30-degree grid (fixed latitude band), every
+   * ordered (query, target) pair, p = 0.5. Classifies every mismatch against the javadoc formula.
+   * Asserts (a) zero mismatches outside the class &quot;both cross AND two-piece intersection&quot; (oracle
+   * sanity), then (b) zero mismatches overall (fails if the bug is present).
+   */
+  public void testGridSweepClassification() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(ctx, &quot;bbox&quot;);
+    List&lt;Rectangle&gt; boxes = new ArrayList&lt;&gt;();
+    java.util.Set&lt;String&gt; seen = new java.util.HashSet&lt;&gt;();
+    for (int minX = -180; minX &lt;= 180; minX += 30) {
+      for (int maxX = -180; maxX &lt;= 180; maxX += 30) {
+        if (minX == maxX) continue;
+        Rectangle r = rect(minX, maxX, -30, 30);
+        if (r.getWidth() == 0) continue; // e.g. rect(180,-180) normalizes to a zero-width line
+        if (seen.add(r.getMinX() + &quot;,&quot; + r.getMaxX())) {
+          boxes.add(r);
+        }
+      }
+    }
+    long checks = 0, bothCrossTwoPiece = 0, mismatchBothCrossTwoPiece = 0, mismatchOther = 0;
+    String firstOther = null, firstBug = null;
+    try (Directory dir = newDirectory();
+        DirectoryReader reader = index(dir, strategy, boxes)) {
+      for (Rectangle query : boxes) {
+        DoubleValuesSource vs = strategy.makeOverlapRatioValueSource(query, 0.5);
+        for (LeafReaderContext leaf : reader.leaves()) {
+          DoubleValues dv = vs.getValues(leaf, null);
+          ShapeValues sv = strategy.makeShapeValueSource().getValues(leaf);
+          for (int doc = 0; doc &lt; leaf.reader().maxDoc(); doc++) {
+            assertTrue(sv.advanceExact(doc));
+            Rectangle t = (Rectangle) sv.value();
+            Rectangle target = rect(t.getMinX(), t.getMaxX(), t.getMinY(), t.getMaxY());
+            assertTrue(dv.advanceExact(doc));
+            double actual = dv.doubleValue();
+            double expected = expectedScore(query, target, 0.5);
+            boolean cls =
+                query.getCrossesDateLine()
+                    &amp;&amp; target.getCrossesDateLine()
+                    &amp;&amp; lonPieces(query, target) == 2;
+            checks++;
+            if (cls) bothCrossTwoPiece++;
+            if (Math.abs(actual - expected) &gt; EPS) {
+              String msg = &quot;q=&quot; + query + &quot; t=&quot; + target + &quot; exp=&quot; + expected + &quot; act=&quot; + actual;
+              if (cls) {
+                mismatchBothCrossTwoPiece++;
+                if (firstBug == null) firstBug = msg;
+              } else {
+                mismatchOther++;
+                if (firstOther == null) firstOther = msg;
+              }
+            }
+          }
+        }
+      }
+    }
+    System.out.println(
+        &quot;VERIFY-V1 sweep boxes=&quot;
+            + boxes.size()
+            + &quot; checks=&quot;
+            + checks
+            + &quot; bothCrossTwoPiecePairs=&quot;
+            + bothCrossTwoPiece
+            + &quot; mismatchBothCrossTwoPiece=&quot;
+            + mismatchBothCrossTwoPiece
+            + &quot; mismatchOther=&quot;
+            + mismatchOther);
+    System.out.println(&quot;VERIFY-V1 sweep first bug-class mismatch: &quot; + firstBug);
+    System.out.println(&quot;VERIFY-V1 sweep first other mismatch: &quot; + firstOther);
+    assertEquals(&quot;mismatches outside the both-cross two-piece class: &quot; + firstOther, 0, mismatchOther);
+    assertEquals(
+        &quot;both-cross two-piece mismatches (first: &quot; + firstBug + &quot;)&quot;, 0, mismatchBothCrossTwoPiece);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestOverlapRatioTwoPieceIntersection.java (finder, 1 test)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>The finder's first public-API JUnit (case 1 only); it fails on every release run from 9.1.0 to 10.5.2 and on main, and earlier releases ran ports of it.</p><figure class='code'><figcaption><span class='fname'>TestOverlapRatioTwoPieceIntersection.java (finder, 1 test)</span><span class='meta'>68 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.bbox;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.DoubleValues;
+import org.apache.lucene.search.DoubleValuesSource;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+
+/**
+ * Two rectangles that both cross the dateline can overlap in two separate longitude pieces (one
+ * containing the dateline, one elsewhere). The overlap-ratio relevance of BBoxStrategy only counts
+ * the piece that contains the dateline, so intersectionArea, and with it the score, is too small.
+ * Public API only (BBoxStrategy indexing + makeOverlapRatioValueSource).
+ */
+public class TestOverlapRatioTwoPieceIntersection extends LuceneTestCase {
+
+  public void testBothCrossDatelineTwoPieceOverlap() throws IOException {
+    SpatialContext ctx = SpatialContext.GEO;
+    BBoxStrategy strategy = BBoxStrategy.newInstance(ctx, &quot;bbox&quot;);
+    // target covers [170,180] U [-180,20] (width 210); query covers [10,180] U [-180,-170] (180)
+    Rectangle target = ctx.getShapeFactory().rect(170, 20, -10, 10);
+    Rectangle query = ctx.getShapeFactory().rect(10, -170, -10, 10);
+    // their intersection: [170,180] U [-180,-170] (20 degrees) plus [10,20] (10 degrees) = 30 x 20
+    double intersectionArea = 30.0 * 20.0;
+    double p = 0.5;
+    double expected =
+        intersectionArea / (180.0 * 20.0) * p + intersectionArea / (210.0 * 20.0) * (1 - p);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter writer = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field f : strategy.createIndexableFields(target)) {
+          doc.add(f);
+        }
+        writer.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        DoubleValuesSource overlap = strategy.makeOverlapRatioValueSource(query, p);
+        LeafReaderContext leaf = reader.leaves().get(0);
+        DoubleValues values = overlap.getValues(leaf, null);
+        assertTrue(values.advanceExact(0));
+        assertEquals(expected, values.doubleValue(), 1e-9);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle, clean worktree): affected; through a classpath runner: main a9779ef3c193 (-ea, -da), 10.5.2 and 9.12.3 (-ea): affected; the hunt: every release from 4.10.0 to 10.5.2 that was run</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE    # apache/lucene at a9779ef3c193 (main; 10.x and 9.x behave the same)
+cp $REPRO/TestBBoxOverlapRatioBothCrossDateline.java lucene/spatial-extras/src/test/org/apache/lucene/spatial/bbox/
+./gradlew :lucene:spatial-extras:test --tests org.apache.lucene.spatial.bbox.TestBBoxOverlapRatioBothCrossDateline -Ptests.seed=DEADBEEF
+# production-like: add -Ptests.asserts=false (same failures)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, -Ptests.seed=DEADBEEF, -Ptests.asserts=true (same with =false)
+TestBBoxOverlapRatioBothCrossDateline &gt; testSortByOverlapRatioRanksTheBetterMatchSecond FAILED
+    org.junit.ComparisonFailure: A has the larger overlap; ranking: 1. B=0.1388888888888889 2. A=0.10317460317460317  expected:&lt;[A]&gt; but was:&lt;[B]&gt;
+TestBBoxOverlapRatioBothCrossDateline &gt; testBothCrossDatelineTwoPieceOverlap FAILED
+    java.lang.AssertionError: expected:&lt;0.15476190476190477&gt; but was:&lt;0.10317460317460317&gt;
+3 tests completed, 2 failed
+
+# the same 2 failures through the classpath runner on main (-ea, -da), 10.5.2 and 9.12.3 (-ea)
+# with the fix (gradle, asserts on and off; classpath runner with the class shadowed): 3 tests completed, 0 failed</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc defines <code class='nw'>intersectionArea</code> as "the area of the intersection between the query and target envelopes"; <code class='nw'>isGeo</code> means "dateline issues should be attended to".</li><li>The same method adds both pieces when only one box crosses; the upstream "wrap" test (0.2794117) expects that sum.</li><li>Moving both boxes 30° west cannot change their overlap, yet the score rises from 0.1032 to 0.1548.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>256 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>BBoxOverlapRatioValueSource.java:35-48</code> defines <code class='nw'>intersectionArea</code> as the intersection's area and the score from it; the constructor documents <code class='nw'>isGeo</code> as "True if ctx.isGeo() and thus dateline issues should be attended to" (<code class='nw'>:85</code>).</li><li><strong>The sibling branch and its test.</strong> When one box crosses, the code sums a west and an east piece (<code class='nw'>:183-203</code>). <code>TestBBoxStrategy#testOverlapRatio</code>, case "wrap", expects 0.2794117 (<code>TestBBoxStrategy.java:258-259</code>): query [0, 40] against document <code>rect(30, 10)</code> overlaps in [30, 40] + [0, 10] = 20°, so 800/1600 x 0.5 + 800/13600 x 0.5.</li><li><strong>Rotation invariance.</strong> The same pair scores 0.15476 moved 30° west and 0.10317 in place; a credibility audit's metamorphic test, which uses no hand-computed value, fails the same way and passes with the fix.</li><li><strong>The computed width means nothing else.</strong> 20 is neither the true overlap (30) nor the width of either enclosing envelope (180 or 210).</li><li><strong>No test pins the current value.</strong> Swept over all its (SHIFT, nudge) combinations, the upstream "wrap" case reaches the both-cross branch only twice, both times with a second piece of width 0; stock and fixed code agree there.</li><li><strong>History.</strong> The line is a leftover of the 2012 port (LUCENE-4175, <code>width = right + 360.0 - left</code> in the unreleased <code class='nw'>AreaSimilarity</code>). LUCENE-5714/5779 (2014) rewrote the one-crossing branch to sum both pieces and kept this one; their threads describe the work as fixing "a variety of dateline related bugs when computing intersection width &amp; height" (#6841). None of the 35 comments on #5247, #6776 and #6841 discusses two crossing boxes that overlap twice.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>255 words</span></summary><div class='body'><p>The strongest case for intended behaviour (the hunt's intended-behaviour checker; a read-only cross-model reviewer, OpenAI GPT-5.6, which did not run code, rated it weak): the class is an <code>@lucene.experimental</code> relevance heuristic whose javadoc says it works "as envelope on envelope (rect on rect) overlays rather than complex polygon on complex polygon overlays" (<code class='nw'>:25-26</code>), so "the intersection between the query and target envelopes" could mean one envelope rather than a two-piece region; the formula was already in Lucene's 2012 port, and the class says it was "Originally based on" Geoportal's <code>SpatialRankingValueSource</code> (<code class='nw'>:61-63</code>); areas are planar degrees anyway (<code>// TODO option to compute geodetic area</code>, <code class='nw'>:81</code>); the trigger is unusual; and no prior report was found in 12 years.</p><p>Why it fails: the same method already counts a two-piece overlap in full when one box crosses, and the upstream "wrap" assertion depends on it, so the single-envelope reading contradicts the class's own code and test. Under that reading the answer would be an envelope 180° or 210° wide, not 20°. The javadoc says dateline issues are attended to in geo mode, yet the result depends on where the dateline falls. The origin is no argument for keeping the formula: the same javadoc says Lucene's version was "modified quite a bit" and that Geoportal's algorithm "had dateline bugs" (<code class='nw'>:63-65</code>). The planar approximation is applied consistently elsewhere and is not what goes wrong here. When filing, call it a relevance-only error for a rare but legal shape, not wrong matching.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Add the second overlap piece in the both-cross branch</strong></p><p class='short'>In the both-cross branch, also add the overlap away from the dateline: <code>max(0, b.maxX - a.minX) + max(0, a.maxX - b.minX)</code>; at most one term is positive, so nothing is counted twice (+9 lines). The repro passes 3 of 3 with assertions on and off, and all 120 spatial-extras tests pass.</p><pre class='snippet' tabindex='0'><code>         } else { // both cross
++          // the overlap that contains the dateline
+           width = right - left + 360;
++          // the two boxes can also overlap away from the dateline, when each one covers the gap the
++          // other leaves (at most one of these two terms is positive)
++          if (b.getMaxX() &gt; a.getMinX()) {
++            width += b.getMaxX() - a.getMinX();
++          }
++          if (a.getMaxX() &gt; b.getMinX()) {
++            width += a.getMaxX() - b.getMinX();
++          }
+         }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 651 words</span></summary><div class='body'><p>Option A was applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF), and checked with the same class shadowed onto the main jars; the hunt's equivalent version also cleared its exhaustive checks. B, C and D were not run.</p><div class="hd hd-3"><h3 id='fix-add-second-piece'>Add the second overlap piece in the both-cross branch <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-add-second-piece" target="_self" aria-label="Link to this section" aria-describedby="fix-add-second-piece"><span aria-hidden="true">#</span></a></div><p>After <code>width = right - left + 360;</code> (the piece across the dateline), add <code>b.maxX - a.minX</code> when it is positive and <code>a.maxX - b.minX</code> when it is positive. For two crossing boxes (<code>a.maxX &lt; a.minX</code>, <code>b.maxX &lt; b.minX</code>) both cannot hold, since together they would give <code>b.maxX &gt; b.maxX</code>. The added arc lies between the two gaps, disjoint from the dateline piece. When the gaps overlap, neither term is positive and the result is unchanged.</p><pre class='snippet' tabindex='0'><code>         } else { // both cross
++          // the overlap that contains the dateline
+           width = right - left + 360;
++          // the two boxes can also overlap away from the dateline, when each one covers the gap the
++          // other leaves (at most one of these two terms is positive)
++          if (b.getMaxX() &gt; a.getMinX()) {
++            width += b.getMaxX() - a.getMinX();
++          }
++          if (a.getMaxX() &gt; b.getMinX()) {
++            width += a.getMaxX() - b.getMinX();
++          }
+         }</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Behaviour change:</strong> only pairs where both boxes cross the dateline and their gaps are disjoint score higher, up to the exact value; every other pair keeps its score, so rankings change only for those documents.</li><li><strong>Cost:</strong> two comparisons per document that reaches this branch; no benchmark was run. No format or API change.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock main <code class='nw'>a9779ef3c193</code> (gradle, seed DEADBEEF): the repro fails 2 of 3 with assertions on and off (the control passes); <code class='nw'>TestBBoxStrategy</code> passes (12 tests, 1 skipped by its own <code class='nw'>@Ignore</code>; <code class='nw'>testOverlapRatio</code> with the "wrap" case runs); all of <code>:lucene:spatial-extras:test</code>: 120 tests, the repro's 2 failures, 5 skipped.</li><li>With the fix: the repro passes 3 of 3 with assertions on and off; <code class='nw'>TestBBoxStrategy</code> passes; all of <code>:lucene:spatial-extras:test</code> (120 tests, 5 skipped, the repro class included) passes with 0 failures; <code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code> and <code>checkGoogleJavaFormat</code> pass for spatial-extras; <code class='nw'>fix.diff</code> applies cleanly to a clean tree.</li><li>With the fixed class shadowed onto the main jars (classpath runner): 3 of 3 pass with -ea and -da.</li><li>The hunt's equivalent fix (two one-line <code class='nw'>if</code>s) took the exhaustive check from 154,000 mismatches to 0 (12,400,200 checks) and the security probe's undercount counter from 67,200 to 0 (that probe's own two assertions expect the bug, so on the fixed code they fail by design; its counters read under=0, over=0), kept the upstream "wrap" assertion passing, and, applied to the 4.10.0 class, made the 4.10.0 port pass.</li></ul><div class="hd hd-3"><h3 id='fix-from-gaps'>Compute the both-cross width from the two gaps</h3><a class="hlink" href="#fix-from-gaps" target="_self" aria-label="Link to this section" aria-describedby="fix-from-gaps"><span aria-hidden="true">#</span></a></div><p><code>width = 360 - gapA - gapB + overlap(gapA, gapB)</code>, with <code>gap = minX - maxX</code>: everything except what either box leaves uncovered.</p><p class='k'>Trade-offs</p><p>Not run in Lucene. Algebraically the same width as A, but not bit for bit: in double arithmetic it rounds differently, also for pairs A leaves unchanged (a seeded sample of 1,000,000 random both-cross pairs: 285,412 widths differed from A's, 168,407 of them one-piece pairs whose stock value A keeps exactly, by at most 1.1e-13 degrees). It needs its own interval-overlap code and its own tests.</p><div class="hd hd-3"><h3 id='fix-arc-helper'>One arc-intersection helper for all branches</h3><a class="hlink" href="#fix-arc-helper" target="_self" aria-label="Link to this section" aria-describedby="fix-arc-helper"><span aria-hidden="true">#</span></a></div><p>Treat each box as one or two longitude intervals and sum the pairwise overlaps, replacing the three-way case analysis.</p><p class='k'>Trade-offs</p><p>Not run. Simpler to reason about, but it rewrites the tested one-crossing branch and the "both adjacent to dateline" special case (<code class='nw'>:170-173</code>), so it needs more review.</p><div class="hd hd-3"><h3 id='fix-document'>Document the limitation</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>Say in the javadoc that, when both boxes cross the dateline, only the overlap across the dateline is counted.</p><p class='k'>Trade-offs</p><p>Not recommended. Keeps the wrong rankings and the dependence on where the dateline falls.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Solr's <code class='nw'>BBoxField</code> exposes this score as <code>score=overlapRatio</code> for relevancy sort and boost, so Solr users who rank wide dateline-crossing extents get the same too-low scores.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Bounded-exhaustive checking of the real jar against the class-javadoc formula: every ordered pair of 1,245 geo boxes, 4 proportions and 2 minimum side lengths, 12,400,200 checks. 154,000 disagreed, every one a two-piece overlap; the fix, which changes only the both-cross branch, takes them to 0. A public-API JUnit then confirmed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>192 words</span></summary><div class='body'><p><strong>Method: semi-formal, bounded-exhaustive checking against exact semantics</strong> (hunt unit on spatial-extras, 2026-10-26, main <code class='nw'>ea57360912ed</code>).</p><ul><li>A harness built 1,245 distinct geo boxes (longitudes from {-180, -170, -100, -90, 0, 10, 90, 100, 170, 180}, latitudes from {-90, -10, 0, 10, 90}) and scored every ordered pair with <code>BBoxOverlapRatioValueSource</code> for <code>queryTargetProportion</code> {0, 0.25, 0.5, 1} and <code class='nw'>minSideLength</code> {0, 0.1}, with assertions on and off.</li><li>The reference was an independent evaluation of the class-javadoc formula, with the intersection measured as arcs on the longitude circle.</li><li>154,000 of 12,400,200 checks disagreed, all two-piece intersections (counted by the harness); 0 NaN, 0 scores outside [0, 1], 0 assertion failures. With the fix sketch, which changes only the both-cross branch, 0 disagreed, so every mismatch was a pair of two crossing boxes; a later probe through the public indexing path, over the same boxes and proportions with the default minimum side length 0, counts that directly: 0 undercounts outside both-cross, 0 overcounts.</li><li>The finder then wrote a JUnit on the public indexing path (after a first cross-model review objected to a repro that called the protected <code class='nw'>score()</code> directly) and confirmed the failure on main, 10.5.2 and 9.12.3.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (150 logged queries, 2026-10-26): GitHub (Lucene, Solr, Elasticsearch, OpenSearch, spatial4j, downstream users), JIRA, the Lucene and Solr lists, the web, and the files of all 411 open Lucene PRs. Closest: LUCENE-5714 and LUCENE-5779 (2014), which fixed other dateline width bugs in this method.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>18 curated hits, none the same bug. #6776 / LUCENE-5714 and #6841 / LUCENE-5779 created the class and its javadoc and fixed other dateline width bugs, but kept this formula; #5247 / LUCENE-4175 is the formula's origin. SOLR-6183 exposes the score in Solr as <code>score=overlapRatio</code>; apache/solr#4145 (SOLR-18111) is an open exploratory PR to remove BBoxField in a future Solr major. The only open PR touching the <code class='nw'>bbox</code> package, #12295, changes casts in <code>BBoxStrategy.makeQuery</code> only. Limits: keyword search only; GitHub search does not index diffs; the original Geoportal code has no searchable tracker; private reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and code (apache/lucene, apache/solr, Elasticsearch, OpenSearch, spatial4j, Lucene.NET, GeoBlacklight, all of GitHub)</th><td class='when'>2026-10-26</td><td>a scripted prior-report search (20 issue/PR, 3 commit, 4 downstream-code queries) plus 65 read-only GraphQL searches: class names, overlapRatio, "overlap ratio", bbox with dateline/antimeridian, "both cross", getCrossesDateLine, geoportal, SpatialRankingValueSource</td><td>no report; #6776, #6841 and #5247 are precedent; open BBoxStrategy issues #5439, #6864, #6866, #7989 are about other topics</td></tr><tr><th scope='row'>Open apache/lucene PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 411 open PRs (the 3 with more than 100 files re-listed in full)</td><td>only #12295 touches the bbox package (casts in makeQuery); none touches BBoxOverlapRatioValueSource.java</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR)</th><td class='when'>2026-10-26</td><td>6 queries through the tool and 7 JQL queries; SOLR-6183, SOLR-6784, SOLR-18111, LUCENE-4373, LUCENE-6931 read in full</td><td>no report; SOLR-6183 (score=overlapRatio) and SOLR-6784 (an NPE) are unrelated</td></tr><tr><th scope='row'>Mailing lists</th><td class='when'>2026-10-26</td><td>20 queries over dev@, java-user@, issues@ and commits@ lucene, plus 14 over the Solr and Lucene lists; 19 messages read</td><td>usage advice for overlapRatio sorting; nobody reports wrong scores</td></tr><tr><th scope='row'>Web and git history</th><td class='when'>2026-10-26</td><td>8 web searches; GitHub commits API for the file and the bbox package; git log --follow, -S on the both-cross formula</td><td>nothing on this bug; the file is unchanged since the 2021 reformat</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with the class in 4.10.0 by LUCENE-5714/5779 (<code class='nw'>7e0aff8dabc4</code>, 2014-07-08); the formula itself dates from the 2012 LUCENE-4175 port. Executed on 15 releases from 4.10.0 to 10.5.2 and on main: all affected; 4.10.0 with the fix passes. Not a regression; not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>7e0aff8dabc4</code> on trunk (2014-07-08) and its branch_4x backport <code class='nw'>c608265684cf</code> (2014-07-09, the copy that shipped first), "LUCENE-5714, LUCENE-5779: Enhance BBoxStrategy &amp; Overlap similarity. Configurable docValues / index usage. Add new ShapeAreaValueSource." by @dsmiley; JIRA era, no pull request (LUCENE-5714 is #6776, LUCENE-5779 is #6841). It created <code>BBoxOverlapRatioValueSource</code> with the documented intersection-area formula and rewrote the one-crossing branch to sum both pieces, but kept the both-cross formula. That formula came from <code class='nw'>26d3f1f813ea</code> (2012-06-28, "LUCENE-4175: adding bbox strategy", @ryantxu, #5247), whose unreleased <code class='nw'>AreaSimilarity</code> had <code>width = right + 360.0 - left</code>. First released in 4.10.0 (CHANGES: "Index and search rectangles with spatial BBoxSpatialStrategy using most predicates. Sort documents by relative overlap of query areas ..."). Later commits on the width block are the LUCENE-6446 explanations (<code class='nw'>9cc27ca4205</code>, 2015) and the LUCENE-9570 reformat (<code class='nw'>2cbf261032d</code>, 2021). All 103 release tags in the history clone that contain the class have the line unchanged (8.8.2 to 8.11.3 are not in the clone; 8.11.4 was executed), so every release since 4.10.0 is very likely affected, but only the releases listed below were executed. Upstream main <code class='nw'>20ced71c1e6</code> (2026-10-27), <code class='nw'>branch_10x</code> and <code class='nw'>branch_10_6</code> have the same file as <code class='nw'>a9779ef3c193</code>, so 10.6.0 is very likely affected (not executed).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this repro 2 of 3 fail with -ea and -da (gradle and classpath runner); the hunt's JUnit 1 of 1</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this repro 2 of 3 fail (-ea), the same values; the finder's JUnit fails with -ea and -da, and the reproducer's JUnit fails the same way</td></tr><tr><th scope='row'>9.0.0, 9.1.0, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the hunt's JUnit fails 1 of 1 (9.0.0 with only the LuceneTestCase import changed)</td></tr><tr><th scope='row'>4.10.0, 4.10.4, 5.0.0, 5.5.5, 6.0.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> main() ports</span></td><td>0.10317460317460317 instead of 0.15476190476190477; a one-crossing two-piece control scores exactly (4.10.0 also with -da)</td></tr><tr><th scope='row'>4.10.0 + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix check</span></td><td>the port passes with the two added terms shadowed into the 4.10.0 class</td></tr><tr><th scope='row'>4.9.0, 4.9.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>BBoxStrategy does not exist; the port fails to compile only on that class</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer wrote its own tests (4 of 5 fail; its grid sweep found 660 of 660 both-cross two-piece pairs wrong and none outside), an intended-behaviour devil's advocate (real), read-only cross-model reviews (root cause agreed), an adjudication (confirmed, high confidence), and re-runs on main at the registration check and in a credibility audit.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>248 words</span></summary><div class='body'><p>The executed checks ran on main <code class='nw'>ea57360912ed</code> (identical spatial-extras) unless stated, some also on 10.5.2 and 9.12.3, with assertions on and off where stated; the main-refresh step re-ran the finder's JUnit on <code class='nw'>a9779ef3c193</code> (still fails). The cross-model reviews could only read code, so their verdicts on reality are procedural.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own public-API JUnit from the claim alone: 4 of 5 fail on main (-ea, -da), 10.5.2 and 9.12.3; the one-crossing control passes; a sorted search ranks the wrong document first; 5 of 5 pass with the fix.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high that it is not intended)</span></td><td>Built the single-envelope case and rejected it; showed the width 20 matches no alternative meaning, and that no upstream assertion pins the buggy value.</td></tr><tr><th scope='row'>Cross-model reviews (OpenAI GPT-5.6, read-only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> intended lens real (medium); refute lens not_real (low, procedural)</span></td><td>The reviewer could not run code; the lenses agreed on the root cause and that the inputs are in contract, and rated the intended-behaviour argument weak. Each driver re-run of the repro failed 1 of 1.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high confidence</span></td><td>Re-ran the finder's JUnit (-ea, -da) and the independent reproduction's (4 of 5 fail, control passes); hand-checked 20 + 10 = 30° against the code's 20.</td></tr><tr><th scope='row'>Registration check and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-runs on main with fresh seeds fail as before; a new rotation test with no hand-computed value fails and passes with the fix.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-369/bug.png' download='bbox-overlap-ratio-two-piece-dateline-intersection-bug.png' target='_self'>PNG</a> <span class='n'>588 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,466 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-369, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>BBoxStrategy's overlap-ratio relevance (BBoxOverlapRatioValueSource) undercounts the overlap of two dateline-crossing boxes that intersect in two longitude pieces, so the score is too low</dd></div><div><dt>Area</dt><dd>spatial-extras / BBoxStrategy overlap-ratio relevance (BBoxOverlapRatioValueSource.score: intersection width when both boxes cross the dateline)</dd></div><div><dt>Priority</dt><dd>Low, rank 361: A spatial-extras overlap-ratio score.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that rank or sort by BBoxStrategy's overlap-ratio relevance (makeOverlapRatioValueSource in the opt-in spatial-extras module; Solr's BBoxField exposes the same class as score=overlapRatio, by a read-only code search) in the default geo context get a score that is too low, so the document ranks too low, whenever the query box and the document box both cross the dateline and the longitude stretches they leave uncovered do not overlap, which needs their widths to add up to more than 360 degrees; default BBoxStrategy, codec and IndexWriterConfig, one document suffices, -ea and -da, every release since 4.10.0; matching, filtering and the index are unaffected, the score never goes up and nothing throws.</dd></div><div><dt>Summary</dt><dd>You index a dateline-crossing rectangle with BBoxStrategy in the default geo context and score it with makeOverlapRatioValueSource and a query rectangle that also crosses the dateline, and you expect the documented score intersectionArea/queryArea*p + intersectionArea/targetArea*(1-p), where intersectionArea is 'the area of the intersection between the query and target envelopes'. When the two boxes wrap far enough round the globe that they overlap twice, once across the dateline and once on the far side (query rect(10,-170,-10,10) and document rect(170,20,-10,10) share 170..-170 across the dateline, 20 degrees, and 10..20, 10 degrees), the score counts only the piece across the dateline: 0.10317460317460317 instead of 0.15476190476190477 at p = 0.5. The both-cross branch computes the width as right - left + 360, which is only that piece, while the branch for one crossing box already adds up both pieces.</dd></div><div><dt>Introduced</dt><dd>7e0aff8dabc4c3780f1e16a515646483cf92c2cc (trunk, svn r1608793) and its branch_4x backport c608265684cf73f50bf89bfbf252b7080769ee22 (svn r1608987, the copy that shipped first, in 4.10.0), 'LUCENE-5714, LUCENE-5779: Enhance BBoxStrategy &amp; Overlap similarity. Configurable docValues / index usage. Add new ShapeAreaValueSource.', by dsmiley; no pull request (SVN + JIRA era; LUCENE-5714 is apache/lucene#6776, LUCENE-5779 is #6841). It created BBoxOverlapRatioValueSource with the documented intersection-area formula and rewrote the one-crossing branch to sum both pieces, but kept the both-cross single-arc formula. Origin of the formula: 26d3f1f813ea234ef443f237a932b187d65709a9 (svn r1354841, 2012-06-28, 'LUCENE-4175: adding bbox strategy', by ryantxu, #5247), whose unreleased trunk class AreaSimilarity had 'width = right + 360.0 - left'. [read: git log --follow, git blame, git log -S on both spellings and git log -L on the width block in the history clone; exec: 4.9.0 and 4.9.1 have no such API, 4.10.0 fails and 4.10.0 with the two-line fix shadowed passes]. Not a regression: the line is unchanged since (later commits on the block: LUCENE-6446 explanations and the LUCENE-9570 reformat) (2014-07-08 (trunk 7e0aff8dabc4); 2014-07-09 (branch_4x c608265684cf); the formula itself dates from 26d3f1f813ea, 2012-06-28 (unreleased trunk AreaSimilarity))</dd></div><div><dt>First affected version</dt><dd>4.10.0 [exec] (tag 2014-09-02, the first release with BBoxStrategy and BBoxOverlapRatioValueSource; fails with -ea and -da); 4.9.0 and 4.9.1 have no such API [exec: the port fails to compile only on the missing BBoxStrategy class]</dd></div><div><dt>Affected versions</dt><dd>Every release from 4.10.0 to 10.5.2 (the latest) and main ea57360912ed; not fixed upstream. [exec] the same pair scores 0.10317460317460317 instead of 0.15476190476190477 on 4.10.0 (-ea and -da), 4.10.4, 5.0.0, 5.5.5, 6.0.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.1.0, 9.12.3 (-ea and -da), 10.0.0, 10.5.2 (-ea and -da) and main (-ea and -da) (follow-up; 4.10.0 to 8.11.4 through main() ports of the same rectangles, public indexing path and oracle, each of which also scores a one-crossing two-piece control exactly; 8.11.4 and 9.0.0 through the JUnit with only the LuceneTestCase import changed; 9.1.0 on through the unchanged JUnit); the independent reproduction's own JUnit fails 4 of 5 on main (-ea and -da), 10.5.2 and 9.12.3. [read] all 103 release tags in the history clone that contain the class (4.10.0 to 8.8.1, 9.0.0 to 10.5.2) have the both-cross line unchanged; 8.8.2 to 8.11.3 are not in the clone (8.11.4 was executed); branch_10_6 has a file identical to main (not executed, so 10.6.0 is very likely affected). All runs on aarch64 with JDK 25</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only, the prior-report record, verdict new: 150 logged queries: a scripted prior-report search (20 GitHub issue/PR, 3 commit, 4 downstream, 20 mailing-list over dev@, java-user@, issues@ and commits@, 6 JIRA, 6 web), 65 read-only GitHub GraphQL searches (apache/lucene, apache/solr, Elasticsearch, OpenSearch, spatial4j, Lucene.NET, GeoBlacklight and all of GitHub), 7 JIRA REST queries over LUCENE and SOLR, 14 direct mailing-list searches including the Solr lists, 2 more web searches, the GitHub commits API, a snapshot of all 411 open apache/lucene PRs with their files, and the local git history; plus the finder's, the independent reproduction's, the intended-behaviour check's and the adjudication's earlier searches); no hit is the same bug. Not fixed upstream: the file is unchanged since the 2021 reformat and no open PR touches it (the only open PR touching the bbox package, #12295, changes BBoxStrategy.makeQuery casts only). Related items, not reports of this bug: #6776 / LUCENE-5714 and #6841 / LUCENE-5779 (2014; created the class and its intersection-area javadoc and fixed other dateline width bugs, but kept this formula), #5247 / LUCENE-4175 (2012, origin of the formula), SOLR-6183 (exposes the score in Solr as score=overlapRatio), locationtech/spatial4j#85 (relate() of zero-width boxes at +/-180, not the overlap width), apache/solr#4145 (SOLR-18111, an open exploratory PR to remove BBoxField in a future Solr major). Not filed</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26): the repro JUnit through gradle in a clean scratch worktree, stock and with the fix, assertions on and off, plus <code class='nw'>TestBBoxStrategy</code> and all of <code>lucene/spatial-extras</code> on stock and with the fix, and the module's lint and format checks (2026-10-28); through the hunt's classpath runner, the same JUnit on main (-ea, -da, fix shadowed), 10.5.2 and 9.12.3 (-ea). Hunt runs on main <code class='nw'>ea57360912ed</code> (identical <code>lucene/spatial-extras</code>) and on 15 releases from 4.10.0 to 10.5.2. OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxOverlapRatioValueSource.java:24-67 (class javadoc: intersectionArea is &#x27;the area of the intersection between the query and target envelopes&#x27; at :35-36, score formula at :37-48, Geoportal &#x27;dateline bugs&#x27; note, @lucene.experimental at :67), :85 (&#x27;isGeo True if ctx.isGeo() and thus dateline issues should be attended to&#x27;), :163-181 (both-cross branch: left = max(minX) at :165, right = min(maxX) at :166, width = right - left + 360 at :181), :183-203 (one-crossing branch sums both pieces), :207-238 (ratios and score)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxStrategy.java:47-71 (class javadoc: custom overlap relevancy, &#x27;Uses the DocValues API for any sorting / relevancy&#x27;, @lucene.experimental) and :228-235 (makeOverlapRatioValueSource passes ctx.isGeo() and minSideLength 0.0)</code></li><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/bbox/TestBBoxStrategy.java testOverlapRatio (&#x27;wrap&#x27; case, 0.2794117, a two-piece sum through the one-crossing branch)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxOverlapRatioValueSource.java:24-67 (at a9779ef3c193) (class javadoc, @lucene.experimental), :146-265 (score; width 158-204, both-cross 180-181, one-crossing 183-203), :249 (explain width), :268-270 (calcArea)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxStrategy.java:63-71 (at a9779ef3c193) (implementation note, @lucene.experimental), :232-235 (makeOverlapRatioValueSource)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxSimilarityValueSource.java:66-84 (at a9779ef3c193) (getValues calls score per document)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxStrategy.java:71 (at a9779ef3c193) (@lucene.experimental), :121 (newInstance, DEFAULT_FIELDTYPE), :232-235, :254-359 (makeQuery)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxOverlapRatioValueSource.java:25-26, (at a9779ef3c193) :35-48, :61-65 (Geoportal origin, &quot;had dateline bugs&quot;), :81, :85, :180-181, :183-203</code></li><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/bbox/TestBBoxStrategy.java:227-259 (at a9779ef3c193) (testOverlapRatio, &#x27;wrap&#x27; 0.2794117)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:11840-11842 (at a9779ef3c193) (under 4.10.0, :11829)</code></li><li><code>a Lucene clone: git diff --quiet a9779ef3c193 against origin/main 20ced71c1e6, origin/branch_10x 1309534296e and origin/branch_10_6 2763db11b0a for BBoxOverlapRatioValueSource.java (identical), 2026-10-28</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestBBoxOverlapRatioBothCrossDateline.java (3 tests incl. 1 control): <a href='../repro/LFV-369/TestBBoxOverlapRatioBothCrossDateline.java'><code>repro/LFV-369/TestBBoxOverlapRatioBothCrossDateline.java</code></a> (141 lines)</li><li>TestOverlapRatioRotationAudit.java (credibility audit, metamorphic, 2 tests incl. 1 control): <a href='../repro/LFV-369/TestOverlapRatioRotationAudit.java'><code>repro/LFV-369/TestOverlapRatioRotationAudit.java</code></a> (95 lines)</li><li>TestOverlapRatioBothCrossVerifyV1.java (independent reproducer, 5 tests): <a href='../repro/LFV-369/TestOverlapRatioBothCrossVerifyV1.java'><code>repro/LFV-369/TestOverlapRatioBothCrossVerifyV1.java</code></a> (315 lines)</li><li>TestOverlapRatioTwoPieceIntersection.java (finder, 1 test): <a href='../repro/LFV-369/TestOverlapRatioTwoPieceIntersection.java'><code>repro/LFV-369/TestOverlapRatioTwoPieceIntersection.java</code></a> (68 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from the same example (query <code>rect(10, -170, -10, 10)</code>, document <code>rect(170, 20, -10, 10)</code>, <code>p = 0.5</code>), whose values come from an executed probe on main <code class='nw'>a9779ef3c193</code> with assertions on and off and with the fix. the diagram's fix panel ("the hunt's diff") and the card's "two added lines" show the hunt's version of fix A: two one-line <code class='nw'>if</code>s with their own comments. The logic is the same as an unpublished file and both were executed, but the text differs; propose <code class='nw'>fix.diff</code>. On the card, A is the example document and B is <code>rect(-145, 35, -10, 10)</code>.</p><ul class='paths'><li><a href='../assets/LFV-369/bug.png'><code>assets/LFV-369/bug.png</code></a> (588 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -1,0 +1,712 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>StandardQueryParser keeps escape backslashes in fn: interval term literals</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-747 &middot; flexible-interval-term-literals-keep-escape-backslashes</p><h1 id='top'>StandardQueryParser keeps escape backslashes in fn: interval term literals</h1><p class='tldr'><code>StandardQueryParser</code> reads <code class='nw'>a\:b</code> as the term <code class='nw'>a:b</code>, but inside an interval function it keeps the backslash: <code class='nw'>fn:or(a\:b)</code> searches for the text <code class='nw'>a\:b</code>. The query silently misses the <code class='nw'>a:b</code> document and can hit an <code class='nw'>a\:b</code> document instead, in every release since 9.1.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 309</span><span class='sub'>It silently changes matches every time since 9.1.0 but only with the niche fn: interval syntax plus an escaped character in a term literal, the same narrow escaping profile as its surround-parser twin LFV-687.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>9.1.0 (LUCENE-10223, #429)<span class='sub'>introduced 2021-11-11 &middot; about 4 years</span></dd></div><div><dt>Affected</dt><dd>9.1.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>semi-formal: an exhaustive reference for fn: parsing</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The flexible parser removes escape backslashes from every term, except from the term literals of <code class='nw'>fn:</code> interval functions.</p><figure class='visual' id='flexible-interval-term-literals-keep-escape-backslashes-short-visual'><div class='frame'><a class='still' href='../assets/LFV-747/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-747/bug.png' alt='Summary diagram in four panels. 1, the example: parser.parse(&quot;fn:or(a\\:b)&quot;, &quot;body&quot;) with a whitespace analyzer; index d0 = a:b c, d1 = a\:b c; expected body:a:b, finding d0; actual body:a\:b, finding d1: it misses the a:b document and matches the backslash text. 2, inside the parser: the lexer makes one TERM token a \ : b, because \: is an escaped character (jj line 130); outside fn: the Term rule (line 804) calls discardEscapeChar and gives a:b; inside fn: the IntervalText rule (line 685) calls new AnalyzedText(token.image) and keeps the backslash; AnalyzedText hands a\:b to the analyzer, and fn:fuzzyTerm (line 668) takes its term the same way. 3, the same bug in other fn: forms, executed on main: fn:ordered(a\:b c) gives ORDERED(a\:b,c), also when nested; fn:fuzzyTerm(a\:b 0) gives MultiTerm(a\:b~0); fn:or(&quot;a\&quot;b&quot;) gives a\&quot;b, so no fn: term literal can hold a double quote; with StandardAnalyzer fn:or(a\:b) gives BLOCK(a,b) and finds a b c. Not affected: quoted literals without escapes, fn:wildcard, and terms outside fn:. 4, fix, scope, impact: discardEscapeChar on the 4 token images of IntervalFuzzyTerm and IntervalText (lines 668-669, 684-685), as Term and QuotedTerm do; every release from 9.1.0 to 10.5.2 and main, executed on 20 releases and main; no error, silently wrong hits; also reached by escaped user text: QueryParserUtil.escape(&quot;a:b&quot;) returns a\:b.' width='1920' height='1080'></a></div><figcaption>Left: the same escaped word finds the <code class='nw'>a:b</code> document outside <code class='nw'>fn:</code> and the <code class='nw'>a\:b</code> document inside it. Right: the lexer makes one token <code class='nw'>a\:b</code>; the term rule removes the backslash, the <code class='nw'>fn:</code> literal rule keeps it. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index two documents with a whitespace analyzer: doc 0 holds <code>a:b c</code>, doc 1 holds <code>a\:b c</code> (with a real backslash).</span></li><li><span>Search <code class='nw'>a\:b</code> with <code>StandardQueryParser</code>. The backslash escapes the colon, as the parser documents ("any character can be quoted with a backslash"): the query is <code class='nw'>body:a:b</code> and it finds doc 0.</span></li><li><span>Put the same word inside an interval function: <code class='nw'>fn:or(a\:b)</code>. You expect the same term <code class='nw'>a:b</code> and doc 0.</span></li><li><span>Instead the query is <code class='nw'>body:a\:b</code> and finds doc 1. The two grammar rules that read <code class='nw'>fn:</code> literals pass the raw token on and never remove the backslash, unlike <code class='nw'>Term</code>, <code class='nw'>QuotedTerm</code> and the other rules that produce plain term text.</span></li><li><span>No error. All 10 <code class='nw'>fn:</code> forms tried behave the same (<code class='nw'>fn:ordered</code>, nested functions, <code class='nw'>fn:fuzzyTerm</code>); with <code class='nw'>StandardAnalyzer</code>, <code class='nw'>fn:or(a\:b)</code> becomes the phrase <code>a b</code>. Quoting (<code class='nw'>fn:or("a:b")</code>) avoids it, but no <code class='nw'>fn:</code> term literal can hold a double quote.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that let users, or the helper <code>QueryParserUtil.escape</code>, put an escaped character into a term inside <code class='nw'>fn:</code>. No configuration needed: the <code class='nw'>fn:</code> syntax is always on. With whitespace or keyword analyzers every escaped character gives wrong hits; with <code class='nw'>StandardAnalyzer</code> mainly an escaped colon. One query is enough, and nothing reports an error.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>481 words</span></summary><div class='body'><p>The flexible <code>StandardQueryParser</code> documents that "any character can be quoted with a backslash", and outside interval functions it removes the backslash: <code class='nw'>a\:b</code> is the term <code class='nw'>a:b</code>. Inside <code class='nw'>fn:</code> it does not. The two grammar productions that read an <code class='nw'>fn:</code> term literal, <code class='nw'>IntervalText</code> (every literal under <code class='nw'>fn:or</code>, <code class='nw'>fn:ordered</code> and the other composite functions, at any depth) and <code>IntervalFuzzyTerm</code> (<code class='nw'>fn:fuzzyTerm</code>), pass the raw token text to <code class='nw'>AnalyzedText</code> and <code class='nw'>FuzzyTerm</code> without <code>discardEscapeChar</code>, which every other production that yields plain term text calls. So <code class='nw'>fn:or(a\:b)</code> searches for the text <code class='nw'>a\:b</code>: with a whitespace analyzer it misses the document <code>a:b c</code> and finds <code>a\:b c</code>; with <code class='nw'>StandardAnalyzer</code> it becomes the phrase <code class='nw'>BLOCK(a,b)</code> and finds <code>a b c</code>. Nothing throws. The lexer already treats the backslash as an escape inside <code class='nw'>fn:</code>; the parser just never removes it. Quoting is a workaround except for a double quote, which no <code class='nw'>fn:</code> term literal can express (only <code>fn:wildcard(a\"b)</code> reaches it, as one unanalyzed term). Every release since 9.1.0, when <code class='nw'>fn:</code> arrived, is affected; four <code>discardEscapeChar</code> calls fix it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Escaping</strong>: in <code>StandardQueryParser</code> query text, a backslash makes the next character literal: <code class='nw'>a\:b</code> is the term <code class='nw'>a:b</code>, not field <code class='nw'>a</code> and term <code class='nw'>b</code> (<code>StandardQueryParser.java:175-186</code>).</li><li><strong>Interval functions</strong>: <code class='nw'>fn:or(...)</code>, <code class='nw'>fn:ordered(...)</code>, <code>fn:fuzzyTerm(...)</code> and 18 more build an <code class='nw'>IntervalQuery</code>; their leaves are term literals, "converted into (analyzed) text intervals" (<code>intervalfn/package-info.java:147-152</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>The lexer treats <code class='nw'>\x</code> as an escape everywhere (<code>StandardSyntaxParser.jj:129-136</code>, <code class='nw'>:159-161</code>); after <code class='nw'>fn:</code> the <code class='nw'>(</code> switches it back to the default state (<code class='nw'>:147</code>, <code class='nw'>:167-168</code>), so <code class='nw'>a\:b</code> inside <code class='nw'>fn:</code> is one term token with the image <code class='nw'>a\:b</code>. The escape protects the structure: <code class='nw'>fn:or(x\))</code> parses, <code class='nw'>fn:or(x))</code> does not.</li><li>Every other production that yields plain term text removes the backslash with <code>discardEscapeChar</code>: <code class='nw'>Term</code> (<code class='nw'>:803-804</code>), <code class='nw'>QuotedTerm</code> (<code class='nw'>:828-831</code>), <code class='nw'>FuzzyOp</code> (<code class='nw'>:727</code>), the range productions and field names. The only others that keep it, <code class='nw'>Term</code>'s <code class='nw'>/regexp/</code> branch (<code class='nw'>:798-801</code>) and <code class='nw'>fn:wildcard</code> (<code class='nw'>:649-650</code>), pass it to <code class='nw'>RegExp</code> and <code class='nw'>WildcardQuery</code>, which read it as an escape.</li><li><code>IntervalFuzzyTerm</code> (<code class='nw'>:668-669</code>) and <code class='nw'>IntervalText</code> (<code class='nw'>:684-685</code>) do not: they hand <code class='nw'>token.image</code> (or the quoted image minus its quotes) to <code class='nw'>FuzzyTerm</code> and <code class='nw'>AnalyzedText</code> (generated parser <code class='nw'>:980</code>, <code class='nw'>:986</code>, <code class='nw'>:1022</code>, <code class='nw'>:1046</code>).</li><li><code class='nw'>AnalyzedText</code> passes the text to <code>Intervals.analyzedText</code> and <code class='nw'>FuzzyTerm</code> to <code>Intervals.fuzzyTerm</code> (<code>AnalyzedText.java:34-41</code>, <code>FuzzyTerm.java:43-50</code>). Neither knows query escapes, so the backslash becomes part of the searched text.</li><li><code class='nw'>IntervalFun</code> (<code class='nw'>:383-409</code>) is recursive and every term-literal leaf ends in one of the two productions, so every literal under every composite function is affected. <code class='nw'>fn:wildcard</code>, the one other leaf, keeps backslashes too, but there <code class='nw'>WildcardQuery</code> reads them as escapes, which is consistent for glob escapes such as <code class='nw'>\*</code> (its handling of <code class='nw'>\uXXXX</code> escapes was not tested); it is not part of this bug.</li></ol></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>340 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Applications that pass query text to the flexible <code>StandardQueryParser</code> and use its <code class='nw'>fn:</code> interval functions, when a term literal inside <code class='nw'>fn:</code> contains a backslash-escaped character: typed by a user, or produced by the documented helper <code>QueryParserUtil.escape</code> (<code class='nw'>escape("a:b")</code> is <code class='nw'>a\:b</code>), for example when an application wraps escaped user words in <code class='nw'>fn:ordered(...)</code>.</li><li><strong>Effect.</strong> Silently wrong hits for that literal: it misses the documents with the intended text and can match documents with the backslash text, or, with <code class='nw'>StandardAnalyzer</code>, the phrase of the split pieces. No exception; the index is not touched.</li><li><strong>Default vs opt-in.</strong> Default parser settings, <code>IndexWriterConfig</code>, codec and searcher. The <code class='nw'>fn:</code> syntax is part of the standard syntax; the trigger is query text that uses it.</li><li><strong>Depends on the analyzer.</strong> With whitespace or keyword-style analyzers (codes, identifiers, paths) every escaped character changes the result. With <code class='nw'>StandardAnalyzer</code> the backslash is usually split off and dropped, so the visible cases are mainly an escaped colon (<code class='nw'>a:b</code> is one token, <code class='nw'>a\:b</code> gives <code class='nw'>a</code>, <code class='nw'>b</code>), escapes a user types before other in-word punctuation (<code class='nw'>a\.b</code> is <code class='nw'>body:a.b</code>, but <code class='nw'>fn:or(a\.b)</code> is <code class='nw'>BLOCK(a,b)</code>) and <code class='nw'>\uXXXX</code> escapes.</li><li><strong>Workaround.</strong> Quote without escapes: <code class='nw'>fn:or("a:b")</code> works. A double quote is the exception: no <code class='nw'>fn:</code> term literal can express it, since <code class='nw'>fn:or("a\"b")</code>, <code class='nw'>fn:or(a\"b)</code>, <code class='nw'>fn:or(a\u0022b)</code> and <code>fn:fuzzyTerm("a\"b" 0)</code> all keep the escape sequence. The only escape hatch is <code>fn:wildcard(a\"b)</code>: it finds the <code class='nw'>a"b</code> document because <code class='nw'>WildcardQuery</code> reads <code class='nw'>\"</code> as an escape, but it matches one indexed term without analysis, so it cannot stand in for an analyzed literal or a phrase.</li><li><strong>Scale.</strong> None: one document and one query, deterministic, every time.</li><li><strong>Frequency.</strong> Not measured, and likely low: it needs the <code class='nw'>fn:</code> interval syntax plus an escaped character inside an <code class='nw'>fn:</code> term literal, and quoting usually avoids it. The registry rates the likelihood rare, and no user report was found in the searched sources since 9.1.0.</li><li><strong>Not affected.</strong> Escaped terms outside <code class='nw'>fn:</code>; quoted <code class='nw'>fn:</code> literals without backslashes; <code class='nw'>fn:wildcard</code>; the classic <code class='nw'>QueryParser</code>, which has no <code class='nw'>fn:</code> syntax.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit for the <code>lucene/queryparser</code> test tree, public API only. Each of its 4 tests indexes two tiny documents, checks the escaped word outside <code class='nw'>fn:</code> (passes), then the same word inside <code class='nw'>fn:</code> (fails): <code class='nw'>fn:or</code>, a quoted literal with an escaped quote, <code class='nw'>StandardAnalyzer</code>, and <code class='nw'>fn:fuzzyTerm</code>.</p><figure class='code'><figcaption><span class='fname'>TestIntervalFunctionTermEscapes.java (JUnit, lucene/queryparser)</span><span class='meta'>112 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queryparser.flexible.standard;
+
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * StandardQueryParser documents that &quot;any character can be quoted with a backslash&quot; and that the
+ * term literals of interval functions are &quot;converted into (analyzed) text intervals&quot;. A term
+ * literal inside fn:... must therefore stand for the same text as the same literal outside it.
+ */
+public class TestIntervalFunctionTermEscapes extends LuceneTestCase {
+
+  /** Indexes docs (doc id = array index) into field body and returns the ids that query hits. */
+  private Set&lt;Integer&gt; hits(Analyzer analyzer, String query, String... docs) throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(analyzer))) {
+        for (String text : docs) {
+          Document doc = new Document();
+          doc.add(new TextField(&quot;body&quot;, text, Field.Store.NO));
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = newSearcher(reader);
+        Query q = new StandardQueryParser(analyzer).parse(query, &quot;body&quot;);
+        Set&lt;Integer&gt; ids = new TreeSet&lt;&gt;();
+        for (ScoreDoc sd : searcher.search(q, 10).scoreDocs) {
+          ids.add(sd.doc);
+        }
+        return ids;
+      }
+    }
+  }
+
+  private void check(Analyzer analyzer, String query, Set&lt;Integer&gt; expected, String... docs)
+      throws Exception {
+    Query parsed = new StandardQueryParser(analyzer).parse(query, &quot;body&quot;);
+    assertEquals(query + &quot; parsed as &quot; + parsed, expected, hits(analyzer, query, docs));
+  }
+
+  private Analyzer whitespace() {
+    return new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false);
+  }
+
+  /** Whitespace analysis: doc 0 holds the term a:b, doc 1 holds the literal text a\:b. */
+  public void testEscapedColonInIntervalTerm() throws Exception {
+    Analyzer a = whitespace();
+    String[] docs = {&quot;a:b c&quot;, &quot;a\\:b c&quot;};
+    // control: the escaped term outside an interval function is the term a:b
+    check(a, &quot;a\\:b&quot;, Set.of(0), docs);
+    // the same literal inside interval functions
+    check(a, &quot;fn:or(a\\:b)&quot;, Set.of(0), docs);
+    check(a, &quot;fn:ordered(a\\:b c)&quot;, Set.of(0), docs);
+    // the documented helper produces exactly this literal: escape(&quot;a:b&quot;) is a\:b
+    check(a, &quot;fn:or(&quot; + QueryParserUtil.escape(&quot;a:b&quot;) + &quot;)&quot;, Set.of(0), docs);
+  }
+
+  /** An escaped quote inside a quoted interval literal. */
+  public void testEscapedQuoteInQuotedIntervalTerm() throws Exception {
+    Analyzer a = whitespace();
+    String[] docs = {&quot;a\&quot;b c&quot;, &quot;a\\\&quot;b c&quot;};
+    check(a, &quot;\&quot;a\\\&quot;b\&quot;&quot;, Set.of(0), docs);
+    check(a, &quot;fn:or(\&quot;a\\\&quot;b\&quot;)&quot;, Set.of(0), docs);
+  }
+
+  /** StandardAnalyzer keeps a:b as one token; the kept backslash splits the literal into a, b. */
+  public void testEscapedColonWithStandardAnalyzer() throws Exception {
+    Analyzer a = new StandardAnalyzer();
+    String[] docs = {&quot;a:b c&quot;, &quot;a b c&quot;};
+    check(a, &quot;a\\:b&quot;, Set.of(0), docs);
+    check(a, &quot;fn:or(a\\:b)&quot;, Set.of(0), docs);
+  }
+
+  /** fn:fuzzyTerm takes its term the same way. */
+  public void testEscapedColonInFuzzyTerm() throws Exception {
+    Analyzer a = whitespace();
+    String[] docs = {&quot;a:b c&quot;, &quot;a\\:b c&quot;};
+    check(a, &quot;a\\:b~0&quot;, Set.of(0), docs);
+    check(a, &quot;fn:fuzzyTerm(a\\:b 0)&quot;, Set.of(0), docs);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestIntervalFunctionTermEscapes.java \
+   $LUCENE/lucene/queryparser/src/test/org/apache/lucene/queryparser/flexible/standard/
+cd $LUCENE
+./gradlew :lucene:queryparser:test \
+  --tests org.apache.lucene.queryparser.flexible.standard.TestIntervalFunctionTermEscapes -Ptests.seed=DEADBEEF
+# add -Ptests.asserts=false for assertions off: the same 4 failures
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>fn:or(a\:b)</code> is the query <code class='nw'>body:a:b</code> and finds doc 0 (<code>a:b c</code>), like <code class='nw'>a\:b</code> outside <code class='nw'>fn:</code>.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>fn:or(a\:b)</code> is <code class='nw'>body:a\:b</code> and finds doc 1 (<code>a\:b c</code>); all 4 tests fail, with assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-747/'>repro/LFV-747/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (247 lines) · 1,515 words</span></summary><div class='body'><p>The compact test is the finder's, moved onto the module's own test classpath (a <code class='nw'>MockAnalyzer</code> whitespace analyzer instead of <code class='nw'>analysis-common</code>'s <code>WhitespaceAnalyzer</code>), with the parsed query in each message and one <code>QueryParserUtil.escape</code> line added; <code>./gradlew :lucene:queryparser:tidy</code> leaves it unchanged. In the Java source each <code class='nw'>\\</code> is one backslash of query text: <code class='nw'>"fn:or(a\\:b)"</code> is the query <code class='nw'>fn:or(a\:b)</code>.</p><p>Below it: the independent reproducer's broader test (6 tests, one a passing control; it adds the javadoc's own escaping example), and the scope probe that runs one escaped literal under 10 <code class='nw'>fn:</code> forms (fails on stock, passes with the fix).</p><div class="hd hd-3"><h3 id='code-2-h'>TestIntervalFnEscapedLiterals.java (independent reproducer, 6 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Same placement and command; fails 5 of 6 on stock main, its control test passes.</p><figure class='code'><figcaption><span class='fname'>TestIntervalFnEscapedLiterals.java (independent reproducer, 6 tests)</span><span class='meta'>162 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queryparser.flexible.standard;
+
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * StandardQueryParser documents (&quot;Special character escaping&quot;) that any character of a search term
+ * can be quoted with a backslash, and that the escaped form is an alternative to the quoted form.
+ * The interval-function package documents that term literals inside fn: functions are converted
+ * into analyzed text intervals. So an escaped term literal inside fn: should stand for the
+ * unescaped text, exactly as it does outside fn:.
+ *
+ * &lt;p&gt;Each index is a single segment written in add order, so document ids equal array indexes.
+ */
+public class TestIntervalFnEscapedLiterals extends LuceneTestCase {
+
+  private static final String FIELD = &quot;body&quot;;
+
+  // Whitespace-tokenized index: each document is a single token.
+  private static final String[] WS_DOCS = {
+    &quot;a:b&quot;, // 0: the text a:b
+    &quot;a\\:b&quot;, // 1: the text a\:b (a literal backslash)
+    &quot;a\&quot;b&quot;, // 2: the text a&quot;b
+    &quot;a\\\&quot;b&quot;, // 3: the text a\&quot;b (a literal backslash)
+    &quot;:(quoted+term):&quot;, // 4: the term of the StandardQueryParser javadoc example
+    &quot;\\:\\(quoted\\+term\\)\\:&quot;, // 5: the same with literal backslashes
+    &quot;other&quot; // 6
+  };
+
+  private Analyzer whitespace() {
+    return new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false);
+  }
+
+  private static Set&lt;Integer&gt; hits(Directory dir, Analyzer analyzer, String query)
+      throws Exception {
+    StandardQueryParser parser = new StandardQueryParser(analyzer);
+    Query q = parser.parse(query, FIELD);
+    Set&lt;Integer&gt; result = new TreeSet&lt;&gt;();
+    try (DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      for (ScoreDoc sd : searcher.search(q, 100).scoreDocs) {
+        result.add(sd.doc);
+      }
+    }
+    return result;
+  }
+
+  private static Query parse(Analyzer analyzer, String query) throws Exception {
+    return new StandardQueryParser(analyzer).parse(query, FIELD);
+  }
+
+  private static Directory index(Directory dir, Analyzer analyzer, String[] docs) throws Exception {
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(analyzer))) {
+      for (String text : docs) {
+        Document doc = new Document();
+        doc.add(new TextField(FIELD, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+    }
+    return dir;
+  }
+
+  private void check(Directory dir, Analyzer analyzer, String query, Set&lt;Integer&gt; expected)
+      throws Exception {
+    Set&lt;Integer&gt; actual = hits(dir, analyzer, query);
+    assertEquals(
+        &quot;query text [&quot; + query + &quot;] parsed as [&quot; + parse(analyzer, query) + &quot;]&quot;, expected, actual);
+  }
+
+  /** Control: outside fn: the escapes are removed, as documented. Expected to pass. */
+  public void testControlEscapesOutsideFunction() throws Exception {
+    Analyzer a = whitespace();
+    try (Directory dir = index(newDirectory(), a, WS_DOCS)) {
+      check(dir, a, &quot;a\\:b&quot;, Set.of(0));
+      check(dir, a, &quot;\&quot;a\\\&quot;b\&quot;&quot;, Set.of(2));
+      check(dir, a, &quot;a\\:b~0&quot;, Set.of(0));
+      // the javadoc example and its documented quoted alternative
+      check(dir, a, &quot;\\:\\(quoted\\+term\\)\\:&quot;, Set.of(4));
+      check(dir, a, &quot;\&quot;:(quoted+term):\&quot;&quot;, Set.of(4));
+      // the quoted alternative also works inside fn:
+      check(dir, a, &quot;fn:or(\&quot;:(quoted+term):\&quot;)&quot;, Set.of(4));
+      check(dir, a, &quot;fn:or(\&quot;a:b\&quot;)&quot;, Set.of(0));
+    }
+  }
+
+  /** fn:or(a\:b) should search the term a:b, like the clause a\:b does. */
+  public void testUnquotedEscapedLiteralInOr() throws Exception {
+    Analyzer a = whitespace();
+    try (Directory dir = index(newDirectory(), a, WS_DOCS)) {
+      check(dir, a, &quot;fn:or(a\\:b)&quot;, Set.of(0));
+    }
+  }
+
+  /** The javadoc escaping example inside fn: should equal its quoted alternative. */
+  public void testJavadocEscapingExampleInsideFunction() throws Exception {
+    Analyzer a = whitespace();
+    try (Directory dir = index(newDirectory(), a, WS_DOCS)) {
+      check(dir, a, &quot;fn:or(\\:\\(quoted\\+term\\)\\:)&quot;, Set.of(4));
+      assertEquals(
+          parse(a, &quot;fn:or(\&quot;:(quoted+term):\&quot;)&quot;), parse(a, &quot;fn:or(\\:\\(quoted\\+term\\)\\:)&quot;));
+    }
+  }
+
+  /** A quote inside a quoted fn: literal can only be written escaped; it should mean a&quot;. */
+  public void testQuotedLiteralWithEscapedQuote() throws Exception {
+    Analyzer a = whitespace();
+    try (Directory dir = index(newDirectory(), a, WS_DOCS)) {
+      check(dir, a, &quot;fn:or(\&quot;a\\\&quot;b\&quot;)&quot;, Set.of(2));
+    }
+  }
+
+  /** fn:fuzzyTerm(a\:b 0) (0 edits) should match exactly the term a:b, like a\:b~0 does. */
+  public void testFuzzyTermEscapedLiteral() throws Exception {
+    Analyzer a = whitespace();
+    try (Directory dir = index(newDirectory(), a, WS_DOCS)) {
+      check(dir, a, &quot;fn:fuzzyTerm(a\\:b 0)&quot;, Set.of(0));
+    }
+  }
+
+  /** With StandardAnalyzer (a:b is one token), the escaped literal is split into a, b. */
+  public void testStandardAnalyzerEscapedLiteral() throws Exception {
+    Analyzer a = new StandardAnalyzer(CharArraySet.EMPTY_SET);
+    String[] docs = {&quot;a:b&quot;, &quot;a b c&quot;};
+    try (Directory dir = index(newDirectory(), a, docs)) {
+      check(dir, a, &quot;a\\:b&quot;, Set.of(0)); // control: outside fn:
+      check(dir, a, &quot;fn:or(\&quot;a:b\&quot;)&quot;, Set.of(0)); // control: quoted inside fn:
+      check(dir, a, &quot;fn:or(a\\:b)&quot;, Set.of(0));
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>./gradlew :lucene:queryparser:test --tests org.apache.lucene.queryparser.flexible.standard.TestIntervalFnEscapedLiterals -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestIntervalEscapeScopeProbe.java (10 fn: forms, one index)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Prints each parse and hit set; fails while any <code class='nw'>fn:</code> form misses doc 0.</p><figure class='code'><figcaption><span class='fname'>TestIntervalEscapeScopeProbe.java (10 fn: forms, one index)</span><span class='meta'>85 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queryparser.flexible.standard;
+
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Scope probe: one escaped literal a\:b under several composite fn: functions. Doc 0 = &quot;a:b c&quot;,
+ * doc 1 = &quot;a\:b c&quot;. Each query should hit doc 0 (as a\:b does outside fn:). Fails if any query
+ * does not; prints every parse and hit set.
+ */
+public class TestIntervalEscapeScopeProbe extends LuceneTestCase {
+
+  public void testCompositeFunctions() throws Exception {
+    Analyzer a = new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false);
+    String[] queries = {
+      &quot;a\\:b&quot;,
+      &quot;fn:or(a\\:b)&quot;,
+      &quot;fn:ordered(a\\:b c)&quot;,
+      &quot;fn:unordered(a\\:b c)&quot;,
+      &quot;fn:phrase(a\\:b c)&quot;,
+      &quot;fn:atleast(1 a\\:b zz)&quot;,
+      &quot;fn:maxwidth(5 fn:or(a\\:b))&quot;,
+      &quot;fn:containedBy(a\\:b fn:ordered(a\\:b c))&quot;,
+      &quot;fn:or(fn:or(a\\:b) zz)&quot;,
+      &quot;fn:fuzzyTerm(a\\:b 0)&quot;,
+      &quot;fn:or(\&quot;a\\:b\&quot;)&quot;
+    };
+    StringBuilder wrong = new StringBuilder();
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+        for (String text : new String[] {&quot;a:b c&quot;, &quot;a\\:b c&quot;}) {
+          Document doc = new Document();
+          doc.add(new TextField(&quot;body&quot;, text, Field.Store.NO));
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        for (String qs : queries) {
+          Query q = new StandardQueryParser(a).parse(qs, &quot;body&quot;);
+          Set&lt;Integer&gt; ids = new TreeSet&lt;&gt;();
+          for (ScoreDoc sd : searcher.search(q, 10).scoreDocs) {
+            ids.add(sd.doc);
+          }
+          System.out.println(&quot;SCOPE &quot; + qs + &quot; -&gt; &quot; + q + &quot; hits=&quot; + ids);
+          if (ids.equals(Set.of(0)) == false) {
+            wrong.append(qs).append(&quot; -&gt; &quot;).append(ids).append(&quot;; &quot;);
+          }
+        }
+      }
+    }
+    assertEquals(&quot;queries that do not hit only doc 0&quot;, &quot;&quot;, wrong.toString());
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle); the hunt&#x27;s JUnit also on 10.5.2, 9.12.3 and 9.1.0, and a portable main() on 20 releases from 9.1.0 to 10.5.2</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF, -Ptests.asserts=true (the same with =false); selected lines, grouped by test class
+TestIntervalFunctionTermEscapes &gt; testEscapedColonInIntervalTerm FAILED
+    java.lang.AssertionError: fn:or(a\:b) parsed as body:a\:b expected:&lt;[0]&gt; but was:&lt;[1]&gt;
+TestIntervalFunctionTermEscapes &gt; testEscapedQuoteInQuotedIntervalTerm FAILED
+    java.lang.AssertionError: fn:or(&quot;a\&quot;b&quot;) parsed as body:a\&quot;b expected:&lt;[0]&gt; but was:&lt;[1]&gt;
+TestIntervalFunctionTermEscapes &gt; testEscapedColonWithStandardAnalyzer FAILED
+    java.lang.AssertionError: fn:or(a\:b) parsed as body:BLOCK(a,b) expected:&lt;[0]&gt; but was:&lt;[1]&gt;
+TestIntervalFunctionTermEscapes &gt; testEscapedColonInFuzzyTerm FAILED
+    java.lang.AssertionError: fn:fuzzyTerm(a\:b 0) parsed as body:MultiTerm(a\:b~0) expected:&lt;[0]&gt; but was:&lt;[1]&gt;
+TestIntervalFnEscapedLiterals &gt; testJavadocEscapingExampleInsideFunction FAILED
+    java.lang.AssertionError: query text [fn:or(\:\(quoted\+term\)\:)] parsed as [body:\:\(quoted\+term\)\:] expected:&lt;[4]&gt; but was:&lt;[5]&gt;
+   ... 4 more TestIntervalFnEscapedLiterals failures with the same queries
+10 tests completed, 9 failed
+
+# scope probe, one index: doc 0 = a:b c, doc 1 = a\:b c (stock main, -ea; the same with -da)
+SCOPE a\:b -&gt; body:a:b hits=[0]
+SCOPE fn:or(a\:b) -&gt; body:a\:b hits=[1]
+SCOPE fn:ordered(a\:b c) -&gt; body:ORDERED(a\:b,c) hits=[1]
+SCOPE fn:phrase(a\:b c) -&gt; body:BLOCK(a\:b,c) hits=[1]
+SCOPE fn:maxwidth(5 fn:or(a\:b)) -&gt; body:MAXWIDTH/5(a\:b) hits=[1]
+SCOPE fn:containedBy(a\:b fn:ordered(a\:b c)) -&gt; body:CONTAINED_BY(a\:b,ORDERED(a\:b,c)) hits=[1]
+SCOPE fn:fuzzyTerm(a\:b 0) -&gt; body:MultiTerm(a\:b~0) hits=[1]
+SCOPE fn:or(&quot;a\:b&quot;) -&gt; body:a\:b hits=[1]
+   ... 10 of 10 fn: forms hit doc 1; with the fix all hit doc 0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The parser says "any character can be quoted with a backslash", with no <code class='nw'>fn:</code> exception; its own example <code>\:\(quoted\+term\)\:</code> fails inside <code class='nw'>fn:or(...)</code>.</li><li>The lexer already treats <code class='nw'>\x</code> as an escape inside <code class='nw'>fn:</code>; only the removal is missing (the plain-term rules do it).</li><li>As raw text, no <code class='nw'>fn:</code> term literal could hold a double quote; nothing upstream calls <code class='nw'>fn:</code> literals raw.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>249 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>StandardQueryParser.java:175-186</code>, "Special character escaping": "If the search term contains the quote character (or cannot be quoted for some reason), any character can be quoted with a backslash", with <code>\:\(quoted\+term\)\:</code> and <code>":(quoted+term):"</code> as two spellings of one term. The <code class='nw'>fn:</code> section (<code class='nw'>:204-223</code>) adds no exception. <code>intervalfn/package-info.java:149</code>: term literals are "converted into (analyzed) text intervals". <code>FuzzyTerm.java:26</code>: "An interval function equivalent to FuzzyQuery", and <code class='nw'>a\:b~1</code> outside <code class='nw'>fn:</code> is unescaped.</li><li><strong>The javadoc example fails inside <code class='nw'>fn:</code>.</strong> <code>fn:or(\:\(quoted\+term\)\:)</code> finds the document with the backslash text; the documented quoted form <code>fn:or(":(quoted+term):")</code> finds the right one (executed by the independent reproducer).</li><li><strong>The grammar disagrees with itself.</strong> The lexer honours the escape inside <code class='nw'>fn:</code>, and <code class='nw'>Term</code>, <code class='nw'>QuotedTerm</code>, <code class='nw'>FuzzyOp</code>, the range productions and field names all call <code>discardEscapeChar</code>. The only other rules that keep the raw image, <code class='nw'>Term</code>'s <code class='nw'>/regexp/</code> branch and <code class='nw'>fn:wildcard</code>, hand it to <code class='nw'>RegExp</code> and <code class='nw'>WildcardQuery</code>, which read backslashes as escapes; <code class='nw'>IntervalText</code> and <code>IntervalFuzzyTerm</code> hand it to the analyzer and the fuzzy automaton, which do not.</li><li><strong>History.</strong> Both productions skipped it from their first version (LUCENE-10223, #429, 2021; LUCENE-10414, #668, 2022). The escaping javadoc and the term-literal docs came in the same commit as <code class='nw'>IntervalText</code>, so code and docs have disagreed from the start. Neither PR discusses escaping.</li><li><strong>Tests.</strong> No queryparser test uses a backslash inside <code class='nw'>fn:</code>; none asserts either behaviour. In #11800 (2022) the <code class='nw'>fn:</code> author advised escaping (<code class='nw'>am\@zing</code>) or quoting, with no <code class='nw'>fn:</code> exception.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>212 words</span></summary><div class='body'><p>The strongest works-as-designed case, built by the intended-behaviour verifier: <code class='nw'>fn:</code> literals are a raw sub-language. The interval docs never mention escaping, every <code class='nw'>fn:</code> leaf takes the raw token the same way, <code class='nw'>fn:wildcard</code> keeps backslashes, and <code>AnalyzedText.toString</code> prints the stored text back unescaped.</p><p>Why it fails: the escaping rule is stated for the whole parser and the lexer applies it inside <code class='nw'>fn:</code>; <code class='nw'>fn:wildcard</code> and <code class='nw'>Term</code>'s <code class='nw'>/regexp/</code> branch keep backslashes only because <code class='nw'>WildcardQuery</code> and <code class='nw'>RegExp</code> read them as escapes, while the analyzer and the fuzzy automaton do not; under the raw reading no <code class='nw'>fn:</code> term literal could contain a double quote (only <code class='nw'>fn:wildcard</code>, one unanalyzed term, can reach one), exactly the case the javadoc says needs backslash escaping; <code class='nw'>toString</code> does not round-trip anyway (LFV-748); and no test, commit message, CHANGES or MIGRATE entry, JIRA or PR discussion says <code class='nw'>fn:</code> literals are raw. All the reviews by a model from another family rated the argument weak. The weakest point for a filing: the contract is a general rule, not a sentence about <code class='nw'>fn:</code>, so lead with the lexer point and the javadoc example that fails inside <code class='nw'>fn:</code>. The double quote supports them; say "no <code class='nw'>fn:</code> term literal", since a maintainer can point to <code>fn:wildcard(a\"b)</code>, which reaches one unanalyzed term.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Unescape the four token images in the grammar</strong></p><p class='short'>Remove the escapes in the two <code class='nw'>fn:</code> literal rules with <code>discardEscapeChar</code>, as <code class='nw'>Term</code> and <code class='nw'>QuotedTerm</code> do, and regenerate the parser. Validated: the repro passes, as do all 544 <code>lucene/queryparser</code> tests and the module checks. Land it with the printing fix of LFV-748 (option B), or printed <code class='nw'>fn:</code> queries stop parsing back.</p><pre class='snippet' tabindex='0'><code>// StandardSyntaxParser.jj, IntervalFuzzyTerm (:668-669)
+  (&lt;TERM&gt; | &lt;NUMBER&gt;) { term = discardEscapeChar(token.image).toString(); }
+| &lt;QUOTED&gt;            { term = discardEscapeChar(token.image.substring(1, token.image.length() - 1)).toString(); }
+// IntervalText (:684-685)
+  (&lt;QUOTED&gt;)          { return new AnalyzedText(discardEscapeChar(token.image.substring(1, token.image.length() - 1)).toString()); }
+| (&lt;TERM&gt; | &lt;NUMBER&gt;) { return new AnalyzedText(discardEscapeChar(token.image).toString()); }
+// then: ./gradlew :lucene:queryparser:regenerateFlexibleStandardSyntaxParser</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 765 words</span></summary><div class='body'><p>Option A is the fix for this bug; option B is the PR to send if LFV-748 (<code class='nw'>toQueryString</code> printing of the same nodes) is filed together. Both were validated in a clean scratch worktree at <code class='nw'>a9779ef3c193</code> with gradle (assertions on and off for the repro), and both diffs apply cleanly to that commit.</p><p><strong>Side note for the same PR, not counted as a bug.</strong> The term-literal example in <code>intervalfn/package-info.java:162</code> reads <code>fn:or(\"quick fox\")</code> with literal backslashes (Java string escaping leaked into the javadoc). Typed as shown it parses as two unquoted terms with any analyzer: with <code class='nw'>StandardAnalyzer</code> (the independent reproducer's probe) they are <code>body:or(fox,quick)</code> and match the example sentence, not the phrase that the example says does not match; with a whitespace analyzer they keep the backslash and the quote and match nothing.</p><div class="hd hd-3"><h3 id='fix-A'>Unescape the four token images in the grammar <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-A" target="_self" aria-label="Link to this section" aria-describedby="fix-A"><span aria-hidden="true">#</span></a></div><p>Wrap the four token images of <code>IntervalFuzzyTerm</code> and <code class='nw'>IntervalText</code> in <code>discardEscapeChar(...).toString()</code> (already imported, <code>StandardSyntaxParser.jj:83</code>), then regenerate the parser; the diff also carries the regenerated <code>StandardSyntaxParser.java</code> and its checksum file. <code class='nw'>fn:wildcard</code> stays as it is on purpose.</p><pre class='snippet' tabindex='0'><code>// StandardSyntaxParser.jj, IntervalFuzzyTerm (:668-669)
+  (&lt;TERM&gt; | &lt;NUMBER&gt;) { term = discardEscapeChar(token.image).toString(); }
+| &lt;QUOTED&gt;            { term = discardEscapeChar(token.image.substring(1, token.image.length() - 1)).toString(); }
+// IntervalText (:684-685)
+  (&lt;QUOTED&gt;)          { return new AnalyzedText(discardEscapeChar(token.image.substring(1, token.image.length() - 1)).toString()); }
+| (&lt;TERM&gt; | &lt;NUMBER&gt;) { return new AnalyzedText(discardEscapeChar(token.image).toString()); }
+// then: ./gradlew :lucene:queryparser:regenerateFlexibleStandardSyntaxParser</code></pre><p class='k'>Trade-offs</p><p>Escaped <code class='nw'>fn:</code> literals now mean the unescaped text; anyone who relied on the raw text (no such use is documented) sees different hits, worth a CHANGES line. Malformed unicode escapes inside <code class='nw'>fn:</code> (<code class='nw'>fn:or(a\u00)</code>) now throw <code class='nw'>ParseException</code>, as they already do outside <code class='nw'>fn:</code>. Alone, it makes <code class='nw'>toQueryString</code> print escaped literals in a form that no longer parses back (<code class='nw'>fn:or(a\:b)</code> prints <code class='nw'>fn:or(a:b)</code>, a <code class='nw'>ParseException</code>; <code class='nw'>fn:or(x\\y)</code> prints <code class='nw'>fn:or(x\y)</code>, which re-parses as <code class='nw'>xy</code>): pair it with option B's printing.</p><p class='k'>What the checks validated</p><p>Stock: the two repro files fail 9 of 10 (assertions on and off), and the whole module run fails exactly those 9. Fix: 10 of 10 pass (on and off); the whole <code>lucene/queryparser</code> suite (544 tests: 533 upstream + 10 repro + 1 probe; 0 failures, 1 upstream <code class='nw'>@Ignore</code>) and the highlighter's <code>TestMatchHighlighter</code> (6) pass; <code>:lucene:queryparser:check -x test</code> (javacc checksums, google-java-format, ecjLint, forbiddenApis) passes. The regenerated parser equals the hunt's hand-patched one up to line wrapping; with that one shadowed onto the stock jars all 11 scope-probe queries hit doc 0 and the hunt's exhaustive escape check goes from 0 to 5,208 of 5,208 equal.</p><div class="hd hd-3"><h3 id='fix-B'>A plus the printing fix shared with LFV-748 <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-B" target="_self" aria-label="Link to this section" aria-describedby="fix-B"><span aria-hidden="true">#</span></a></div><p>Option A plus the LFV-748 printing fix (quote every literal the grammar would not read back as one term; <code class='nw'>fn:fuzzyTerm</code> prints <code>%d %d</code>; <code class='nw'>fn:wildcard</code> prints a bare <code class='nw'>maxExpansions</code>) and one helper, <code>AnalyzedText.toLiteral</code>, that escapes <code class='nw'>\</code> and <code class='nw'>"</code> inside the quotes; <code>FuzzyTerm.toString</code> uses it. With it every parsed <code class='nw'>fn:</code> query in the probe prints a string that parses back to the same query.</p><pre class='snippet' tabindex='0'><code>static String toLiteral(String term) {  // AnalyzedText; FuzzyTerm.toString uses it too
+  if (requiresQuotes(term)) {            // requiresQuotes as broadened by the LFV-748 fix
+    return &#x27;&quot;&#x27; + term.replace(&quot;\\&quot;, &quot;\\\\&quot;).replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;) + &#x27;&quot;&#x27;;
+  } else {
+    return term;
+  }
+}</code></pre><p class='k'>Trade-offs</p><p><code class='nw'>toString</code>/<code class='nw'>toQueryString</code> now quote literals with query-syntax characters. <code class='nw'>fn:wildcard</code> keeps its raw glob inside the quotes, because the wildcard rule does not unescape. Filed separately, A is this bug's fix and the printing belongs to LFV-748; say in each that they land together, and do not count the printing failures twice. Neither diff adds a test: the round-trip probe prints whether each re-parse equals the original and asserts nothing, so a PR should add the repro tests and a round-trip assertion.</p><p class='k'>What the checks validated</p><p>Same worktree: 9 of 9 round-trip probe inputs print a string that re-parses to the same query (<code class='nw'>fn:or(a\:b)</code> -&gt; <code class='nw'>fn:or("a:b")</code>, <code class='nw'>fn:or(x\\y)</code> -&gt; <code class='nw'>fn:or("x\\y")</code>, <code>fn:fuzzyTerm(a\:b 0)</code> -&gt; <code>fn:fuzzyTerm("a:b" 0 128)</code>); the whole <code>lucene/queryparser</code> suite (544, 0 failures, 1 skipped) and <code>:lucene:queryparser:check -x test</code> pass; <code class='nw'>tidy</code> only rewrapped one boolean chain.</p><div class="hd hd-3"><h3 id='fix-C'>Unescape in the AnalyzedText and FuzzyTerm constructors (not recommended)</h3><a class="hlink" href="#fix-C" target="_self" aria-label="Link to this section" aria-describedby="fix-C"><span aria-hidden="true">#</span></a></div><p>One place instead of four and no parser regeneration.</p><p class='k'>Trade-offs</p><p>These are public node classes that programmatic callers build from plain text; unescaping there would change what <code>new AnalyzedText("a\\b")</code> means for them. Not run.</p><div class="hd hd-3"><h3 id='fix-D'>Document fn: literals as raw text (not recommended)</h3><a class="hlink" href="#fix-D" target="_self" aria-label="Link to this section" aria-describedby="fix-D"><span aria-hidden="true">#</span></a></div><p>Keep the code and document the exception.</p><p class='k'>Trade-offs</p><p>Contradicts the parser's escaping section, leaves its own example wrong inside <code class='nw'>fn:</code>, and leaves no <code class='nw'>fn:</code> term literal that can hold a double quote. Not run.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>An application that wraps user words escaped with <code>QueryParserUtil.escape</code> in <code class='nw'>fn:</code> functions gets wrong hits for words with special characters, while the escapes still keep the query structure intact (an escaped <code class='nw'>)</code> stays in the literal, an escaped <code class='nw'>:</code> does not switch the field).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>While writing an independent reference for <code class='nw'>fn:</code> expressions (a printer plus an <code class='nw'>Intervals</code> builder, compared with the parser on a 389-document index), reading the grammar showed that the <code class='nw'>fn:</code> literal rule never unescapes. The reference's escaped-literal cases then disagreed every time: 0 of 5,208 checks equal, and 5,208 of 5,208 with the fix.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>175 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation</strong> (semi-formal tier), in a hunt unit on the standard query parser's documented syntax.</p><ul><li>The reference prints each <code class='nw'>fn:</code> expression from an abstract syntax tree in the documented syntax and builds the <code class='nw'>IntervalsSource</code> with the <code class='nw'>Intervals</code> factory of the same name, unescaping term literals by the documented rule; it compares the parser's result by <code class='nw'>Query.equals</code> and by match sets and positions on a 389-document two-field index.</li><li>Plain scope: 11,520 exhaustive checks (12 leaves, every depth-1 function, 3 field modes) and 75,000 random depth-2 and depth-3 checks, 0 mismatches; four deliberately broken references were all caught.</li><li>Escape dimension (7 escaped literals): 5,208 checks, 0 equal, 2,250 with different match sets; with the four-call fix 5,208 of 5,208 equal.</li><li>The signal came from reading the grammar while writing the reference (<code class='nw'>IntervalText</code> has no <code>discardEscapeChar</code>); the run measured it. Found 2026-10-27, then checked by an independent reproducer, reviews by a model from another family (OpenAI GPT-5.6, reading only), an intended-behaviour devil's advocate, an adjudication, a history and prior-report follow-up and a credibility audit.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): 268 recorded search entries (258 queries, 10 reads) over GitHub issues, PRs and commits, the mailing lists, JIRA, Elasticsearch, OpenSearch, Solr and the web, plus the changed files of all 408 open PRs. Not fixed upstream.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: no report found in the public sources searched, by anyone; none by the owner. 1,643 distinct hits scanned and 19 items read; none is this bug. A keyword search cannot prove absence; the list archive tokenizes <code class='nw'>fn:</code> poorly (compensated with other words), and private channels cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; dev@, java-user@, issues@, commits@; the JIRA archive; downstream repositories; the web</th><td class='when'>2026-10-27</td><td>two runs of the hunt's prior-report tool (identifiers, then symptom words): 32 GitHub issue/PR, 6 commit, 4 downstream, 40 mailing-list, 8 JIRA-archive and 12 web queries, comments of the top 20 hits read; the finder's (51) and the devil's advocate's (23) runs re-read</td><td>no report</td></tr><tr><th scope='row'>GitHub: apache/lucene, lucene-solr, solr, Elasticsearch, OpenSearch, all of GitHub</th><td class='when'>2026-10-27</td><td>57 manual GraphQL searches (fn:or, fn:ordered, fn:fuzzyTerm, interval with escape or backslash, the class names), also limited to items since 2021-11</td><td>no report; a third-party engine that reimplements the syntax unescapes in its own code</td></tr><tr><th scope='row'>all 408 open apache/lucene PRs; every queryparser-labelled item since 2021-11</th><td class='when'>2026-10-27</td><td>changed-file lists and titles</td><td>no PR touches the grammar, the generated parser or the intervalfn nodes; #16892 (open, by others) changes the character set of QueryParserUtil.escape, another site</td></tr><tr><th scope='row'>lists.apache.org, JIRA REST (LUCENE, SOLR), the web</th><td class='when'>2026-10-27</td><td>15 direct list searches, 5 JQL queries, 5 web queries (one throttled)</td><td>no report</td></tr><tr><th scope='row'>the discussions around the code's origin</th><td class='when'>2026-10-27</td><td>read in full: #11259 / PR #429, #11450 / PR #668, #11800</td><td>no discussion of escaping inside fn:; in #11800 the fn: author advised escaping or quoting, with no fn: exception</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Born with the <code class='nw'>fn:</code> syntax: <code class='nw'>IntervalText</code> in LUCENE-10223 (#429, 2021) and <code>IntervalFuzzyTerm</code> in LUCENE-10414 (#668, 2022), first released in 9.1.0. Executed on 20 releases from 9.1.0 to 10.5.2 and on main: all affected; 9.0.0 has no <code class='nw'>fn:</code> syntax. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>f725b27e12a</code> on main, "LUCENE-10223: interval support in standard syntax parser (#429)" (2021-11-11), which added the <code class='nw'>fn:</code> syntax, <code class='nw'>IntervalText</code>, the escaping javadoc section and the term-literal docs; <code class='nw'>fn:fuzzyTerm</code> (<code>IntervalFuzzyTerm</code>) came with <code class='nw'>f6cebac3337</code>, "LUCENE-10414: Add fn:fuzzyTerm interval function to flexible query parser (#668)" (2022-02-10), with the same pattern. The branch_9x backports <code class='nw'>ff9ee28c603</code> and <code class='nw'>9a293da5967</code> shipped in 9.1.0. Not a regression: both rules skipped <code>discardEscapeChar</code> from their first version, and the block is token-identical at every release tag checked and on main.</p><p>The 12 releases between executed ones (9.4.0, 9.4.1, 9.9.0, 9.9.1, 9.11.0, 9.12.1, 9.12.2, 10.2.0, 10.2.1, 10.3.0, 10.3.1, 10.5.1) have the same code; that is a reading, not a run. Upstream main <code class='nw'>f7bcc0abd816</code> (2026-10-27, the follow-up) and <code class='nw'>20ced71c1e6e</code> (2026-10-27, re-read by the fact check on 2026-10-28) and branch_10x still have both rules unchanged.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>compact JUnit 4 of 4 and the independent test 5 of 6 fail through gradle, assertions on and off; the portable main() reports the bug with -ea and -da</td></tr><tr><th scope='row'>10.0.0, 10.1.0, 10.2.2, 10.3.2, 10.4.0, 10.5.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>portable main(): the bug, the same results; the hunt's JUnit 4 of 4 on 10.0.0 and 10.5.2</td></tr><tr><th scope='row'>9.2.0 to 9.12.3 (12 releases run)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>portable main(): the bug, the same results; JUnit 4 of 4 on 9.12.3</td></tr><tr><th scope='row'>9.1.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release</span></td><td>portable main(): 5 of 5 escaped fn: cases wrong; JUnit 4 of 4 fail</td></tr><tr><th scope='row'>9.0.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no fn: syntax</span></td><td>fn:or(a\:b) parses as a BooleanQuery: the feature does not exist yet</td></tr><tr><th scope='row'>main with the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix</span></td><td>portable main(): 6 of 6 fn: cases correct; gradle: all repro tests and the whole module pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, an intended-behaviour devil's advocate and an adjudication reproduced it with their own tests and passing controls; reading-only reviews by a model from another family (OpenAI GPT-5.6) agreed on the root cause and rated the intended argument weak; this doc's gradle runs reproduce it and validate the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>435 words</span></summary><div class='body'><p>Every executing check failed on stock main with its control passing, and passed with the fix. The cross-model reviews could not run code (their client was reading only), so their non-"real" verdicts are procedural; all execution evidence comes from the other checks and a separate run's own re-runs.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Exhaustive reference: 0 of 5,208 escaped-literal checks equal, 5,208 of 5,208 with the fix. Public-API JUnit fails 4 of 4 on main (-ea, -da, 4 seeds), 10.5.2, 9.12.3 and 9.1.0; passes with the fix; 138 upstream parser tests pass with and without it.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real by protocol only, low</span></td><td>Reading only; its rule needs its own executed repro. Its notes: "Static evidence strongly favors a genuine defect"; root cause agrees; intended argument weak. A separate re-run fails 4 of 4.</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium; intended argument weak</span></td><td>Reading only; the escaping javadoc, the lexer and the other term rules outweigh a sub-language reading; fn:wildcard rightly excluded.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test from the claim: 5 of 6 fail on main (-ea, -da), 10.5.2 (-ea, -da), 9.12.3 and 9.1.0 with identical messages, including the javadoc example; its control passes; 6 of 6 with the fix.</td></tr><tr><th scope='row'>root-cause review (the cross-model review, OpenAI GPT-5.6) and its executed check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> uncertain (procedural); own test confirms</span></td><td>Reading only, root cause agrees. The step's own test (an escaped backslash and a nested leaf) fails 2 of 4 on main (-ea, -da); its quoted and fn:wildcard controls pass; 4 of 4 with the fix.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium-high</span></td><td>Built the raw sub-language case and rejected it. Probe: the lexer honours fn:or(a\)); no fn: literal spelling yields a double quote; QueryParserUtil.escape("a:b") is a\:b; fn:wildcard keeps WildcardQuery escapes, which is consistent.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high; duplicate of none</span></td><td>Re-ran the independent test with a new seed on a clean checkout: 5 of 6 fail with -ea and -da; 6 of 6 pass with the fix.</td></tr><tr><th scope='row'>registry re-run and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>New seeds on a clean main: the finder's JUnit fails 4 of 4 (-ea, -da) and passes with the fix; the independent test fails 5 of 6; a fourth re-run fails 4 of 4.</td></tr><tr><th scope='row'>this doc's gradle validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Stock: 9 of 10 repro tests fail (on and off), and the module run fails only them. Fix A: 10 of 10, the 544 module tests and the static checks pass. Option B: the round trip holds for 9 of 9 probe inputs.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-747/bug.png' download='flexible-interval-term-literals-keep-escape-backslashes-bug.png' target='_self'>PNG</a> <span class='n'>468 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,394 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-747, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Flexible StandardQueryParser: term literals inside fn: interval functions keep their escape backslashes, so fn:or(a\:b) searches for the text a\:b instead of the term a:b</dd></div><div><dt>Area</dt><dd>queryparser / flexible StandardQueryParser interval functions (StandardSyntaxParser.jj IntervalText and IntervalFuzzyTerm, intervalfn AnalyzedText and FuzzyTerm)</dd></div><div><dt>Priority</dt><dd>Medium, rank 309: It silently changes matches every time since 9.1.0 but only with the niche fn: interval syntax plus an escaped character in a term literal, the same narrow escaping profile as its surround-parser twin LFV-687.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits applications that pass query text to the flexible StandardQueryParser and use its fn: interval functions (default parser settings, IndexWriterConfig, codec and searcher; any scale; -ea and -da) when a term literal inside fn: contains a backslash-escaped character, typed by a user or produced by QueryParserUtil.escape: in fn:or, fn:ordered and every other composite function (at any nesting depth) and in fn:fuzzyTerm the backslashes reach the analyzer or the fuzzy automaton, so the query silently misses the documents that hold the intended text and may match documents that hold the backslash text instead (with whitespace or keyword-style analyzers every escaped character changes the result; with StandardAnalyzer mainly an escaped colon, because a:b is one token while a\:b becomes the phrase a b); quoting avoids it except for a double quote, which no fn: term literal can express today (only fn:wildcard(a\"b) reaches it, as one unanalyzed term); nothing throws and the index is not touched.</dd></div><div><dt>Summary</dt><dd>You parse fn:or(a\:b) (or fn:ordered(a\:b c), fn:fuzzyTerm(a\:b 0), fn:or("a\"b")) with StandardQueryParser and expect it to find the documents that hold a:b (or a"b), because the parser's javadoc says 'any character can be quoted with a backslash' and the same escaped literal outside fn: is parsed as the term a:b. Instead the IntervalText and IntervalFuzzyTerm grammar productions pass the raw token text, backslashes included, to AnalyzedText and FuzzyTerm, so the interval query searches for the text a\:b. With WhitespaceAnalyzer it misses the a:b document and matches a document that holds a\:b; with StandardAnalyzer it becomes BLOCK(a,b) and matches 'a b c'; no error is raised.</dd></div><div><dt>Introduced</dt><dd>f725b27e12a992f12aab12a8e8bfb9b31125bdae (main, 2021-11-11, by dweiss): 'LUCENE-10223: interval support in standard syntax parser (#429)' (issue LUCENE-10223 = GitHub #11259, PR apache/lucene#429), which added the fn: syntax with the IntervalText production; and f6cebac3337926ca871b922241976a4ba4799c70 (main, 2022-02-10, by dweiss): 'LUCENE-10414: Add fn:fuzzyTerm interval function to flexible query parser (#668)' (GitHub #11450, PR #668), whose IntervalFuzzyTerm production handles the term the same way; the branch_9x backports ff9ee28c603 and 9a293da5967 are the commits that shipped in 9.1.0 [read: git log -S 'new AnalyzedText(' and -S 'IntervalFuzzyTerm', git blame -w -M -C -C on main lines 659-686 and git tag --contains in the history clone]. Not a regression: both productions passed the raw token image on without discardEscapeChar from their first version, and the block is token-identical at every release tag checked and on main. (2021-11-11 (IntervalText, main and branch_9x); 2022-02-10 (IntervalFuzzyTerm, main and branch_9x))</dd></div><div><dt>First affected version</dt><dd>9.1.0 (tagged 2022-03-21) [exec]; 9.0.0, the last release before, has no fn: interval syntax at all (fn:or(a\:b) parses as a BooleanQuery there) [exec], so there is no unaffected release that has the feature</dd></div><div><dt>Affected versions</dt><dd>every release with the fn: interval syntax, 9.1.0 through 9.12.3 and 10.0.0 through 10.5.2 (the latest), and main a9779ef3c193 (unreleased 11.0); never fixed. [exec] a portable main() repro reports the bug on 20 releases (9.1.0, 9.2.0, 9.3.0, 9.4.2, 9.5.0, 9.6.0, 9.7.0, 9.8.0, 9.9.2, 9.10.0, 9.11.1, 9.12.0, 9.12.3, 10.0.0, 10.1.0, 10.2.2, 10.3.2, 10.4.0, 10.5.0, 10.5.2) and on main (-ea and -da) with identical output, and reports the bug absent on main with the fix shadowed in; the finder's JUnit fails 4 of 4 on 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da); the independent reproduction's own test fails 5 of 6 on 9.1.0, 9.12.3, 10.5.2 (-ea and -da) and main (-ea and -da) with byte-identical messages. [read] the 12 releases not run (9.4.0, 9.4.1, 9.9.0, 9.9.1, 9.11.0, 9.12.1, 9.12.2, 10.2.0, 10.2.1, 10.3.0, 10.3.1, 10.5.1) have token-identical IntervalFuzzyTerm and IntervalText productions; upstream main f7bcc0abd816 (2026-10-27) and branch_10x have them unchanged. Not affected: 9.0.0 and earlier (no fn: syntax). All runs with JDK 25 on aarch64.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, read-only; the prior-report record, verdict new: 268 recorded queries, namely two new scripted prior-report searches (A: identifiers IntervalText, IntervalFuzzyTerm, discardEscapeChar, AnalyzedText, FuzzyTerm, IntervalQueryNode and fn: phrasings; B: escape and unescape symptom terms; together 32 GitHub issue and PR, 6 commit, 4 downstream-repository, 40 mailing-list queries over dev@, java-user@, issues@ and commits@, and 8 JIRA-archive queries, with the comments of the top 20 hits read), re-reads of the finder's run (51 queries) and the intended-behaviour check's run (23 queries), 57 manual GitHub GraphQL searches (apache/lucene, apache/lucene-solr, apache/solr, Elasticsearch, OpenSearch and all of GitHub), the changed-file lists of all 408 open apache/lucene PRs, the titles of every queryparser-labelled item since 2021-11, 15 direct lists.apache.org searches, 5 JIRA REST queries (LUCENE and SOLR) and 5 web queries (one throttled); 1,643 distinct hits scanned, 19 items read, none the same bug, none by the owner shbhar). Closest items, not reports: #11259 (LUCENE-10223) with PR #429 and #11450 (LUCENE-10414) with PR #668, which added the code and never discuss escaping inside fn:; #11800 (closed, '@' no longer parsing in plain terms from 9.1.0), where the fn: author advised escaping (am\@zing) or quoting, with no fn: exception; open outside PRs #16892 (QueryParserUtil.escape character set; that helper produces a\:b, which this bug then mishandles inside fn:), #16853 (EscapeQuerySyntaxImpl.escapeIgnoringCase) and #16323 (toStringEscaped refactor), all other sites; #13887 and #13234 (escaped brackets in range bounds); #1666 (LUCENE-588), #1651 (LUCENE-573) and #13962 (classic-parser escaping). Not fixed upstream: main f7bcc0abd816 and branch_10x have both productions unchanged, and no open PR touches the grammar, the generated parser or any intervalfn file. Gaps: absence of a report is not proof; the list archive tokenizes 'fn:' poorly (compensated with other terms); one web query throttled; private channels cannot be searched. Not filed by the owner.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26): the compact JUnit and the independent reproducer's test through gradle in a clean scratch worktree, stock and with the fix (parser regenerated from the grammar), assertions on and off; with the fix the whole <code>lucene/queryparser</code> suite (544 tests), the highlighter's <code>TestMatchHighlighter</code> and the module's static checks; the round-trip probe stock, with the fix and with the fix plus the printing change. Scope and edge probes on the hunt's classpath runner (<code class='nw'>-ea</code>, <code class='nw'>-da</code>, fix shadowed). Hunt runs on 10.5.2, 9.12.3 and 9.1.0 and a portable <code class='nw'>main()</code> on 20 releases from 9.1.0 to 10.5.2.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/parser/StandardSyntaxParser.jj:129-130 (_ESCAPED_CHAR &#x27;Every character that follows a backslash is considered as an escaped character&#x27;), :159-161 (QUOTED and TERM include escaped characters), :659-679 (IntervalFuzzyTerm, term = token.image at :668-669), :681-686 (IntervalText, new AnalyzedText(token.image) at :684-685), :803-804 (Term, discardEscapeChar), :828-831 (QuotedTerm, discardEscapeChar); parser/StandardSyntaxParser.java:980, :986, :1022, :1046 (generated code, same raw images)</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/nodes/intervalfn/AnalyzedText.java:34-41 (Intervals.analyzedText on the stored text), nodes/intervalfn/FuzzyTerm.java:26 (javadoc &#x27;An interval function equivalent to FuzzyQuery&#x27;), :36-50 (Intervals.fuzzyTerm on the stored text), nodes/intervalfn/package-info.java:147-152 (term literals), :162 (fn:or(\&quot;quick fox\&quot;) example), StandardQueryParser.java:175-186 (&#x27;Special character escaping&#x27;), QueryParserUtil.java:167 (escape)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/parser/StandardSyntaxParser.jj:129-168, 343, 383-409, 641-686, 727, 755-772, 798-804, 828-831</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/parser/StandardSyntaxParser.java:980, 986, 1022, 1046</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/parser/EscapeQuerySyntaxImpl.java:185-267 (discardEscapeChar)</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/nodes/intervalfn/AnalyzedText.java:29-55; nodes/intervalfn/FuzzyTerm.java:25-59; nodes/intervalfn/package-info.java:147-152</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/StandardQueryParser.java:175-186</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/QueryParserUtil.java:163-180</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/StandardQueryParser.java:175-186, 204-223; nodes/intervalfn/package-info.java:147-152; nodes/intervalfn/FuzzyTerm.java:26</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestIntervalFunctionTermEscapes.java (JUnit, lucene/queryparser): <a href='../repro/LFV-747/TestIntervalFunctionTermEscapes.java'><code>repro/LFV-747/TestIntervalFunctionTermEscapes.java</code></a> (112 lines)</li><li>TestIntervalFnEscapedLiterals.java (independent reproducer, 6 tests): <a href='../repro/LFV-747/TestIntervalFnEscapedLiterals.java'><code>repro/LFV-747/TestIntervalFnEscapedLiterals.java</code></a> (162 lines)</li><li>TestIntervalEscapeScopeProbe.java (10 fn: forms, one index): <a href='../repro/LFV-747/TestIntervalEscapeScopeProbe.java'><code>repro/LFV-747/TestIntervalEscapeScopeProbe.java</code></a> (85 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from runs on main <code class='nw'>a9779ef3c193</code> (stock and with the fix); the values on screen come from the executed repro and probes. The diagram's example uses the analysis module's whitespace analyzer, like the finder's original test; the compact repro uses the test framework's whitespace <code class='nw'>MockAnalyzer</code>, which gives the same tokens.</p><ul class='paths'><li><a href='../assets/LFV-747/bug.png'><code>assets/LFV-747/bug.png</code></a> (468 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

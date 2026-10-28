@@ -1,0 +1,43 @@
+diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConditionalTokenFilter.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConditionalTokenFilter.java
+index f4dc483b421..bce020f9f07 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConditionalTokenFilter.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/ConditionalTokenFilter.java
+@@ -82,16 +82,21 @@ public abstract class ConditionalTokenFilter extends TokenFilter {
+ 
+     @Override
+     public void end() throws IOException {
+-      // imitate Tokenizer.end() call - endAttributes, set final offset
++      // imitate the end() of our input: endAttributes, set the final offset and, once the input is
++      // exhausted, its final position increment (e.g. the hole of a removed trailing stop word), so
++      // the wrapped filters see the same end of stream as without the condition
++      int finalPosInc = 0;
+       if (exhausted) {
+         if (endState == null) {
+           input.end();
+           endState = captureState();
+         }
+         endOffset = offsetAtt.endOffset();
++        finalPosInc = posIncAtt.getPositionIncrement();
+       }
+       endAttributes();
+       offsetAtt.setOffset(endOffset, endOffset);
++      posIncAtt.setPositionIncrement(finalPosInc);
+     }
+   }
+ 
+@@ -145,8 +150,14 @@ public abstract class ConditionalTokenFilter extends TokenFilter {
+     }
+     endOffset = getAttribute(OffsetAttribute.class).endOffset();
+     if (lastTokenFiltered) {
++      // endState keeps the input's end state, so a repeated end() gives the same result
+       this.delegate.end();
+-      endState = captureState();
++      if (adjustPosition) {
++        // the last token was stacked (increment 0), went to the wrapped filters with an increment
++        // of 1 (OneTimeWrapper.incrementToken()) and they emitted nothing for it: take that
++        // position back, as endDelegating() does in the middle of the stream
++        posIncAtt.setPositionIncrement(Math.max(0, posIncAtt.getPositionIncrement() - 1));
++      }
+     }
+   }
+ 

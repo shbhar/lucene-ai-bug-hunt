@@ -2,6 +2,8 @@
 
 Bug LFV-669 · Area: analysis-common / Telugu normalizer (TeluguNormalizer.normalize; TeluguNormalizationFilter and the 'teluguNormalization' factory) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-669.html](../../bugs/LFV-669.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyze Telugu text with TeluguNormalizationFilter (or the 'teluguNormalizat
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The composition writes AU at a position that the single left-to-right pass never visits again, so ఒౌషధం keeps AU (term ఔషధం) while ఔషధం becomes ఓషధం, and the two spellings silently stop matching each other.
+- Expected: `ఒౌషధం` → `ఓషధం`, like `ఔషధం`, through the filter, the factory chain and its `normalize`.
+- Actual: `ఒౌషధం` → `ఔషధం` (U+0C14 kept): 2 of 2 tests fail, with assertions on and off.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestTeluguAuSpellings.java](TestTeluguAuSpellings.java)
+- [TestTeluguComposedAu.java](TestTeluguComposedAu.java)
+- [TestTeluguAuSpellingsV1.java](TestTeluguAuSpellingsV1.java)
+- [TeluguAuHistoryRepro.java](TeluguAuHistoryRepro.java)
 
 ## Feedback
 

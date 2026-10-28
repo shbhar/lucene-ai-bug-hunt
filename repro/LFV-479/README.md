@@ -2,6 +2,8 @@
 
 Bug LFV-479 · Area: suggest / FST completion suggester (FSTCompletionLookup.build weight bucketing) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-479.html](../../bugs/LFV-479.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build an FSTCompletionLookup from two suggestions, apple with weight 10 and 
 
 ## Expected vs actual
 
-- Expected: You expect apple first, because the class javadoc says buckets come from 'sorting the input by weight', InputIterator says 'higher numbers mean better suggestions', and encodeWeight accepts every int.
-- Actual: You get [apricot/5, apple/0], with no error: build sorts the weights by their unsigned big-endian bytes, where every negative int (first byte 0x80 or above) comes after every non-negative int, so all negative weights land in the highest buckets and are suggested first.
+- Expected: `lookup("ap", true, 2)` returns apple (weight 10) before apricot (weight -10): `[apple/5, apricot/0]`.
+- Actual: `[apricot/5, apple/0]`: the -10 entry gets the top bucket and is suggested first, with no error.
 
 ## Files
 
@@ -43,6 +45,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestFSTCompletionLookupNegativeWeights.java](TestFSTCompletionLookupNegativeWeights.java)
+- [TestV1FSTCompletionLookupSignOrder.java](TestV1FSTCompletionLookupSignOrder.java)
+- [FstNegativeWeightProbe.java](FstNegativeWeightProbe.java)
+- [TestSecurityProbeFSTCompletionSignedWeights.java](TestSecurityProbeFSTCompletionSignedWeights.java)
 
 ## Feedback
 

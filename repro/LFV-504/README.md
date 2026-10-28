@@ -2,6 +2,8 @@
 
 Bug LFV-504 · Area: misc / store: DirectIODirectory (DirectIOIndexInput.fill and seek) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-504.html](../../bugs/LFV-504.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You read a file through the misc DirectIODirectory, one read on an input throws 
 
 ## Expected vs actual
 
-- Expected: You expect the bytes at the file pointer, or another exception (after the same read-past-EOF sequences MMapDirectory returns the right bytes).
-- Actual: fill had already moved its window position (filePos) to the next block, and on the read path cleared the buffer, before it threw, so the next reads silently return bytes of a different position of the same file (or throw EOFException at a legal position) while getFilePointer reports the requested one.
+- Expected: After the read past EOF, `seek(262148)` then `readInt` returns 262,148, as `FSDirectory.open` (MMapDirectory) does.
+- Actual: `readInt` returns 4, the int stored one 262,144-byte window earlier; all 5 tests fail, with assertions on and off.
 
 ## Files
 
@@ -48,6 +50,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDirectIOStaleWindowAfterFailedRead.java](TestDirectIOStaleWindowAfterFailedRead.java)
+- [TestDirectIOFailedReadProbe.java](TestDirectIOFailedReadProbe.java)
+- [TestDirectIOFailedSeekProbe.java](TestDirectIOFailedSeekProbe.java)
+- [TestDirectIOFillHistory.java](TestDirectIOFillHistory.java)
 
 ## Feedback
 

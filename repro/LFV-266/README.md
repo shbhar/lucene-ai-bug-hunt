@@ -2,6 +2,8 @@
 
 Bug LFV-266 · Area: queries / span queries Matches API (SpanWeight#matches takes offsets and sub-matches from ContainSpans#collect for SpanWithinQuery; seen through the UnifiedHighlighter and MatchRegionRetriever) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-266.html](../../bugs/LFV-266.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index 'ab ac bc' in a field with offsets and ask Weight#matches for SpanWith
 
 ## Expected vs actual
 
-- Expected: You expect one match, 'ac' at position 1 with offsets [3,5) and sub-matches only inside it, which is what the equivalent Intervals.containedBy(ac, ordered(ab, bc)) reports.
-- Actual: The match says positions [1,1] but offsets [0,8) and lists ab@0 and bc@2 as sub-matches, because the offsets and sub-matches come from Spans#collect, which for SpanWithinQuery also collects the enclosing span.
+- Expected: Each match is `ac` only: position 1, offsets [3,5), one sub-match; the default UnifiedHighlighter gives `ab <b>ac</b> bc` on both fields.
+- Actual: Offsets [0,8) and sub-matches `ab`, `ac`, `bc`; the UnifiedHighlighter gives `<b>ab</b> <b>ac</b> <b>bc</b>`; MatchRegionRetriever gives [0,8) with offsets, [3,5) without.
 
 ## Files
 
@@ -43,6 +45,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSpanWithinMatches.java](TestSpanWithinMatches.java)
+- [TestSpanWithinHighlighting.java](TestSpanWithinHighlighting.java)
+- [TestSpanWithinMatchesOffsets.java](TestSpanWithinMatchesOffsets.java)
 
 ## Feedback
 

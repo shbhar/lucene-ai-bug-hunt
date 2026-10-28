@@ -2,6 +2,8 @@
 
 Bug LFV-718 · Area: core + analysis-common + suggest / words-file factories (format="snowball" loader: AbstractAnalysisFactory.getSnowballWordSet, WordlistLoader.getSnowballWordSet) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-718.html](../../bugs/LFV-718.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You configure StopFilterFactory (or KeepWordFilterFactory, CommonGramsFilterFact
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The snowball loader keeps the invisible U+FEFF glued to the first word, so the set holds "\uFEFFthe" instead of "the" (getStopWords = [a, \uFEFFthe, an]): StopFilter no longer removes 'the', KeepWordFilter drops the tokens of the first keep word, CommonGrams does not treat it as common, and a BOM before a comment or blank first line adds a stray "\uFEFF" entry.
+- Expected: `the cat` -&gt; `[cat]`, the snowball stop set contains `the`, and `apple cherry banana` keeps `[apple, banana]`.
+- Actual: 3 of 4 tests fail, assertions on and off: `the cat` -&gt; `[the, cat]`, stop set `[a, \uFEFFthe, an]`, keep words give `[banana]`; the `wordset` control passes.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSnowballFormatUtf8Bom.java](TestSnowballFormatUtf8Bom.java)
+- [fix-option-B-factory.diff](fix-option-B-factory.diff)
+- [TestSnowballWordsFileUtf8Bom.java](TestSnowballWordsFileUtf8Bom.java)
+- [TestSnowballBomOnDisk.java](TestSnowballBomOnDisk.java)
 
 ## Feedback
 

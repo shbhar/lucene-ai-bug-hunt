@@ -2,6 +2,8 @@
 
 Bug LFV-518 · Area: suggest / spell: SpellChecker.indexDictionary (n-gram spell index build) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-518.html](../../bugs/LFV-518.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a word list into SpellChecker with one indexDictionary call, and the l
 
 ## Expected vs actual
 
-- Expected: You expect each word to be indexed once, as indexDictionary already ensures for words that were in the spell index before the call, so suggestSimilar("recieve", 2) returns [relieve, receive].
-- Actual: The duplicate check looks only at the spell index as it was before the call, so the repeated word is indexed twice and suggestSimilar returns [relieve, relieve], pushing receive out; the same words split over two calls are de-duplicated correctly.
+- Expected: `[relieve, receive]` and one spell-index document for `relieve` in all four tests.
+- Actual: `[relieve, relieve]` and 2 documents for `relieve` in the three one-call tests; the split-over-two-calls control passes.
 
 ## Files
 
@@ -43,6 +45,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSpellCheckerRepeatedDictionaryEntries.java](TestSpellCheckerRepeatedDictionaryEntries.java)
+- [TestSpellCheckerDuplicateDictionaryWords.java](TestSpellCheckerDuplicateDictionaryWords.java)
+- [TestSpellCheckerRepeatedEntries.java](TestSpellCheckerRepeatedEntries.java)
 
 ## Feedback
 

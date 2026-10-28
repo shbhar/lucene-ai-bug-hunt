@@ -1,0 +1,740 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>XYShape accepts a WITHIN query with a line geometry, which LatLonShape rejects, and silently returns only the points lying on the line</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-434 &middot; xyshape-within-line-query-not-rejected</p><h1 id='top'>XYShape accepts a WITHIN query with a line geometry, which LatLonShape rejects, and silently returns only the points lying on the line</h1><p class='tldr'><code>XYShape.newLineQuery(field, WITHIN, line)</code> should throw, as <code class='nw'>LatLonShape</code> does and as <code class='nw'>XYShape</code> did up to 8.4.1, but since 8.5.0 it is accepted and silently returns only indexed points lying on the line. Of the line (0,0)-(10,0), a segment on it and the point (5,0), only the point matches.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 349</span><span class='sub'>XYShape accepts WITHIN with a line query and silently returns only on-line points, but asking which shapes lie WITHIN a line is unusual.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>wrong error</span></dd></div><div><dt>Since</dt><dd>8.5.0 (LUCENE-9194, 2020)<span class='sub'>introduced 2020-02-07 &middot; about 6 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>8.5.0 to 10.5.2 and main (6 releases and main executed, the rest by a jar scan)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>static diff of the lat/lon and x/y sibling query classes, then a public-API test</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>XYShape</code> indexes a line as segments and a point as a point. A WITHIN query asks each indexed piece whether it lies within the query shape. For a query line Lucene can only answer that for points, so <code class='nw'>LatLonShape</code> rejects WITHIN with a line, and <code class='nw'>XYShape</code> did up to 8.4.1. Since 8.5.0 <code class='nw'>XYShape</code> accepts it and answers partially.</p><figure class='visual' id='xyshape-within-line-query-not-rejected-short-visual'><div class='frame'><a class='still' href='../assets/LFV-434/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-434/bug.png' alt='Diagram of the bug: the WITHIN query with the line (0,0)-(10,0) is accepted by XYShape, while LatLonShape throws IllegalArgumentException for the same query. Of the three indexed shapes, the point (5,0) is tested with a point-on-line test and matches; the identical line (0,0)-(10,0) and the segment (2,0)-(4,0) are tested with Line2D.containsLine, which always returns false, so the search returns 1 of 3 shapes.' width='1920' height='1080'></a></div><figcaption>The query line (0,0)-(10,0) and the three indexed shapes: the point (5,0) passes the point-on-line test and matches; the identical line and the segment (2,0)-(4,0) go to <code>Line2D.containsLine</code>, which always returns false; LatLonShape rejects the same query. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index three cartesian shapes with <code class='nw'>XYShape</code>: the line (0,0)-(10,0), the segment (2,0)-(4,0) that lies on it, and the point (5,0).</span></li><li><span>You ask which shapes lie WITHIN that line: <code>XYShape.newLineQuery("shape", QueryRelation.WITHIN, line (0,0)-(10,0))</code>.</span></li><li><span>You expect an <code>IllegalArgumentException</code>: <code class='nw'>LatLonShape</code> rejects the same query ("does not support WITHIN queries with line geometries"), and <code class='nw'>XYShape</code> itself did up to 8.4.1.</span></li><li><span>You get no error and 1 hit of 3: the point (5,0). The identical line and the segment on it never match. A geometry array such as [polygon, line] is accepted too.</span></li><li><span>Why: the <code class='nw'>XYShapeQuery</code> constructor has no WITHIN + line check; the check was lost in 8.5.0 when the old XY line query was folded into it. Once accepted, a point is tested with a point-on-line test, a line segment with <code>Line2D.containsLine</code>, which always returns false.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that index cartesian shapes with <code class='nw'>XYShape</code> and build a WITHIN query with an <code class='nw'>XYLine</code>, alone or in a geometry array, directly or through a query layer that passes any relation through. Default configuration, any index size, no error: on-line points come back, lines never. Query-time only; <code class='nw'>LatLonShape</code> is not affected. Rare: no public report found since 2020.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>709 words</span></summary><div class='body'><p><code>LatLonShape.newLineQuery(field, QueryRelation.WITHIN, line)</code> throws <code>IllegalArgumentException</code> ("LatLonShapeQuery does not support WITHIN queries with line geometries"), and so do <code class='nw'>LatLonPoint</code> and <code>LatLonDocValuesField</code>; <code class='nw'>XYShape</code> threw too, up to 8.4.1 ("XYShapeLineQuery does not support WITHIN queries"). Since 8.5.0, <code>XYShape.newLineQuery(field, WITHIN, xyLine)</code> and <code>XYShape.newGeometryQuery(field, WITHIN, ...)</code> with an <code class='nw'>XYLine</code> anywhere in the array are accepted: LUCENE-9194 deleted <code class='nw'>XYShapeLineQuery</code> and routed line queries to the generic <code class='nw'>XYShapeQuery</code>, whose constructor adds no check of its own on the relation and the geometries. The accepted query then answers by shape type: an indexed point lying on the line matches (a point-on-line test), an indexed line segment never does, because <code>Line2D.containsLine</code> always returns false. For the line (0,0)-(10,0), the segment (2,0)-(4,0) on it and the point (5,0), the WITHIN query returns only the point. No error, any index size, the default configuration; 8.5.0 to 10.5.2 and main (six releases and main executed, the other 46 releases by a jar scan). The fix restores the rejection with the same <code>validateGeometries</code> check that <code class='nw'>LatLonShapeQuery</code> has.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>XYShape</strong>: Lucene's field for cartesian (unitless x, y) shapes. <code>XYShape.createIndexableFields</code> indexes a polygon as triangles, a line as one segment per pair of consecutive vertices, and a point as a point. Its twin <code class='nw'>LatLonShape</code> does the same for latitude/longitude.</li><li><strong>WITHIN</strong>: a document matches when every indexed piece of its shape lies within the query geometry. With a query <strong>line</strong>, only points and collinear segments can lie within it.</li><li><strong>Line2D</strong>: the query-side component built for a query line, shared by both twins.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-step-1-the-query-is-built-without-a-check'>Step 1: the query is built without a check</h3><a class="hlink" href="#what-the-bug-is-step-1-the-query-is-built-without-a-check" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-step-1-the-query-is-built-without-a-check"><span aria-hidden="true">#</span></a></div><p><code>XYShape.newLineQuery</code> (<code>XYShape.java:219-225</code> at <code class='nw'>a9779ef3c193</code>) calls <code class='nw'>newGeometryQuery</code> (<code class='nw'>:261-272</code>), which returns <code>new XYShapeQuery(field, queryRelation, xyGeometries)</code> for every relation (only CONTAINS with several geometries is split first). The constructor (<code>XYShapeQuery.java:41-44</code>) is just <code>super(field, queryRelation, geometries);</code>; the superclass (<code>SpatialQuery.java:74-85</code>) and <code>XYGeometry.create</code> (<code>XYGeometry.java:24-44</code>) reject only a null field or relation and null or empty geometry arrays, nothing looks at the combination of relation and geometry type. Its twin <code class='nw'>LatLonShapeQuery</code> wraps the geometries in <code>validateGeometries</code> (<code>LatLonShapeQuery.java:43-61</code>), which throws for WITHIN with any <code class='nw'>Line</code> in the array (excerpt; the message spans <code class='nw'>:54-56</code> in the source):</p><pre><code>if (geometries != null &amp;&amp; queryRelation == QueryRelation.WITHIN) {
+  for (LatLonGeometry geometry : geometries) {
+    if (geometry instanceof Line) {
+      // TODO: line queries do not support within relations
+      throw new IllegalArgumentException(
+          &quot;LatLonShapeQuery does not support &quot; + QueryRelation.WITHIN + &quot; queries with line geometries&quot;);</code></pre><p><code>LatLonPointQuery.java:52-63</code> and <code>LatLonDocValuesQuery.java:63-73</code> have the same rule and TODO, and <code>LatLonPoint.newGeometryQuery</code> documents it: "Line geometries are not supported for WITHIN relationship" (<code>LatLonPoint.java:314-316</code>).</p><div class="hd hd-3"><h3 id='what-the-bug-is-step-2-what-the-accepted-query-computes'>Step 2: what the accepted query computes</h3><a class="hlink" href="#what-the-bug-is-step-2-what-the-accepted-query-computes" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-step-2-what-the-accepted-query-computes"><span aria-hidden="true">#</span></a></div><p>The WITHIN leaf test (<code>XYShapeQuery.java:108-144</code>) checks each indexed piece against <code class='nw'>Line2D</code>:</p><div class="tbl"><table><thead><tr><th>indexed piece</th><th>test</th><th>result for the query line (0,0)-(10,0)</th></tr></thead><tbody><tr><td>point (5,0)</td><td><code>contains(x, y)</code> (<code class='nw'>:119</code>) -&gt; <code>Line2D.java:84-90</code>, point-on-line test (<code>orient(...) == 0</code>, no tolerance; <code>EdgeTree.java:146-168</code>)</td><td>true: <strong>matches</strong></td></tr><tr><td>segment (0,0)-(10,0), the identical line</td><td><code class='nw'>containsLine</code> (<code class='nw'>:127</code>) -&gt; <code>Line2D.java:142-154</code>: <code>// can be improved?</code> <code>return false;</code></td><td>false: <strong>never matches</strong></td></tr><tr><td>segment (2,0)-(4,0)</td><td>the same <code class='nw'>containsLine</code></td><td>false: <strong>never matches</strong></td></tr><tr><td>triangle of a polygon</td><td><code class='nw'>containsTriangle</code> (<code class='nw'>:137</code>) -&gt; <code>Line2D.java:156-169</code>: <code>return false;</code></td><td>false</td></tr></tbody></table></div><p>For a query made only of lines, <code class='nw'>Line2D.relate</code> (<code>Line2D.java:92-104</code>) never returns <code>CELL_INSIDE_QUERY</code>, so no index cell is accepted in bulk. The answer is essentially the point and multi-point documents whose points all lie on the query line (an indexed line whose vertices all coincide is decoded as a point and would match too): a subset of any reasonable WITHIN answer. In a mixed array such as <code>[polygon, line]</code> the polygon component answers as usual (<code>ComponentTree.java</code>), and only what lies on the line is under-matched.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Line (0,0)-(10,0), segment (2,0)-(4,0) and point (5,0) indexed; <code>XYShape.newLineQuery("shape", WITHIN, line (0,0)-(10,0))</code> matches <strong>1 of 3</strong>: <code>[point (5,0)]</code>. <code>XYShape.newGeometryQuery("shape", WITHIN, polygon, line)</code> is accepted too; with a far-away polygon it returns only the point on the line. For an L-shaped query polyline (0,0)-(0,10)-(10,10), the independent reproducer's WITHIN query returns only the three indexed points on it and misses the identical polyline and the segments (0,2)-(0,8) and (3,10)-(7,10), while INTERSECTS on the same index returns exactly the 7 expected documents. <code class='nw'>LatLonShape</code>, <code class='nw'>LatLonPoint</code> and <code>LatLonDocValuesField</code> throw for the same input.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>226 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Applications that index cartesian shapes with <code class='nw'>XYShape</code> (floor plans, CAD drawings, game maps, projected coordinates) and build a WITHIN query with an <code class='nw'>XYLine</code>, alone or inside a geometry array such as <code>[polygon, line]</code>, directly or through a downstream query layer. Two downstream engines' cartesian shape queries call <code>XYShape.newGeometryQuery</code> with the user's relation and geometry and no WITHIN + line check of their own (source reading, not executed); one of them rejects the same input on its geographic path with the comment "Line geometries and WITHIN relation is not supported by Lucene".</li><li><strong>Default configuration.</strong> Public, non-experimental API, no special setting. The check is missing at query construction, so codec and index layout do not matter: the finder's test uses a plain <code>new IndexWriterConfig()</code>, this doc's repro Lucene's randomized test configuration.</li><li><strong>Silent.</strong> No exception and no assertion, the same with assertions off, and the answer looks plausible because on-line points do come back.</li><li><strong>Blast radius.</strong> Query-time only: that query's result. The index and other queries are unaffected. Any index size.</li><li><strong>Not affected.</strong> <code class='nw'>LatLonShape</code>, <code class='nw'>LatLonPoint</code> and <code>LatLonDocValuesField</code> (they reject), and <code class='nw'>XYShape</code> WITHIN queries whose geometries contain no <code class='nw'>XYLine</code> (they never meet <code class='nw'>Line2D</code>).</li><li><strong>Rare in practice.</strong> "Which shapes lie within this line" is an unusual question; no public report was found since 8.5.0 (2020). The registry rates the likelihood "rare" and the priority low.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test for <code class='nw'>lucene/core</code> on the public API: a LatLon control that passes today, the three-shape WITHIN query, and a <code>[polygon, line]</code> array. On main it fails 2 of 3 with assertions on and off; with the fix all 3 pass.</p><figure class='code'><figcaption><span class='fname'>TestXYShapeWithinLine.java (lucene/core, 3 tests, one LatLon control)</span><span class='meta'>109 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Line;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.XYLine;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * LatLonShape rejects a WITHIN query with a line geometry, and XYShape did too up to 8.4.1. XYShape
+ * should reject it as well instead of answering it partially.
+ */
+public class TestXYShapeWithinLine extends LuceneTestCase {
+
+  private static final XYLine LINE = new XYLine(new float[] {0, 10}, new float[] {0, 0});
+
+  /** Control: the lat/lon twin rejects WITHIN with a line, alone or in a geometry array. */
+  public void testLatLonShapeRejectsWithinLine() {
+    Line line = new Line(new double[] {0, 0}, new double[] {0, 10});
+    Polygon polygon =
+        new Polygon(new double[] {20, 20, 21, 21, 20}, new double[] {20, 21, 21, 20, 20});
+    expectThrows(
+        IllegalArgumentException.class,
+        () -&gt; LatLonShape.newLineQuery(&quot;shape&quot;, QueryRelation.WITHIN, line));
+    expectThrows(
+        IllegalArgumentException.class,
+        () -&gt; LatLonShape.newGeometryQuery(&quot;shape&quot;, QueryRelation.WITHIN, polygon, line));
+  }
+
+  /** XYShape accepts the same query and then matches only the indexed point on the line. */
+  public void testXYShapeRejectsWithinLine() throws Exception {
+    try (Directory dir = newDirectory()) {
+      RandomIndexWriter w = new RandomIndexWriter(random(), dir);
+      add(w, &quot;the same line&quot;, XYShape.createIndexableFields(&quot;shape&quot;, LINE));
+      add(
+          w,
+          &quot;segment (2,0)-(4,0)&quot;,
+          XYShape.createIndexableFields(
+              &quot;shape&quot;, new XYLine(new float[] {2, 4}, new float[] {0, 0})));
+      add(w, &quot;point (5,0)&quot;, XYShape.createIndexableFields(&quot;shape&quot;, 5f, 0f));
+      try (IndexReader reader = w.getReader()) {
+        w.close();
+        IndexSearcher searcher = newSearcher(reader);
+        final Query query;
+        try {
+          query = XYShape.newLineQuery(&quot;shape&quot;, QueryRelation.WITHIN, LINE);
+        } catch (IllegalArgumentException e) {
+          assertTrue(e.getMessage(), e.getMessage().contains(&quot;WITHIN&quot;));
+          return; // rejected, as LatLonShape does
+        }
+        fail(
+            &quot;XYShape.newLineQuery(WITHIN, line (0,0)-(10,0)) was accepted and matched &quot;
+                + ids(searcher, query)
+                + &quot; of the 3 indexed shapes&quot;);
+      }
+    }
+  }
+
+  /** The same for a geometry array that contains a line. */
+  public void testXYShapeRejectsWithinGeometryArrayWithLine() {
+    XYPolygon polygon =
+        new XYPolygon(new float[] {20, 21, 21, 20, 20}, new float[] {20, 20, 21, 21, 20});
+    expectThrows(
+        IllegalArgumentException.class,
+        () -&gt; XYShape.newGeometryQuery(&quot;shape&quot;, QueryRelation.WITHIN, polygon, LINE));
+  }
+
+  private static void add(RandomIndexWriter w, String id, Field[] fields) throws Exception {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    for (Field f : fields) {
+      doc.add(f);
+    }
+    w.addDocument(doc);
+  }
+
+  private static Set&lt;String&gt; ids(IndexSearcher searcher, Query query) throws Exception {
+    Set&lt;String&gt; ids = new TreeSet&lt;&gt;();
+    for (ScoreDoc sd : searcher.search(query, 10).scoreDocs) {
+      ids.add(searcher.storedFields().document(sd.doc).get(&quot;id&quot;));
+    }
+    return ids;
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.document.TestXYShapeWithinLine -Ptests.seed=DEADBEEF
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>XYShape.newLineQuery("shape", WITHIN, line)</code> throws <code>IllegalArgumentException</code>, as <code>LatLonShape.newLineQuery</code> does.</dd></div><div class='got'><dt>Observed</dt><dd>No exception: the query matches 1 of the 3 shapes, <code>[point (5,0)]</code>, and <code>newGeometryQuery(WITHIN, polygon, line)</code> is accepted too.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-434/'>repro/LFV-434/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (290 lines) · 1,680 words</span></summary><div class='body'><p>Copy the file into <code>lucene/core/src/test/org/apache/lucene/document/</code> of a checkout and run the command below; add <code>-Ptests.asserts=false</code> for a production-like run (the same 2 failures). The test asserts the rejection, the recommended fix; <code>testXYShapeRejectsWithinLine</code> prints what the accepted query matched when it fails.</p><p>The other files: a plain JUnit 4 test with no Lucene test framework that compiles against every release from 8.2.0 to main (the version sweep ran it: 8.2.0 and 8.4.1 pass, 8.5.0 and later fail), the finder's test with the default <code>IndexWriterConfig</code>, and the independent reproducer's L-shaped polyline test with an INTERSECTS control.</p><div class="hd hd-3"><h3 id='code-2-h'>TestXYShapeWithinLineRejected.java (plain JUnit 4, every release from 8.2.0 to main)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Asserts only that <code>XYShape.newLineQuery(field, WITHIN, line)</code> throws. Passes on 8.2.0 and 8.4.1 ("REJECTED: XYShapeLineQuery does not support WITHIN queries"); fails on 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main.</p><figure class='code'><figcaption><span class='fname'>TestXYShapeWithinLineRejected.java (plain JUnit 4, every release from 8.2.0 to main)</span><span class='meta'>43 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.XYLine;
+import org.junit.Assert;
+import org.junit.Test;
+
+/**
+ * Version-neutral check (plain JUnit 4, compiles against 8.2 through main): a cartesian WITHIN
+ * query with a line geometry must be rejected, as it was before the XY query classes were merged
+ * into one query and as the LatLonShape twin still does.
+ */
+public class TestXYShapeWithinLineRejected {
+
+  @Test
+  public void testWithinLineQueryIsRejected() {
+    XYLine line = new XYLine(new float[] {0, 10}, new float[] {0, 0});
+    try {
+      XYShape.newLineQuery(&quot;shape&quot;, QueryRelation.WITHIN, line);
+    } catch (IllegalArgumentException expected) {
+      System.out.println(&quot;REJECTED: &quot; + expected.getMessage());
+      return;
+    }
+    System.out.println(&quot;ACCEPTED: no exception&quot;);
+    Assert.fail(&quot;XYShape.newLineQuery(field, WITHIN, line) was accepted; expected IllegalArgumentException&quot;);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestXYShapeWithinLineQuery.java (the finder&#x27;s test, default IndexWriterConfig)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Fails 2 run / 1 failed on main (assertions on and off), 10.5.2, 9.12.3 and 8.5.0 (8.x copy): "expected [point on line, same line, sub-segment] but was [point on line]"; its LatLon control passes. Its "rejected or complete" assertion is one way to accept either fix, not the contract.</p><figure class='code'><figcaption><span class='fname'>TestXYShapeWithinLineQuery.java (the finder&#x27;s test, default IndexWriterConfig)</span><span class='meta'>90 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Line;
+import org.apache.lucene.geo.XYLine;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * LatLonShape rejects a WITHIN query with a line geometry (&quot;does not support WITHIN queries with
+ * line geometries&quot;), and so did the original XYShape line query. XYShape now accepts it, but
+ * Line2D.containsLine/containsTriangle always return false, so the query silently returns only
+ * points that lie on the line and never a line, not even one identical to the query line.
+ */
+public class TestXYShapeWithinLineQuery extends LuceneTestCase {
+
+  public void testLatLonTwinRejectsWithinLine() {
+    Line line = new Line(new double[] {0, 0}, new double[] {0, 10});
+    expectThrows(
+        IllegalArgumentException.class,
+        () -&gt; LatLonShape.newLineQuery(&quot;shape&quot;, QueryRelation.WITHIN, line));
+  }
+
+  public void testXYWithinLineRejectedOrComplete() throws Exception {
+    XYLine queryLine = new XYLine(new float[] {0, 10}, new float[] {0, 0});
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, new IndexWriterConfig());
+      // doc 0: the query line itself; doc 1: a point on it; doc 2: a segment of it
+      addShape(w, &quot;same line&quot;, XYShape.createIndexableFields(&quot;shape&quot;, queryLine));
+      addShape(w, &quot;point on line&quot;, XYShape.createIndexableFields(&quot;shape&quot;, 5f, 0f));
+      addShape(
+          w,
+          &quot;sub-segment&quot;,
+          XYShape.createIndexableFields(&quot;shape&quot;, new XYLine(new float[] {2, 4}, new float[] {0, 0})));
+      w.forceMerge(1);
+      try (DirectoryReader reader = DirectoryReader.open(w)) {
+        w.close();
+        IndexSearcher searcher = new IndexSearcher(reader);
+        final Query query;
+        try {
+          query = XYShape.newLineQuery(&quot;shape&quot;, QueryRelation.WITHIN, queryLine);
+        } catch (IllegalArgumentException e) {
+          return; // rejected like its LatLonShape twin: fine
+        }
+        TopDocs hits = searcher.search(query, 10);
+        Set&lt;String&gt; found = new TreeSet&lt;&gt;();
+        for (ScoreDoc sd : hits.scoreDocs) {
+          found.add(searcher.storedFields().document(sd.doc).get(&quot;id&quot;));
+        }
+        // the query accepted WITHIN and matched the point on the line, so every shape that lies
+        // on the line must match too
+        assertEquals(Set.of(&quot;point on line&quot;, &quot;same line&quot;, &quot;sub-segment&quot;), found);
+      }
+    }
+  }
+
+  private static void addShape(IndexWriter w, String id, Field[] fields) throws Exception {
+    Document doc = new Document();
+    for (Field f : fields) {
+      doc.add(f);
+    }
+    doc.add(new StoredField(&quot;id&quot;, id));
+    w.addDocument(doc);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestVerifyXYWithinLine.java (independent reproducer: L-shaped polyline, INTERSECTS control)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Fails 3 run / 2 failed on main (assertions on and off), 10.5.2 and 9.12.3: no exception, and WITHIN returns only the three on-line points; INTERSECTS on the same index returns exactly the 7 expected documents.</p><figure class='code'><figcaption><span class='fname'>TestVerifyXYWithinLine.java (independent reproducer: L-shaped polyline, INTERSECTS control)</span><span class='meta'>157 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Line;
+import org.apache.lucene.geo.XYLine;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check: a WITHIN query whose query geometry is a line.
+ *
+ * &lt;p&gt;LatLonShape rejects it with IllegalArgumentException. XYShape accepts it. Uses only public
+ * API (XYShape / LatLonShape factories, XYLine, Line).
+ */
+public class TestVerifyXYWithinLine extends LuceneTestCase {
+
+  private static final String F = &quot;shape&quot;;
+
+  // L-shaped polyline query: (0,0) -&gt; (0,10) -&gt; (10,10)
+  private static XYLine queryXYLine() {
+    return new XYLine(new float[] {0f, 0f, 10f}, new float[] {0f, 10f, 10f});
+  }
+
+  /** Control: the geo twin rejects WITHIN + line. Expected to pass on every version. */
+  public void testControlLatLonRejectsWithinLine() {
+    Line line = new Line(new double[] {0, 0, 1}, new double[] {0, 1, 1});
+    IllegalArgumentException e =
+        expectThrows(
+            IllegalArgumentException.class,
+            () -&gt; LatLonShape.newLineQuery(F, QueryRelation.WITHIN, line));
+    assertTrue(e.getMessage(), e.getMessage().contains(&quot;WITHIN&quot;));
+  }
+
+  /** Claim A: XYShape should reject WITHIN + line like its twin. */
+  public void testXYRejectsWithinLine() {
+    XYLine line = queryXYLine();
+    expectThrows(
+        IllegalArgumentException.class,
+        () -&gt; XYShape.newLineQuery(F, QueryRelation.WITHIN, line));
+  }
+
+  /**
+   * Claim B: if WITHIN + line is accepted, its answer must be the set of indexed shapes lying
+   * entirely on the query line. Points on the line are returned; lines lying on it are not.
+   */
+  public void testXYWithinLineResults() throws Exception {
+    Directory dir = newDirectory();
+    RandomIndexWriter w = new RandomIndexWriter(random(), dir);
+    // id -&gt; shape; &quot;in:&quot; = lies entirely on the query line, &quot;out:&quot; = does not
+    addPoint(w, &quot;in:pt(0,5)&quot;, 0f, 5f);
+    addPoint(w, &quot;in:pt(5,10)&quot;, 5f, 10f);
+    addPoint(w, &quot;in:pt(0,10)corner&quot;, 0f, 10f);
+    addPoint(w, &quot;out:pt(5,5)&quot;, 5f, 5f);
+    addLine(w, &quot;in:line=query&quot;, new float[] {0f, 0f, 10f}, new float[] {0f, 10f, 10f});
+    addLine(w, &quot;in:seg(0,2)-(0,8)&quot;, new float[] {0f, 0f}, new float[] {2f, 8f});
+    addLine(w, &quot;in:seg(3,10)-(7,10)&quot;, new float[] {3f, 7f}, new float[] {10f, 10f});
+    addLine(w, &quot;out:diag(0,0)-(10,10)&quot;, new float[] {0f, 10f}, new float[] {0f, 10f});
+    IndexReader r = w.getReader();
+    w.close();
+    IndexSearcher s = newSearcher(r);
+
+    // Sanity control: INTERSECTS works and touches everything except the off-line point.
+    Set&lt;String&gt; intersects = ids(s, XYShape.newLineQuery(F, QueryRelation.INTERSECTS, queryXYLine()));
+    Set&lt;String&gt; expectedIntersects = new TreeSet&lt;&gt;();
+    for (String id : allIds()) {
+      if (id.equals(&quot;out:pt(5,5)&quot;) == false) {
+        expectedIntersects.add(id);
+      }
+    }
+    assertEquals(&quot;INTERSECTS control&quot;, expectedIntersects, intersects);
+
+    Query within;
+    try {
+      within = XYShape.newLineQuery(F, QueryRelation.WITHIN, queryXYLine());
+    } catch (IllegalArgumentException e) {
+      // rejected like the LatLon twin: nothing to compare
+      r.close();
+      dir.close();
+      return;
+    }
+    Set&lt;String&gt; got = ids(s, within);
+    Set&lt;String&gt; expected = new TreeSet&lt;&gt;();
+    for (String id : allIds()) {
+      if (id.startsWith(&quot;in:&quot;)) {
+        expected.add(id);
+      }
+    }
+    r.close();
+    dir.close();
+    assertEquals(&quot;WITHIN line accepted, result must be every shape lying on the line&quot;, expected, got);
+  }
+
+  private static String[] allIds() {
+    return new String[] {
+      &quot;in:pt(0,5)&quot;,
+      &quot;in:pt(5,10)&quot;,
+      &quot;in:pt(0,10)corner&quot;,
+      &quot;out:pt(5,5)&quot;,
+      &quot;in:line=query&quot;,
+      &quot;in:seg(0,2)-(0,8)&quot;,
+      &quot;in:seg(3,10)-(7,10)&quot;,
+      &quot;out:diag(0,0)-(10,10)&quot;
+    };
+  }
+
+  private static Set&lt;String&gt; ids(IndexSearcher s, Query q) throws Exception {
+    TopDocs td = s.search(q, 100);
+    Set&lt;String&gt; out = new TreeSet&lt;&gt;();
+    for (ScoreDoc sd : td.scoreDocs) {
+      out.add(s.storedFields().document(sd.doc).get(&quot;id&quot;));
+    }
+    return out;
+  }
+
+  private static void addPoint(RandomIndexWriter w, String id, float x, float y) throws Exception {
+    Document d = new Document();
+    d.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    for (Field f : XYShape.createIndexableFields(F, x, y)) {
+      d.add(f);
+    }
+    w.addDocument(d);
+  }
+
+  private static void addLine(RandomIndexWriter w, String id, float[] xs, float[] ys)
+      throws Exception {
+    Document d = new Document();
+    d.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    for (Field f : XYShape.createIndexableFields(F, new XYLine(xs, ys))) {
+      d.add(f);
+    }
+    w.addDocument(d);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193: fails (gradle and the classpath runner); 8.5.0-10.5.2: fail (6 releases executed, the rest by a jar scan); 8.2.0-8.4.1: reject the query</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp TestXYShapeWithinLine.java $LUCENE/lucene/core/src/test/org/apache/lucene/document/
+cd $LUCENE
+./gradlew :lucene:core:test --tests org.apache.lucene.document.TestXYShapeWithinLine -Ptests.seed=DEADBEEF
+./gradlew :lucene:core:test --tests org.apache.lucene.document.TestXYShapeWithinLine -Ptests.seed=DEADBEEF -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, seed DEADBEEF, assertions on (the same with -Ptests.asserts=false)
+TestXYShapeWithinLine &gt; testXYShapeRejectsWithinLine FAILED
+    java.lang.AssertionError: XYShape.newLineQuery(WITHIN, line (0,0)-(10,0)) was accepted and matched [point (5,0)] of the 3 indexed shapes
+TestXYShapeWithinLine &gt; testXYShapeRejectsWithinGeometryArrayWithLine FAILED
+    junit.framework.AssertionFailedError: Expected exception IllegalArgumentException but no exception was thrown
+3 tests completed, 2 failed
+
+# with the fix: 3 tests completed, 0 failed (assertions on and off)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>LatLonShape</code>, <code class='nw'>LatLonPoint</code> and <code>LatLonDocValuesField</code> reject WITHIN with a line ("TODO: line queries do not support within relations").</li><li><code class='nw'>XYShape</code> rejected it too up to 8.4.1; the 8.5.0 refactoring that dropped the check announced only an API simplification.</li><li>The accepted query contradicts itself: a point on the line is "within" it, the identical line is not.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>228 words</span></summary><div class='body'><ul><li><strong>The twin rejects it, with a TODO saying so.</strong> <code class='nw'>LatLonShapeQuery</code>, <code class='nw'>LatLonPointQuery</code> and <code>LatLonDocValuesQuery</code> all throw for WITHIN with a line, each with <code>// TODO: line queries do not support within relations</code>; <code>LatLonPoint.newGeometryQuery</code> documents "Line geometries are not supported for WITHIN relationship".</li><li><strong>XY itself rejected it until 8.5.0.</strong> <code class='nw'>XYShapeLineQuery</code> (LUCENE-8632, 2019) documented "<code>QueryRelation.WITHIN</code> queries are not yet supported" and threw "XYShapeLineQuery does not support WITHIN queries"; 8.2.0 and 8.4.1 throw when run.</li><li><strong>The change that dropped it announced no behaviour change.</strong> LUCENE-9194's CHANGES entry: "Simplify XYShapeXQuery API by adding a new abstract class called XYGeometry. Queries are executed with input objects that extend such interface." Its PR has one approval and no word on WITHIN or lines. Eight days earlier LUCENE-9141, by the same author, folded the LatLon queries into <code class='nw'>LatLonShapeQuery</code> and kept the check; LUCENE-9641 (2021, the same author) added the rejection to the new <code class='nw'>LatLonPointQuery</code> and <code>LatLonDocValuesQuery</code> and rewrote <code class='nw'>XYShapeQuery</code> in the same commit without adding it there. That the XY check was lost by accident is an inference from this record.</li><li><strong>Inconsistent with itself.</strong> A point on the line counts as within it, the identical line does not.</li><li><strong>Why tests never caught it.</strong> The shared random line-query test draws only from <code>POINT_LINE_RELATIONS = {INTERSECTS, DISJOINT, CONTAINS}</code>, so WITHIN with a line is never run; no upstream test asserts the LatLon rejection either.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>278 words</span></summary><div class='body'><p>The strongest case for "works as designed": WITHIN with a query line is knowingly unsupported. <code>Line2D.containsLine</code> is a deliberate <code class='nw'>false</code> ("can be improved?"), the random tests exclude WITHIN for line queries, the <code class='nw'>newLineQuery</code> javadoc speaks of shapes that "intersect" a linestring, and <code class='nw'>XYShapeQuery</code> is <code class='nw'>@lucene.internal</code>. Line containment is conservative elsewhere too: CONTAINS with a line query never matches an indexed line on either twin, not even the identical one (executed: XY CONTAINS (0,0)-(10,0) returns only an enclosing square; LatLon CONTAINS on the identical indexed line counts 0, INTERSECTS 1).</p><p>Why it fails: all of that explains why the operation is <strong>unsupported</strong>, which argues for rejecting it, as LatLon does and XY did, not for accepting it silently. The "intersect" wording decides nothing: <code>LatLonShape.newLineQuery</code> has the same sentence and rejects WITHIN, and <code>XYShape.newPolygonQuery</code> has it and supports WITHIN; the <code class='nw'>XYShape</code> class javadoc says <code class='nw'>newLineQuery</code> matches shapes "that have some <code class='nw'>QueryRelation</code> with a linestring". <code class='nw'>@lucene.internal</code> covers the query class, not the public factories that build it. No record shows that accepting the query was deliberate, and no author has said either way: an accident is the likely reading of the history, not a proven one. <strong>Verdict: not intended</strong>, framed as the missing rejection; do not claim WITHIN must return the identical line. The executing checks (the independent reproducer, the devil's advocate, the adjudication) rated it real. The cross-model intended-lens reviewer rated the intended argument moderate and concluded that it "justifies rejection rather than the current accepted-but-incomplete behavior". The cross-model refute-lens reviewer recorded a formal "not real" with low confidence because it could not run any code (its notes call that procedural), and agrees on the root cause.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Restore the rejection in XYShapeQuery, mirroring LatLonShapeQuery (one file)</strong></p><p class='short'>Restore the rejection: give <code class='nw'>XYShapeQuery</code> the same <code>validateGeometries</code> check as <code class='nw'>LatLonShapeQuery</code>, throwing <code>IllegalArgumentException</code> for WITHIN with any <code class='nw'>XYLine</code>. One file, +18/-1 lines; with it every geo and shape suite of <code class='nw'>lucene/core</code> passes (587 tests including the repro, 0 failures). Queries accepted today, including <code>[polygon, line]</code> arrays, would start throwing, as on LatLon.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 787 words</span></summary><div class='body'><p>One fix was applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF); the alternatives were not run.</p><div class="hd hd-3"><h3 id='fix-restore-rejection'>Restore the rejection in XYShapeQuery, mirroring LatLonShapeQuery (one file) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-restore-rejection" target="_self" aria-label="Link to this section" aria-describedby="fix-restore-rejection"><span aria-hidden="true">#</span></a></div><p>In the <code class='nw'>XYShapeQuery</code> constructor, pass the geometries through a <code>validateGeometries</code> method that throws <code>IllegalArgumentException</code> for WITHIN with any <code class='nw'>XYLine</code> in the array, as <code class='nw'>LatLonShapeQuery</code> does (+18/-1 lines including the <code class='nw'>XYLine</code> import; the code below is the changed part of an unpublished file). Worth adding "Line geometries are not supported for WITHIN" to the <code>XYShape.newLineQuery</code> and <code class='nw'>newGeometryQuery</code> javadoc, as <code>LatLonPoint.newGeometryQuery</code> has; that is not part of the validated diff.</p><pre class='snippet' tabindex='0'><code>  /** Creates a query that matches all indexed shapes to the provided polygons */
+  XYShapeQuery(String field, QueryRelation queryRelation, XYGeometry... geometries) {
+    super(field, queryRelation, validateGeometries(queryRelation, geometries));
+  }
+
+  private static XYGeometry[] validateGeometries(
+      QueryRelation queryRelation, XYGeometry... geometries) {
+    if (geometries != null &amp;&amp; queryRelation == QueryRelation.WITHIN) {
+      for (XYGeometry geometry : geometries) {
+        if (geometry instanceof XYLine) {
+          // line queries do not support within relations (same as LatLonShapeQuery)
+          throw new IllegalArgumentException(
+              &quot;XYShapeQuery does not support &quot;
+                  + QueryRelation.WITHIN
+                  + &quot; queries with line geometries&quot;);
+        }
+      }
+    }
+    return geometries;
+  }</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Behaviour change.</strong> Queries accepted today start throwing: <code>XYShape.newLineQuery(f, WITHIN, ...)</code> and <code>newGeometryQuery(f, WITHIN, ...)</code> with any <code class='nw'>XYLine</code> in the array, including mixed arrays such as <code>[polygon, line]</code> whose polygon part answers correctly today. That is exactly LatLon's behaviour; it needs a CHANGES entry, and whether it also needs a MIGRATE note or goes to main only is the maintainers' call. Downstream engines that pass the relation through would get an <code>IllegalArgumentException</code> for cartesian WITHIN with a linestring, as for geo shapes.</li><li><strong>Cost:</strong> one loop over the query geometries at construction; nothing at search time.</li><li><strong>Scope:</strong> the check sits in <code class='nw'>XYShapeQuery</code> only. <code>XYShapeDocValuesQuery</code> extends <code>BaseShapeDocValuesQuery</code> directly and would not get it, but no public API builds it with a line today: <code>XYShape.newSlowDocValuesBoxQuery</code> passes only an <code class='nw'>XYRectangle</code> (<code>XYShape.java:214-217</code>) and <code>ShapeDocValuesField.newGeometryQuery</code> always throws (<code>ShapeDocValuesField.java:89-95</code>).</li></ul><p class='k'>What the checks validated</p><ul><li><strong>Stock main <code class='nw'>a9779ef3c193</code></strong> (scratch worktree, gradle, seed DEADBEEF): the repro fails 2 of 3 with assertions on and off; the closest suites, every XY shape class of <code>lucene/core/document</code> (<code class='nw'>TestXY*Shape*</code>: 11 classes, BKD and doc-values), pass: 69 tests, 9 skipped, 0 failures.</li><li><strong>With the fix</strong>: the repro passes 3 of 3 with assertions on and off; the same 11 classes pass (72 tests with the repro, 9 skipped, 0 failures); every geo and shape suite of <code class='nw'>lucene/core</code> (the <code class='nw'>geo</code> package, <code class='nw'>document</code> <code class='nw'>*Shape*</code>, <code class='nw'>TestXY*</code> and <code class='nw'>TestLatLon*</code>, <code class='nw'>search</code> <code class='nw'>TestXY*</code> and <code class='nw'>TestLatLon*</code>; 54 classes with the repro) passes: 587 tests, 40 skipped, 0 failures.</li><li><strong>Lint and format</strong>: <code class='nw'>ecjLintMain</code> passes with the fix. The first run flagged the test file only (a javadoc line wrap and an unused catch parameter, now an assertion that the message names WITHIN); with the edited test <code class='nw'>ecjLintTest</code> and <code>checkGoogleJavaFormat</code> pass, and the edited test passes 3 of 3 with the fix and fails 2 of 3 on stock, assertions on and off. The suite runs above used the test before that edit.</li><li><strong>Classpath runner</strong> on the stock main jars: 3 run, 2 failed with assertions on and off; with the fix shadowed, 3 run, 0 failed.</li><li><code class='nw'>fix.diff</code> and <code>fix-with-test.diff</code> (the fix plus the test as a new file) pass <code>git apply --check</code> on <code class='nw'>a9779ef3c193</code> (the recorded tree still listed the test file as an intent-to-add entry; the independent fact check re-ran both on a clean tree: both apply).</li><li><strong>Earlier hunt runs</strong>: the finder's shadow fix passes its own test and 8 upstream XY shape test classes (40 tests started: 33 passed, 7 aborted by test assumptions, 0 failed); the follow-up re-run passes the version-neutral and the finder's tests with the fix (3 run, 0 failed, assertions off).</li></ul><div class="hd hd-3"><h3 id='fix-implement-containsline'>Implement line containment in Line2D (not run)</h3><a class="hlink" href="#fix-implement-containsline" target="_self" aria-label="Link to this section" aria-describedby="fix-implement-containsline"><span aria-hidden="true">#</span></a></div><p>Make <code>Line2D.containsLine</code> return true when the indexed segment lies on the query polyline, so that XY WITHIN with a line becomes a supported query.</p><p class='k'>Trade-offs</p><p>Larger and riskier: a segment can span several collinear pieces of the query polyline or of a multi-line query; <code class='nw'>Line2D</code> is shared with LatLon, whose quantized coordinates may no longer lie exactly on the original line, so LatLon would likely keep rejecting and the twins would diverge on purpose; CONTAINS semantics for lines (conservative today) would deserve the same look; and it needs new random-test coverage.</p><div class="hd hd-3"><h3 id='fix-document-only'>Document only (keeps today's behaviour)</h3><a class="hlink" href="#fix-document-only" target="_self" aria-label="Link to this section" aria-describedby="fix-document-only"><span aria-hidden="true">#</span></a></div><p>State in the <code class='nw'>XYShape</code> javadoc that WITHIN with lines is unsupported.</p><p class='k'>Trade-offs</p><p>Compatibility-preserving, and a valid choice if the maintainers prefer to declare the combination unsupported without a behaviour change. It keeps the silent partial answer for every caller who does not read the javadoc, though, and does not restore the 8.4.1 rejection or parity with LatLon.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream engines whose cartesian shape queries pass the relation and geometry through to <code class='nw'>XYShape</code> inherit the silent partial answer; with the fix they get an <code>IllegalArgumentException</code> instead, as for geo shapes.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A static diff of Lucene's lat/lon and x/y sibling classes showed that <code class='nw'>LatLonShapeQuery</code> validates its geometries and <code class='nw'>XYShapeQuery</code> does not. The git history showed that the XY check existed until LUCENE-9194, and a public-API test confirmed that the query is accepted and answers partially.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>159 words</span></summary><div class='body'><p><strong>Method: non-formal static comparison of sibling implementations</strong>, in a hunt unit on twin families (2026-10-26, main <code class='nw'>ea57360912ed</code>).</p><ul><li>A token-level diff of 96 sibling class pairs (Float/Double, Int/Long, vector Float/Byte, LatLon/XY and others), normalised per family, listed members present in only one twin. In the geo family, <code>LatLonShapeQuery.validateGeometries</code> exists only on the LatLon side; a class-file scan for the same idiom agreed (present in <code class='nw'>LatLonShapeQuery</code>, absent in <code class='nw'>XYShapeQuery</code>).</li><li>The git history showed that <code class='nw'>XYShapeLineQuery</code> rejected WITHIN until LUCENE-9194 deleted it, eight days after LUCENE-9141 kept the same check for LatLon.</li><li>A targeted public-API JUnit then showed the query accepted and returning only the on-line point. It was checked by an independent reproducer with its own test, an intended-behaviour devil's advocate with executed controls, reading-only reviews by a model from another family (OpenAI GPT-5.6), an adjudication, a history, prior-report and security follow-up with a 19-run version sweep, an audit, and this doc's gradle runs on <code class='nw'>a9779ef3c193</code>.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-26): three prior-report tool runs (58 queries over GitHub, JIRA, the mailing lists and downstream repositories), manual GitHub, JIRA and web searches, and the changed files of all 410 open PRs. The closest item is a downstream issue in which a Lucene committer confirms that WITHIN with lines is unsupported on the geo path.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>3 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: no report was found, by anyone, the owner included. Keyword search cannot prove absence: GitHub search does not index diffs or review comments repository-wide, some phrasings ran only once because of rate limiting, and private security reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; downstream repositories; the JIRA archive; dev@, java-user@, issues@, commits@</th><td class='when'>2026-10-26</td><td>the hunt's prior-report tool, three runs (58 queries: class, method, symptom and phrase variants such as XYShapeLineQuery, LUCENE-9194, XYLine WITHIN, "line geometries" WITHIN, validateGeometries, containsLine), plus the finder's and the devil's advocate's runs</td><td>no report; history items only (LUCENE-9194, LUCENE-9141, LUCENE-8632, LUCENE-8554, LUCENE-9273, LUCENE-9641) and other WITHIN bugs (#9782, #9680)</td></tr><tr><th scope='row'>GitHub (apache/lucene-solr, two downstream engines, all of GitHub), JIRA, the web</th><td class='when'>2026-10-26</td><td>10 manual issue searches, 3 code searches, 5 JIRA text searches, 7 web queries; issue, review and line comments of 6 old lucene-solr PRs (#1224, #1170, #2155, #726, #1341, #2059)</td><td>context only: elastic/elasticsearch#70648 (closed; a Lucene spatial committer: "line and within are not supported. The limitation comes from the Lucene implementation", geo path only); PR #1224 has no word on WITHIN</td></tr><tr><th scope='row'>all 410 open apache/lucene PRs; upstream main and branch_10x</th><td class='when'>2026-10-26</td><td>changed-file lists; commit history of the files</td><td>no open PR touches XYShapeQuery.java, XYShape.java, Line2D.java or LatLonShapeQuery.java; XYShapeQuery.java last changed 2022-08-09</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 8.5.0 by LUCENE-9194 (<code class='nw'>73dbf6d0610</code>, 2020-02-07), which deleted <code class='nw'>XYShapeLineQuery</code> and its WITHIN check. Executed: 8.2.0 and 8.4.1 reject the query; 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main accept it; the other releases by a jar scan. Unchanged on upstream main.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>73dbf6d0610</code> "LUCENE-9194: Simplify XYShapeXQuery API by adding a new abstract class called XYGeometry" (PR apache/lucene-solr#1224 by iverase, merged 2020-02-07; branch_8x <code class='nw'>5c1f2ca22a7</code>). It deleted <code class='nw'>XYShapeLineQuery</code>, which documented WITHIN as "not yet supported" and threw, and routed <code>XYShape.newLineQuery</code> to <code class='nw'>XYShapeQuery</code>, whose constructor has no such check. The commit itself was not built; the executed bracket is 8.4.1 (rejects) to 8.5.0 (accepts).</p><p><strong>Around it</strong>: XYShape arrived in the sandbox in 8.2.0 (LUCENE-8632, with the check) and moved to core in 8.5.0 (LUCENE-8621), so XYShape has been affected for its whole time in core. LUCENE-9141 (2020-01-30) kept the check for LatLon; LUCENE-9273 (8.6.0) gave <code>Line2D.containsLine</code> its current <code>return false</code> with the same observable result; LUCENE-9641 (2021) added the rejection to <code class='nw'>LatLonPointQuery</code> and <code>LatLonDocValuesQuery</code>. On upstream main <code class='nw'>20ced71c1e6</code> (2026-10-27), <code class='nw'>branch_10x</code> and <code class='nw'>branch_10_6</code> the constructor is unchanged.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>accepted: this doc's repro fails 2 of 3 (gradle and the classpath runner, assertions on and off); passes 3 of 3 with the fix</td></tr><tr><th scope='row'>10.0.0 to 10.5.2 (12 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>10.0.0 and 10.5.2 executed: accepted, returns only the point on the line; the other 10 lack the rejection string in the jar scan (not run)</td></tr><tr><th scope='row'>9.0.0 to 9.12.3 (21 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>9.0.0 and 9.12.3 executed: the same; the other 19 lack the rejection string in the jar scan (not run)</td></tr><tr><th scope='row'>8.5.0 to 8.11.4 (19 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release 8.5.0</span></td><td>8.5.0 and 8.11.4 executed: the same; the other 17 lack the rejection string in the jar scan (not run)</td></tr><tr><th scope='row'>8.2.0 to 8.4.1 (sandbox module)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> rejects the query</span></td><td>8.2.0 and 8.4.1 executed: IllegalArgumentException "XYShapeLineQuery does not support WITHIN queries"; before 8.2.0 there is no XYShape</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and an intended-behaviour devil's advocate reproduced it with their own tests, controls passing; reading-only reviews by a model from another family (OpenAI GPT-5.6) agreed on the root cause; an adjudication and an audit re-ran it, and this doc's gradle runs reproduce it on <code class='nw'>a9779ef3c193</code> and validate the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>340 words</span></summary><div class='body'><p>Every executing check wrote or re-ran a repro on stock main, and every control passed. The cross-model reviews could not execute code here, so all execution evidence comes from the hunt's own runs.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Twin diff, then a public-API JUnit: fails on main (assertions on and off), 10.5.2, 9.12.3 and 8.5.0; 8.4.1 throws; deterministic over 10 iterations; the fix passes it and 8 upstream XY shape test classes (33 tests).</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, reading only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real, low (procedural)</span></td><td>Could not execute anything, and its rules require "not real" without its own run; on substance the root cause agrees, inputs in contract, intended argument moderate: frame it as a lost rejection. A separate re-run of the repro reproduced the failure.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test with an L-shaped polyline: no exception, WITHIN returns only the 3 on-line points; the INTERSECTS control is exact. Fails on main (assertions on and off), 10.5.2 and 9.12.3.</td></tr><tr><th scope='row'>cross-model review, intended lens (the cross-model review, OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>The strongest "works as designed" case, rated moderate, justifies a rejection, not silent partial matching.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, framed as the missing rejection</span></td><td>Executed controls: CONTAINS with a line never matches an indexed line on either twin, so "WITHIN must return the identical line" does not survive; the lost rejection does. Re-ran the finder's test on main and 10.5.2.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's test (assertions on and off) and the finder's; duplicate of none; class wrong error.</td></tr><tr><th scope='row'>credibility audit and re-verification</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran both repros on main <code class='nw'>ea57360912ed</code>; the re-verification on <code class='nw'>a9779ef3c193</code> still reproduces both.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Gradle in a scratch worktree at <code class='nw'>a9779ef3c193</code>: the repro fails 2 of 3 (assertions on and off) and passes 3 of 3 with the fix; with the fix 587 geo and shape tests pass and the lint and format checks pass; the classpath runner agrees.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-434/bug.png' download='xyshape-within-line-query-not-rejected-bug.png' target='_self'>PNG</a> <span class='n'>576 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,462 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-434, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>XYShape.newLineQuery / newGeometryQuery accept QueryRelation.WITHIN with an XYLine, which LatLonShape (and XYShape itself up to 8.4.1) rejects with IllegalArgumentException; the accepted query silently returns only indexed points lying on the line and never an indexed line, not even one identical to the query line (the check was lost in LUCENE-9194, 8.5.0)</dd></div><div><dt>Area</dt><dd>core / document: XYShape queries (XYShape.newLineQuery and newGeometryQuery, XYShapeQuery, Line2D)</dd></div><div><dt>Priority</dt><dd>Low, rank 349: XYShape accepts WITHIN with a line query and silently returns only on-line points, but asking which shapes lie WITHIN a line is unusual.</dd></div><div><dt>Impact class</dt><dd>wrong error</dd></div><div><dt>Impact note</dt><dd>Applications that build a cartesian shape query with XYShape.newLineQuery or newGeometryQuery, relation WITHIN and an XYLine (alone or inside a geometry array such as [polygon, line]), directly or through a downstream engine that passes the relation and geometry through, get no IllegalArgumentException, unlike LatLonShape and XYShape before 8.5.0, and instead a silently partial answer: indexed points and multi-points lying on the line match, indexed lines never do, not even the identical line; default IndexWriterConfig, codec and searcher, any index size; query-time only, so other queries and the index are unaffected; LatLonShape is not affected; released since 8.5.0.</dd></div><div><dt>Summary</dt><dd>You build XYShape.newLineQuery(field, QueryRelation.WITHIN, line) with a valid XYLine and expect the IllegalArgumentException that LatLonShape.newLineQuery throws for the same relation ('does not support WITHIN queries with line geometries'), and that XYShape itself threw up to 8.4.1 ('XYShapeLineQuery does not support WITHIN queries'). Instead the query is accepted, because the XYShapeQuery constructor has validated nothing since LUCENE-9194 (8.5.0) folded the old XY line query into it. The search then returns indexed points that lie on the line but no indexed line, not even one identical to the query line, because Line2D.containsLine and containsTriangle always return false.</dd></div><div><dt>Introduced</dt><dd>73dbf6d06108e9f18423521e339230bda37f8524 (master, now main), backported to branch_8x as 5c1f2ca22a756b16f0e35aa5dde221578fe1ce76; both 'LUCENE-9194: Simplify XYShapeXQuery API by adding a new abstract class called XYGeometry' (the commit subject reads 'UCENE-9194') by iverase, PR apache/lucene-solr#1224 (one approval by nknize, no line comments; issue now apache/lucene#10234) [read: git log, blame and git log -G in the full-history clone; the commit deletes XYShapeLineQuery, whose constructor threw 'XYShapeLineQuery does not support WITHIN queries', and routes XYShape.newLineQuery through newGeometryQuery to XYShapeQuery, whose constructor checks neither relation nor geometry; no later commit re-adds a check; the current constructor body dates from d7fd48c9502 (LUCENE-10654, 2022), a refactor that left XY unchanged]. A regression, not born with the feature: XYShapeLineQuery (LUCENE-8632, 0c09481374c, 2019-07-08) documented 'QueryRelation.WITHIN queries are not yet supported' and threw, and one week before LUCENE-9194 the same author carried the identical check into the LatLon twin (LUCENE-9141, a9482911a82, 2020-01-30). The release boundary is executed (8.4.1 rejects, 8.5.0 accepts); no commit-level A/B build was made. LUCENE-9273 (f914e08b364, 2020-04-20, 8.6.0) later made Line2D.containsLine and containsTriangle return false; the observed result is the same before and after it, so it is not the introducing change (2020-02-07 (author and commit date of 73dbf6d0610 and 5c1f2ca22a7; PR #1224 merged the same day))</dd></div><div><dt>First affected version</dt><dd>8.5.0 [exec] (8.2.0 and 8.4.1, where XYShape still lived in the sandbox module, throw IllegalArgumentException 'XYShapeLineQuery does not support WITHIN queries' [exec]; the XYShape API did not exist before 8.2.0 [read]; the move to core, LUCENE-8621, also landed in 8.5.0, so XYShape has been affected for its whole time in core)</dd></div><div><dt>Affected versions</dt><dd>every release from 8.5.0 to 10.5.2, 52 releases (19 on 8.x: 8.5.0-8.11.4; 21 on 9.x: 9.0.0-9.12.3; 12 on 10.x: 10.0.0-10.5.2), and main ea57360912ed (unreleased 11.0) [exec: a version-neutral JUnit asserting the rejection and the finder's JUnit both fail on 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea; main also -da), follow-up, 19 runs, each as expected; the independent reproduction's JUnit fails 3 run / 2 failed on main (-ea and -da), 10.5.2 and 9.12.3; the intended-behaviour check re-ran the finder's on main (-ea and -da) and 10.5.2; the other 46 releases [read: a static scan of every cached release jar finds no WITHIN rejection string in any core XYShape* class, positive control: the string is present in the 8.2.0-8.4.1 sandbox jars]]. Not affected: 8.2.0-8.4.1 (sandbox module, rejects) [exec 8.2.0 and 8.4.1; scan 8.3.0-8.4.0]; before 8.2.0 the API is absent [read]. Not fixed upstream: upstream main and branch_10x last changed XYShapeQuery.java on 2022-08-09 (d7fd48c9502), and no open apache/lucene PR touches XYShapeQuery.java, XYShape.java, Line2D.java or LatLonShapeQuery.java [read: GitHub commits API and the file lists of all 410 open PRs, 2026-10-26]. All runs on aarch64 Linux with JDK 25</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; the prior-report record verdict new): three scripted prior-report searches (58 queries over apache/lucene issues, PRs and commits, downstream repositories, the JIRA archive and the dev@, java-user@, issues@ and commits@ lists; 21, 105 and 58 distinct hits), 10 manual GitHub issue searches (apache/lucene-solr, two downstream engines, the whole of GitHub) and 3 code searches, 5 JIRA text searches, 7 web queries, the file lists of all 410 open apache/lucene PRs, and reads of 6 old lucene-solr PRs and 21 further issues, PRs and JIRA entries; 23 hits classified in the prior-report record, none the same bug; the finder's run (15 queries) and the intended-behaviour check's list run (20 queries) found nothing either. Context, not this bug: elastic/elasticsearch#70648 (closed 2022; a downstream geo_shape user hit the LatLon WITHIN+linestring rejection and a Lucene spatial committer replied that line and WITHIN are not supported by Lucene; geographic path only, XYShape never mentioned; supports the 'missing rejection' framing), apache/lucene#10234 / apache/lucene-solr#1224 (LUCENE-9194, the introduction; nothing on WITHIN), #10181 / lucene-solr#1170 (LUCENE-9141, the LatLon twin keeping the check), #9678 (LUCENE-8632) and #9600 (LUCENE-8554) (origin of the rejection and of the test constant that excludes WITHIN for line queries), #10313 (LUCENE-9273, Line2D.containsLine returning false), lucene-solr#2155 (LUCENE-9641, LatLon kept the rejection, XY did not), open #9782 (LUCENE-8736) and #9680 (LUCENE-8634) (other WITHIN and quantization bugs). Not fixed: upstream main and branch_10x last changed XYShapeQuery.java on 2022-08-09. Not filed. Gaps: GitHub and list search are keyword-based, and some phrasings ran only once because of rate limiting; private security reports are not visible</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26): this doc's gradle runs in a scratch worktree (stock and with the fix, assertions on and off) and classpath runs; the hunt's runs of the version-neutral rejection test and the finder's test on 8.2.0, 8.4.1, 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 (Maven Central jars) and on main <code class='nw'>ea57360912ed</code>, plus a static scan of every other release jar. OpenJDK 25.0.3 on Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/document/XYShapeQuery.java:37 (at ea57360912ed) (@lucene.internal), :41-44 (constructor: super(field, queryRelation, geometries), no validation), :109-143 (within() leaf predicate: POINT -&gt; component2D.contains(x, y) at :119, LINE -&gt; containsLine at :127, TRIANGLE -&gt; containsTriangle at :137)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonShapeQuery.java:43-61 (at ea57360912ed) (validateGeometries: &#x27;// TODO: line queries do not support within relations&#x27;, IllegalArgumentException &#x27;LatLonShapeQuery does not support WITHIN queries with line geometries&#x27;); LatLonPointQuery.java:52-63 and LatLonDocValuesQuery.java:63-71 (the same rule)</code></li><li><code>lucene/core/src/java/org/apache/lucene/geo/Line2D.java:85-90 (at ea57360912ed) (contains(x, y): exact point-on-line test), :92-104 (relate never returns CELL_INSIDE_QUERY), :142-170 (containsLine &#x27;// can be improved?&#x27; and containsTriangle return false); lucene/core/src/java/org/apache/lucene/geo/Component2D.java:73 (&#x27;return true if this component2D contains the provided line&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/XYShape.java:62-63 (at ea57360912ed) (class javadoc: newLineQuery matches shapes &#x27;that have some QueryRelation with a linestring&#x27;), :219-225 (newLineQuery: &#x27;find all cartesian shapes that intersect a provided linestring&#x27;, delegates to newGeometryQuery), :261-272 (newGeometryQuery: builds new XYShapeQuery with any relation)</code></li><li><code>lucene/core/src/test/org/apache/lucene/document/BaseSpatialTestCase.java:62-64 (at ea57360912ed) and :415 (line queries draw only from POINT_LINE_RELATIONS = {INTERSECTS, DISJOINT, CONTAINS}, so XY WITHIN with a line is never tested)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/document/XYShape.java:219-225, 261-272</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/XYShapeQuery.java:41-44, 108-144</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonShapeQuery.java:43-61; LatLonPointQuery.java:52-63; LatLonDocValuesQuery.java:63-73; LatLonPoint.java:314-316</code></li><li><code>lucene/core/src/java/org/apache/lucene/geo/Line2D.java:84-90, 92-104, 142-154, 156-169</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/SpatialQuery.java:74-85; geo/XYGeometry.java:24-44; geo/EdgeTree.java:146-168; geo/GeoUtils.java:196-204; geo/ComponentTree.java:88-108, 333-356; document/ShapeField.java:374-377</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonShapeQuery.java:43-61; LatLonPointQuery.java:52-63; LatLonDocValuesQuery.java:63-73; LatLonPoint.java:314-316</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/XYShape.java:62-63, 219-222, 227-230; XYShapeQuery.java:37; LatLonShape.java:286-289</code></li><li><code>lucene/CHANGES.txt:6023-6027 (LUCENE-9141, LUCENE-9194)</code></li><li><code>lucene/core/src/test/org/apache/lucene/document/BaseSpatialTestCase.java:62-64, 415</code></li><li><code>grep of lucene/*/src/test and lucene/test-framework/src at a9779ef3c193: no test asserts a WITHIN + line rejection or result</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonShapeQuery.java:43-61; LatLonPoint.java:314-316; geo/Line2D.java:142-169</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/XYShapeDocValuesQuery.java:29-33; XYShape.java:214-217; ShapeDocValuesField.java:89-95</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone: git show 20ced71c1e6, 1309534296e and 2763db11b0a of XYShapeQuery.java; git diff --stat a9779ef3c193 20ced71c1e6 for XYShapeQuery.java, XYShape.java, Line2D.java, LatLonShapeQuery.java (no change)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestXYShapeWithinLine.java (lucene/core, 3 tests, one LatLon control): <a href='../repro/LFV-434/TestXYShapeWithinLine.java'><code>repro/LFV-434/TestXYShapeWithinLine.java</code></a> (109 lines)</li><li>TestXYShapeWithinLineRejected.java (plain JUnit 4, every release from 8.2.0 to main): <a href='../repro/LFV-434/TestXYShapeWithinLineRejected.java'><code>repro/LFV-434/TestXYShapeWithinLineRejected.java</code></a> (43 lines)</li><li>TestXYShapeWithinLineQuery.java (the finder&#x27;s test, default IndexWriterConfig): <a href='../repro/LFV-434/TestXYShapeWithinLineQuery.java'><code>repro/LFV-434/TestXYShapeWithinLineQuery.java</code></a> (90 lines)</li><li>TestVerifyXYWithinLine.java (independent reproducer: L-shaped polyline, INTERSECTS control): <a href='../repro/LFV-434/TestVerifyXYWithinLine.java'><code>repro/LFV-434/TestVerifyXYWithinLine.java</code></a> (157 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><ul class='paths'><li><a href='../assets/LFV-434/bug.png'><code>assets/LFV-434/bug.png</code></a> (576 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

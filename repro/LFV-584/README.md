@@ -2,6 +2,8 @@
 
 Bug LFV-584 · Area: core / util QueryBuilder phrase building with token boosts (analyzeMultiPhrase; BoostAttribute from DelimitedBoostTokenFilter and weighted synonyms; reached through the classic, multi-field and simple query parsers) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-584.html](../../bugs/LFV-584.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You give a phrase a token boost, for example "fast|0.5 car" through DelimitedBoo
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `(field:"fast (dogs dog)")^0.5`: the boost 0.5 on `fast` is kept, as in `(field:"fast cats")^0.5`.
+- Actual: `field:"fast (dogs dog)"` with no boost; with the stock filters `"fast|0.5 car"` scores 0.2615 instead of 0.1308.
 
 ## Files
 
@@ -47,6 +49,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestQueryBuilderMultiPhraseBoosts.java](TestQueryBuilderMultiPhraseBoosts.java)
+- [TestDelimitedBoostPhraseQueries.java](TestDelimitedBoostPhraseQueries.java)
+- [TestQueryParserMultiPhraseBoost.java](TestQueryParserMultiPhraseBoost.java)
+- [TestQueryBuilderMultiPhraseBoost.java](TestQueryBuilderMultiPhraseBoost.java)
+- [TestPhraseTokenBoosts.java](TestPhraseTokenBoosts.java)
 
 ## Feedback
 

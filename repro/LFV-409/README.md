@@ -2,6 +2,8 @@
 
 Bug LFV-409 · Area: queries / function queries (the ValueSource.fromDoubleValuesSource bridge: its FunctionValues inherits the float default FunctionValues.getRangeScorer that FunctionRangeQuery calls) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-409.html](../../bugs/LFV-409.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index DoubleDocValuesField("d") values 0.9999999999999999, 1.0 and 1.0000000
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: All three match, because the bridged FunctionValues keeps the exact double in doubleVal but does not override getRangeScorer, so it inherits the FunctionValues default that parses both bounds with Float.parseFloat and compares the value cast to float.
+- Expected: `[* TO t]` returns t − 1 and t; the id range 1 id; `[1.0 TO 1.0]` only 1.0; `[* TO 1e300]` only 1e300.
+- Actual: Each also returns its neighbours: t + 60,000, ids 999,999,999 and 1,000,000,001, 0.9999999999999999 and 1.0000000000000002, and 1e301; no error.
 
 ## Files
 
@@ -43,6 +45,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestFunctionRangeQueryBridgedPrecision.java](TestFunctionRangeQueryBridgedPrecision.java)
+- [regression-test.diff](regression-test.diff)
+- [WindowProbe.java](WindowProbe.java)
+- [TestFromDoubleValuesSourceRangePrecision.java](TestFromDoubleValuesSourceRangePrecision.java)
+- [TestBridgedRangePrecision.java](TestBridgedRangePrecision.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/range-bound-cross-path/](../../models/range-bound-cross-path/)
 

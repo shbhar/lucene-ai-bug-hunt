@@ -2,6 +2,8 @@
 
 Bug LFV-243 · Area: core / search: MultiTermQuery rewrite methods (DocValuesRewriteMethod, DOC_VALUES_REWRITE) and the Matches API (Weight#matches) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-243.html](../../bugs/LFV-243.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You keep a keyword field as doc values only, filter on it with SortedSetDocValue
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: matches looks the matched terms up in the field's postings, which do not exist, so it returns null for every hit; for +body:fruit #tags:(banana) the UnifiedHighlighter with default settings returns 'a ripe fruit in a basket' with no highlighted term, while the same query with newSlowRangeQuery as the filter highlights '&lt;b&gt;fruit&lt;/b&gt;'.
+- Expected: `Weight#matches` is non-null exactly for each query's hits and `CheckHits.checkMatches` passes, as with `newSlowExactQuery` on the same field.
+- Actual: Null for the hit doc 1 of `tags:(banana)`, `+body:fruit #tags:(banana)` and `tags:ban*`; non-null for the excluded doc 1 of `+body:fruit -tags:(banana)`.
 
 ## Files
 
@@ -51,6 +53,15 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDocValuesRewriteMethodMatches.java](TestDocValuesRewriteMethodMatches.java)
+- [TestDocValuesSetFilterHighlight.java](TestDocValuesSetFilterHighlight.java)
+- [TestDocValuesRewriteMatches.java](TestDocValuesRewriteMatches.java)
+- [TestDocValuesRewriteMatchesMixedField.java](TestDocValuesRewriteMatchesMixedField.java)
+- [TestDocValuesRewriteMustNotMatches.java](TestDocValuesRewriteMustNotMatches.java)
+- [TestHighlightsMatcherDocValuesDenyClause.java](TestHighlightsMatcherDocValuesDenyClause.java)
 
 ## Feedback
 

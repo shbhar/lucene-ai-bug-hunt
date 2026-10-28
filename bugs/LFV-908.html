@@ -1,0 +1,775 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>A negative cache limit makes grouped search silently return groups with no hits</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-908 &middot; cachingcollector-negative-limit-reported-cached-replays-nothing</p><h1 id='top'>A negative cache limit makes grouped search silently return groups with no hits</h1><p class='tldr'><code>GroupingSearch.setCaching(-1, true)</code>, for example meant as "no limit", is accepted, caches nothing and still reports the cache as complete, so the grouped search returns its 3 groups with 0 hits and <code class='nw'>totalHitCount</code> 0 instead of 20, with no error. Silent since 9.8.0; 5.0.0 to 9.7.0 threw at replay.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 327</span><span class='sub'>It silently drops every replayed hit, but only when someone passes a clearly invalid negative limit (such as -1 meant as &#x27;no limit&#x27;) to the opt-in, experimental first-pass caching, so it closes the accepted-degenerate-setting group after LFV-442.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>5.0.0 (2014 commit); silent since 9.8.0 (2023)<span class='sub'>introduced 2014-04-04 &middot; over 12 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>5.0.0 to 10.5.2 (107 releases run), branch_10_6 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading for an SMT model's limit &gt;= 0 precondition, then a public-API JUnit test</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>With caching on, a grouped search keeps the first pass's hits in a <code class='nw'>CachingCollector</code> and replays them into the second pass instead of running the query again. The cache has a size limit, and <code class='nw'>isCached()</code> says whether it kept every hit. A negative limit keeps nothing, yet <code class='nw'>isCached()</code> still says yes.</p><figure class='visual' id='cachingcollector-negative-limit-reported-cached-replays-nothing-short-visual'><div class='frame'><a class='still' href='../assets/LFV-908/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-908/bug.png' alt='Diagram of the repro&#x27;s example: 20 matching documents by 3 authors (7, 7 and 6). Without a cache, and with a cache limit of 0 (the cache is purged and the query re-run), the grouped search returns totalHitCount 20. With a limit of -1 nothing is cached, the cache still reports isCached() true, the replay delivers 0 documents, and the search returns the 3 groups with 0 hits and totalHitCount 0.' width='1920' height='1080'></a></div><figcaption>The repro's example: a limit of 0 purges the cache and the query is run again; a limit of -1 caches nothing but reports the cache complete, so the second pass replays nothing. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index 20 documents that all match <code class='nw'>body:match</code>, by 3 authors (7, 7 and 6 documents). Group them by author with <code class='nw'>GroupingSearch</code>, no caching: <code class='nw'>totalHitCount</code> 20, 3 groups with 7, 7 and 6 hits.</span></li><li><span>Turn on first-pass caching with <code>setCaching(-1, true)</code>, for example meaning "no limit". You expect an <code>IllegalArgumentException</code>, or the same 20 hits: the javadoc says a cache over its limit is purged and not used, so the query is run again.</span></li><li><span>You get the same 3 groups with 0 hits each and <code class='nw'>totalHitCount</code> 0, and no error, with assertions on or off. <code>setCachingInMB(-1.0, true)</code> does the same, and a <code class='nw'>CachingCollector</code> created with limit -1 reports <code class='nw'>isCached()</code> true but replays 0 of 20 documents.</span></li><li><span>Why: -1 is the cache's own "already purged" marker. With it, no segment is cached, so the only code that would clear the "cached" flag never runs. The flag starts true, so the second pass replays an empty cache instead of re-running the query.</span></li><li><span>A limit of 0 works: the cache overflows at the first hit and the query is re-run. From 5.0.0 to 9.7.0 a negative limit threw an exception at replay; 9.8.0 made it silent.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Only applications that turn on first-pass caching (<code>GroupingSearch.setCaching</code> or <code class='nw'>setCachingInMB</code>, or <code class='nw'>CachingCollector</code> / <code>CachingCollectorManager</code> directly: experimental, off by default) and pass a negative limit, such as -1 meant as "no limit" or a budget that went negative. Then every hit is lost, at any index size. Limits of 0 or more work.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>596 words</span></summary><div class='body'><p><code class='nw'>GroupingSearch</code> can cache the hits of its first pass in a <code class='nw'>CachingCollector</code> and replay them into the second pass instead of running the query again. The caller gives the cache a size limit, and <code class='nw'>isCached()</code> tells whether the cache kept every hit; if not, the query is re-run. A negative limit, for example <code>setCaching(-1, true)</code> meant as "no limit" or a computed RAM budget that went negative, is accepted without a check, but -1 is also the collector's own internal "purged" marker: no segment gets a caching collector, nothing is cached, and the flag that <code class='nw'>isCached()</code> returns, which starts true and is cleared only by a caching segment collector, stays true. The second pass replays an empty cache: on 20 matching documents the grouped search returns its 3 groups with 0 hits each and <code class='nw'>totalHitCount</code> 0, with no error, with assertions on or off. The same goes for <code>setCachingInMB(-1.0, true)</code>, <code>CachingCollector.create(.., -1)</code> and the new <code>CachingCollectorManager</code>. Every limit of 0 or more works. The defect dates from LUCENE-5527 (5.0.0); until 9.7.0 it threw at replay, and #12380 (9.8.0) made it silent. Rejecting negative limits with an <code>IllegalArgumentException</code> fixes every repro, and the caching tests of the core module and the whole grouping module pass with it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Two-pass grouping</strong>: <code class='nw'>GroupingSearch</code> first finds the top groups (first pass), then collects the top documents inside those groups (second pass). Each pass normally runs the query.</li><li><strong>First-pass cache</strong>: with <code>setCaching(maxDocsToCache, cacheScores)</code> or <code>setCachingInMB(maxMB, cacheScores)</code>, the first pass goes through a <code class='nw'>CachingCollector</code> (since #16247 one per slice, through <code>CachingCollectorManager</code>) that records the matching doc ids per segment. If the cache stayed within its limit, <code class='nw'>isCached()</code> is true and the second pass is fed by <code class='nw'>replay()</code>; otherwise the cache is purged and the query is run again.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>The cache flag starts true (<code>CachingCollector.java:337</code>). Only a caching segment collector clears it, when a hit would go over the limit (<code class='nw'>:178-182</code>, <code class='nw'>:189-199</code>). Its <code class='nw'>finish()</code> then sets the collector's remaining limit to -1, the internal "purged" state, so later segments are not cached (<code class='nw'>:92-96</code>, <code class='nw'>:214-221</code>).</li><li><code class='nw'>getLeafCollector</code> creates a caching segment collector, and records the segment, only when the limit is &gt;= 0 (<code class='nw'>:79-90</code>); for -1 it hands back the wrapped collector untouched.</li><li>Nothing checks the sign of a caller's limit: <code>create(.., int)</code> and <code>create(.., double)</code> (<code class='nw'>:307-330</code>; -1.0 MB becomes -262144 documents, <code class='nw'>:312</code>), the <code>CachingCollectorManager</code> constructor (<code>CachingCollectorManager.java:73-75</code>, only "exactly one limit") and the <code class='nw'>GroupingSearch</code> setters (<code>GroupingSearch.java:250-272</code>).</li><li>So a caller's -1 starts in the purged state with the flag still true. No segment is cached and nothing can clear the flag: <code class='nw'>isCached()</code> is true, and <code class='nw'>replay()</code> (<code class='nw'>:106-118</code>) loops over an empty segment list and returns normally. <code class='nw'>GroupingSearch</code> replays whenever <code class='nw'>isCached()</code> is true (<code>GroupingSearch.java:208-209</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-executed-on-main'>The numbers (executed on main)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-executed-on-main" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-executed-on-main"><span aria-hidden="true">#</span></a></div><p>After the first pass, a limit of 0 ends in <code>cached=false maxDocsToCache=-1</code>, a limit of -1 in <code>cached=true maxDocsToCache=-1</code> with 0 recorded segments. The first pass itself is unaffected (it collected all 20 documents, so the 3 top groups are right); the second pass, fed by the empty replay, finds no documents in them:</p><div class="tbl"><table><thead><tr><th>setting</th><th><code class='nw'>totalHitCount</code></th><th>hits per group (author0, author1, author2)</th></tr></thead><tbody><tr><td>no caching</td><td>20</td><td>7, 7, 6</td></tr><tr><td><code>setCaching(0, true)</code></td><td>20</td><td>7, 7, 6 (cache purged, query re-run)</td></tr><tr><td><code>setCaching(1000, true)</code></td><td>20</td><td>7, 7, 6 (replayed)</td></tr><tr><td><code>setCaching(-1, true)</code></td><td><strong>0</strong></td><td><strong>0, 0, 0</strong></td></tr><tr><td><code>setCachingInMB(-1.0, true)</code></td><td><strong>0</strong></td><td><strong>0, 0, 0</strong></td></tr></tbody></table></div><p><code>CachingCollector.create(collector, false, -1)</code> directly: the first pass collects 20, <code class='nw'>isCached()</code> is true, <code class='nw'>replay()</code> delivers 0. <code>totalGroupedHitCount</code> is 0 as well.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>174 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Code that enables first-pass caching with a negative limit. Caching is off by default (both limits start <code class='nw'>null</code>, <code>GroupingSearch.java:57-58</code>), and all three classes are <code>@lucene.experimental</code>.</li><li><strong>How a negative limit gets there.</strong> Most plausibly -1 meant as "no limit": <code>IndexWriterConfig</code> uses -1 (<code>DISABLE_AUTO_FLUSH</code>) as the "off" value of its RAM-MB and document-count flush limits. Or a computed budget (for example "free heap minus a reserve") that went negative. 0, NaN and tiny negative MB values (above about -3.8e-6) truncate to 0 and work.</li><li><strong>Effect.</strong> Every second-pass hit is lost: groups without documents, <code class='nw'>totalHitCount</code> and <code>totalGroupedHitCount</code> 0. Nothing is added; the top groups themselves are right. No exception since 9.8.0, with assertions on or off.</li><li><strong>Scale.</strong> None needed: 20 documents in one segment; an independent repro used 21 documents in 3 segments.</li><li><strong>How likely.</strong> Low. A negative limit is a mistake, nobody reported either form since 5.0.0, and Solr's grouping, the one downstream caller the checks read, only creates the cache when its computed limit is &gt; 0.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test on the public API (<code class='nw'>LuceneTestCase</code>) for the grouping module: 20 documents by 3 authors, a grouped search with <code>setCaching(-1, true)</code> and with <code>setCachingInMB(-1.0, true)</code>, a <code class='nw'>CachingCollector</code> with limit -1, and a limit-0 control. Rejecting the negative limit counts as a pass.</p><figure class='code'><figcaption><span class='fname'>TestGroupingSearchNegativeCacheLimit.java (JUnit, public API, grouping module)</span><span class='meta'>162 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.grouping;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.CachingCollector;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.SimpleCollector;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * A negative first-pass cache limit is accepted, nothing is cached, but the cache still reports
+ * isCached() == true, so the second pass replays nothing. An IllegalArgumentException for the
+ * negative limit counts as a pass.
+ */
+public class TestGroupingSearchNegativeCacheLimit extends LuceneTestCase {
+
+  private static final int DOCS = 20; // all match; author0: 7, author1: 7, author2: 6
+  private static final Query QUERY = new TermQuery(new Term(&quot;body&quot;, &quot;match&quot;));
+
+  private Directory dir;
+  private DirectoryReader reader;
+  private IndexSearcher searcher;
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    dir = newDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (int i = 0; i &lt; DOCS; i++) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;body&quot;, &quot;match&quot;, Field.Store.NO));
+        doc.add(new SortedDocValuesField(&quot;author&quot;, new BytesRef(&quot;author&quot; + (i % 3))));
+        w.addDocument(doc);
+      }
+    }
+    reader = DirectoryReader.open(dir);
+    searcher = new IndexSearcher(reader);
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    reader.close();
+    dir.close();
+    super.tearDown();
+  }
+
+  /** For example &quot;totalHitCount=20 [author0=7, author1=7, author2=6]&quot; (hits per group). */
+  private static String describe(TopGroups&lt;BytesRef&gt; topGroups) {
+    StringBuilder sb = new StringBuilder(&quot;totalHitCount=&quot; + topGroups.totalHitCount + &quot; [&quot;);
+    for (int i = 0; i &lt; topGroups.groups.length; i++) {
+      GroupDocs&lt;BytesRef&gt; group = topGroups.groups[i];
+      sb.append(i == 0 ? &quot;&quot; : &quot;, &quot;).append(group.groupValue().utf8ToString());
+      sb.append(&#x27;=&#x27;).append(group.totalHits().value());
+    }
+    return sb.append(&#x27;]&#x27;).toString();
+  }
+
+  private void assertSameAsWithoutCache(GroupingSearch cached, String setting) throws IOException {
+    String expected = describe(new GroupingSearch(&quot;author&quot;).search(searcher, QUERY, 0, 10));
+    assertTrue(expected, expected.startsWith(&quot;totalHitCount=&quot; + DOCS + &quot; &quot;));
+    String actual;
+    try {
+      actual = describe(cached.search(searcher, QUERY, 0, 10));
+    } catch (IllegalArgumentException _) {
+      return; // rejecting the negative limit is fine
+    }
+    assertEquals(setting, expected, actual);
+  }
+
+  public void testSetCachingMinusOne() throws IOException {
+    GroupingSearch groupingSearch = new GroupingSearch(&quot;author&quot;);
+    try {
+      groupingSearch.setCaching(-1, true);
+    } catch (IllegalArgumentException _) {
+      return; // rejecting the negative limit is fine
+    }
+    assertSameAsWithoutCache(groupingSearch, &quot;setCaching(-1, true)&quot;);
+  }
+
+  public void testSetCachingInMBMinusOne() throws IOException {
+    GroupingSearch groupingSearch = new GroupingSearch(&quot;author&quot;);
+    try {
+      groupingSearch.setCachingInMB(-1.0, true);
+    } catch (IllegalArgumentException _) {
+      return; // rejecting the negative limit is fine
+    }
+    assertSameAsWithoutCache(groupingSearch, &quot;setCachingInMB(-1.0, true)&quot;);
+  }
+
+  /**
+   * Control: a limit of 0 overflows at the first hit, so the cache is purged and the query re-run.
+   */
+  public void testZeroLimitControl() throws IOException {
+    GroupingSearch groupingSearch = new GroupingSearch(&quot;author&quot;);
+    groupingSearch.setCaching(0, true);
+    assertSameAsWithoutCache(groupingSearch, &quot;setCaching(0, true)&quot;);
+  }
+
+  /** Counts the documents it collects. */
+  private static final class CountingCollector extends SimpleCollector {
+    int count;
+
+    @Override
+    public void collect(int doc) {
+      count++;
+    }
+
+    @Override
+    public ScoreMode scoreMode() {
+      return ScoreMode.COMPLETE_NO_SCORES;
+    }
+  }
+
+  @SuppressWarnings(&quot;deprecation&quot;) // IndexSearcher#search(Query, Collector), to run on 10.x too
+  public void testCachingCollectorMinusOne() throws IOException {
+    CountingCollector firstPass = new CountingCollector();
+    CachingCollector cache;
+    try {
+      cache = CachingCollector.create(firstPass, false, -1);
+    } catch (IllegalArgumentException _) {
+      return; // rejecting the negative limit is fine
+    }
+    searcher.search(QUERY, cache);
+    assertEquals(DOCS, firstPass.count);
+    if (cache.isCached()) {
+      CountingCollector secondPass = new CountingCollector();
+      cache.replay(secondPass);
+      assertEquals(
+          &quot;isCached() is true, so replay() must deliver every collected document&quot;,
+          DOCS,
+          secondPass.count);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:grouping:test --tests org.apache.lucene.search.grouping.TestGroupingSearchNegativeCacheLimit -Ptests.seed=5EED0908
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>totalHitCount=20 [author0=7, author1=7, author2=6]</code>, as without caching (or an <code>IllegalArgumentException</code>), and <code class='nw'>replay()</code> delivers all 20 documents.</dd></div><div class='got'><dt>Observed</dt><dd><code>totalHitCount=0 [author0=0, author1=0, author2=0]</code> for both setters, and <code class='nw'>replay()</code> delivers 0 of 20 with <code class='nw'>isCached()</code> true; no error, assertions on or off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-908/'>repro/LFV-908/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (269 lines) · 1,427 words</span></summary><div class='body'><p><code>TestGroupingSearchNegativeCacheLimit</code> (grouping module, package <code>org.apache.lucene.search.grouping</code>): 20 documents with a <code class='nw'>StringField</code> <code class='nw'>body:match</code> and a <code>SortedDocValuesField</code> <code class='nw'>author</code> (<code class='nw'>author0</code>, <code class='nw'>author1</code>, <code class='nw'>author2</code>: 7, 7 and 6 documents), default <code>IndexWriterConfig</code>, one segment, plain <code class='nw'>IndexSearcher</code>. Each grouped search is compared with the same search without caching, written as <code>totalHitCount=20 [author0=7, author1=7, author2=6]</code> (hits per group). An <code>IllegalArgumentException</code> for the negative limit counts as a pass, so the test also passes with either fix. The direct <code class='nw'>CachingCollector</code> test uses the deprecated <code>IndexSearcher#search(Query, Collector)</code> so that the file compiles unchanged on 10.x (it needs 10.0 or later). Formatted with <code>gradlew tidy</code>; the <code>catch (IllegalArgumentException _)</code> blocks use Java 22 unnamed variables, as main's own tests do.</p><p>The second file is the finder's test, with a <code>CachingCollectorManager</code> leg (main and the 10.6 line only); the third is the version-portable <code class='nw'>main()</code> probe used for the release sweep.</p><div class="hd hd-3"><h3 id='code-2-h'>TestCachingNegativeLimit.java (the finder&#x27;s test, with a CachingCollectorManager leg)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Goes into the same directory; needs main or the 10.6 line (<code>CachingCollectorManager</code>).</p><figure class='code'><figcaption><span class='fname'>TestCachingNegativeLimit.java (the finder&#x27;s test, with a CachingCollectorManager leg)</span><span class='meta'>203 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.grouping;
+
+import java.io.IOException;
+import java.util.Collection;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.CachingCollector;
+import org.apache.lucene.search.CachingCollectorManager;
+import org.apache.lucene.search.CollectorManager;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.SimpleCollector;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * A negative cache limit (GroupingSearch#setCaching(int, boolean), #setCachingInMB(double,
+ * boolean), CachingCollector#create, CachingCollectorManager) is accepted, nothing is cached, but
+ * the cache still reports isCached() == true, so the second pass replays nothing: GroupingSearch
+ * returns the groups with no documents and totalHitCount 0. CachingCollector uses
+ * maxDocsToCache == -1 internally to mean &quot;invalidated&quot;, but a negative limit given by the caller
+ * never clears the cached flag.
+ */
+public class TestCachingNegativeLimit extends LuceneTestCase {
+
+  private static final int DOCS = 20;
+
+  private static Directory index() throws IOException {
+    Directory dir = newDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (int i = 0; i &lt; DOCS; i++) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;body&quot;, &quot;match&quot;, Field.Store.NO));
+        doc.add(new SortedDocValuesField(&quot;author&quot;, new BytesRef(&quot;author&quot; + (i % 3))));
+        w.addDocument(doc);
+      }
+    }
+    return dir;
+  }
+
+  private static final Query QUERY = new TermQuery(new Term(&quot;body&quot;, &quot;match&quot;));
+
+  private void assertGroupingSearchCorrect(GroupingSearch groupingSearch, String setting)
+      throws IOException {
+    try (Directory dir = index();
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      TopGroups&lt;BytesRef&gt; expected = new GroupingSearch(&quot;author&quot;).search(searcher, QUERY, 0, 10);
+      assertEquals(DOCS, expected.totalHitCount);
+      TopGroups&lt;BytesRef&gt; actual;
+      try {
+        actual = groupingSearch.search(searcher, QUERY, 0, 10);
+      } catch (IllegalArgumentException e) {
+        return; // rejecting the negative limit is fine
+      }
+      assertEquals(setting + &quot;: totalHitCount&quot;, expected.totalHitCount, actual.totalHitCount);
+      assertEquals(setting + &quot;: number of groups&quot;, expected.groups.length, actual.groups.length);
+      for (int i = 0; i &lt; expected.groups.length; i++) {
+        assertEquals(
+            setting + &quot;: documents of group &quot; + expected.groups[i].groupValue().utf8ToString(),
+            expected.groups[i].scoreDocs().length,
+            actual.groups[i].scoreDocs().length);
+      }
+    }
+  }
+
+  public void testGroupingSearchNegativeMaxDocsToCache() throws IOException {
+    GroupingSearch groupingSearch = new GroupingSearch(&quot;author&quot;);
+    try {
+      groupingSearch.setCaching(-1, true);
+    } catch (IllegalArgumentException e) {
+      return; // rejecting the negative limit is fine
+    }
+    assertGroupingSearchCorrect(groupingSearch, &quot;setCaching(-1, true)&quot;);
+  }
+
+  public void testGroupingSearchNegativeMaxCacheRAMMB() throws IOException {
+    GroupingSearch groupingSearch = new GroupingSearch(&quot;author&quot;);
+    try {
+      groupingSearch.setCachingInMB(-1.0, true);
+    } catch (IllegalArgumentException e) {
+      return; // rejecting the negative limit is fine
+    }
+    assertGroupingSearchCorrect(groupingSearch, &quot;setCachingInMB(-1.0, true)&quot;);
+  }
+
+  /** Counts collected documents. */
+  private static final class CountingCollector extends SimpleCollector {
+    int count;
+
+    @Override
+    public void collect(int doc) {
+      count++;
+    }
+
+    @Override
+    public ScoreMode scoreMode() {
+      return ScoreMode.COMPLETE_NO_SCORES;
+    }
+  }
+
+  private static final class CountingManager
+      implements CollectorManager&lt;CountingCollector, Integer&gt; {
+    @Override
+    public CountingCollector newCollector() {
+      return new CountingCollector();
+    }
+
+    @Override
+    public Integer reduce(Collection&lt;CountingCollector&gt; collectors) {
+      int sum = 0;
+      for (CountingCollector c : collectors) {
+        sum += c.count;
+      }
+      return sum;
+    }
+  }
+
+  public void testCachingCollectorManagerNegativeLimit() throws IOException {
+    try (Directory dir = index();
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      CachingCollectorManager&lt;CountingCollector, Integer&gt; caching;
+      try {
+        caching = new CachingCollectorManager&lt;&gt;(new CountingManager(), false, null, -1);
+      } catch (IllegalArgumentException e) {
+        return; // rejecting the negative limit is fine
+      }
+      try {
+        assertEquals(Integer.valueOf(DOCS), searcher.search(QUERY, caching));
+      } catch (IllegalArgumentException e) {
+        return; // rejecting the negative limit is fine
+      }
+      if (caching.isCached()) {
+        assertEquals(
+            &quot;isCached() is true, so replay must deliver every collected document&quot;,
+            Integer.valueOf(DOCS),
+            caching.replay(new CountingManager()));
+      }
+    }
+  }
+
+  @SuppressWarnings(&quot;deprecation&quot;)
+  public void testCachingCollectorNegativeLimit() throws IOException {
+    try (Directory dir = index();
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      CountingCollector first = new CountingCollector();
+      CachingCollector cache;
+      try {
+        cache = CachingCollector.create(first, false, -1);
+      } catch (IllegalArgumentException e) {
+        return; // rejecting the negative limit is fine
+      }
+      try {
+        searcher.search(QUERY, cache);
+      } catch (IllegalArgumentException e) {
+        return; // rejecting the negative limit is fine
+      }
+      assertEquals(DOCS, first.count);
+      if (cache.isCached()) {
+        CountingCollector second = new CountingCollector();
+        cache.replay(second);
+        assertEquals(
+            &quot;isCached() is true, so replay must deliver every collected document&quot;,
+            DOCS,
+            second.count);
+      }
+    }
+  }
+
+  /** Not a negative limit: a limit of 0 already behaves (purged as soon as one doc matches). */
+  public void testZeroLimitControl() throws IOException {
+    GroupingSearch groupingSearch = new GroupingSearch(&quot;author&quot;);
+    groupingSearch.setCaching(0, true);
+    assertGroupingSearchCorrect(groupingSearch, &quot;setCaching(0, true)&quot;);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>./gradlew :lucene:grouping:test --tests org.apache.lucene.search.grouping.TestCachingNegativeLimit -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>NegativeCacheLimitAcrossReleases.java (plain main(), for releases 8.0.0 to 10.5.2)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Prints one line per setting, for example <code>NEG setCaching(-1,true) totalHitCount=0 (expected 20) -&gt; WRONG</code>; on 9.7.0 and earlier it ends with <code>IndexOutOfBoundsException: Index 0 out of bounds for length 0</code> (assertions off).</p><figure class='code'><figcaption><span class='fname'>NegativeCacheLimitAcrossReleases.java (plain main(), for releases 8.0.0 to 10.5.2)</span><span class='meta'>66 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.CachingCollector;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.SimpleCollector;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.grouping.GroupingSearch;
+import org.apache.lucene.search.grouping.TopGroups;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.util.BytesRef;
+
+/** Version-agnostic (8.0+) check: a negative cache limit must not make the second pass replay nothing. */
+public class NegativeCacheLimitAcrossReleases {
+  static final class Counting extends SimpleCollector {
+    int count;
+    @Override public void collect(int doc) { count++; }
+    @Override public ScoreMode scoreMode() { return ScoreMode.COMPLETE_NO_SCORES; }
+  }
+
+  @SuppressWarnings(&quot;deprecation&quot;)
+  public static void main(String[] args) throws IOException {
+    Directory dir = new ByteBuffersDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+      for (int i = 0; i &lt; 20; i++) {
+        Document d = new Document();
+        d.add(new StringField(&quot;body&quot;, &quot;match&quot;, Field.Store.NO));
+        d.add(new SortedDocValuesField(&quot;author&quot;, new BytesRef(&quot;author&quot; + (i % 3))));
+        w.addDocument(d);
+      }
+    }
+    int bad = 0;
+    try (DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      Query q = new TermQuery(new Term(&quot;body&quot;, &quot;match&quot;));
+      for (int mode = 0; mode &lt; 2; mode++) {
+        GroupingSearch gs = new GroupingSearch(&quot;author&quot;);
+        if (mode == 0) gs.setCaching(-1, true); else gs.setCachingInMB(-1.0, true);
+        TopGroups&lt;?&gt; tg = gs.search(s, q, 0, 10);
+        boolean ok = tg.totalHitCount == 20;
+        if (!ok) bad++;
+        System.out.println(&quot;NEG &quot; + (mode == 0 ? &quot;setCaching(-1,true)&quot; : &quot;setCachingInMB(-1.0,true)&quot;)
+            + &quot; totalHitCount=&quot; + tg.totalHitCount + &quot; (expected 20) -&gt; &quot; + (ok ? &quot;ok&quot; : &quot;WRONG&quot;));
+      }
+      Counting first = new Counting();
+      CachingCollector cc = CachingCollector.create(first, false, -1);
+      s.search(q, cc);
+      Counting second = new Counting();
+      if (cc.isCached()) cc.replay(second);
+      boolean ok = !cc.isCached() || second.count == first.count;
+      if (!ok) bad++;
+      System.out.println(&quot;NEG CachingCollector.create(c,false,-1) collected=&quot; + first.count + &quot; isCached=&quot; + cc.isCached()
+          + &quot; replayed=&quot; + second.count + &quot; -&gt; &quot; + (ok ? &quot;ok&quot; : &quot;WRONG&quot;));
+    }
+    System.exit(bad == 0 ? 0 : 1);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also the 10.5.2 and 10.0.0 release jars</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code># $LUCENE: an apache/lucene checkout at a9779ef3c193
+cp TestGroupingSearchNegativeCacheLimit.java $LUCENE/lucene/grouping/src/test/org/apache/lucene/search/grouping/
+cd $LUCENE
+./gradlew :lucene:grouping:test --tests org.apache.lucene.search.grouping.TestGroupingSearchNegativeCacheLimit -Ptests.seed=5EED0908
+# assertions off: add -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, seed 5EED0908 (the same with -Ptests.asserts=false)
+TestGroupingSearchNegativeCacheLimit: tests=4 failures=3
+  testSetCachingMinusOne: setCaching(-1, true) expected:&lt;totalHitCount=[20 [author0=7, author1=7, author2=6]]&gt; but was:&lt;totalHitCount=[0 [author0=0, author1=0, author2=0]]&gt;
+  testSetCachingInMBMinusOne: setCachingInMB(-1.0, true) expected:&lt;totalHitCount=[20 [author0=7, author1=7, author2=6]]&gt; but was:&lt;totalHitCount=[0 [author0=0, author1=0, author2=0]]&gt;
+  testCachingCollectorMinusOne: isCached() is true, so replay() must deliver every collected document expected:&lt;20&gt; but was:&lt;0&gt;
+  testZeroLimitControl: passes
+
+# the same test on the 10.5.2 and 10.0.0 jars (assertions off): 3 of 4 fail with the same messages
+
+# 9.7.0, release probe (assertions off)
+Exception in thread &quot;main&quot; java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>CachingCollector</code> javadoc: if <code class='nw'>isCached()</code> is true, "you can use replay", else re-run the search. Here it is true, and the replay is empty.</li><li><code>GroupingSearch.setCaching</code>: an over-limit cache "is purged and not used in the second pass search". A limit of 0 does that; -1 does not.</li><li>No javadoc or test gives negative limits a meaning; -1 is an internal marker.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>300 words</span></summary><div class='body'><ul><li><strong>Class contract</strong> (<code>CachingCollector.java:25-30</code>): "Once the collection is done, call isCached. If this returns true, you can use replay(Collector) against a new collector. If it returns false, this means too much RAM was required and you must instead re-run the original search." <code class='nw'>isCached()</code> (<code class='nw'>:340</code>): "Return true is this collector is able to replay collection." <code class='nw'>replay()</code> (<code class='nw'>:349-350</code>): "@throws IllegalStateException if this collector is not cached (i.e., if the RAM limits were too low for the number of documents + scores to cache)."</li><li><strong>Limit contract.</strong> <code class='nw'>create(..)</code> (<code class='nw'>:304-305</code>, <code class='nw'>:323-324</code>): "If the collector exceeds the threshold, no documents and scores are cached." <code>GroupingSearch.setCaching</code> / <code class='nw'>setCachingInMB</code> (<code>GroupingSearch.java:241-244, 258-261</code>): "If the cache grows beyond the specified limit, then the cache is purged and not used in the second pass search." <code>CachingCollectorManager</code>'s example re-runs the query when <code class='nw'>isCached()</code> is false.</li><li><strong>Tests.</strong> No test uses a negative limit. <code>TestCachingCollectorManager</code> expects a limit of 0 to give <code class='nw'>isCached()</code> false and <code class='nw'>replay</code> to throw <code>IllegalStateException</code>, and already expects <code>IllegalArgumentException</code> for a wrong combination of limits.</li><li><strong>History.</strong> The <code>&gt;= 0</code> gate, the -1 marker and the <code>cached = true</code> start came with LUCENE-5527 (2014), whose discussion never mentions the limits. #12380 (2023) made the failure silent as a side effect of an unrelated refactoring; no review comment mentions <code class='nw'>CachingCollector</code>. #16247 (2026) added the manager's "exactly one limit" check without the sign.</li><li><strong>Maintainers prefer a loud failure here.</strong> In LUCENE-4372 (#5438, open since 2012) the worry was a too-small limit silently dropping hits; it was settled because <code class='nw'>replay()</code> throws: "I don't have any concerns if you are gonna get an exception." A negative limit gets around exactly that exception. Nearby APIs validate similar values (<code>TopScoreDocCollectorManager</code>: "numHits must be &gt; 0"; <code class='nw'>PhraseQuery</code>: "Slop must be &gt;= 0").</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>144 words</span></summary><div class='body'><p>The strongest case for "works as designed" (every verifier rated it moderate): a maximum document count or RAM size has an implicit non-negative domain, so -1 is invalid input; the classes are <code>@lucene.experimental</code>; <code class='nw'>disableCaching()</code> exists for "no cache"; Solr guards its own call with <code>&gt; 0</code>; negative limits never worked (they threw from 5.0.0 to 9.7.0) and nobody reported it.</p><p>Why it fails: an implicit domain the API does not enforce is what argument validation is for. Nothing documents a range or a meaning for negative values, the setters accept them silently, and the result breaks the class's own contract (<code class='nw'>isCached()</code> true means the replay is usable) with silently wrong results instead of the exception the maintainers relied on in #5438. <strong>Verdict: not intended</strong>; the remaining doubt is about impact and wording, so frame the issue as missing argument validation.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Reject negative (and NaN) limits, also eagerly in the GroupingSearch setters</strong></p><p class='short'>Reject a negative (or NaN) limit with an <code>IllegalArgumentException</code> in <code>CachingCollector.create</code>, the <code>CachingCollectorManager</code> constructor and the two <code class='nw'>GroupingSearch</code> setters (+23 lines, plus regression checks in 3 test classes). This doc's test passes, and so do the core caching tests and every upstream grouping test, with assertions on and off.</p><pre class='snippet' tabindex='0'><code>// CachingCollector.create(Collector, boolean, int); likewise CachingCollectorManager, GroupingSearch.setCaching
+if (maxDocsToCache &lt; 0) {
+  throw new IllegalArgumentException(&quot;maxDocsToCache must be &gt;= 0, got &quot; + maxDocsToCache);
+}
+// CachingCollector.create(Collector, boolean, double); likewise CachingCollectorManager, setCachingInMB
+if (maxRAMMB &gt;= 0 == false) { // also rejects NaN
+  throw new IllegalArgumentException(&quot;maxRAMMB must be &gt;= 0, got &quot; + maxRAMMB);
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 728 words</span></summary><div class='body'><p>Three shapes were run on main. The recommended one reports the mistake where it is made; the core-only shape is the finder's patch; the alternative keeps today's API and makes a negative limit behave like 0.</p><div class="hd hd-3"><h3 id='fix-reject'>Reject negative (and NaN) limits, also eagerly in the GroupingSearch setters <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-reject" target="_self" aria-label="Link to this section" aria-describedby="fix-reject"><span aria-hidden="true">#</span></a></div><p><code>fix-reject-negative.diff</code> (+23 lines in 3 files): the two <code>CachingCollector.create</code> factories, the <code>CachingCollectorManager</code> constructor and <code>GroupingSearch.setCaching</code> / <code class='nw'>setCachingInMB</code> throw <code>IllegalArgumentException("... must be &gt;= 0, got ...")</code>, with <code class='nw'>@throws</code> lines in their javadoc. <code>fix-reject-negative-tests.diff</code> (+36 lines) adds the checks to <code>TestCachingCollector</code>, <code>TestCachingCollectorManager.testConstructor</code> and <code>TestGroupingSearch</code>.</p><pre class='snippet' tabindex='0'><code>// CachingCollector.create(Collector, boolean, int); likewise CachingCollectorManager, GroupingSearch.setCaching
+if (maxDocsToCache &lt; 0) {
+  throw new IllegalArgumentException(&quot;maxDocsToCache must be &gt;= 0, got &quot; + maxDocsToCache);
+}
+// CachingCollector.create(Collector, boolean, double); likewise CachingCollectorManager, setCachingInMB
+if (maxRAMMB &gt;= 0 == false) { // also rejects NaN
+  throw new IllegalArgumentException(&quot;maxRAMMB must be &gt;= 0, got &quot; + maxRAMMB);
+}</code></pre><p class='k'>Trade-offs</p><ul><li>A call that silently returned nothing now throws. No working caller breaks: every negative limit gives wrong results today (or threw before 9.8.0).</li><li>NaN, which truncates to 0 and works by accident today, now throws; check <code>maxRAMMB &lt; 0</code> instead to keep accepting it.</li><li>With the setter checks the error comes from <code class='nw'>setCaching</code> itself; without them (next option) it comes from <code>GroupingSearch.search</code>. Code that sets -1 and expects only the search to fail sees it earlier: the independent reproducer's 2 <code class='nw'>GroupingSearch</code> tests call the setter outside their <code class='nw'>try</code> and report the rejection as an error, though their oracle counts a rejection as a pass.</li><li>Argument checks only, outside the collection loop: no performance effect; no benchmark was run. A PR would add a CHANGES entry.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle on main, assertions on and off: <code>TestCachingCollector*</code> in core (2 classes, 9 tests) and the whole grouping suite (14 upstream classes, 57 tests) pass, and so do this doc's test (4 of 4), the finder's (5 of 5) and the independent reproducer's manager test (3 of 3). The only 2 failures are that reproducer's 2 <code class='nw'>GroupingSearch</code> tests, which get the setter's new exception outside their <code class='nw'>try</code> (see the trade-offs).</li><li>On stock main the same selection fails only in the repro classes (14 of 29 grouping tests), with assertions on and off.</li><li><code>:lucene:core:check -x test</code> and <code>:lucene:grouping:check -x test</code> pass with the patch, its tests and this doc's test (google-java-format, ecj lint, forbidden APIs).</li></ul><div class="hd hd-3"><h3 id='fix-core-only'>Reject only in CachingCollector.create and the CachingCollectorManager constructor (the finder's patch) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-core-only" target="_self" aria-label="Link to this section" aria-describedby="fix-core-only"><span aria-hidden="true">#</span></a></div><p>The same checks without the <code class='nw'>GroupingSearch</code> setter checks and without the javadoc lines (+10 lines in 2 files). <code>GroupingSearch.setCaching(-1, true)</code> is still accepted, and the next <code class='nw'>search</code> throws from the manager's constructor.</p><p class='k'>Trade-offs</p><p>Smallest change, all in core; the grouping user sees the error one call later, at search time, which is still before any result is returned.</p><p class='k'>What the checks validated</p><p>Gradle on main, assertions on: core 8 of 8 and the whole grouping suite 75 of 75, the independent reproducer's tests included; earlier the finder ran the 4 upstream caching and grouping suites with it.</p><div class="hd hd-3"><h3 id='fix-as-purged'>Treat a negative limit as "cache nothing": clear the flag in create() <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-as-purged" target="_self" aria-label="Link to this section" aria-describedby="fix-as-purged"><span aria-hidden="true">#</span></a></div><p><code>fix-negative-as-purged.diff</code> (+9/-3 lines in <code>CachingCollector.create(Collector, boolean, int)</code>): when the limit is negative, set <code>cached = false</code> on the new collector before returning it. A negative limit then behaves like 0: <code class='nw'>isCached()</code> is false, <code class='nw'>GroupingSearch</code> re-runs the query, and <code class='nw'>replay()</code> throws <code>IllegalStateException</code> as documented.</p><pre class='snippet' tabindex='0'><code>CachingCollector collector =
+    cacheScores
+        ? new ScoreCachingCollector(other, maxDocsToCache)
+        : new NoScoreCachingCollector(other, maxDocsToCache);
+if (maxDocsToCache &lt; 0) {
+  // a negative limit leaves room for no document: cache nothing and report the cache as purged
+  collector.cached = false;
+}
+return collector;</code></pre><p class='k'>Trade-offs</p><p>No new exception, so it is the gentlest backport. But the mistake stays hidden: a caller who meant -1 as "no limit" silently gets no caching at all and runs every grouped query twice.</p><p class='k'>What the checks validated</p><p>Gradle on main, assertions on: core 8 of 8 and the whole grouping suite 75 of 75; every repro passes because the right result comes back.</p><div class="hd hd-3"><h3 id='fix-minus-one-unlimited'>Give -1 the meaning "no limit"</h3><a class="hlink" href="#fix-minus-one-unlimited" target="_self" aria-label="Link to this section" aria-describedby="fix-minus-one-unlimited"><span aria-hidden="true">#</span></a></div><p>Read a negative limit as unbounded, like <code>IndexWriterConfig</code>'s -1.</p><p class='k'>Trade-offs</p><p>A new feature rather than a fix, and it removes the RAM guard the limit exists for (4 or 8 bytes per hit, which the class javadoc warns can be "a very substantial amount of RAM"). Not run.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>A product that lets its users set a grouping cache limit should reject negative values itself until Lucene does; the effect is lost results for that request, never extra documents.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>While modelling <code class='nw'>GroupingSearch</code>'s cache limit with an SMT solver, an AI tool wrote the limit's domain as &gt;= 0. Reading the code for that precondition showed that -1 is the cache's own "purged" marker; a probe and then a public-API JUnit test on the stock main jars confirmed the empty replay.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>132 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (a model's precondition, then code reading and executed tests).</p><ul><li><strong>Hunt (2026-10-28).</strong> A hunt on another question (does <code class='nw'>GroupingSearch</code> apply its cache limit per slice since #16247?) wrote an SMT model of the cache bound in which the limit's domain is D &gt;= 0. Checking that precondition against the code showed that D = -1 is <code class='nw'>CachingCollector</code>'s own "invalidated" state and that no API rejects it.</li><li>The finder then ran a probe and a public-API JUnit test (<code>TestCachingNegativeLimit</code>, 4 of 5 fail on main, assertions on and off; the limit-0 control passes), a version-agnostic <code class='nw'>main()</code> over 12 releases from 8.0.0 to 10.5.2 (silent from 9.8.0, an exception before), and the reject-negative fix.</li><li>Independent checks followed (see below); the history step extended the sweep to 135 releases from 3.2.0.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found: three search runs (51 to 67 queries each) over GitHub issues, PRs and commits, the mailing lists, JIRA, downstream trackers and the web, plus the changed files of open PRs, searched 2026-10-28. Nearest: #5438 (LUCENE-4372), about too-small positive limits.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Nobody has reported a negative cache limit that is accepted and replays nothing, or the older exception at replay. #5438 (LUCENE-4372, open since 2012) concerns too-small positive limits, which purge correctly; its discussion is the best citation for "throw rather than silently drop hits". #12380 made the failure silent without discussing it; #16247 added the manager's limit check without the sign. Open PRs #15210, #16847 and #14996 touch <code>CachingCollector.java</code> or <code>GroupingSearch.java</code>, but not the limit handling. The owner appears in none of the hits.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene)</th><td class='when'>2026-10-28</td><td>three scripted prior-report searches (67, 59 and 51 queries: class and method names, maxDocsToCache, setCaching, isCached, symptom and history terms) and manual searches, refreshed at the registration check</td><td>no report; related context only: #5438, #12380, #16247, #4175, #10401, #5436, #4851</td></tr><tr><th scope='row'>Open and recent PRs</th><td class='when'>2026-10-28</td><td>titles of all 411 open PRs; changed files of the 192 open PRs updated since 2026-06-01; PRs created or updated since 2026-10-26</td><td>#15210, #16847, #14996 touch the files, not the limit handling</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-28</td><td>dev@, java-user@, issues@, commits@ (lists.apache.org); LUCENE and SOLR JIRA archive</td><td>usage threads only</td></tr><tr><th scope='row'>Downstream and web</th><td class='when'>2026-10-28</td><td>Solr, Elasticsearch, OpenSearch and Lucene.NET on GitHub; all of GitHub for the inner class names and the replay stack trace; web searches</td><td>nothing about negative limits</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Root cause since LUCENE-5527 (<code class='nw'>85642f59ddf</code>, 2014-04-04, first release 5.0.0); from 5.0.0 to 9.7.0 <code class='nw'>replay()</code> threw, and #12380 (<code class='nw'>8811f31b9ca</code>, 2023-06-30, 9.8.0) made it silent. Affects 5.0.0 to 10.5.2, <code class='nw'>branch_10_6</code> and main; 3.2.0 to 4.10.4 are correct.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Root defect: LUCENE-5527</strong> "Make the Collector API work per-segment" (GitHub #6590; trunk <code class='nw'>85642f59ddf</code>, 2014-04-04; branch_5x through the LUCENE-5944 backport <code class='nw'>55594bad9b0</code>; first release 5.0.0). It brought the <code>cached = true</code> start, the <code>maxDocsToCache &gt;= 0</code> gate and the -1 "purged" marker, all still blamed to it on main. Before (3.2 to 4.10.4) the cache checked the limit when its first 128-document chunk was full; a negative limit then purged it and <code class='nw'>isCached()</code> became false.</p><p><strong>Symptom change: #12380</strong> "Add a post-collection hook to LeafCollector." (jpountz, merged 2023-06-30; main <code class='nw'>8811f31b9ca</code>, branch_9x <code class='nw'>de07bdd88dd</code>; first release 9.8.0) moved <code>contexts.add(context)</code> inside the <code>&gt;= 0</code> check. Before, a negative limit left one segment entry and no cached docs, so <code class='nw'>replay()</code> hit <code>assert docs.size() == contexts.size()</code> (assertions on) or <code class='nw'>docs.get(0)</code> on an empty list (off). Two single-file swaps confirm it: 9.8.0 with the old file throws again, and 9.7.0 with only that line moved is silent.</p><p><code>CachingCollectorManager</code> (#16247, unreleased; 10.6.0 would be its first release) has the bug from its first commit. Not a 10.6.0 regression; not fixed upstream (no commit on the three files after #16247, checked 2026-10-28). All 162 history runs used JDK 25 on Linux aarch64, not each release's original JDK.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code>, <code class='nw'>branch_10_6</code> <code class='nw'>4ae946e5a9b</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>silent: <code class='nw'>totalHitCount</code> 0, 0 of 20 replayed, also through <code>CachingCollectorManager</code></td></tr><tr><th scope='row'>9.8.0 to 10.5.2 (23 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>silent; this doc's test fails 3 of 4 on 10.5.2 and 10.0.0</td></tr><tr><th scope='row'>5.0.0 to 9.7.0 (84 releases)</th><td><span class='v warn'><span aria-hidden='true'>&#9650;</span> fails loudly</span></td><td><code class='nw'>replay()</code> throws <code class='nw'>AssertionError</code> (assertions on) or <code>IndexOutOfBoundsException</code> (off)</td></tr><tr><th scope='row'>3.2.0 to 4.10.4 (28 releases)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>correct: the old cache purges itself and reports <code class='nw'>isCached()</code> false</td></tr><tr><th scope='row'>9.8.0 jars + the pre-#12380 <code>CachingCollector.java</code></th><td><span class='v warn'><span aria-hidden='true'>&#9650;</span> swap</span></td><td>throws again: #12380 is what made it silent</td></tr><tr><th scope='row'>9.7.0 jars + only the <code class='nw'>contexts.add</code> move</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> swap</span></td><td>silent: <code class='nw'>totalHitCount</code> 0</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and reviews by another model family (OpenAI GPT-5.6) reproduced it with their own tests; an intended-behaviour devil's advocate re-ran it and argued the other side. All called it real; the adjudication confirmed it with a new seed, and a credibility audit re-ran it.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>278 words</span></summary><div class='body'><p>Every check ran on main <code class='nw'>a9779ef3c193</code> except the two outside reviews, whose runs used main <code class='nw'>ea57360912ed</code>, where every file involved is identical. Earlier sandboxed attempts of the refute review could not start a command and are not counted.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own tests (21 documents in 3 segments, limits -1, -5 and -1.0 MB, controls 1000 and 0) fail 5 of 7 on main, branch_10_6, 10.5.2 and 9.12.3 with assertions on and off, in the crash form on 9.7.0; a <code>CachingCollectorManager</code> test fails 2 of 3; both pass with the fix.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>Own JUnit with a plain <code class='nw'>SimpleCollector</code> over 7 documents: <code class='nw'>isCached()</code> true, 0 of 7 replayed, three seeds, assertions on and off; the limit-0 control passes; the fix passes. Counter-argument: an implicit non-negative domain (moderate).</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Own core and <code class='nw'>GroupingSearch</code> tests: 0 of 7 replayed, <code class='nw'>totalHitCount</code> 0 instead of 7; also 9.8.0 and 10.5.2 (silent) and 9.7.0 (crash); the fix with 18 existing component tests.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, not intended, Low</span></td><td>Re-ran the finder's test on main and branch_10_6 and the release probe on 10.5.2; built the works-as-designed case and showed why it fails.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high, Low</span></td><td>Re-ran the independent reproduction's tests on main with a new seed (51A7E0C3): 5 of 7 fail with assertions on and off; the manager test 2 of 3.</td></tr><tr><th scope='row'>Registration check and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's test on main (seeds DEADBEEF and A0D17C4C, assertions on and off): 4 of 5 fail, the control passes.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-908/bug.png' download='cachingcollector-negative-limit-reported-cached-replays-nothing-bug.png' target='_self'>PNG</a> <span class='n'>551 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,416 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-908, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>A negative cache limit (GroupingSearch.setCaching(-1, ..) / setCachingInMB(-1.0, ..), CachingCollector.create(.., -1), CachingCollectorManager) is accepted and caches nothing, yet isCached() stays true, so replay() delivers no documents and grouped search silently returns groups with no documents and totalHitCount 0 (since 9.8.0; from 5.0.0 to 9.7.0 replay threw instead)</dd></div><div><dt>Area</dt><dd>search / CachingCollector first-pass caching (CachingCollector, CachingCollectorManager) x grouping GroupingSearch two-pass caching</dd></div><div><dt>Priority</dt><dd>Low, rank 327: It silently drops every replayed hit, but only when someone passes a clearly invalid negative limit (such as -1 meant as &#x27;no limit&#x27;) to the opt-in, experimental first-pass caching, so it closes the accepted-degenerate-setting group after LFV-442.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits only applications that opt into first-pass caching (GroupingSearch.setCaching/setCachingInMB, CachingCollector.create or the new CachingCollectorManager, all @lucene.experimental) and pass a clearly negative limit, for example -1 meant as 'no limit' or a computed budget that went negative; every non-negative limit works (0, and NaN or tiny MB values that round to 0, are purged correctly), no scale is needed, and since 9.8.0 the loss of all replayed hits is silent with -ea and -da, while 5.0.0 to 9.7.0 failed loudly at replay.</dd></div><div><dt>Summary</dt><dd>You enable caching for a grouped search (or wrap a first-pass collector in CachingCollector or CachingCollectorManager) with a negative limit, for example setCaching(-1, true) meant as 'no limit', and expect either an IllegalArgumentException or the documented fallback for a cache over its limit: isCached() false and the query re-run. Instead the limit is accepted and nothing is cached (a negative count is the collector's own internal 'purged' marker), but isCached() stays true, so replay() delivers none of the collected documents and GroupingSearch returns its top groups with no documents and totalHitCount 0 instead of 20 in the repro, with no error. From 5.0.0 to 9.7.0 the same input failed at replay with an AssertionError (-ea) or IndexOutOfBoundsException (-da).</dd></div><div><dt>Introduced</dt><dd>85642f59ddf00c469b502f46fbc39944e076190e (trunk, LUCENE-5527 'Make the Collector API work per-segment', GitHub mirror #6590, committed by jpountz, svn r1584747; reached branch_5x through the LUCENE-5944 bulk backport 55594bad9b0) [read: the cached = true start, the maxDocsToCache &gt;= 0 gate in getLeafCollector and the -1 'purged' sentinel in invalidate() all still blame to it on main; exec at the release boundary: 28 releases 3.2.0-4.10.4 pass, 5.0.0 fails; no commit-level swap, the rewrite changed the whole Collector API]. The symptom turned silent with 8811f31b9ca (main) / de07bdd88dd (branch_9x), apache/lucene#12380 'Add a post-collection hook to LeafCollector' by jpountz, which moved contexts.add(context) under the maxDocsToCache &gt;= 0 check [exec: the pre-#12380 CachingCollector.java shadowed onto 9.8.0 brings back the replay exception; moving only that line in the 9.7.0 file makes 9.7.0 silent]. CachingCollectorManager (#16247 by gaobinlong, 3afffeef5a8 / d60e550b47f, unreleased) inherits it: its constructor checks only that exactly one limit is set. (2014-04-04 (LUCENE-5527 trunk commit; branch_5x backport 2014-09-18); silent form 2023-06-30 (#12380, author date of both commits); CachingCollectorManager leg 2026-07-08 (#16247))</dd></div><div><dt>First affected version</dt><dd>5.0.0 [exec] (replay throws AssertionError with -ea, IndexOutOfBoundsException with -da); silent wrong results from 9.8.0 [exec]; 4.10.4 and earlier are not affected [exec: the pre-5.0 chunked cache purges itself, so isCached() becomes false and no hits are lost]</dd></div><div><dt>Affected versions</dt><dd>[exec] every Maven Central release from 5.0.0 to 9.7.0 (84 releases) fails at replay (isCached() true, then AssertionError with -ea or IndexOutOfBoundsException with -da); every release from 9.8.0 to 10.5.2 (23 releases) returns silently wrong results (isCached() true, 0 documents replayed, GroupingSearch totalHitCount 0); the branch_10_6 head 4ae946e5a9b (the 10.6.0 release line; finder JUnit 4 of 5 fail, also through CachingCollectorManager) and main a9779ef3c193 (4 of 5 fail with -ea and -da, re-run at the registration check 2026-10-28) fail the same way; 3.2.0-4.10.4 (28 releases) pass. The release sweep ran with -da on every release and with -ea on a subset, all with JDK 25 on aarch64 Linux rather than the JDK each release shipped for. Not a 10.6.0 regression. Not fixed upstream: no commit touches CachingCollector.java, CachingCollectorManager.java or GroupingSearch.java after #16247 on main (head c5ab3e57b9ba) or branch_10_6 (head 4ae946e5a9b9) [read, 2026-10-28].</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (the prior-report record, verdict new; searched 2026-10-28, read-only; finder's own; refreshed at the registration check 2026-10-28): scripted prior-report searches with 67, 59 and 51 queries over GitHub issues, PRs and commits, downstream trackers (Elasticsearch, OpenSearch, Solr), the dev@, java-user@, issues@ and commits@ lists, JIRA and the web (0 high hits), manual GitHub searches (apache/lucene, solr, lucenenet, elasticsearch, OpenSearch, all of GitHub), the changed files of every open apache/lucene PR updated since 2026-06-01, and full reads of #4175, #5438, #12380 and #16247. No issue, PR, review comment, commit, CHANGES entry, list post or web page reports a negative cache limit being accepted, isCached() staying true for an empty cache, a silently empty replay, or the older IndexOutOfBoundsException from replay. Related context, not reports: #5438 (LUCENE-4372, open since 2012) is about too-small positive RAM limits and was settled because replay() then throws ('I don't have any concerns if you are gonna get an exception'), the guarantee a negative limit now bypasses; #12380 (jpountz, 9.8.0) made the failure silent as a side effect, and no review comment mentions CachingCollector; #16247 added CachingCollectorManager and its exactly-one-limit check without discussing the sign. Open PRs #15210, #16847 and #14996 touch CachingCollector.java or GroupingSearch.java but not the limit handling. Nothing is by the owner (shbhar). refresh: 'CachingCollector negative', 'maxDocsToCache', 'setCaching negative', 'isCached replay', 'GroupingSearch caching' and PRs updated or created since 2026-10-26 return no new item; none of the 46 open PRs updated since 2026-10-26 changes CachingCollector* or GroupingSearch*.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (gradle in a scratch worktree: this doc's test, the finder's and the independent reproducer's tests and the upstream suites <code>TestCachingCollector</code>, <code>TestCachingCollectorManager</code>, <code>TestGroupingSearch</code> and <code class='nw'>TestGrouping</code>, on stock with assertions on and off; the recommended fix with every <code>TestCachingCollector*</code> class of <code class='nw'>:lucene:core</code> and the whole <code class='nw'>:lucene:grouping</code> suite, assertions on and off, plus both modules' static checks; the finder's core-only patch and the alternative fix on the same selection, assertions on; the repro runner: the finder's, the verifiers', the adjudication's, the registry re-runs, the credibility audit and this doc's test, several seeds, assertions on and off); the release jars 10.0.0 and 10.5.2 (this doc's test); 135 releases from 3.2.0 to 10.5.2 with a version-portable probe; branch_10_6 head <code class='nw'>4ae946e5a9b</code>. OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/CachingCollector.java:25-38 (at a9779ef3c193) (class javadoc: isCached() true means replay is usable, false means re-run the search; @lucene.experimental), :79-90 (getLeafCollector wraps a leaf and records its context only if maxDocsToCache &gt;= 0), :92-96 (invalidate() writes -1 as the purged state), :106-118 (replay: IllegalStateException only if !isCached(), then loops over the recorded contexts), :178-182 (only a caching leaf&#x27;s invalidate() sets cached = false), :295-330 (both create factories, no sign check; a negative MB becomes a negative count), :332-343 (cached starts true; isCached)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/CachingCollectorManager.java:61-80 (at a9779ef3c193) (constructor checks only that exactly one limit is set)</code></li><li><code>lucene/grouping/src/java/org/apache/lucene/search/grouping/GroupingSearch.java:167-176 (at a9779ef3c193) (caching manager built from the stored limit), :207-212 (replay when isCached(), else re-run), :240-272 (setCachingInMB / setCaching javadoc: &#x27;If the cache grows beyond the specified limit, then the cache is purged and not used in the second pass search&#x27;; setters store any value)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriterConfig.java:72 (at a9779ef3c193) and LiveIndexWriterConfig.java:163, 214 (DISABLE_AUTO_FLUSH = -1, the -1 &#x27;no limit&#x27; convention cited for likelihood)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/CachingCollector.java:79-118, 158-230, 297-343 (getLeafCollector gate, invalidate sentinel, leaf invalidate, create, cached flag)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/CachingCollectorManager.java:68-111 (constructor check, newCollector, isCached)</code></li><li><code>lucene/grouping/src/java/org/apache/lucene/search/grouping/GroupingSearch.java:141-219, 250-272 (caching manager, replay vs re-run, setters)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/grouping/src/java/org/apache/lucene/search/grouping/GroupingSearch.java:44, 57-58 (@lucene.experimental; limits start null)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/CachingCollector.java:38; lucene/core/src/java/org/apache/lucene/search/CachingCollectorManager.java:48 (@lucene.experimental)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriterConfig.java:70-72; LiveIndexWriterConfig.java:163, 214 (DISABLE_AUTO_FLUSH = -1)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/CachingCollector.java:25-30, 304-305, 323-324, 340, 349-350</code></li><li><code>lucene/grouping/src/java/org/apache/lucene/search/grouping/GroupingSearch.java:240-272; lucene/core/src/java/org/apache/lucene/search/CachingCollectorManager.java:33-45</code></li><li><code>lucene/core/src/test/org/apache/lucene/search/TestCachingCollectorManager.java:30-99</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/TopScoreDocCollectorManager.java:64; PhraseQuery.java:174</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/CachingCollector.java:32-33 (RAM note)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestGroupingSearchNegativeCacheLimit.java (JUnit, public API, grouping module): <a href='../repro/LFV-908/TestGroupingSearchNegativeCacheLimit.java'><code>repro/LFV-908/TestGroupingSearchNegativeCacheLimit.java</code></a> (162 lines)</li><li>TestCachingNegativeLimit.java (the finder&#x27;s test, with a CachingCollectorManager leg): <a href='../repro/LFV-908/TestCachingNegativeLimit.java'><code>repro/LFV-908/TestCachingNegativeLimit.java</code></a> (203 lines)</li><li>NegativeCacheLimitAcrossReleases.java (plain main(), for releases 8.0.0 to 10.5.2): <a href='../repro/LFV-908/NegativeCacheLimitAcrossReleases.java'><code>repro/LFV-908/NegativeCacheLimitAcrossReleases.java</code></a> (66 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the repro's example, made in parallel with this doc from an executed probe on the stock main jars (assertions on and off, and with the fix).</p><ul class='paths'><li><a href='../assets/LFV-908/bug.png'><code>assets/LFV-908/bug.png</code></a> (551 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

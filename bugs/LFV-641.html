@@ -1,0 +1,603 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Hunspell rejects and cannot stem twofold-suffix words when a suffix class has cross product N</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-641 &middot; hunspell-twofold-suffix-requires-cross-product</p><h1 id='top'>Hunspell rejects and cannot stem twofold-suffix words when a suffix class has cross product N</h1><p class='tldr'>When a Hunspell dictionary chains two suffixes and either class says cross product <code class='nw'>N</code>, Lucene rejects the word and finds no stem, although that flag only governs prefix + suffix. In Luxembourgish that is at least 47,840 correct forms on main, like <code class='nw'>räichsten</code>; the bug affects every release since 3.5.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 314</span><span class='sub'>Since 3.5, Hunspell spell and stemming silently fail on ordinary twofold-suffix words in a real public dictionary (Luxembourgish), which changes index-time stemming and recall, but only a few dictionaries have this shape, so it ends the narrow silent-result Medium rows after LFV-479.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>3.5.0 (LUCENE-3414, 2011); widened in 4.8.0<span class='sub'>introduced 2011-09-10 &middot; over 15 years</span></dd></div><div><dt>Affected</dt><dd>3.5.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>differential testing against native Hunspell</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Hunspell affix files allow "twofold suffixes": a suffix whose continuation class allows a second suffix. Lucene follows such a chain only if both suffix classes say cross product <code class='nw'>Y</code>, a field the format reserves for prefix + suffix combinations.</p><figure class='visual' id='hunspell-twofold-suffix-requires-cross-product-short-visual'><div class='frame'><a class='still' href='../assets/LFV-641/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-641/bug.png' alt='Summary diagram. Left: the dictionary SFX S Y 1, SFX S 0 st/E, SFX E N 2, SFX E 0 en, SFX E 0 e, raich/SE, and the word raich + st + en = raichsten with an arrow /E from st to en, S: Y, E: N. Lucene takes en off, then stops (Stemmer.java:621): class E is N, so st is never tried and raich is never reached. Right: expected (C Hunspell 1.7.2; Lucene when S and E are Y): spell(&quot;raichsten&quot;) = true, getRoots = [raich]; actual (Lucene main, E = N): spell = false, getRoots = []; a correct word is rejected and cannot be stemmed. Below: HunspellStemFilter leaves raichsten unstemmed, so a document with it gets 0 hits for TermQuery(body:raich) (1 with E = Y); getAllWordForms(&quot;raich&quot;) returns 4 forms (6 with E = Y); real Luxembourgish räichsten, räichste, räichstem, räichster are rejected while C Hunspell accepts them; only S = Y with E = Y works, prefix + suffix pairs agree with C Hunspell, and with the fix sketch all four accept. Why: Stemmer.java:621, :564-573 and WordFormGenerator.java:251. Affected: 3.5.0 to 10.5.2 and main.' width='1920' height='1080'></a></div><figcaption>The finder's <code class='nw'>raich/SE</code> dictionary: native Hunspell (and Lucene with both classes <code class='nw'>Y</code>) accepts <code class='nw'>raichsten</code>; Lucene with E = <code class='nw'>N</code> strips <code class='nw'>en</code>, stops at <code class='nw'>Stemmer.java:621</code>, and rejects it. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You load a dictionary where the suffix <code class='nw'>st</code> (class S) allows the endings <code class='nw'>en</code> and <code class='nw'>e</code> (class E) through its continuation class <code class='nw'>/E</code>, and E's header says cross product <code class='nw'>N</code>: <code>SFX S Y 1</code>, <code>SFX S 0 st/E .</code>, <code>SFX E N 2</code> (<code class='nw'>en</code>, <code class='nw'>e</code>), entry <code class='nw'>raich/SE</code>. Real Luxembourgish has this shape: räich + st + en = räichsten, "richest".</span></li><li><span>You expect <code class='nw'>raichsten</code> and <code class='nw'>raichste</code> to be correct with root <code class='nw'>raich</code>: hunspell(5) defines cross product as the "permission to combine prefixes and suffixes", there is no prefix here, and native Hunspell (1.3.2 and 1.7.2) accepts both with <code class='nw'>N</code> or <code class='nw'>Y</code>.</span></li><li><span>Instead <code>spell("raichsten")</code> is false and <code class='nw'>getRoots</code> returns <code class='nw'>[]</code>. Lucene strips <code class='nw'>en</code>, then never looks for <code class='nw'>st</code>, because class E is <code class='nw'>N</code> (<code class='nw'>Stemmer.java:621</code>); with S = <code class='nw'>N</code> a second check rejects <code class='nw'>st</code> (<code class='nw'>:564</code>). Only S = <code class='nw'>Y</code> with E = <code class='nw'>Y</code> works.</span></li><li><span>No error is raised: <code>HunspellStemFilter</code> leaves <code class='nw'>raichsten</code> unstemmed, so a document containing it gets 0 hits for the term <code class='nw'>raich</code> (1 with E = <code class='nw'>Y</code>), and <code>getAllWordForms("raich")</code> returns 4 forms instead of 6.</span></li><li><span>On the real Luxembourgish dictionary, at least 47,840 word forms of 13,526 distinct roots that native Hunspell 1.3.2 accepts are rejected by Lucene main, such as <code class='nw'>räichsten</code>, <code class='nw'>verstümmeltem</code> and <code class='nw'>Hälsercher</code>. A small fix at three sites makes Lucene accept them.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications using Lucene's opt-in Hunspell module (spell-checking, <code>HunspellStemFilter</code>, <code class='nw'>getAllWordForms</code>) with a dictionary whose twofold-suffix chains contain an <code class='nw'>N</code> class. Real Luxembourgish is hit on ordinary words: correct words are flagged and stay unstemmed, so searches for the root miss them. Silent and deterministic; Elasticsearch's and OpenSearch's <code class='nw'>hunspell</code> token filters wrap the same filter.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>689 words</span></summary><div class='body'><p>In a Hunspell <code class='nw'>.aff</code> file a suffix can carry a continuation class that allows a second suffix after it ("twofold suffix stripping"). Each affix class header also has a cross-product field, <code class='nw'>Y</code> or <code class='nw'>N</code>, which hunspell(5) defines as the "permission to combine prefixes and suffixes". Lucene also requires it for suffix + suffix: if either suffix class of a chain says <code class='nw'>N</code>, <code class='nw'>Hunspell.spell</code> rejects the word, <code class='nw'>getRoots</code>, <code>analyzeSimpleWord</code> and <code class='nw'>Stemmer</code> return no stem, <code>HunspellStemFilter</code> leaves the token unstemmed, and <code class='nw'>getAllWordForms</code> leaves the form out. Native Hunspell (1.3.2 and 1.7.2, in every Y/N variant tested) accepts these words. Three code sites carry the assumption (<code class='nw'>Stemmer.java:621</code>, <code class='nw'>Stemmer.java:564</code>, <code>WordFormGenerator.java:251</code> on main <code class='nw'>a9779ef3c193</code>). On the real Luxembourgish dictionary, from the collection Lucene's package docs point to, at least 47,840 word forms of 13,526 distinct roots that native Hunspell 1.3.2 accepts are rejected by Lucene main. All 18 releases tested from 3.5.0 to 10.5.2 fail, and the same gates are in every release since 3.5.0; nothing throws.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Affix class</strong>: a group of <code class='nw'>PFX</code> or <code class='nw'>SFX</code> rules under one flag. Its header line is <code>SFX &lt;flag&gt; &lt;cross product&gt; &lt;count&gt;</code>, for example <code>SFX E N 2</code>.</li><li><strong>Cross product</strong> (<code class='nw'>Y</code> or <code class='nw'>N</code>): hunspell(5) field (2), "Cross product (permission to combine prefixes and suffixes)" (Hunspell 1.7.2 <code>man/hunspell.5:522</code>).</li><li><strong>Continuation class</strong>: flags after a slash on a rule, <code>SFX S 0 st/E .</code>: a word that got <code class='nw'>st</code> may take a suffix of class E next. hunspell(5) calls this "Twofold suffix stripping" (<code class='nw'>:921</code>); its example is <code class='nw'>drink/X</code> with <code>SFX X 0 able/Y .</code> and <code>SFX Y 0 s .</code>, giving drink, drinkable, drinkables.</li><li><strong>Outer / inner suffix</strong> (Lucene's naming): the outer suffix is the last one applied and the first one stripped (<code class='nw'>en</code> in raich + st + en), the inner suffix the first one applied (<code class='nw'>st</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>Dictionary.java:685</code> parses the field per class (<code>crossProduct = args[2].equals("Y")</code>), <code class='nw'>:791</code> stores it with every rule and <code>isCrossProduct(affix)</code> reads it back (<code class='nw'>:812-814</code>).</li><li><strong>Outer suffix <code class='nw'>N</code>: no search for the inner suffix.</strong> <code>Stemmer.applyAffix</code> strips an affix, checks the stem, then decides whether to strip one more. The decision is gated on the affix just stripped: <code>if (dictionary.isCrossProduct(affix) &amp;&amp; recursionDepth &lt;= 1)</code> (<code class='nw'>Stemmer.java:621</code>); for a suffix it then looks for "another suffix" (<code class='nw'>:630-634</code>). With E = <code class='nw'>N</code>, after <code class='nw'>en</code> is stripped from <code class='nw'>raichsten</code>, the search for <code class='nw'>st</code> never starts.</li><li><strong>Inner suffix <code class='nw'>N</code>: the continuation check is never reached.</strong> <code>Stemmer.isAffixCompatible</code> accepts an inner suffix only inside <code>if (dictionary.isCrossProduct(affix)) { ... return dictionary.hasFlag(append, prevFlag); }</code> (<code class='nw'>:564-571</code>) and otherwise returns false (<code class='nw'>:573</code>). With S = <code class='nw'>N</code>: after <code class='nw'>en</code> is stripped, the intermediate <code class='nw'>raichst</code> is looked up (<code class='nw'>:262</code>) and is not an entry; then this check refuses to strip <code class='nw'>st</code> as the inner suffix, so the root <code class='nw'>raich</code> is never reached, although <code class='nw'>st/E</code> carries the continuation flag.</li><li><strong>The generator copies the rule.</strong> <code>WordFormGenerator.expand</code> recurses for a further affix only <code>if (dictionary.isCrossProduct(affix.id))</code> (<code>WordFormGenerator.java:251-253</code>), so <code class='nw'>getAllWordForms</code> omits the same forms.</li><li><strong>Native Hunspell</strong> checks cross product only when a prefix is combined: <code>SfxEntry::check_twosfx</code> skips an entry only <code>if ((optflags &amp; aeXPRODUCT) != 0 &amp;&amp; (opts &amp; aeXPRODUCT) == 0)</code> (Hunspell 1.7.2 <code class='nw'>affentry.cxx:712</code>, "if this suffix is being cross checked with a prefix"), and without a prefix it checks the inner suffix with optflags 0 (<code class='nw'>:753-755</code>). nuspell, an independent C++ implementation, does the same.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>With the hunspell(5) example, only X = <code class='nw'>Y</code>, Y = <code class='nw'>Y</code> accepts <code class='nw'>drinkables</code>; the other three Y/N combinations give <code>spell = false</code>, <code>roots = []</code> and <code>getAllWordForms("drink") = [drink, drinkable]</code>, while <code class='nw'>drinkable</code> stays accepted and <code class='nw'>drinks</code> rejected in all four. Native Hunspell 1.3.2 accepts <code class='nw'>drinkables</code> and stems it to <code class='nw'>drink</code> in all four. For prefix + suffix words Lucene already agrees with native Hunspell 1.3.2 on every Y/N combination of a 4-dictionary matrix with a prefix class (S and E each <code class='nw'>Y</code> or <code class='nw'>N</code>, the prefix class tied to S); only the suffix chains differ.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>299 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Users of <code class='nw'>Hunspell.spell</code>, <code class='nw'>suggest</code>, <code class='nw'>getRoots</code>, <code>analyzeSimpleWord</code>, <code>HunspellStemFilter</code> / <code>HunspellStemFilterFactory</code> and <code class='nw'>getAllWordForms</code> whose dictionary gives cross product <code class='nw'>N</code> to a class in a twofold-suffix chain. No setting beyond the dictionary; deterministic; assertions on or off.</li><li><strong>What goes wrong.</strong> No exception. Spell-checking flags correct words, and <code class='nw'>suggest</code> may offer a different word (<code>suggest("raichsten") = [raichen]</code> in the hunt's probe). Stemming returns nothing, so the stem filter indexes and queries the surface form: in an 8-document probe index a query for <code class='nw'>raich</code> found 4 of 6 forms, and a query for <code class='nw'>raichsten</code> only itself. Every hit set was a subset of the correct one. <code class='nw'>getAllWordForms</code> omits the forms.</li><li><strong>Scale on a real dictionary</strong> (Luxembourgish <code class='nw'>lb</code> from wooorm/dictionaries at <code class='nw'>8cfea406b505</code>, the commit Lucene's regression build pins). <code>generateAllSimpleWords</code> over every entry gives 293,583 distinct forms on stock and 341,573 with the fix, none lost. Of the letters-only added forms, 47,840 of 13,526 distinct roots are accepted by native Hunspell 1.3.2 (the observed <code>hunspell -l</code> result), rejected by stock Lucene and accepted with the fix: 36,137 lowercase (for example superlatives and participles with adjective endings: <code class='nw'>räichsten</code>, <code class='nw'>verstümmeltem</code>, <code>standardiséierten</code>) and 11,703 capitalised (for example diminutive and feminine plurals: <code class='nw'>Hälsercher</code>, <code class='nw'>Steenemerinne</code>). Native <code class='nw'>-m</code> output on the named forms shows two suffixes, for example <code>verstümmeltem  st:verstümmelen po:verb is:adjective is:papa is:em</code>; morphology was not run on all 47,840.</li><li><strong>Other dictionaries.</strong> A static survey of 191 public <code class='nw'>.aff</code> files found such chains in 8, among them <code class='nw'>lb</code>, <code class='nw'>hu_HU</code>, <code class='nw'>ta_IN</code>, <code class='nw'>is</code> and <code class='nw'>fa</code>; only <code class='nw'>lb</code> was executed. Lucene documents Hungarian as unsupported.</li><li><strong>Downstream.</strong> The <code class='nw'>hunspell</code> token filters of Elasticsearch and OpenSearch return Lucene's <code>HunspellStemFilter</code> (source read, not executed).</li><li><strong>Since.</strong> Every release with Lucene's Hunspell code: stemming since 3.5.0, <code class='nw'>Hunspell.spell</code> since 8.9.0, <code class='nw'>getAllWordForms</code> since 9.5.0.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit in <code>lucene/analysis/common</code>, public API only, on the hunspell(5) manual's own twofold example (drink, drinkable, drinkables). It varies the cross-product field of both suffix classes and checks <code class='nw'>spell</code>, <code class='nw'>getRoots</code> and <code class='nw'>getAllWordForms</code>, then runs <code>HunspellStemFilter</code> over the words. Both tests fail on stock main, with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestTwofoldSuffixWithoutCrossProduct.java (analysis-common, 2 tests)</span><span class='meta'>92 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.hunspell;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.TreeSet;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * Twofold suffix stripping with the example of the hunspell(5) manual: drink/X, where the suffix
+ * &quot;able&quot; (class X) has the continuation class Y, whose suffix is &quot;s&quot;. The manual defines the
+ * cross-product field of an affix class header as the &quot;permission to combine prefixes and
+ * suffixes&quot;. No prefix is involved here, so the field must not change the result.
+ */
+public class TestTwofoldSuffixWithoutCrossProduct extends BaseTokenStreamTestCase {
+
+  private static Dictionary dictionary(char crossX, char crossY) throws Exception {
+    String aff =
+        &quot;SET UTF-8\n&quot;
+            + &quot;\n&quot;
+            + &quot;SFX X &quot;
+            + crossX
+            + &quot; 1\n&quot;
+            + &quot;SFX X 0 able/Y .\n&quot;
+            + &quot;\n&quot;
+            + &quot;SFX Y &quot;
+            + crossY
+            + &quot; 1\n&quot;
+            + &quot;SFX Y 0 s .\n&quot;;
+    return new Dictionary(
+        new ByteBuffersDirectory(),
+        &quot;dict&quot;,
+        new ByteArrayInputStream(aff.getBytes(StandardCharsets.UTF_8)),
+        new ByteArrayInputStream(&quot;1\ndrink/X\n&quot;.getBytes(StandardCharsets.UTF_8)));
+  }
+
+  private static String observe(char crossX, char crossY) throws Exception {
+    Hunspell h = new Hunspell(dictionary(crossX, crossY));
+    // single suffix and the negative control behave the same in every variant
+    assertTrue(h.spell(&quot;drinkable&quot;));
+    assertFalse(h.spell(&quot;drinks&quot;)); // &quot;s&quot; is only allowed after &quot;able&quot;
+    TreeSet&lt;String&gt; forms = new TreeSet&lt;&gt;();
+    for (AffixedWord w : h.getAllWordForms(&quot;drink&quot;)) forms.add(w.getWord());
+    return &quot;X=&quot;
+        + crossX
+        + &quot; Y=&quot;
+        + crossY
+        + &quot;: spell=&quot;
+        + h.spell(&quot;drinkables&quot;)
+        + &quot; roots=&quot;
+        + h.getRoots(&quot;drinkables&quot;)
+        + &quot; forms=&quot;
+        + forms
+        + &quot;\n&quot;;
+  }
+
+  public void testCrossProductDoesNotGovernTwofoldSuffixes() throws Exception {
+    StringBuilder expected = new StringBuilder();
+    StringBuilder actual = new StringBuilder();
+    for (char x : new char[] {&#x27;Y&#x27;, &#x27;N&#x27;}) {
+      for (char y : new char[] {&#x27;Y&#x27;, &#x27;N&#x27;}) {
+        expected.append(&quot;X=&quot; + x + &quot; Y=&quot; + y);
+        expected.append(&quot;: spell=true roots=[drink] forms=[drink, drinkable, drinkables]\n&quot;);
+        actual.append(observe(x, y));
+      }
+    }
+    assertEquals(expected.toString(), actual.toString());
+  }
+
+  public void testStemFilterLeavesTwofoldWordUnstemmed() throws Exception {
+    HunspellStemFilter filter =
+        new HunspellStemFilter(
+            whitespaceMockTokenizer(&quot;drink drinkable drinkables&quot;), dictionary(&#x27;Y&#x27;, &#x27;N&#x27;));
+    assertTokenStreamContents(filter, new String[] {&quot;drink&quot;, &quot;drink&quot;, &quot;drink&quot;});
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.hunspell.TestTwofoldSuffixWithoutCrossProduct -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>drinkables</code> is accepted with root <code class='nw'>drink</code> and generated by <code class='nw'>getAllWordForms</code> for every Y/N combination, and the stem filter emits <code>drink drink drink</code>.</dd></div><div class='got'><dt>Observed</dt><dd>Only X = <code class='nw'>Y</code>, Y = <code class='nw'>Y</code> works; the other three give <code>spell=false roots=[] forms=[drink, drinkable]</code>, and the stem filter emits <code>drink drink drinkables</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-641/'>repro/LFV-641/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (160 lines) · 1,111 words</span></summary><div class='body'><p><code>TestTwofoldSuffixWithoutCrossProduct</code> (package <code>org.apache.lucene.analysis.hunspell</code>, public API only: <code class='nw'>Dictionary</code>, <code class='nw'>Hunspell.spell</code> / <code class='nw'>getRoots</code> / <code class='nw'>getAllWordForms</code>, <code>HunspellStemFilter</code>; passes <code>checkGoogleJavaFormat</code> and <code class='nw'>forbiddenApis</code>). The dictionary is the manual's example, <code>SFX X &lt;Y|N&gt; 1</code> / <code>SFX X 0 able/Y .</code>, <code>SFX Y &lt;Y|N&gt; 1</code> / <code>SFX Y 0 s .</code> and <code class='nw'>drink/X</code>, built in memory.</p><ul><li><code>testCrossProductDoesNotGovernTwofoldSuffixes</code>: for all four Y/N combinations, <code class='nw'>drinkable</code> must be accepted and <code class='nw'>drinks</code> rejected (controls, they pass), and <code class='nw'>drinkables</code> must be accepted with root <code class='nw'>drink</code> and listed by <code>getAllWordForms("drink")</code>. The test compares one line per combination, so the failure shows the whole matrix.</li><li><code>testStemFilterLeavesTwofoldWordUnstemmed</code>: <code>HunspellStemFilter</code> over "drink drinkable drinkables" with Y = <code class='nw'>N</code> must emit <code>drink drink drink</code>.</li></ul><p>It compiles from 9.5.0 on (<code class='nw'>getAllWordForms</code> appeared there). Through the hunt's classpath runner it fails with identical messages on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2, 9.12.3 and 9.5.0. The hunt's other tests (the <code class='nw'>raich/SE</code> example of the diagram and the independent reproducer's <code class='nw'>Stemmer.stem</code> test) are attached below.</p><div class="hd hd-3"><h3 id='code-2-h'>TestTwofoldSuffixCrossProduct.java (the finder&#x27;s raich/SE test, as in the diagram)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p><code>SFX S Y 1</code> / <code>SFX S 0 st/E .</code>, <code>SFX E N 2</code> (<code class='nw'>en</code>, <code class='nw'>e</code>), <code class='nw'>raich/SE</code>; a Y control first. Fails with "twofold suffix raich+st+en" on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2, 10.0.0, 9.12.3 and 9.5.0.</p><figure class='code'><figcaption><span class='fname'>TestTwofoldSuffixCrossProduct.java (the finder&#x27;s raich/SE test, as in the diagram)</span><span class='meta'>60 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>package org.apache.lucene.analysis.hunspell;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Twofold suffixes (a suffix whose continuation class allows a second suffix) are rejected when one of
+ * the two suffix classes has cross product N, although cross product is documented as the
+ * &quot;permission to combine prefixes and suffixes&quot; and no prefix is involved. Public API only.
+ */
+public class TestTwofoldSuffixCrossProduct extends LuceneTestCase {
+
+  private static Hunspell load(String aff, String dic) throws Exception {
+    Dictionary d =
+        new Dictionary(
+            new ByteBuffersDirectory(),
+            &quot;dict&quot;,
+            new ByteArrayInputStream(aff.getBytes(StandardCharsets.UTF_8)),
+            new ByteArrayInputStream(dic.getBytes(StandardCharsets.UTF_8)));
+    return new Hunspell(d);
+  }
+
+  private static String aff(char crossProductOfEndings) {
+    // superlative suffix &quot;st&quot; whose continuation class E allows the adjective endings
+    return &quot;&quot;&quot;
+        SET UTF-8
+
+        SFX S Y 1
+        SFX S 0 st/E .
+
+        SFX E %s 2
+        SFX E 0 en .
+        SFX E 0 e .
+        &quot;&quot;&quot;
+        .formatted(crossProductOfEndings);
+  }
+
+  public void testTwofoldSuffixWithoutCrossProduct() throws Exception {
+    // Control: with cross product Y on both classes, the twofold forms are accepted.
+    Hunspell y = load(aff(&#x27;Y&#x27;), &quot;1\nraich/SE\n&quot;);
+    assertTrue(y.spell(&quot;raichsten&quot;));
+    assertTrue(y.spell(&quot;raichste&quot;));
+
+    // The same dictionary with cross product N on the endings class: no prefix exists at all.
+    Hunspell n = load(aff(&#x27;N&#x27;), &quot;1\nraich/SE\n&quot;);
+    assertTrue(n.spell(&quot;raich&quot;));
+    assertTrue(n.spell(&quot;raichst&quot;));
+    assertTrue(n.spell(&quot;raichen&quot;));
+    assertTrue(&quot;twofold suffix raich+st+en&quot;, n.spell(&quot;raichsten&quot;));
+    assertTrue(&quot;twofold suffix raich+st+e&quot;, n.spell(&quot;raichste&quot;));
+
+    Set&lt;String&gt; forms = new TreeSet&lt;&gt;();
+    for (AffixedWord w : n.getAllWordForms(&quot;raich&quot;)) forms.add(w.getWord());
+    assertEquals(Set.of(&quot;raich&quot;, &quot;raichst&quot;, &quot;raichen&quot;, &quot;raiche&quot;, &quot;raichsten&quot;, &quot;raichste&quot;), forms);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestTwofoldSuffixCrossProductV1.java (independent reproducer, Stemmer.stem)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>The manual's example with <code class='nw'>Stemmer.stem</code> (package-private, same package): 4 run, 3 failed on main, 10.5.2, 9.12.3, 9.4.2 and (stem-only variant) 8.11.2.</p><figure class='code'><figcaption><span class='fname'>TestTwofoldSuffixCrossProductV1.java (independent reproducer, Stemmer.stem)</span><span class='meta'>100 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>package org.apache.lucene.analysis.hunspell;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.CharsRef;
+
+/**
+ * Twofold suffix stripping, using the example of the hunspell(5) manual (&quot;Twofold suffix
+ * stripping&quot;): the suffix &quot;able&quot; (class X) has the continuation class Y, whose suffix is &quot;s&quot;, so
+ * drink/X yields drink, drinkable and drinkables.
+ *
+ * &lt;p&gt;hunspell(5) defines the second field of an affix class header as &quot;Cross product (permission
+ * to combine prefixes and suffixes)&quot;. This test varies that field for X and Y. No prefix is
+ * involved, so the expected forms are the same for every combination. Uses public API only
+ * (Dictionary, Hunspell.spell, Stemmer.stem).
+ */
+public class TestTwofoldSuffixCrossProductV1 extends LuceneTestCase {
+
+  private static Dictionary dictionary(char crossX, char crossY) throws Exception {
+    String aff =
+        &quot;SET UTF-8\n&quot;
+            + &quot;\n&quot;
+            + &quot;SFX Y &quot;
+            + crossY
+            + &quot; 1\n&quot;
+            + &quot;SFX Y 0 s .\n&quot;
+            + &quot;\n&quot;
+            + &quot;SFX X &quot;
+            + crossX
+            + &quot; 1\n&quot;
+            + &quot;SFX X 0 able/Y .\n&quot;;
+    String dic = &quot;1\ndrink/X\n&quot;;
+    try (InputStream a = new ByteArrayInputStream(aff.getBytes(StandardCharsets.UTF_8));
+        InputStream d = new ByteArrayInputStream(dic.getBytes(StandardCharsets.UTF_8))) {
+      return new Dictionary(new ByteBuffersDirectory(), &quot;twofold&quot;, a, d);
+    }
+  }
+
+  private static List&lt;String&gt; stems(Dictionary dic, String word) {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (CharsRef s : new Stemmer(dic).stem(word)) out.add(s.toString());
+    return out;
+  }
+
+  private static String observe(char crossX, char crossY) throws Exception {
+    Dictionary dic = dictionary(crossX, crossY);
+    Hunspell h = new Hunspell(dic);
+    return &quot;X=&quot;
+        + crossX
+        + &quot; Y=&quot;
+        + crossY
+        + &quot;: spell(drinkable)=&quot;
+        + h.spell(&quot;drinkable&quot;)
+        + &quot; spell(drinkables)=&quot;
+        + h.spell(&quot;drinkables&quot;)
+        + &quot; spell(drinks)=&quot;
+        + h.spell(&quot;drinks&quot;)
+        + &quot; stem(drinkables)=&quot;
+        + stems(dic, &quot;drinkables&quot;);
+  }
+
+  private static void check(char crossX, char crossY) throws Exception {
+    Dictionary dic = dictionary(crossX, crossY);
+    Hunspell h = new Hunspell(dic);
+    String obs = observe(crossX, crossY);
+    System.out.println(&quot;OBS &quot; + obs);
+    // single suffix and the negative control behave the same in every variant
+    assertTrue(obs, h.spell(&quot;drink&quot;));
+    assertTrue(obs, h.spell(&quot;drinkable&quot;));
+    assertFalse(obs, h.spell(&quot;drinks&quot;)); // &quot;s&quot; is only allowed after &quot;able&quot;
+    // twofold suffix: drink + able + s
+    assertTrue(&quot;twofold suffix not accepted; &quot; + obs, h.spell(&quot;drinkables&quot;));
+    assertEquals(&quot;twofold suffix not stemmed; &quot; + obs, List.of(&quot;drink&quot;), stems(dic, &quot;drinkables&quot;));
+  }
+
+  /** Control: the manual&#x27;s own example (both classes Y). Expected to pass. */
+  public void testBothCrossProductYes() throws Exception {
+    check(&#x27;Y&#x27;, &#x27;Y&#x27;);
+  }
+
+  /** Outer (last-applied) suffix class Y has cross product N. */
+  public void testOuterSuffixCrossProductNo() throws Exception {
+    check(&#x27;Y&#x27;, &#x27;N&#x27;);
+  }
+
+  /** Inner (first-applied) suffix class X has cross product N. */
+  public void testInnerSuffixCrossProductNo() throws Exception {
+    check(&#x27;N&#x27;, &#x27;Y&#x27;);
+  }
+
+  /** Both classes have cross product N. */
+  public void testBothCrossProductNo() throws Exception {
+    check(&#x27;N&#x27;, &#x27;N&#x27;);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle, clean worktree): affected; through a classpath runner also 10.5.2, 9.12.3 and 9.5.0; version-portable probes fail on 18 releases from 3.5.0 to 10.5.2</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE    # apache/lucene at a9779ef3c193 (main, 10.x or 9.5.0+)
+cp $REPRO/TestTwofoldSuffixWithoutCrossProduct.java lucene/analysis/common/src/test/org/apache/lucene/analysis/hunspell/
+./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.hunspell.TestTwofoldSuffixWithoutCrossProduct -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# with -Ptests.asserts=false: the same 2 failures (without the flag the build picks the mode from the seed; DEADBEEF picks false)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF, -Ptests.asserts=true (=false: the same 2 failures)
+TestTwofoldSuffixWithoutCrossProduct &gt; testStemFilterLeavesTwofoldWordUnstemmed FAILED
+    org.junit.ComparisonFailure: term 2 expected:&lt;drink[]&gt; but was:&lt;drink[ables]&gt;
+
+TestTwofoldSuffixWithoutCrossProduct &gt; testCrossProductDoesNotGovernTwofoldSuffixes FAILED
+    org.junit.ComparisonFailure: expected:&lt;...les]
+    X=Y Y=N: spell=[true roots=[drink] forms=[drink, drinkable, drinkables]
+    X=N Y=Y: spell=true roots=[drink] forms=[drink, drinkable, drinkables]
+    X=N Y=N: spell=true roots=[drink] forms=[drink, drinkable, drinkables]]
+    &gt; but was:&lt;...les]
+    X=Y Y=N: spell=[false roots=[] forms=[drink, drinkable]
+    X=N Y=Y: spell=false roots=[] forms=[drink, drinkable]
+    X=N Y=N: spell=false roots=[] forms=[drink, drinkable]]
+    &gt;
+2 tests completed, 2 failed
+
+# JUnit elides the common first line, X=Y Y=Y: spell=true roots=[drink] forms=[drink, drinkable, drinkables]
+
+# real Luxembourgish dictionary, stock main: spell / getRoots
+räich      true   [räich]       räichsten  false  []
+räichst    true   [räich]       räichste   false  []
+räichen    true   [räich]       räichstem  false  []
+                                räichster  false  []
+# native Hunspell 1.3.2 -m: räichsten  st:räich po:adjective is:superlative is:en</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>hunspell(5) defines the field as "permission to combine prefixes and suffixes"; native Hunspell and nuspell check it only when a prefix is involved.</li><li>Lucene claims native behaviour: <code class='nw'>Hunspell</code> "can be used in place of native Hunspell"; LUCENE-5483 says recursion is "driven correctly by continuation classes".</li><li>No test or comment found says <code class='nw'>N</code> blocks suffix chains; all twofold fixtures use <code class='nw'>Y</code>.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>288 words</span></summary><div class='body'><ul><li><strong>The format's contract.</strong> hunspell(5) (Hunspell 1.7.2 <code>man/hunspell.5:522</code>): "(2) Cross product (permission to combine prefixes and suffixes). Possible values: Y (yes) or N (no)". Its "Twofold suffix stripping" section (<code class='nw'>:921-962</code>) ties the second suffix to the continuation class only. A native maintainer restated the rule on hunspell/hunspell#177 (2026): "A prefix and a suffix are only combined on the same word when both the prefix rule and the suffix rule are marked with the cross-product flag Y."</li><li><strong>Lucene claims that behaviour.</strong> <code class='nw'>Hunspell</code> javadoc: "can be used in place of native Hunspell for many languages" (<code>Hunspell.java:34-37</code>; the listed exceptions are Hungarian, non-BMP characters and PHONE). <code class='nw'>Stemmer</code> javadoc: "conforms to the algorithm in the original hunspell algorithm, including recursive suffix stripping" (<code>Stemmer.java:28-32</code>). CHANGES for LUCENE-5483 (4.8.0): "Multi-stage affix-stripping, prefix-suffix dependencies, and COMPLEXPREFIXES now work correctly according to the hunspell algorithm ... rules for recursive affix application are driven correctly by continuation classes in the affix file" (<code>lucene/CHANGES.txt:12545-12549</code>); its issue #6546 "greatly refined this algorithm to match correct hunspell behavior".</li><li><strong>No source we found documents the rule.</strong> The searches found no test, comment, CHANGES entry, issue or commit message saying <code class='nw'>N</code> blocks suffix chains; no commit message in the full history contains "cross product" or "twofold".</li><li><strong>Why tests never caught it.</strong> 12 of Lucene's 97 test <code class='nw'>.aff</code> files chain two suffixes (<code class='nw'>twofold.aff</code>, the manual's example in <code class='nw'>TestTwoFold</code>, and <code class='nw'>dependencies.aff</code>, <code class='nw'>compress.aff</code>, <code class='nw'>needaffix5.aff</code> and others), all with <code class='nw'>Y</code> on both classes; no Lucene fixture and no Hunspell 1.7.2 test fixture puts an <code class='nw'>N</code> class in a continuation chain.</li><li><strong>Asymmetry.</strong> For prefix + suffix words Lucene already applies the cross-product rule exactly as native Hunspell does; only suffix + suffix uses it.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>229 words</span></summary><div class='body'><p>The strongest case for "intended": the gate is deliberate code from the very first Lucene Hunspell port (2011), LUCENE-5483 (2014) added the inner check, LUCENE-10626 (2022) copied it into the generator, every manual example uses <code class='nw'>Y</code>, the <code class='nw'>Hunspell</code> javadoc says not all languages are supported, and in 2012 the original author wrote on LUCENE-4311 (#5379) that "our implementation of Hunspell is not a port of the C/C++ app per se". So it could be read as a conservative supported subset.</p><p>Why it fails: no source gives a reason for the gate; the later, explicit intent (LUCENE-5483's issue and CHANGES entry, the <code class='nw'>Hunspell</code> and <code class='nw'>Stemmer</code> javadocs, LUCENE-9687 "on a par with the native C++ Hunspell") is native compatibility; the unsupported-language list is about language-specific logic, while this is generic affix semantics shown by a six-line dictionary; and keeping <code class='nw'>drinkable</code> but dropping <code class='nw'>drinkables</code> only because an unrelated flag says <code class='nw'>N</code> is not a coherent subset. The cross-model reviewer rated the argument moderate in a lens and weak in the other; the independent reproducer and the devil's-advocate check rated it weak, and the adjudication found that none of the intended-behaviour arguments holds. <strong>Verdict: a defect.</strong> <code>WordFormGenerator</code> is the same misreading in a second place, not a separate defect; its javadoc promises "all word forms for all dictionary entries with the given root word" (<code>WordFormGenerator.java:117</code>), which the omission also contradicts.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Use cross product only when a prefix is combined (suffix chains need only the continuation class)</strong></p><p class='short'>Check cross product only when a prefix is combined: keep the <code>Stemmer.applyAffix</code> gate for prefixes only, accept an inner suffix in <code>isAffixCompatible</code> by its continuation flag (plus cross product after a prefix), and let <code>WordFormGenerator</code> recurse after affixes with continuation flags. Validated: the repro passes; analysis-common: 1,911 tests, 0 failures, 18 skipped. Analysis output changes, so affected indexes need reindexing.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 771 words</span></summary><div class='body'><p>One fix (A) was applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle; it was also shadowed onto the stock jars for the hunt's tests and the real-dictionary probe. The finder's broader sketch (B) was run on the same tests for comparison.</p><div class="hd hd-3"><h3 id='fix-suffix-chains-only'>Use cross product only when a prefix is combined (suffix chains need only the continuation class) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-suffix-chains-only" target="_self" aria-label="Link to this section" aria-describedby="fix-suffix-chains-only"><span aria-hidden="true">#</span></a></div><p>Two files, +13/-9. After a suffix Lucene only ever looks for another suffix, never a prefix (<code>Stemmer.java:630-647</code>), so dropping the gate for suffixes changes only suffix chains. A suffix after a prefix still needs <code class='nw'>Y</code> on both (unchanged), and a prefix + suffix + suffix chain keeps the check on the inner suffix. The generator keeps a form only if Lucene's (fixed) stemmer stems it back to the entry (<code>canStemToOriginal</code>, <code>WordFormGenerator.java:248</code>), a Lucene self-check, not a comparison with native Hunspell.</p><pre class='snippet' tabindex='0'><code>--- Stemmer.isAffixCompatible (Stemmer.java:564)
+-    if (dictionary.isCrossProduct(affix)) {
+-      if (previousWasPrefix) return true;
+-      if (outerSuffix &gt;= 0) {
+-        char prevFlag = dictionary.affixData(outerSuffix, Dictionary.AFFIX_FLAG);
+-        return dictionary.hasFlag(append, prevFlag);
+-      }
++    if (previousWasPrefix) return dictionary.isCrossProduct(affix);
++    if (outerSuffix &gt;= 0) {
++      char prevFlag = dictionary.affixData(outerSuffix, Dictionary.AFFIX_FLAG);
++      return dictionary.hasFlag(append, prevFlag)
++          &amp;&amp; (outerPrefix &lt; 0 || dictionary.isCrossProduct(affix));
+     }
+--- Stemmer.applyAffix (Stemmer.java:621)
+-    if (dictionary.isCrossProduct(affix) &amp;&amp; recursionDepth &lt;= 1) {
++    if ((!prefix || dictionary.isCrossProduct(affix)) &amp;&amp; recursionDepth &lt;= 1) {
+--- WordFormGenerator.expand (WordFormGenerator.java:251)
+-            if (dictionary.isCrossProduct(affix.id)) {
++            if (dictionary.isCrossProduct(affix.id) || append.length &gt; 0) {</code></pre><p class='k'>Trade-offs</p><ul><li>Bounded extra work: suffix recursion still stops at two suffixes, and the generator at two affixes of a kind (<code>WordFormGenerator.java:376</code>).</li><li>It leaves the mirror case unchanged: under COMPLEXPREFIXES, two prefixes whose classes say <code class='nw'>N</code> (<code class='nw'>reunfoo</code>) are accepted by native Hunspell and rejected by Lucene with or without this fix. That path is entangled with a separate prefix-recursion bug (option B) and is better fixed on its own.</li><li>Compatibility: the fix changes analysis output. <code>HunspellStemFilter</code> now stems the affected words, so an index built before the fix keeps their surface forms and needs reindexing to match the fixed query-time analysis. A Lucene-only dictionary that relied on <code class='nw'>N</code> to block a suffix chain (nonportable: native Hunspell ignores it there) would accept more words, and <code class='nw'>getAllWordForms</code> returns more forms (on Luxembourgish 341,573 instead of 293,583); no benchmark was run.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock main <code class='nw'>a9779ef3c193</code>, gradle: the repro fails 2 of 2 with assertions on and off.</li><li>With the fix, gradle: the repro passes with assertions off; the whole <code>lucene/analysis/common</code> test task with assertions on, repro included, runs 340 classes, 1,911 tests, 0 failures, 18 skipped (the hunspell package: 47 classes, 160 tests, 13 skipped, because <code>TestAllDictionaries</code>, <code>TestHunspellRepositoryTestCases</code> and <code class='nw'>TestPerformance</code> need external dictionaries). <code class='nw'>ecjLint</code>, <code>checkGoogleJavaFormat</code> and <code class='nw'>forbiddenApis</code> pass with the test in place; both diffs apply cleanly to <code class='nw'>a9779ef3c193</code>.</li><li>With the fix shadowed onto the stock jars: the finder's test, the independent reproducer's spell/stem and generator tests (4 of 4 each), the cross-model review's 4-dictionary prefix/suffix matrix (prefix + suffix results unchanged, now equal to native everywhere), the cross-model reviewers' tests (6 of 6, 2 of 2), and the hunt's security probe (no query loses hits; its COMPLEXPREFIXES <code class='nw'>N</code> dictionary still does not overflow, as on stock, while its <code class='nw'>Y</code> dictionary still overflows for <code class='nw'>bx</code> and <code class='nw'>bbx</code>, as on stock: that is the separate LFV-375).</li><li>Real dictionary: on Luxembourgish the generator adds 47,990 forms and loses none; <code class='nw'>spell</code> accepts all but 36 of them (hyphenated or special forms).</li><li>Not run: the full Lucene suite, the external-dictionary suites, a benchmark.</li></ul><div class="hd hd-3"><h3 id='fix-drop-gate-everywhere'>Drop the cross-product gate for prefixes too (the finder's sketch; not alone)</h3><a class="hlink" href="#fix-drop-gate-everywhere" target="_self" aria-label="Link to this section" aria-describedby="fix-drop-gate-everywhere"><span aria-hidden="true">#</span></a></div><p>Also lets a second prefix under COMPLEXPREFIXES combine without cross product, which fixes the mirror case (<code class='nw'>reunfoo</code> accepted). It passes the repro and, by the finder's run, the 146 hunspell tests of the time.</p><p class='k'>Trade-offs</p><p>Alone it lets a separate known bug, the COMPLEXPREFIXES third-prefix recursion that ends in <code>StackOverflowError</code> (registry LFV-375), reach dictionaries whose chained prefix classes say <code class='nw'>N</code>, which today are immune: in the hunt's security probe the COMPLEXPREFIXES dictionary with <code class='nw'>N</code> overflows for <code class='nw'>bx</code> with B, and not with A or on stock. In the finder's differential, words Lucene accepts and native rejects went from 49 to 96, all new ones under COMPLEXPREFIXES. Only safe together with or after the LFV-375 fix (<code>doPrefix = false</code> at <code class='nw'>Stemmer.java:640</code>) and the sibling second-prefix continuation fix.</p><div class="hd hd-3"><h3 id='fix-document'>Document the restriction instead</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>State in the <code class='nw'>Hunspell</code> javadoc that suffix chains need cross product <code class='nw'>Y</code>.</p><p class='k'>Trade-offs</p><p>Contradicts hunspell(5) and the class's "in place of native Hunspell" claim, and leaves real dictionaries such as Luxembourgish broken.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Elasticsearch and OpenSearch build their <code class='nw'>hunspell</code> token filter on Lucene's <code>HunspellStemFilter</code> (source read, not executed), so their users of dictionaries with this shape get the same missed stems; the effect is lower recall only.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Differential testing of Lucene's Hunspell code against native Hunspell 1.7.2 on 4,000 generated micro-dictionaries and 1,069 fixture cases; with the finder's fix (option B) alone, the words native accepts and Lucene rejects fell from 202 to 24. A public-API JUnit then reproduced it on the stock jar.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>190 words</span></summary><div class='body'><p><strong>Method: cross-implementation differential testing</strong> (the hunt's non-formal tier), in a hunt unit comparing Lucene's word-form generator, <code class='nw'>spell</code> and <code>analyzeSimpleWord</code> with native Hunspell 1.7.2 (<code class='nw'>libhunspell</code> spell and stem) and the hunspell-tools <code class='nw'>unmunch</code>/<code class='nw'>munch</code>.</p><ul><li>Inputs: 4,000 seeded, grammar-built micro-dictionaries (per dictionary every candidate word reachable by at most 3 affix rules) and 1,069 per-root cases from the Hunspell 1.7.2 and Lucene test fixtures.</li><li>Root causes were separated with switchable shadow fixes: with the finder's fix for this bug (option B) alone, words native accepts and Lucene rejects fell from 202 to 24 (the rest are other causes or native deviations from hunspell(5)).</li><li>The finder then wrote a public-API JUnit (<code class='nw'>raich/SE</code>) that fails on the stock jar, found the real Luxembourgish case and checked native Hunspell on it.</li><li>Found 2026-10-27 on main <code class='nw'>a9779ef3c193</code>; then checked by an independent reproducer, an intended-behaviour devil's advocate, two executed reviews by a model from another family (OpenAI GPT-5.6), a re-run of the intended lens, an adjudication, a history and prior-report follow-up, a security screen and a credibility audit. This doc added the gradle runs, the fix validation and the Luxembourgish count.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): three runs of 45 queries over GitHub, the lists and JIRA, 30 manual searches, all 179 hunspell-titled issues and PRs, downstream projects, native Hunspell and nuspell, and the changed files of all 409 open PRs. Nothing upstream fixes it.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: no report by anyone, none by the owner. Keyword search cannot prove absence, and private channels cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; downstream repositories; Lucene, Solr and OpenNLP lists; JIRA</th><td class='when'>2026-10-27</td><td>a scripted prior-report search, three query variants (classes and terms; symptoms; generator side), 45 queries each</td><td>no report; closest: #6546, #6547, #5379, #11662, #10727, #10838, #10842</td></tr><tr><th scope='row'>apache/lucene (GitHub)</th><td class='when'>2026-10-27</td><td>30 manual searches; titles of all 179 items with "hunspell" in the title; the 98 sub-tasks of #10726; changed files of all 409 open PRs</td><td>no report; only #16422 (directive-parsing refactor) and #16911 (branch decommission) touch hunspell files</td></tr><tr><th scope='row'>Elasticsearch, OpenSearch, Solr, Lucene.NET, hunspell/hunspell, nuspell, Luxembourgish dictionary repositories, all of GitHub</th><td class='when'>2026-10-27</td><td>47 searches</td><td>no Lucene report; hunspell/hunspell#177 states the native rule</td></tr><tr><th scope='row'>JIRA, lists.apache.org, the web</th><td class='when'>2026-10-27</td><td>15 JIRA queries, 72 list queries, 7 web queries</td><td>nothing about Lucene</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since Lucene's first Hunspell code, LUCENE-3414 (<code class='nw'>e3172b9239c</code>, 2011; first release 3.5.0); LUCENE-5483 added the inner check in 4.8.0 and LUCENE-10626 copied the rule into the generator in 9.5.0. Probes fail on 18 releases from 3.5.0 to 10.5.2 and on main. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>9 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>e3172b9239c</code> on trunk, LUCENE-3414 "Added Hunspell for Lucene" (2011-09-10, svn r1167467; JIRA migrated as #4487), backported to branch_3x as <code class='nw'>1e084f1d08e</code> the same day: <code>HunspellStemmer.applyAffix</code> recursed only <code>if (affix.isCrossProduct() &amp;&amp; recursionDepth &lt; RECURSION_CAP)</code>, today's <code class='nw'>Stemmer.java:621</code>. <strong>Widened by</strong> <code class='nw'>56babb83687</code> (LUCENE-5483 "fix hunspell inaccuracies", #6546, 2014-03-02; branch_4x <code class='nw'>040cf121458</code>; 4.8.0), which added the inner-suffix check that is today's <code>isAffixCompatible</code> condition; before it, the inner-<code class='nw'>N</code> case passed only because continuation classes were not checked at all. <strong>Copied by</strong> <code class='nw'>d537013e708</code> (LUCENE-10626, PR #975, 2022-07-05; branch_9x <code class='nw'>3b763af12f5</code>; 9.5.0) into <code>WordFormGenerator.expand</code>. Refactors since (LUCENE-4542, LUCENE-5468, LUCENE-9671, LUCENE-9685, LUCENE-9748) kept the gates; <code class='nw'>branch_10x</code>, <code class='nw'>branch_10_6</code> and upstream main <code class='nw'>a95c754ee003</code> have the same lines.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the compact JUnit fails 2 of 2 through gradle, assertions on and off; the finder's, the reproducer's and the reviewers' tests fail with -ea and -da</td></tr><tr><th scope='row'>10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>spell, stem and getAllWordForms fail; the compact JUnit fails 2 of 2 on 10.5.2</td></tr><tr><th scope='row'>9.5.0, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> generator from 9.5.0</span></td><td>spell, stem and getAllWordForms fail; the compact JUnit fails 2 of 2 on 9.5.0 and 9.12.3</td></tr><tr><th scope='row'>8.9.0, 8.11.4, 9.0.0, 9.4.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> spell from 8.9.0</span></td><td>spell and stem fail; no getAllWordForms yet</td></tr><tr><th scope='row'>4.8.0, 4.10.4, 5.5.5, 6.0.0, 6.6.6, 7.7.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>stemming fails for outer N and inner N</td></tr><tr><th scope='row'>3.5.0, 3.6.2, 4.0.0, 4.7.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release</span></td><td>stemming fails for outer N; inner N passes only because continuation classes were not checked</td></tr><tr><th scope='row'>4.8.0 + hunspell package at <code class='nw'>040cf121458^</code> vs <code class='nw'>040cf121458</code> (LUCENE-5483)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> commit A/B</span></td><td>only the inner-N case flips</td></tr><tr><th scope='row'>3.4.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no Hunspell code</span></td><td>the probe does not compile</td></tr><tr><th scope='row'>main + fix A</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro passes; analysis-common: 1,911 tests, 0 failures (18 skipped); Luxembourgish forms accepted</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and an intended-behaviour devil's advocate reproduced it with their own tests and real Luxembourgish words; two executed reviews by a model from another family (OpenAI GPT-5.6) rated it real; an adjudication re-ran it; this doc's gradle runs reproduce it on <code class='nw'>a9779ef3c193</code> and validate the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>379 words</span></summary><div class='body'><p>Every executing check wrote or re-ran its own JUnit on stock main; every control passed, and native Hunspell accepted the words in every check that ran it.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Differential against native Hunspell 1.7.2, then the <code class='nw'>raich/SE</code> JUnit: fails on main (-ea, -da), 10.5.2 and 9.12.3; native accepts with N and Y; the fix sketch passes.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high; intended argument weak</span></td><td>Own spell and generation tests fail 2 of 3 each with -ea and -da; Y/Y controls pass; native Hunspell 1.3.2 accepts for YY, YN and NY.</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high; intended argument moderate</span></td><td>Own test fails on main, 10.5.2 and 9.12.3; its prefix + suffix control passes. Rated the 'deliberate subset' reading moderate, then rejected it: nothing documents N as blocking suffix chains.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>The hunspell(5) drinkables example: 3 of 4 combinations fail on main (-ea, -da), 10.5.2, 9.12.3, 9.4.2, 8.11.2; real Luxembourgish words rejected; its probe patch shows all three sites must change.</td></tr><tr><th scope='row'>intended-lens re-run</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced</span></td><td>Re-ran the intended-lens test on a9779ef3c193 and built a 4-dictionary Y/N matrix with a prefix class: Lucene matches native Hunspell 1.3.2 on every prefix + suffix word and differs only on the twofold words.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Lucene needs Y on both classes, native 1.7.2 on neither; real Luxembourgish in both engines; no Lucene or Hunspell fixture combines N with a continuation chain; rebutted the 'not a port' and 'examples use Y' arguments.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's test (4 run, 3 failed, -ea and -da) and the finder's test; native 1.3.2 accepts all four combinations.</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's test and its own drinkables matrix with an <code class='nw'>N</code> prefix control on main (-ea, -da) and 10.5.2: only Y/Y works, the prefix control is rejected as it should be; native Hunspell 1.3.2 accepts all four.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Compact JUnit fails 2 of 2 through gradle on stock (asserts on and off) and passes with fix A; the analysis-common test task runs 1,911 tests, 0 failures (18 skipped); Luxembourgish count 47,840 forms; the fix does not make the COMPLEXPREFIXES N dictionary overflow.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-641/bug.png' download='hunspell-twofold-suffix-requires-cross-product-bug.png' target='_self'>PNG</a> <span class='n'>507 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,591 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-641, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Hunspell rejects, cannot stem and does not generate twofold-suffix words (a second suffix allowed by the first suffix's continuation class) when either suffix class has cross product N, although cross product only governs prefix+suffix combinations: with 'SFX S 0 st/E', 'SFX E N 2' (en, e) and raich/SE, spell("raichsten") is false; the real Luxembourgish dictionary rejects räichsten</dd></div><div><dt>Area</dt><dd>analysis / hunspell (Stemmer affix stripping: Hunspell.spell, getRoots, analyzeSimpleWord, Stemmer.stem, HunspellStemFilter; WordFormGenerator.getAllWordForms)</dd></div><div><dt>Priority</dt><dd>Medium, rank 314: Since 3.5, Hunspell spell and stemming silently fail on ordinary twofold-suffix words in a real public dictionary (Luxembourgish), which changes index-time stemming and recall, but only a few dictionaries have this shape, so it ends the narrow silent-result Medium rows after LFV-479.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Only applications that use the opt-in Hunspell analysis (Hunspell.spell, getRoots and analyzeSimpleWord, Stemmer.stem and HunspellStemFilter, and the getAllWordForms tooling) with a dictionary in which a suffix class of a twofold-suffix chain has cross product N are hit: valid twofold-suffix words are reported as misspelled, get no stems (HunspellStemFilter passes them through unstemmed, so a search for the root misses them) and are missing from getAllWordForms, with no error [exec]; no scale is needed; the real Luxembourgish dictionary (lb, from the dictionary collection at the commit Lucene's regression build pins) triggers it on ordinary superlatives such as räichsten, räichste, räichstem and räichster [exec, the independent reproduction and the intended-behaviour check]; the finder's static survey of 191 public .aff files found such chains in 8 files (among them lb, hu_HU, ta_IN, is and fa; only lb was executed, and Lucene documents Hungarian as unsupported); every release with Lucene's Hunspell code, 3.5.0 to 10.5.2, has it [exec].</dd></div><div><dt>Summary</dt><dd>You load a Hunspell dictionary with a twofold suffix, where the first suffix's continuation class allows a second suffix (for example 'SFX S Y 1 / SFX S 0 st/E .', 'SFX E N 2 / SFX E 0 en . / SFX E 0 e .' and the entry raich/SE), and spell-check or stem raichsten. You expect it to be accepted and stemmed to raich: hunspell(5) defines the cross-product field only as the 'permission to combine prefixes and suffixes', no prefix is involved, and C Hunspell accepts the word with N as with Y. Instead Lucene rejects raichsten and raichste, returns no stems and leaves them out of getAllWordForms("raich"), because Stemmer.applyAffix (Stemmer.java:621), Stemmer.isAffixCompatible (:564) and WordFormGenerator.expand (:251) follow a suffix+suffix chain only when the suffix classes are cross product Y; the real Luxembourgish dictionary shows the same for räichsten, räichste, räichstem and räichster.</dd></div><div><dt>Introduced</dt><dd>e3172b9239cda3c53769a9e1dd82ea122178b93b (svn r1167467, LUCENE-3414 'Added Hunspell for Lucene', migrated as apache/lucene#4487; svn era, no PR), 2011-09-10: the first Lucene Hunspell code, HunspellStemmer.applyAffix, recursed to a second affix only 'if (affix.isCrossProduct() &amp;&amp; recursionDepth &lt; RECURSION_CAP)'; it shipped through the branch_3x backport 1e084f1d08e (r1167505, same day) [read: git show; exec: 3.5.0 rejects the outer-N case]. That gate is today's Stemmer.java:621. Contributing commits: 56babb83687 (branch_4x 040cf121458; LUCENE-5483 'hunspell inaccuracies', #6546; 2014-03-02; first released in 4.8.0) added the cross-product requirement on the inner suffix that is today's isAffixCompatible condition (Stemmer.java:564-570), so N on either class breaks the chain [exec: commit-level A/B, the hunspell package at 040cf121458^ and at 040cf121458 shadowed over the 4.8.0 jars, flips only the inner-N case]; d537013e708 (LUCENE-10626, PR #975, issue #11662; 2022-07-05; branch_9x 3b763af12f5; first released in 9.5.0) copied the gate into WordFormGenerator.expand (WordFormGenerator.java:251) [read]. Later refactors kept the gate unchanged (LUCENE-4542, LUCENE-5468, LUCENE-9671, LUCENE-9685, LUCENE-9748). Not a regression. Whether the external project that LUCENE-3414 ported already had the gate was not checked. (2011-09-10 (LUCENE-3414, outer recursion gate); 2014-03-02 (LUCENE-5483, inner-suffix check); 2022-07-05 (LUCENE-10626, generator copy))</dd></div><div><dt>First affected version</dt><dd>3.5.0 [exec] (the first release with Lucene's Hunspell code; 3.4.0 has none [exec: the probe does not compile]). The outer-N case fails in every release; the inner-N case fails from 4.8.0 (LUCENE-5483) [exec]. Entry points by release: stemming 3.5.0+, Hunspell.spell 8.9.0+, getAllWordForms 9.5.0+ [exec]</dd></div><div><dt>Affected versions</dt><dd>every release with Lucene's Hunspell code, 3.5.0 through 10.5.2, and main a9779ef3c193; never fixed. [exec] the follow-up's version-portable probes fail on 18 releases (3.5.0, 3.6.2, 4.0.0, 4.7.2, 4.8.0, 4.10.4, 5.5.5, 6.0.0, 6.6.6, 7.7.3, 8.9.0, 8.11.4, 9.0.0, 9.4.2, 9.5.0, 9.12.3, 10.0.0, 10.5.2) and on main with -ea and -da; the finder's JUnit fails on main (-ea, -da), 10.5.2, 10.0.0, 9.12.3 and 9.5.0 (it does not compile before 9.5.0, its spell-only variant fails on 9.4.2); the independent reproduction's tests fail on main (-ea, -da), 10.5.2, 9.12.3, 9.4.2 and 8.11.2 (stem-only variant); the intended-behaviour check re-ran the finder's test on 10.5.2 (fail). In 3.5.0-4.7.2 the inner-N case is accepted only because those versions did not check continuation classes at all (they also accept drinkables when 'able' has no continuation class, which C Hunspell rejects). [read] Stemmer.java and WordFormGenerator.java on upstream main a95c754ee003 are byte-identical to a9779ef3c193; the gates are also on branch_10x and branch_10_6. All runs on aarch64 with JDK 25.0.3.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, read-only; the prior-report record verdict new): a scripted prior-report search in three runs (45 queries each over GitHub issues, PRs and commits, downstream repositories, the Lucene, Solr and OpenNLP lists and JIRA), 30 manual gh searches of apache/lucene, a title scan of all 179 apache/lucene issues and PRs with hunspell in the title, the 97 sub-tasks of #10726 (LUCENE-9687), searches of Elasticsearch, OpenSearch, Solr, Lucene.NET, hunspell/hunspell, nuspell, wooorm/dictionaries and all of GitHub, commit search and git log over the full history, the changed files of all 409 open apache/lucene PRs, 15 JIRA queries, 72 lists.apache.org queries and 7 web queries; the finder's, the independent reproduction's and the intended-behaviour check's searches agree. Closest items, none a report of this bug: #6546 (LUCENE-5483, origin of the inner check, which set out to 'match correct hunspell behavior'), #6547 (LUCENE-5484: recursion is 'driven correctly by continuation classes'), #5379 (LUCENE-4311, Czech over-stemming with cross product Y, fixed by a recursion limit), #11662 and #975 (introduced the generator gate), #8431 (LUCENE-7378) and #7237 (LUCENE-6175), open Hungarian complaints that name another mechanism or none (Hungarian is documented as unsupported), and hunspell/hunspell#177 (a native maintainer's statement that cross product governs prefix+suffix combinations). Not fixed upstream: no open PR changes Stemmer.java or WordFormGenerator.java (only #16422, a Dictionary directive-parsing refactor, and #16911, the branch_10x decommission, touch hunspell files).</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26): the compact JUnit through gradle in a clean worktree, stock and with the recommended fix, assertions on and off, plus the whole <code>lucene/analysis/common</code> test task and its lint checks with the fix; through the hunt's classpath runner, the same JUnit on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3, the hunt's other repros with the fix shadowed, and a reach probe over the real Luxembourgish dictionary (stock, with the fix, and native Hunspell 1.3.2), 2026-10-28. Hunt runs on main <code class='nw'>a9779ef3c193</code> and <code class='nw'>ea57360912ed</code> (identical hunspell code), version-portable probes on 18 releases from 3.5.0 to 10.5.2, and a commit-level A/B of LUCENE-5483 over the 4.8.0 jars.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/Stemmer.java:560-574 (at a9779ef3c193) (isAffixCompatible: after the &#x27;no previous affix&#x27; early return, an inner suffix after an outer suffix is accepted only inside &#x27;if (dictionary.isCrossProduct(affix))&#x27; at :564, by the outer suffix&#x27;s flag at :567-569; otherwise &#x27;return false&#x27; at :573), :615-621 (applyAffix: &#x27;if (innerSuffix &gt;= 0) return true;&#x27; and the recursion gate &#x27;if (dictionary.isCrossProduct(affix) &amp;&amp; recursionDepth &lt;= 1)&#x27; at :621), :28-31 (class javadoc &#x27;conforms to the algorithm in the original hunspell algorithm, including recursive suffix stripping&#x27;)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/WordFormGenerator.java:238-256 (at a9779ef3c193) (expand: recursion after an applied affix only &#x27;if (dictionary.isCrossProduct(affix.id))&#x27; at :251)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/Hunspell.java:34-46 (at a9779ef3c193) (class javadoc &#x27;can be used in place of native Hunspell for many languages&#x27;; exceptions: Hungarian, non-BMP characters, PHONE); HunspellStemFilter.java:113 (a word without stems is returned unchanged); Dictionary.java:685 and :790-791 (the header&#x27;s cross-product field is parsed as args[2].equals(&quot;Y&quot;) and stored per affix)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/hunspell/twofold.aff (at a9779ef3c193) (Lucene&#x27;s only twofold fixture: the hunspell(5) example with &#x27;SFX Y Y 1&#x27; and &#x27;SFX X Y 1&#x27;)</code></li><li><code>git diff ea57360912ed a9779ef3c193 -- lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/ (empty: the GPT reviews on ea57360912ed exercised identical code)</code></li><li><code>hunspell(5) of Hunspell 1.7.2, man/hunspell.5:522 &#x27;(2) Cross product (permission to combine prefixes and suffixes)&#x27; and the &#x27;Twofold suffix stripping&#x27; section (:921), as quoted by the independent reproduction and the intended-behaviour check; C Hunspell 1.7.2 src/hunspell/affentry.cxx:630-634, :700-760 and affixmgr.cxx affix_check/suffix_check_twosfx, as read by the finder, the intended-behaviour check and the adjudication</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/Dictionary.java:685, (at a9779ef3c193) 790-791, 812-814; Stemmer.java:262, 537-574, 588-655; WordFormGenerator.java:233-259</code></li><li><code>Hunspell 1.7.2 man/hunspell.5:522, 921-962 and src/hunspell/affentry.cxx:633, 712, 745-756 (fetched read-only, 2026-10-28)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/Hunspell.java:34-47 (at a9779ef3c193) (Hungarian unsupported); HunspellStemFilter.java:113; lucene/analysis/common/build.gradle:150-153 (pinned dictionary commit); package-info.java:23-25</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>Hunspell 1.7.2 man/hunspell.5:522, 921-962 (fetched read-only, 2026-10-28)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/Hunspell.java:34-47; (at a9779ef3c193) WordFormGenerator.java:117; Stemmer.java:28-32; lucene/CHANGES.txt:12545-12549; lucene/analysis/common/src/test/org/apache/lucene/analysis/hunspell/twofold.aff, TestTwoFold.java</code></li><li><code>apache/lucene#6546 body (gh issue view, read-only, 2026-10-28)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/Stemmer.java:617-652, (at a9779ef3c193) 630-647; WordFormGenerator.java:248, 376</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestTwofoldSuffixWithoutCrossProduct.java (analysis-common, 2 tests): <a href='../repro/LFV-641/TestTwofoldSuffixWithoutCrossProduct.java'><code>repro/LFV-641/TestTwofoldSuffixWithoutCrossProduct.java</code></a> (92 lines)</li><li>TestTwofoldSuffixCrossProduct.java (the finder&#x27;s raich/SE test, as in the diagram): <a href='../repro/LFV-641/TestTwofoldSuffixCrossProduct.java'><code>repro/LFV-641/TestTwofoldSuffixCrossProduct.java</code></a> (60 lines)</li><li>TestTwofoldSuffixCrossProductV1.java (independent reproducer, Stemmer.stem): <a href='../repro/LFV-641/TestTwofoldSuffixCrossProductV1.java'><code>repro/LFV-641/TestTwofoldSuffixCrossProductV1.java</code></a> (100 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>The diagram uses the finder's <code class='nw'>raich/SE</code> example, the miniature of the Luxembourgish <code class='nw'>räich/b0a0</code> case; the compact repro uses the hunspell(5) drinkables example. Both fail the same way.</p><ul class='paths'><li><a href='../assets/LFV-641/bug.png'><code>assets/LFV-641/bug.png</code></a> (507 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

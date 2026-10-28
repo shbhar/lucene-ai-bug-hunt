@@ -1,0 +1,641 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Geo3d spatial context: a line string&#x27;s buffer is read as radians, so a 1-degree buffer is 57 degrees wide</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-678 &middot; geo3d-linestring-buffer-degrees-as-radians</p><h1 id='top'>Geo3d spatial context: a line string&#x27;s buffer is read as radians, so a 1-degree buffer is 57 degrees wide</h1><p class='tldr'>In the Geo3d spatial context, <code>lineString().buffer(1)</code> builds a corridor reaching 57.3 degrees from the line instead of 1 degree, because the buffer goes to spatial3d as radians without the degrees-to-radians conversion the same factory applies to circles. Buffers above about 1.57 throw <code>Cutoff angle out of bounds</code>.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 239</span><span class='sub'>Every buffered line string in the opt-in Geo3d context silently matches a corridor about 57 times too wide, a matching error worse than the heatmap value error but limited to builder or polyshape callers, so it leads the narrow Geo3d wrong-result rows right after LFV-670.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.1.0 (2017), LUCENE-7951, the change that added the Geo3d spatial context<span class='sub'>introduced 2017-09-20 &middot; about 9 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>every release from 7.1.0 to 10.5.2 (all 72 run) and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading, then a differential check against spatial4j's own geo context (non-formal)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>spatial4j's geo conventions put distances in degrees, and the Geo3d shape factory converts degrees to radians for circles and rectangle buffers. Its line-string builder hands the buffer to spatial3d unconverted, so <code class='nw'>buffer(1)</code> means 1 radian: a corridor 57.3 times too wide. Buffers above about 1.57 are rejected.</p><figure class='visual' id='geo3d-linestring-buffer-degrees-as-radians-short-visual'><div class='frame'><a class='still' href='../assets/LFV-678/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-678/bug.png' alt='Map from -60 to 60 degrees: the line (0,0) to (10,0) with the expected 1-degree corridor, a thin band along the line, and the actual corridor, a rounded shape reaching 57.3 degrees on every side that contains the points (5, 20) and (5, -40). Beside it: the bounding box, the 3 index hits where 1 is right, the rejected buffers above 1.5708 and the one-line fix.' width='1920' height='1080'></a></div><figcaption>The 1-degree corridor you ask for (orange, along the line) and the corridor the Geo3d context builds (blue, traced with <code class='nw'>relate</code> on main): it reaches 57.3 degrees and contains (5, 20) and (5, -40). Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You make a spatial context with <code>Geo3dSpatialContextFactory</code> and build the line (0,0) to (10,0) with <code class='nw'>buffer(1)</code>. In a geographic spatial4j context distances are in degrees, so you ask for everything within 1 degree (about 111 km) of the line.</span></li><li><span>You expect the point (5, 20), 20 degrees north of the line, to be outside: spatial4j's own <code>SpatialContext.GEO</code> and this factory's <code>circle(5, 0, 1)</code> both say DISJOINT.</span></li><li><span>You get CONTAINS. The corridor's bounding box is [-57.3, 67.3] x [-57.3, 57.3]: the buffer was used as 1 radian, 57.3 degrees. A spatial index query with this line returns 3 of 4 points where 1 is right. No error.</span></li><li><span>Why: <code>Geo3dLineStringBuilder.build()</code> hands the buffer straight to <code>GeoPathFactory.makeGeoPath</code>, whose width is an angle in radians; <code class='nw'>circle()</code> and rectangle buffers convert degrees first. Reading spatial4j's polyshape string of the line gives the same 57.3-degree corridor.</span></li><li><span>Any buffer above about 1.5708 throws <code>IllegalArgumentException: Cutoff angle out of bounds</code>, so a 2-degree corridor cannot be built. Every release from 7.1.0 to 10.5.2 and main are affected; the fix is one multiplication.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that use the opt-in Geo3d spatial context with buffered line strings, as indexed shapes or as query shapes, through the builder, the polyshape format or GeoJSON's buffer. Every such line is about 57 times too wide, or rejected above about 1.57; unbuffered lines, circles, rectangles and polygons are not affected by this mismatch. Index size does not matter.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>669 words</span></summary><div class='body'><p>spatial4j's documented geographic conventions put distances in degrees (<code>LineStringBuilder.buffer</code> itself names no unit, so its unit is inferred from those conventions and spatial4j's readers). The spatial-extras <code>Geo3dShapeFactory</code>, the shape factory of the opt-in, experimental <code>Geo3dSpatialContextFactory</code>, converts degrees to radians at its boundary for circles, 2-D points and rectangle buffers, but its line-string builder does not: <code class='nw'>buffer(distance)</code> stores the value as given and <code class='nw'>build()</code> passes it to spatial3d's <code>GeoPathFactory.makeGeoPath</code>, whose width "is the width of the path, measured as an angle", in radians. So the line (0,0) to (10,0) with <code class='nw'>buffer(1)</code> reaches 57.3 degrees from the line: bounding box [-57.3, 67.3] x [-57.3, 57.3] instead of [-1, 11] x [-1, 1], and it contains the point (5, 20), which spatial4j's own geo context and the same factory's 1-degree circle leave outside. The same happens when the Geo3d context reads spatial4j's polyshape string of that line. Any buffer above about 1.5708 throws <code>IllegalArgumentException: Cutoff angle out of bounds</code>. In an index, an <code class='nw'>Intersects</code> query with the 1-degree line returned 3 of 4 points where 1 is right. The code dates from LUCENE-7951; every release from 7.1.0 (2017) to 10.5.2 and main are affected, and the fix is one multiplication in <code class='nw'>build()</code>.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Spatial context</strong>: spatial4j's <code class='nw'>SpatialContext</code> fixes the units and builds shapes through its <code class='nw'>ShapeFactory</code>. In a geographic context x is longitude, y is latitude, and distances are in degrees (1 degree is about 111 km).</li><li><strong>Geo3d spatial context</strong>: <code>Geo3dSpatialContextFactory</code> in lucene-spatial-extras (<code>@lucene.experimental</code>, opt-in; default planet model: the sphere) makes a context whose <code>Geo3dShapeFactory</code> builds lucene-spatial3d shapes. spatial3d works in radians, so the factory converts at its boundary.</li><li><strong>Buffered line string</strong>: <code>lineString().pointXY(...).buffer(d).build()</code>, the corridor of all points within d of the line. In the Geo3d context it becomes a spatial3d <code class='nw'>GeoStandardPath</code>.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>Geo3dLineStringBuilder.buffer(distance)</code> stores the value unchanged: <code>this.distance = distance;</code> (<code>Geo3dShapeFactory.java:308-312</code>).</li><li><code class='nw'>build()</code> calls <code>GeoPathFactory.makeGeoPath(planetModel, distance, points.toArray(GeoPoint[]::new))</code> (<code class='nw'>:314-319</code>).</li><li><code class='nw'>makeGeoPath</code> documents its width as "the width of the path, measured as an angle" (<code>GeoPathFactory.java:34</code>), a spatial3d angle in radians, and builds a <code class='nw'>GeoStandardPath</code>. That constructor rejects widths outside (0, pi/2] with "Cutoff angle out of bounds" (<code>GeoStandardPath.java:80-81</code>).</li><li>Elsewhere the factory converts degrees for circles, 2-D points and rectangle buffers: <code class='nw'>circle()</code> passes <code>distance * DistanceUtils.DEGREES_TO_RADIANS</code> (<code>Geo3dShapeFactory.java:175-197</code>), <code class='nw'>pointXY</code> converts coordinates (<code class='nw'>:278-286</code>; <code class='nw'>pointXYZ</code> has a different boundary bug, LFV-679), and <code>Geo3dRectangleShape.getBuffered</code> converts its distance (<code>Geo3dRectangleShape.java:169-173</code>). The context's distance calculator and circle radii report degrees. <code class='nw'>normDist</code> is the identity (<code class='nw'>:114-117</code>).</li><li>spatial4j's readers feed the same builder: the polyshape reader passes the same <code class='nw'>normDist(arg)</code> to a circle's radius and to a line's buffer, and the GeoJSON reader converts a km buffer to degrees before calling <code class='nw'>buffer()</code>. So one polyshape document gives a 1-degree circle but a 1-radian line. The deprecated <code>lineString(List, double)</code> and the multi-line builder use the same builder too (both executed: the 57.3-degree corridor, CONTAINS (5, 20)). spatial4j registers the GeoJSON reader only when Noggit's <code>org.noggit.JSONParser</code> is on the classpath; it was not on the tested classpaths, so that path was read, not run.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><ul><li>Line (0,0) to (10,0), <code class='nw'>buffer(1)</code>, default sphere: bounding box [-57.3, 67.3] x [-57.3, 57.3] (spatial4j: [-1, 11] x [-1, 1]). Along x = 5 the edge lies between y = 57.0 (inside) and 57.5 (outside): 1 radian is 57.2958 degrees.</li><li>The same line with <code>buffer(Math.toRadians(1))</code> is the 1-degree corridor (bounding box [-1, 11] x [-1, 1]).</li><li><code class='nw'>buffer(1.5708)</code> (just above pi/2), <code class='nw'>buffer(1.6)</code>, <code class='nw'>buffer(2)</code> and <code class='nw'>buffer(90.01)</code>: <code>IllegalArgumentException: Cutoff angle out of bounds</code>; <code class='nw'>buffer(1.5707)</code> builds. Exactly <code>Math.PI / 2</code> passes that check and, for the probe's two-point line, fails later with "path too wide". The bounding box of <code class='nw'>buffer(1.5)</code> spans all longitudes.</li><li>WGS84 behaves the same: a point 2.98 degrees from the 1-degree line is inside.</li><li>Not affected: unbuffered lines (a zero width becomes a degenerate path), circles, rectangles, polygons, and spatial4j's default geo context. WKT <code>BUFFER(LINESTRING(...), d)</code> is not supported in the Geo3d context at all.</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>322 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Users of <code>Geo3dSpatialContextFactory</code> (any planet model) who build buffered line strings: <code>lineString().buffer(d)</code>, the deprecated <code>lineString(List, double)</code>, multi-line builders (all executed), the polyshape format (executed) or the GeoJSON <code class='nw'>"buffer"</code> extension when the optional Noggit JSON parser is on the classpath (by code reading). As document shapes or as query shapes ("documents within d of this route"); <code>RecursivePrefixTreeStrategy</code> with Geohash or S2 trees and <code>SerializedDVStrategy</code> all see the wide shape.</li><li><strong>Default vs opt-in.</strong> Opt-in twice: the Geo3d context is not the default, and only buffered lines are wrong. WKT, one of spatial4j's default input formats, cannot express a buffered line in this context.</li><li><strong>Effect.</strong> Buffers below about 1.57: a corridor 57.2958 times wider than requested, with no error. In an index of 4 points an <code class='nw'>Intersects</code> query with the 1-degree line returned 3 where 1 is right; in a 600-document index (514 live) it matched 359 documents on Geohash and S2 prefix trees and 354 on <code>SerializedDVStrategy</code>, where the fix matches 0 (a synthetic uniform sample of points: the counts show that every strategy sees the wide shape, not how often real queries over-match). Indexed buffered lines can give false positives for intersection queries that touch the extra area. Buffers above about 1.57 (callers mean about 175 km) throw <code>IllegalArgumentException</code> while the shape is built; a 200 km GeoJSON buffer (about 1.8 degrees) is in that range.</li><li><strong>Still honoured.</strong> Other filter clauses and deletions: 0 documents from another tenant and 0 deleted documents were returned.</li><li><strong>Lasting.</strong> <code>SerializedDVStrategy</code> stores the path with its angle and prefix-tree terms encode the wide corridor, so documents indexed while the bug is present stay wide after a fix until they are reindexed (code reading, not executed).</li><li><strong>How likely.</strong> Rare: the context is opt-in and buffered lines need the builder, polyshape or GeoJSON. For those callers every buffered line is wrong, and conspicuously so; no report was found in the nine years since 7.1.0.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit class for <code>lucene/spatial-extras</code>, public API only, three tests: the 1-degree line against the point (5, 20), the same line read from spatial4j's polyshape string, and a 2-degree buffer. Each uses spatial4j's own geo context as a control. All three fail on main and 10.5.2, assertions on and off, and pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGeo3dLineStringBuffer.java (lucene/spatial-extras, public API)</span><span class='meta'>111 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.spatial4j;
+
+import java.util.Locale;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.io.ShapeIO;
+import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.SpatialRelation;
+
+/**
+ * The buffer of a line string in the Geo3d spatial context is a distance in degrees, like the
+ * radius of a circle from the same factory and every other spatial4j distance in a geo context.
+ */
+public class TestGeo3dLineStringBuffer extends LuceneTestCase {
+
+  private static final SpatialContext GEO3D = new Geo3dSpatialContextFactory().newSpatialContext();
+
+  /** The line (0,0)-(10,0) with the given buffer. */
+  private static Shape line(SpatialContext ctx, double buffer) {
+    return ctx.getShapeFactory().lineString().pointXY(0, 0).pointXY(10, 0).buffer(buffer).build();
+  }
+
+  private static Point point(SpatialContext ctx, double x, double y) {
+    return ctx.getShapeFactory().pointXY(x, y);
+  }
+
+  private static String box(Shape shape) {
+    Rectangle r = shape.getBoundingBox();
+    return String.format(
+        Locale.ROOT,
+        &quot;[%.1f, %.1f] x [%.1f, %.1f]&quot;,
+        r.getMinX(),
+        r.getMaxX(),
+        r.getMinY(),
+        r.getMaxY());
+  }
+
+  /** A line buffered by 1 degree reaches 1 degree from the line, not 1 radian (57.3 degrees). */
+  public void testBufferIsInDegrees() {
+    // controls: spatial4j&#x27;s own geo context, and this factory&#x27;s circle, whose radius is in degrees
+    assertEquals(
+        SpatialRelation.DISJOINT,
+        line(SpatialContext.GEO, 1).relate(point(SpatialContext.GEO, 5, 20)));
+    assertEquals(
+        SpatialRelation.DISJOINT,
+        GEO3D.getShapeFactory().circle(5, 0, 1).relate(point(GEO3D, 5, 20)));
+
+    Shape line = line(GEO3D, 1);
+    assertEquals(SpatialRelation.CONTAINS, line.relate(point(GEO3D, 5, 0.5)));
+    assertEquals(
+        &quot;(5, 20) is 20 degrees from a line buffered by 1 degree; bounding box &quot; + box(line),
+        SpatialRelation.DISJOINT,
+        line.relate(point(GEO3D, 5, 20)));
+  }
+
+  /** spatial4j&#x27;s polyshape format carries the buffer in degrees, as it does a circle&#x27;s radius. */
+  public void testPolyshapeBufferIsInDegrees() throws Exception {
+    String poly =
+        SpatialContext.GEO
+            .getFormats()
+            .getWriter(ShapeIO.POLY)
+            .toString(line(SpatialContext.GEO, 1));
+    assertEquals(
+        SpatialRelation.DISJOINT,
+        SpatialContext.GEO
+            .getFormats()
+            .getReader(ShapeIO.POLY)
+            .read(poly)
+            .relate(point(SpatialContext.GEO, 5, 20)));
+
+    Shape line = GEO3D.getFormats().getReader(ShapeIO.POLY).read(poly);
+    assertEquals(
+        &quot;polyshape &quot; + poly + &quot; read by the Geo3d context; bounding box &quot; + box(line),
+        SpatialRelation.DISJOINT,
+        line.relate(point(GEO3D, 5, 20)));
+  }
+
+  /** A 2-degree buffer is legal; it must not be rejected as a 2-radian (115 degree) path. */
+  public void testTwoDegreeBuffer() {
+    assertEquals(
+        SpatialRelation.DISJOINT,
+        line(SpatialContext.GEO, 2).relate(point(SpatialContext.GEO, 5, 20)));
+
+    Shape line;
+    try {
+      line = line(GEO3D, 2);
+    } catch (IllegalArgumentException e) {
+      throw new AssertionError(&quot;buffer(2) was rejected: &quot; + e.getMessage(), e);
+    }
+    assertEquals(SpatialRelation.CONTAINS, line.relate(point(GEO3D, 5, 1.5)));
+    assertEquals(SpatialRelation.DISJOINT, line.relate(point(GEO3D, 5, 20)));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestGeo3dLineStringBuffer.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestGeo3dLineStringBuffer -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (same failures)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>(5, 20) is DISJOINT from the 1-degree line, built or read from polyshape, and <code class='nw'>buffer(2)</code> builds a 2-degree corridor.</dd></div><div class='got'><dt>Observed</dt><dd>CONTAINS, bounding box [-57.3, 67.3] x [-57.3, 57.3]; <code class='nw'>buffer(2)</code> throws <code>IllegalArgumentException: Cutoff angle out of bounds</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-678/'>repro/LFV-678/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (181 lines) · 1,259 words</span></summary><div class='body'><p><code>testBufferIsInDegrees</code> builds the line (0,0) to (10,0) with <code class='nw'>buffer(1)</code> in the Geo3d context (default sphere) and expects (5, 0.5) inside and (5, 20) outside; spatial4j's <code>SpatialContext.GEO</code> and the same factory's <code>circle(5, 0, 1)</code> are the controls. <code>testPolyshapeBufferIsInDegrees</code> writes that line with spatial4j's polyshape writer and reads it back with both contexts. <code>testTwoDegreeBuffer</code> expects <code class='nw'>buffer(2)</code> to build a corridor that contains (5, 1.5) and not (5, 20). The inputs are fixed; no randomness is involved. The file is the version after the module's <code class='nw'>tidy</code> task.</p><p>The second file is the finder's two-test version, the one run on all 72 releases (for 7.1.0 to 9.0.0 with the older <code class='nw'>LuceneTestCase</code> import). The third is an end-to-end check with an index: four points, a <code>RecursivePrefixTreeStrategy</code> and an <code class='nw'>Intersects</code> query with the 1-degree line.</p><div class="hd hd-3"><h3 id='code-2-h'>TestGeo3dLineStringBuffer.java, finder&#x27;s version (2 tests; run on 72 releases)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Builder and polyshape tests only. For releases 7.x to 9.0.0 the <code class='nw'>LuceneTestCase</code> import is <code>org.apache.lucene.util.LuceneTestCase</code>; nothing else changes.</p><figure class='code'><figcaption><span class='fname'>TestGeo3dLineStringBuffer.java, finder&#x27;s version (2 tests; run on 72 releases)</span><span class='meta'>81 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.spatial4j;
+
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.io.ShapeIO;
+import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.SpatialRelation;
+
+/**
+ * Geo3dShapeFactory&#x27;s line-string buffer distance is handed to spatial3d&#x27;s GeoPathFactory (which
+ * takes radians) without the degrees-to-radians conversion that circle() applies, so a line buffered
+ * by 1 degree is 1 radian (57.3 degrees) wide.
+ */
+public class TestGeo3dLineStringBuffer extends LuceneTestCase {
+
+  private static final SpatialContext GEO3D = new Geo3dSpatialContextFactory().newSpatialContext();
+
+  public void testBufferIsInDegreesLikeCircleRadius() {
+    Point twentyDegreesNorth = GEO3D.getShapeFactory().pointXY(5, 20);
+    // the same factory&#x27;s circle takes its radius in degrees:
+    assertEquals(
+        SpatialRelation.DISJOINT,
+        GEO3D.getShapeFactory().circle(5, 0, 1).relate(twentyDegreesNorth));
+    // spatial4j&#x27;s own factory agrees for the buffered line:
+    assertEquals(
+        SpatialRelation.DISJOINT,
+        SpatialContext.GEO
+            .getShapeFactory()
+            .lineString()
+            .pointXY(0, 0)
+            .pointXY(10, 0)
+            .buffer(1)
+            .build()
+            .relate(SpatialContext.GEO.getShapeFactory().pointXY(5, 20)));
+    Shape line = GEO3D.getShapeFactory().lineString().pointXY(0, 0).pointXY(10, 0).buffer(1).build();
+    assertEquals(
+        &quot;a point 20 degrees from a line buffered by 1 degree is outside the buffer&quot;,
+        SpatialRelation.DISJOINT,
+        line.relate(twentyDegreesNorth));
+  }
+
+  /**
+   * spatial4j&#x27;s polyshape format carries the buffer in degrees: a 1-degree buffered line written by
+   * the spatial4j geo context and read back by the Geo3d context must still be 1 degree wide.
+   */
+  public void testPolyshapeBufferedLineString() throws Exception {
+    Shape reference =
+        SpatialContext.GEO.getShapeFactory().lineString().pointXY(0, 0).pointXY(10, 0).buffer(1).build();
+    String poly = SpatialContext.GEO.getFormats().getWriter(ShapeIO.POLY).toString(reference);
+    assertEquals(
+        &quot;spatial4j reads its own string back&quot;,
+        SpatialRelation.DISJOINT,
+        SpatialContext.GEO
+            .getFormats()
+            .getReader(ShapeIO.POLY)
+            .read(poly)
+            .relate(SpatialContext.GEO.getShapeFactory().pointXY(5, 20)));
+    Shape line = GEO3D.getFormats().getReader(ShapeIO.POLY).read(poly);
+    assertEquals(
+        &quot;read by the Geo3d context from &quot; + poly,
+        SpatialRelation.DISJOINT,
+        line.relate(GEO3D.getShapeFactory().pointXY(5, 20)));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cp $REPRO/TestGeo3dLineStringBuffer.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestGeo3dLineStringBuffer
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestLineBufferWidth.java (index check: 3 hits instead of 1)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Indexes (5, 0.5), (5, 20), (5, -40) and (100, 0) with <code>RecursivePrefixTreeStrategy</code> on a 6-level <code>GeohashPrefixTree</code> over the Geo3d context and counts <code class='nw'>Intersects</code> hits for the 1-degree line: 3 on main, 1 with the fix. Its width sweep finds 8 of 11 sample points inside the Geo3d line against spatial4j's 2.</p><figure class='code'><figcaption><span class='fname'>TestLineBufferWidth.java (index check: 3 hits instead of 1)</span><span class='meta'>100 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.spatial4j;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
+import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.SpatialRelation;
+
+/** Verifier probe: width of a Geo3d buffered line vs spatial4j, and an index-level search. */
+public class TestLineBufferWidth extends LuceneTestCase {
+
+  private static final SpatialContext GEO3D = new Geo3dSpatialContextFactory().newSpatialContext();
+
+  private static Shape line(SpatialContext ctx, double buf) {
+    return ctx.getShapeFactory().lineString().pointXY(0, 0).pointXY(10, 0).buffer(buf).build();
+  }
+
+  public void testWidthSweep() {
+    Shape g3 = line(GEO3D, 1);
+    Shape s4 = line(SpatialContext.GEO, 1);
+    Shape g3circle = GEO3D.getShapeFactory().circle(5, 0, 1);
+    Rectangle bb = g3.getBoundingBox();
+    System.out.println(&quot;V2 geo3d line buffer(1) bbox: &quot; + bb);
+    System.out.println(&quot;V2 spatial4j line buffer(1) bbox: &quot; + s4.getBoundingBox());
+    double[] ys = {0.5, 0.9, 1.1, 2, 5, 20, 50, 57, 57.5, 58, 60};
+    int g3Contains = 0;
+    int s4Contains = 0;
+    for (double y : ys) {
+      SpatialRelation r3 = g3.relate(GEO3D.getShapeFactory().pointXY(5, y));
+      SpatialRelation r4 = s4.relate(SpatialContext.GEO.getShapeFactory().pointXY(5, y));
+      SpatialRelation rc = g3circle.relate(GEO3D.getShapeFactory().pointXY(5, y));
+      System.out.println(&quot;V2 y=&quot; + y + &quot; geo3dLine=&quot; + r3 + &quot; spatial4jLine=&quot; + r4 + &quot; geo3dCircle(r=1)=&quot; + rc);
+      if (r3 != SpatialRelation.DISJOINT) g3Contains++;
+      if (r4 != SpatialRelation.DISJOINT) s4Contains++;
+    }
+    // A radians-valued buffer of 57.2958 degrees should match the observed behaviour exactly.
+    Shape g3rad = line(GEO3D, Math.toRadians(1));
+    System.out.println(
+        &quot;V2 geo3d line buffer(toRadians(1)) relate (5,0.9)=&quot;
+            + g3rad.relate(GEO3D.getShapeFactory().pointXY(5, 0.9))
+            + &quot; (5,1.1)=&quot;
+            + g3rad.relate(GEO3D.getShapeFactory().pointXY(5, 1.1)));
+    assertEquals(&quot;geo3d line contains the same sample points as spatial4j&#x27;s&quot;, s4Contains, g3Contains);
+  }
+
+  public void testIndexSearch() throws Exception {
+    GeohashPrefixTree grid = new GeohashPrefixTree(GEO3D, 6);
+    RecursivePrefixTreeStrategy strategy = new RecursivePrefixTreeStrategy(grid, &quot;geo&quot;);
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        double[][] pts = {{5, 0.5}, {5, 20}, {5, -40}, {100, 0}};
+        for (double[] p : pts) {
+          Document d = new Document();
+          for (Field f : strategy.createIndexableFields(GEO3D.getShapeFactory().pointXY(p[0], p[1]))) {
+            d.add(f);
+          }
+          d.add(new StoredField(&quot;id&quot;, p[0] + &quot;,&quot; + p[1]));
+          w.addDocument(d);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        Query q = strategy.makeQuery(new SpatialArgs(SpatialOperation.Intersects, line(GEO3D, 1)));
+        int hits = s.count(q);
+        System.out.println(&quot;V2 index: points {(5,0.5),(5,20),(5,-40),(100,0)}; hits for line (0,0)-(10,0) buffer(1) = &quot; + hits);
+        assertEquals(&quot;only (5,0.5) lies within 1 degree of the line&quot;, 1, hits);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>cp $REPRO/TestLineBufferWidth.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestLineBufferWidth
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle 9.8.1 wrapper and a standalone JUnit runner); 10.5.2 release jars</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestGeo3dLineStringBuffer.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestGeo3dLineStringBuffer -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, -Ptests.seed=DEADBEEF -Ptests.asserts=true (=false: the same 3 failures)
+TestGeo3dLineStringBuffer &gt; testTwoDegreeBuffer FAILED
+    java.lang.AssertionError: buffer(2) was rejected: Cutoff angle out of bounds
+        Caused by: java.lang.IllegalArgumentException: Cutoff angle out of bounds
+            at org.apache.lucene.spatial3d.geom.GeoStandardPath.&lt;init&gt;(GeoStandardPath.java:81)
+            at org.apache.lucene.spatial3d.geom.GeoPathFactory.makeGeoPath(GeoPathFactory.java:43)
+            at org.apache.lucene.spatial.spatial4j.Geo3dShapeFactory$Geo3dLineStringBuilder.build(Geo3dShapeFactory.java:317)
+TestGeo3dLineStringBuffer &gt; testBufferIsInDegrees FAILED
+    java.lang.AssertionError: (5, 20) is 20 degrees from a line buffered by 1 degree;
+    bounding box [-57.3, 67.3] x [-57.3, 57.3] expected:&lt;DISJOINT&gt; but was:&lt;CONTAINS&gt;
+TestGeo3dLineStringBuffer &gt; testPolyshapeBufferIsInDegrees FAILED
+    java.lang.AssertionError: polyshape 1(_ibE)??_c`|@? read by the Geo3d context;
+    bounding box [-57.3, 67.3] x [-57.3, 57.3] expected:&lt;DISJOINT&gt; but was:&lt;CONTAINS&gt;
+3 tests completed, 3 failed
+
+# standalone runner: the same 3 failures on main and on 10.5.2 (-ea and -da)
+# with the fix (gradle and standalone, -ea and -da): 3 tests, 0 failed
+
+# index check (TestLineBufferWidth): Intersects with the 1-degree line over
+# (5,0.5), (5,20), (5,-40), (100,0): 3 hits on main, 1 hit with the fix</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>spatial4j: circle distances are in the units of x and y, and its BUFFER argument "is the buffer distance in degrees".</li><li>The polyshape reader passes one value to circle radii and line buffers: a 1-degree circle, a 1-radian line.</li><li>The one radian caller, <code class='nw'>testGeoPathRect</code>, was ported from a direct spatial3d call; its checks ignore the unit.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>242 words</span></summary><div class='body'><ul><li><strong>Contract (inferred from spatial4j, not quoted from <code class='nw'>buffer()</code>).</strong> spatial4j <code>ShapeFactory.circle</code>: "The units of "distance" should be the same as x &amp; y." <code>lineString(List&lt;Point&gt; points, double buf)</code>: "with a buffer distance along the line in all directions". <code>LineStringBuilder.buffer(double)</code> itself has no javadoc. spatial4j's FORMATS.md: "The <code class='nw'>BUFFER</code> keyword ... The 2nd argument is the buffer distance in degrees."</li><li><strong>Lucene's description of the bridge.</strong> CHANGES: "LUCENE-7951: Spatial-extras has much better Geo3d support by implementing Spatial4j abstractions: SpatialContextFactory, ShapeFactory, BinaryCodec, DistanceCalculator." The package: "Spatial4j stuff that ideally belongs in Spatial4j (isn't related to Lucene)." No javadoc, CHANGES or MIGRATE text says line buffers are radians.</li><li><strong>The factory itself.</strong> Circles, 2-D points, rectangles, rectangle buffers, the distance calculator and circle radii all use degrees at the boundary. Only the line buffer does not. Its own javadoc names the unit for circles: <code>setCircleAccuracy</code> sets "the accuracy for circles in decimal degrees" (<code>Geo3dShapeFactory.java:82-85</code>).</li><li><strong>The readers.</strong> The polyshape reader passes the same <code class='nw'>normDist(arg)</code> to circles and line buffers, and <code class='nw'>normDist</code> is the identity here; GeoJSON converts km to degrees before <code class='nw'>buffer()</code>. A radians-only builder is wrong for every parsed input, whatever is documented.</li><li><strong>Maintainer remarks.</strong> In the LUCENE-8086 review, dsmiley asked whether the factory's <code class='nw'>circleAccuracy</code> means "decimal degrees as is used in other parts of the Spatial4j API"; in the LUCENE-7951 review they wrote that verification can "assume decimal degrees here (-/+ 180 etc.) since Geo3d assumes this". Nobody discussed the line buffer's unit.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>200 words</span></summary><div class='body'><p>Strongest case for "intended" (built by a devil's advocate; the reviews from another model family, OpenAI GPT-5.6, rated it moderate and strong): <code>LineStringBuilder.buffer</code> states no unit; spatial3d is radians-native; the bridge is <code>@lucene.experimental</code>; the behaviour has not changed since 2017; and the only caller of the builder's <code class='nw'>buffer()</code> outside the factory, <code>ShapeRectRelationTestCase.testGeoPathRect</code>, passes <code>(random().nextInt(89) + 1) * DEGREES_TO_RADIANS</code>, a range that lies within <code class='nw'>GeoStandardPath</code>'s (0, pi/2] bound (1 to 89 degrees, at most 1.553 rad).</p><p>Why it fails: the radian width is older than the builder. It dates from LUCENE-6196 (2015), when the test built spatial3d's <code>new GeoPath(width)</code> directly, before the Geo3d spatial context existed; in 7.2.0 the test still called <code>GeoPathFactory.makeGeoPath(planetModel, width, points)</code> directly, where radians are right; LUCENE-8086 (2017-12-13, first in 7.3.0) moved it onto the builder and kept the radian width. The same test passes its circle radius in degrees, and it checks relation consistency, which does not depend on the width's unit. spatial4j's readers can only ever pass degrees. <code>@lucene.experimental</code> allows API changes, not wrong results, and nine quiet years speak to compatibility, not intent. Every verdict calls it a defect; what remains is the compatibility cost for callers who already pass radians.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: convert in <code class='nw'>build()</code>, and switch <code class='nw'>testGeoPathRect</code> to degrees</strong></p><p class='short'>In <code>Geo3dLineStringBuilder.build()</code>, pass <code>distance * DistanceUtils.DEGREES_TO_RADIANS</code> to <code>GeoPathFactory.makeGeoPath</code>, and switch <code class='nw'>testGeoPathRect</code> to degree widths so its corridors stay as wide as today. The new test passes, and so do the whole spatial-extras module (120 tests, 0 failures, 5 skipped) and the module checks. Callers who passed radians get narrower lines; stored buffered lines need reindexing.</p><pre class='snippet' tabindex='0'><code>// Geo3dShapeFactory.Geo3dLineStringBuilder.build()
+GeoPath path =
+    GeoPathFactory.makeGeoPath(
+        planetModel,
+        distance * DistanceUtils.DEGREES_TO_RADIANS,
+        points.toArray(GeoPoint[]::new));
+
+// ShapeRectRelationTestCase.testGeoPathRect
+final double width = random().nextInt(89) + 1; // degrees, like the circle radius above</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 614 words</span></summary><div class='body'><p>Built and validated in a scratch worktree at <code class='nw'>a9779ef3c193</code> with gradle, and with the standalone runner against the finder's, the independent reproducer's, the devil's advocate's and the cross-model reviewer's tests. Any option changes the unit for callers who already pass radians, so it needs a CHANGES entry that says so.</p><div class="hd hd-3"><h3 id='fix-convert-in-build'>A: convert in <code class='nw'>build()</code>, and switch <code class='nw'>testGeoPathRect</code> to degrees <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-convert-in-build" target="_self" aria-label="Link to this section" aria-describedby="fix-convert-in-build"><span aria-hidden="true">#</span></a></div><p>One multiplication in <code>Geo3dLineStringBuilder.build()</code>, the conversion <code class='nw'>circle()</code> already does. In <code>ShapeRectRelationTestCase.testGeoPathRect</code>, pass the width in degrees (and drop the now unused <code>DEGREES_TO_RADIANS</code> static import), so the test keeps building the same 1-89 degree corridors as today. Add this page's test as the regression test. Patch: +116/-4 in 3 files (5 lines in the factory, 4 in the old test, the new 111-line test).</p><pre class='snippet' tabindex='0'><code>// Geo3dShapeFactory.Geo3dLineStringBuilder.build()
+GeoPath path =
+    GeoPathFactory.makeGeoPath(
+        planetModel,
+        distance * DistanceUtils.DEGREES_TO_RADIANS,
+        points.toArray(GeoPoint[]::new));
+
+// ShapeRectRelationTestCase.testGeoPathRect
+final double width = random().nextInt(89) + 1; // degrees, like the circle radius above</code></pre><p class='k'>Trade-offs</p><ul><li>Behaviour change: callers who already pass radians, as <code class='nw'>testGeoPathRect</code> does today, get lines 57.3 times narrower. A CHANGES entry should say so (for example under "Changes in Runtime Behavior").</li><li>Documents indexed with buffered lines keep the wide shape until they are reindexed (code reading, not executed).</li><li>Without the test update <code class='nw'>testGeoPathRect</code> still passes (run), but it would build corridors of 0.017 to 1.55 degrees instead of 1 to 89 and stop covering wide paths.</li><li>Cost: one multiplication per line built.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree at <code class='nw'>a9779ef3c193</code>, seed DEADBEEF: with the factory fix alone, the new test 3/3 with assertions on and off and the whole spatial-extras module 120 tests, 0 failures, 5 skipped (4 @Nightly, 1 @Ignore: <code>TestBBoxStrategy.testBasicOperations</code>); with the fix and the test update, the module again 120 tests, 0 failures, the same 5 skipped, the rect-relation suites with two more seeds (assertions on and off) and with <code>-Ptests.nightly=true</code> (15 tests, including <code class='nw'>testGeoPathRect</code> on the sphere and on the ellipsoidal class, which picks WGS84 or CLARKE_1866 at random, 0 failures), and <code>:lucene:spatial-extras:check -x test</code> (google-java-format, ecjLint, forbiddenApis) passes. The nightly rect-relation tests also pass with the fix alone and on stock. The fourth @Nightly test, <code class='nw'>TestGeo3dRpt</code>, passes with the full patch (4 tests, run by the fact check), so only the @Ignore test never ran.</li><li>Standalone runner, patched class shadowed: this page's test 3/3 (assertions on and off), the finder's 2/2, the independent reproducer's 5/5, the devil's advocate's 5/5, and the index check 2/2 (1 hit instead of 3).</li></ul><div class="hd hd-3"><h3 id='fix-convert-in-buffer'>B: convert in <code class='nw'>buffer()</code> instead <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-convert-in-buffer" target="_self" aria-label="Link to this section" aria-describedby="fix-convert-in-buffer"><span aria-hidden="true">#</span></a></div><p>Store the converted value: <code>this.distance = distance * DistanceUtils.DEGREES_TO_RADIANS;</code>. Same behaviour as A; a matter of taste (A keeps the field in the caller's unit).</p><p class='k'>Trade-offs</p><p>Same compatibility and reindexing notes as A; it also needs the <code class='nw'>testGeoPathRect</code> update.</p><p class='k'>What the checks validated</p><p>Standalone runner only, patched class shadowed: this page's test 3/3 with assertions on and off.</p><div class="hd hd-3"><h3 id='fix-range-message'>Optional add-on: reject buffers above 90 degrees with a message in degrees</h3><a class="hlink" href="#fix-range-message" target="_self" aria-label="Link to this section" aria-describedby="fix-range-message"><span aria-hidden="true">#</span></a></div><p>After A, a buffer above 90 degrees (90.01 in the probe) still fails with "Cutoff angle out of bounds", which names a spatial3d parameter the caller never passed. A check in <code class='nw'>build()</code> with the limit in degrees would be clearer.</p><p class='k'>Trade-offs</p><p>Not written or tested. For the probe's two-point equatorial line, a buffer of exactly 90 degrees already fails later with "path too wide"; other lines were not tried.</p><div class="hd hd-3"><h3 id='fix-document-radians'>Document radians instead (not recommended)</h3><a class="hlink" href="#fix-document-radians" target="_self" aria-label="Link to this section" aria-describedby="fix-document-radians"><span aria-hidden="true">#</span></a></div><p>Keep the behaviour and state on <code>Geo3dShapeFactory</code> that line buffers are radians.</p><p class='k'>Trade-offs</p><p>Leaves every parsed buffered line wrong: spatial4j's polyshape and GeoJSON readers pass degrees, and <code class='nw'>normDist</code> cannot convert for lines alone, because the polyshape reader uses the same <code class='nw'>normDist</code> for circle radii, which <code class='nw'>circle()</code> already converts.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>An application that used a buffered-line query as its visibility boundary (a geofence) would admit documents up to 57 degrees from the line instead of 1, while other filter clauses and deletions are still honoured.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Non-formal: while writing a differential harness that compares the Geo3d bridge with spatial4j's own geo context, the finder read the unit conversion of every <code>Geo3dShapeFactory</code> method and saw that the line-string buffer has none. A differential check then showed the same 1-degree line DISJOINT from a point 20 degrees away in spatial4j and CONTAINS in the Geo3d context.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>128 words</span></summary><div class='body'><p><strong>Method: code reading plus differential testing</strong> (the non-formal tier), in a hunt unit on the spatial-extras bridge between spatial4j and spatial3d.</p><ul><li>The unit's harness compares shapes built by the Geo3d context with the same shapes built by spatial4j's <code>SpatialContext.GEO</code> and by the same factory's circles. While writing its line generator the finder checked each factory method's degrees-to-radians handling and found none for line buffers; the harness now passes buffers in radians so that its other checks do not depend on this question.</li><li>A differential probe and then a JUnit confirmed it on the stock jars: the 1-degree line contains (5, 20) in the Geo3d context and not in spatial4j's, also when read from spatial4j's polyshape string.</li><li>A later verifier found the second symptom: buffers above about 1.57 throw.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: two automated runs (138 queries) and 42 manual searches on 2026-10-27 over GitHub issues, PRs and commits, the changed-file lists of the 409 open PRs, JIRA, the Lucene and Solr lists and the web. Closest: #9000, which added the builder, and #9134, which moved a test onto it with radian widths; neither discusses the unit.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Nothing by anyone reports or discusses the unit of the Geo3d line buffer or the "Cutoff angle out of bounds" failure. The closest items are below.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), automated</th><td class='when'>2026-10-27</td><td>two prior-report tool runs, 45 and 93 queries (class names, error text, buffer/radians/degrees phrasings); 2,966 distinct hits in the second, the positive control #9000 at rank 1</td><td>no report; related: #9000, #9134, #9219, #9537, #9294, #11956</td></tr><tr><th scope='row'>GitHub, manual</th><td class='when'>2026-10-27</td><td>42 searches over apache/lucene, apache/lucene-solr, apache/solr, Elasticsearch, OpenSearch, spatial4j and all of GitHub</td><td>nothing matching; spatial4j #198 shows a user passing a degree value to lineString().buffer()</td></tr><tr><th scope='row'>Open PRs and upstream branches</th><td class='when'>2026-10-27</td><td>changed-file lists of all 409 open apache/lucene PRs (4 capped lists re-read through the REST API; #16911, a 7,630-file branch decommission, listable only to 3,000 files); commits by path on main, branch_10x, branch_10_6, branch_10_5, branch_9x</td><td>none touches the fix site; upstream main still passes the raw distance</td></tr><tr><th scope='row'>JIRA and mailing lists</th><td class='when'>2026-10-27</td><td>12 JQL queries (LUCENE, SOLR); 16 list queries over dev@, java-user@, issues@, solr-user@, users@solr, dev@solr</td><td>LUCENE-9263 (a different unit bug, in Geo3DPoint); SOLR-11382 (the Solr integration, no buffers)</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-27</td><td>9 queries (one more throttled)</td><td>the Solr reference guide says distances in WKT buffers "are still in degrees"; no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 7.1.0 by LUCENE-7951 (<code class='nw'>035523ba7a86</code> on main, <code class='nw'>85491401d54c</code> on branch_7x, 2017-09-20), the change that added the Geo3d spatial context; not a regression. The finder's test fails on all 72 releases from 7.1.0 to 10.5.2 (assertions on) and on main; never fixed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>035523ba7a86</code> (main) and <code class='nw'>85491401d54c</code> (branch_7x), 2017-09-20, "LUCENE-7951: Spatial4j implementations using Geo3d" (#9000). The code matches lucene-solr#246 by iverase (closed unmerged); dsmiley committed it. Later commits on these lines only reformat (<code class='nw'>2cbf261032d</code>, LUCENE-9570) or modernise <code class='nw'>toArray</code> (<code class='nw'>dbf0d1426f1</code>, #16056). LUCENE-8086 (<code class='nw'>d66d9549d7c</code>, 2017-12-13, first in 7.3.0) moved <code class='nw'>testGeoPathRect</code> onto the builder and kept its radian width, which dates from LUCENE-6196 (2015), when the test built spatial3d's <code class='nw'>GeoPath</code> directly. Upstream main <code class='nw'>a95c754ee003</code>, branch_10x and branch_10_6 are unchanged.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this page's test fails 3 of 3 (gradle and standalone, assertions on and off)</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this page's test fails 3 of 3 (assertions on and off)</td></tr><tr><th scope='row'>all 72 releases from 7.1.0 to 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test fails 2 of 2 with identical messages (assertions on; spatial4j 0.6, 0.7 and 0.8)</td></tr><tr><th scope='row'>7.1.0 jars, factory shadowed</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> commit check</span></td><td>unchanged 7.1.0 source fails; with only the conversion added it passes</td></tr><tr><th scope='row'>7.0.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>no Geo3d spatial context; the test does not compile</td></tr><tr><th scope='row'>fix on main</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>this page's test, the whole spatial-extras module (120 tests, 0 failures, 5 skipped) and the @Nightly tests pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Reproduced on main by the finder, an independent reproducer, two executed reviews by another model family and a devil's advocate, each with its own test, and re-run by the adjudication and the follow-up. All rated it real; the case for intended behaviour (the only caller outside the factory passes radians) was rated moderate to strong but outweighed.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>325 words</span></summary><div class='body'><p>Each check ran its own tests on main <code class='nw'>a9779ef3c193</code> (the cross-model reviews on <code class='nw'>ea57360912ed</code>, same sources, re-run on <code class='nw'>a9779ef3c193</code>).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Two-test JUnit fails on main (assertions on and off) and 7.1.0, 7.7.3, 8.11.4, 9.12.3, 10.5.2; the one-line fix passes; the full spatial-extras suite with all six fixes of the hunt unit: 117 tests, 0 failures, as on the baseline (clean checkout of <code class='nw'>ea57360912ed</code>, same spatial sources).</td></tr><tr><th scope='row'>intended review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high; intended argument moderate</span></td><td>Own contract test fails 2 of 2 on stock (builder and polyshape) and passes with the fix; the fix passes the runnable upstream TestGeo3d.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 5-test JUnit with the context's own distance calculator as oracle fails 5 of 5 on main, 10.5.2 and 9.12.3, on the sphere and WGS84; passes with the fix.</td></tr><tr><th scope='row'>Refute review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high; intended argument strong but failing</span></td><td>Own test (another line, buffer 0.5, a point 15 degrees away) fails only the width check; buffer(2.0) throws; the index check returns 3 hits instead of 1.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Built the strongest intended case and showed why it fails; own test fails its 3 buffer checks on main and 10.5.2 while its 2 unit controls pass; found the 'Cutoff angle out of bounds' symptom.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's test (5 of 5 fail, assertions on and off; pass with the fix) and the finder's; security none; not a duplicate; filing caveats: compatibility, inferred unit, second symptom.</td></tr><tr><th scope='row'>Follow-up</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>History on all 72 releases and the 7.1.0 commit check; prior-art search: new; security probe: none.</td></tr><tr><th scope='row'>this page</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>New 3-test JUnit fails on main and 10.5.2 (gradle and standalone, assertions on and off); the one-line fix plus the test update passes the whole spatial-extras module, its @Nightly rect-relation tests and its checks.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-678/bug.png' download='geo3d-linestring-buffer-degrees-as-radians-bug.png' target='_self'>PNG</a> <span class='n'>443 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,367 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-678, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Geo3dShapeFactory passes a line string's buffer distance to spatial3d's GeoPathFactory, which takes radians, without the degrees-to-radians conversion its circle() applies, so in the Geo3d spatial context a line buffered by 1 degree is 1 radian (57.3 degrees) wide and buffers above about 1.57 throw</dd></div><div><dt>Area</dt><dd>spatial-extras / spatial4j bridge to spatial3d (Geo3dShapeFactory line-string builder, Geo3dLineStringBuilder.build), reached through the public LineStringBuilder API, the deprecated lineString(List, double), multi-line builders and the Geo3d context's polyshape reader (and the GeoJSON reader when its optional parser is present)</dd></div><div><dt>Priority</dt><dd>Medium, rank 239: Every buffered line string in the opt-in Geo3d context silently matches a corridor about 57 times too wide, a matching error worse than the heatmap value error but limited to builder or polyshape callers, so it leads the narrow Geo3d wrong-result rows right after LFV-670.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications on the opt-in, @lucene.experimental Geo3d spatial context (Geo3dSpatialContextFactory) that index or query buffered line strings (builder API, deprecated lineString(List, double), multi-line builders, the polyshape reader; the GeoJSON reader when its optional parser is present, not executed) get a corridor about 57.3 times wider than requested with no error, so indexed corridors and corridor queries match far too much (an Intersects query on a RecursivePrefixTreeStrategy index returned 3 hits where 1 is right; in the security probe a 1-degree buffer matched 359 of 514 live points where the fix matches 0), and any buffer above about 1.5708 (meant as degrees) throws IllegalArgumentException 'Cutoff angle out of bounds'; unbuffered lines, circles and buffered rectangles are unaffected, ordinary scale, every release from 7.1.0 to 10.5.2.</dd></div><div><dt>Summary</dt><dd>You use the Geo3d spatial context, build a line from (0,0) to (10,0) with buffer(1), and expect a corridor reaching 1 degree from the line, because spatial4j distances are in the units of x and y (degrees in a geo context) and spatial4j's standard geo context and the same factory's 1-degree circle both say a point at (5, 20) is DISJOINT. Instead the line CONTAINS that point and its bounding box is about [-57.3, 67.3] x [-57.3, 57.3]: Geo3dLineStringBuilder.build hands the buffer straight to GeoPathFactory.makeGeoPath, whose width is an angle in radians, while the factory's circle() and Geo3dRectangleShape.getBuffered convert degrees with DEGREES_TO_RADIANS. The same happens when the Geo3d context reads spatial4j's polyshape string for a 1-degree buffered line, and every buffer above about 1.5708 is rejected with 'Cutoff angle out of bounds', so a buffer of 2 degrees cannot be built at all.</dd></div><div><dt>Introduced</dt><dd>035523ba7a86773500c053129f65c9a6dc4fd384 (main) and its branch_7x cherry-pick 85491401d54c59e1593a5c9f13dca7bfcdda31a2 (the commit that shipped in 7.1.0): LUCENE-7951 'Spatial4j implementations using Geo3d' (issue apache/lucene#9000); the code matches apache/lucene-solr#246 by GitHub iverase (closed unmerged 2017-09-29), committed by GitHub dsmiley [read: git log -S 'makeGeoPath(planetModel, distance' and -S 'this.distance = distance' in the full-history clone return only this commit plus a reformat (2cbf261032d, LUCENE-9570) and a toArray modernisation (dbf0d1426f1, #16056), and no version ever documented a buffer unit; exec: on 7.1.0 jars, Geo3dShapeFactory shadowed unchanged fails 2 of 2 and with only the degrees-to-radians conversion in build() passes 2 of 2]. Not a regression: the defect came in together with the API. (2017-09-20 (both commits); first release 7.1.0 (release commit 2017-10-13, tag 2017-10-16))</dd></div><div><dt>First affected version</dt><dd>7.1.0 [exec: the finder's JUnit fails 2 of 2 (junitcore runner); 7.0.1 does not compile it because Geo3dSpatialContextFactory and Geo3dShapeFactory do not exist there, so the defect is as old as the API]</dd></div><div><dt>Affected versions</dt><dd>Every release from 7.1.0 to 10.5.2 (the latest; 72 releases) and main a9779ef3c193; not fixed upstream. [exec, JDK 25, SHA-1-checked release jars] the finder's JUnit fails 2 of 2 on each of the 72 releases (-ea, seed DEADBEEF; 7.1.0-7.6.0 with the junitcore runner; 7.x to 9.0.0 with a copy that differs only in the LuceneTestCase import) and on main with -ea and -da; the independent reproduction's JUnit fails 5 of 5 on main (-ea, -da), 10.5.2 and 9.12.3; the intended-behaviour check's JUnit fails 3 of 5 (the 3 buffer assertions) on main (-ea, -da) and 10.5.2. [read] upstream main a95c754ee003 (2026-10-26), branch_10x and branch_10_6 still pass the raw distance; no open PR touches Geo3dShapeFactory.java, GeoPathFactory.java or GeoStandardPath.java. The 'Cutoff angle out of bounds' symptom is in every release by code identity (the same range check since 7.1.0; executed on main and 10.5.2 only).</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27, read-only; the prior-report record, verdict new): two scripted prior-report searches (45 queries with the web part pending, then 93 queries: 40 GitHub issue and PR queries on apache/lucene, 3 commit queries, 4 downstream-repository queries (Elasticsearch, OpenSearch, Solr), 32 queries over the dev, java-user, issues and commits lists, 6 JIRA queries and 8 web queries; 2,966 distinct hits, the positive control #9000 at rank 1, none about this defect), 42 manual GitHub search phrasings across apache/lucene, apache/lucene-solr, apache/solr, elastic/elasticsearch, opensearch-project/OpenSearch, locationtech/spatial4j and all of GitHub, the changed files of all 409 open apache/lucene PRs (none touches Geo3dShapeFactory.java, GeoPathFactory.java, GeoStandardPath.java or ShapeRectRelationTestCase.java), upstream commits by path on main, branch_10x, branch_10_5, branch_10_6 and branch_9x (upstream main a95c754ee003 still passes the raw distance), manual JIRA queries (LUCENE and SOLR) and the Lucene and Solr user and dev lists. Nothing reports or discusses the unit of Geo3dShapeFactory's line-string buffer or the 'Cutoff angle out of bounds' failure for larger buffers. Closest: the introducing issue LUCENE-7951 / #9000 and lucene-solr#246 ('The Spatial4j buffer extension is partially supported', which refers to the unsupported WKT BUFFER syntax; nobody discusses the unit of LineStringBuilder.buffer), LUCENE-8086 / #9134 with lucene-solr#288 (the change that ported testGeoPathRect onto the builder with radian widths, without discussing units; a review remark there says the Spatial4j API uses decimal degrees), and LUCENE-9263 (a different unit-conversion bug, in Geo3DPoint's meters-to-radians conversion). Gaps: GitHub search matches tokens, not code diffs; private downstream trackers cannot be searched; one web query was throttled.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) with gradle in a scratch worktree and with the standalone JUnit runner, assertions on and off; the 10.5.2 release jars (this page's test, assertions on and off). The finder's test ran on all 72 releases from 7.1.0 to 10.5.2 (assertions on). The fix was validated with gradle (this page's test, the whole spatial-extras module and its checks) and with the standalone runner against the finder's, the independent reproducer's, the devil's advocate's and the cross-model reviewer's tests. The cross-model reviews ran on <code class='nw'>ea57360912ed</code> (same spatial-extras and spatial3d sources) and were re-run on <code class='nw'>a9779ef3c193</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dShapeFactory.java:50-55 (at a9779ef3c193) (@lucene.experimental, implements S2ShapeFactory), :114-117 (normDist is the identity), :175-197 (circle(x, y, distance) multiplies distance by DistanceUtils.DEGREES_TO_RADIANS), :204-213 (deprecated lineString(List, distance) goes through the same builder), :303-320 (Geo3dLineStringBuilder: buffer(distance) stores the value as given; build() calls GeoPathFactory.makeGeoPath(planetModel, distance, points) at :316-317)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoPathFactory.java:30-44 (at a9779ef3c193) (maxCutoffAngle &#x27;is the width of the path, measured as an angle&#x27;; below MINIMUM_ANGULAR_RESOLUTION a GeoDegeneratePath, else a GeoStandardPath)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoStandardPath.java:76-86 (at a9779ef3c193) (IllegalArgumentException &#x27;Cutoff angle out of bounds&#x27; unless 0 &lt; maxCutoffAngle &lt;= pi/2), :1457-1458 (&#x27;path too wide&#x27;)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dRectangleShape.java:169-173 (at a9779ef3c193) (getBuffered converts distance with DEGREES_TO_RADIANS)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dSpatialContextFactory.java:28 (at a9779ef3c193) (@lucene.experimental)</code></li><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/ShapeRectRelationTestCase.java:159-175 (at a9779ef3c193) (testGeoPathRect: width = (random().nextInt(89) + 1) * DEGREES_TO_RADIANS, then builder.buffer(width); the only upstream caller of the builder&#x27;s buffer)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dShapeFactory.java:114-117, :175-197, :204-213, :221-224, :278-286, :303-320, :383-407 (main a9779ef3c193)</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoPathFactory.java:30-44; lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoStandardPath.java:65-86, :1456-1458</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dRectangleShape.java:169-173; lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dSpatialContextFactory.java:25-53</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dSpatialContextFactory.java:25-53; lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dShapeFactory.java:204-213, :383-407</code></li><li><code>lucene/spatial3d/src/java/org/apache/lucene/spatial3d/geom/GeoStandardPath.java:272-275 (write serializes the cutoff angle)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:7866-7868; lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/package-info.java:18</code></li><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/ShapeRectRelationTestCase.java:159-186</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dShapeFactory.java:82-85 (setCircleAccuracy javadoc), :211 (lineString(List, double) passes through)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/ShapeRectRelationTestCase.java:19, :159-186</code></li><li><code>lucene/CHANGES.txt:268, :331 (section names)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:7866-7868</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestGeo3dLineStringBuffer.java (lucene/spatial-extras, public API): <a href='../repro/LFV-678/TestGeo3dLineStringBuffer.java'><code>repro/LFV-678/TestGeo3dLineStringBuffer.java</code></a> (111 lines)</li><li>TestGeo3dLineStringBuffer.java, finder&#x27;s version (2 tests; run on 72 releases): <a href='../repro/LFV-678/2-TestGeo3dLineStringBuffer.java'><code>repro/LFV-678/2-TestGeo3dLineStringBuffer.java</code></a> (81 lines)</li><li>TestLineBufferWidth.java (index check: 3 hits instead of 1): <a href='../repro/LFV-678/TestLineBufferWidth.java'><code>repro/LFV-678/TestLineBufferWidth.java</code></a> (100 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><ul class='paths'><li><a href='../assets/LFV-678/bug.png'><code>assets/LFV-678/bug.png</code></a> (443 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

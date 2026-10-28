@@ -41,7 +41,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
 /**
- * V3 (intended-behaviour) probe. Questions: does the facet module otherwise support dimension
+ * Intended-behaviour probe. Questions: does the facet module otherwise support dimension
  * names that contain U+001F/U+001E (so the flat multiValued+requireDimCount path is the odd one
  * out), is the trigger reachable through the documented "dimension not known beforehand" route
  * (getDefaultDimConfig), and what exactly does FacetsConfig write for the bare dimension term in

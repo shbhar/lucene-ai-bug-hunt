@@ -2,6 +2,8 @@
 
 Bug LFV-376 · Area: analysis / hunspell (AffixCondition: affix conditions used by Hunspell.spell/suggest and by stemming through Stemmer/HunspellStemFilter) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-376.html](../../bugs/LFV-376.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a Hunspell dictionary with the rules 'SFX A b x [a-c]' and 'SFX A b y [
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Lucene's Hunspell.spell accepts ax and rejects ay (likewise xa and ya for the PFX twins on ba), and HunspellStemFilter stems ax to ab and leaves ay unstemmed.
+- Expected: `spell("ax")` and `spell("xa")` return false and `spell("ay")` and `spell("ya")` return true, as in C Hunspell.
+- Actual: `ax` and `xa` are accepted and `ay` is rejected: 3 of 4 tests fail and the stem-side control passes, with assertions on and off.
 
 ## Files
 
@@ -43,6 +45,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestAffixConditionDashInStripPart.java](TestAffixConditionDashInStripPart.java)
+- [TestDashInStripCondition.java](TestDashInStripCondition.java)
+- [TestDashStripVariants.java](TestDashStripVariants.java)
+- [test-unit.diff](test-unit.diff)
 
 ## Feedback
 

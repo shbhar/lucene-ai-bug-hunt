@@ -2,6 +2,8 @@
 
 Bug LFV-301 · Area: spatial-extras / PointVectorStrategy (Intersects and IsWithin rectangle queries: makeWithin x filter) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-301.html](../../bugs/LFV-301.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a point with PointVectorStrategy in the default geo context and search
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: A point stored at x=+180 is missed by a box whose west edge is -180 (Pt(180,0) with rect(-180,-170,-10,10): 0 hits, oracle 1), and a point at x=-180 by a box whose east edge is +180 (Pt(-180,0) with rect(170,180,-10,10)).
+- Expected: 1 hit in each of the three cases, as `SpatialOperation.evaluate` and `BBoxStrategy` give.
+- Actual: 0 hits in each: 3 of 4 tests fail with `expected:<1> but was:<0>` at the `PointVectorStrategy` assertion; the controls pass.
 
 ## Files
 
@@ -46,6 +48,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestPointVectorDatelineEdge.java](TestPointVectorDatelineEdge.java)
+- [2-TestPointVectorDatelineEdge.java](2-TestPointVectorDatelineEdge.java)
+- [TestPointVectorAntimeridian.java](TestPointVectorAntimeridian.java)
 
 ## Feedback
 

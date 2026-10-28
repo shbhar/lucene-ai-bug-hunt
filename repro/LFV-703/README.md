@@ -2,6 +2,8 @@
 
 Bug LFV-703 · Area: analysis-common / language analyzers (default stop sets of SoraniAnalyzer, LatvianAnalyzer and GalicianAnalyzer; choice of WordlistLoader overload) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-703.html](../../bugs/LFV-703.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You call SoraniAnalyzer.getDefaultStopSet, LatvianAnalyzer.getDefaultStopSet or 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The three analyzers load the file with WordlistLoader.getWordSet(InputStream), which 'adds every line as an entry', so 60 of Sorani's 122 entries, 9 of Latvian's 170 (including a bare '#') and 1 of Galician's 161 are comment text such as '# set of kurdish stopwords', '# and' or '# galican stopwords'.
+- Expected: Each of the three default sets has 0 entries that start with `#` (62, 161 and 160 words), like the Bulgarian control.
+- Actual: Sorani has 60 of 122, Latvian 9 of 170 (including a bare `#`), Galician 1 of 161: 4 tests, 3 failed.
 
 ## Files
 
@@ -42,6 +44,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDefaultStopSetCommentLines.java](TestDefaultStopSetCommentLines.java)
+- [TestBundledStopSetCommentsV1.java](TestBundledStopSetCommentsV1.java)
 
 ## Feedback
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Bugs found
 
-- FunctionRangeQuery over ValueSource.fromDoubleValuesSource(...) compares bounds and values as floats, not doubles, so double and long ranges silently gain or lose hits near a bound and beyond Float.MAX_VALUE (bug LFV-409; [repro](../../repro/LFV-409/))
+- FunctionRangeQuery over ValueSource.fromDoubleValuesSource(...) compares bounds and values as floats, not doubles, so double and long ranges silently gain or lose hits near a bound and beyond Float.MAX_VALUE (bug LFV-409; [repro](../../repro/LFV-409/), [bug page](../../bugs/LFV-409.html))
 
 ## Files
 

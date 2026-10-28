@@ -2,6 +2,8 @@
 
 Bug LFV-293 · Area: queries / intervals (Intervals.before, OffsetIntervalsSource PRECEDING) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-293.html](../../bugs/LFV-293.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You search with Intervals.before(source, reference), for example before(term new
 
 ## Expected vs actual
 
-- Expected: You expect no match, because the javadoc says before 'Returns intervals from the source that appear before intervals from the reference' and nothing comes before the first word.
-- Actual: Both documents match: before is built from a helper that places a pseudo-interval one position before each reference match, and for a reference at position 0 the helper clamps that position to 0 instead of producing nothing, so a source at position 0 counts as 'before' it; prepend one unrelated word and the same text correctly stops matching.
+- Expected: `before(york, york)` matches only `york york` (`[2]`), and `before(new, phrase(new york))` only `new x new york` (`[3]`).
+- Actual: `[0, 2]`: the lone `york` matches too; and `[0, 2, 3]`: `new york` and `new york city` match too.
 
 ## Files
 
@@ -43,6 +45,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestIntervalsBeforeFirstPosition.java](TestIntervalsBeforeFirstPosition.java)
+- [TestBeforeAtFirstPosition.java](TestBeforeAtFirstPosition.java)
+- [TestBeforeFirstPositionV1.java](TestBeforeFirstPositionV1.java)
+- [TestBeforeBoundaryControls.java](TestBeforeBoundaryControls.java)
+- [TestBeforeIntent.java](TestBeforeIntent.java)
 
 ## Feedback
 

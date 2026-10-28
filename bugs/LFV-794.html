@@ -1,0 +1,1137 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Tessellator flags a hole bridge that runs along an outer edge as internal, so LatLonShape and XYShape CONTAINS queries match boxes that stick out of a polygon whose two holes touch that edge</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-794 &middot; tessellator-bridge-along-outer-edge-loses-from-polygon-flag</p><h1 id='top'>Tessellator flags a hole bridge that runs along an outer edge as internal, so LatLonShape and XYShape CONTAINS queries match boxes that stick out of a polygon whose two holes touch that edge</h1><p class='tldr'>When two holes touch the same straight outer edge, the Tessellator can mark the piece of that edge between them as internal, so <code class='nw'>LatLonShape</code> and <code class='nw'>XYShape</code> CONTAINS queries match boxes that leave the polygon there, even one 99.6% outside. Every release since 8.4.0; a one-line fix.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 331</span><span class='sub'>A wrong edge flag gives silent CONTAINS false positives for every ring start when two holes touch the same outer edge, so its trigger is broader than LFV-793&#x27;s, but it only affects the less used CONTAINS relation.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>8.4.0 (LUCENE-8620, 2019; flag wrong since 8.3.0)<span class='sub'>introduced 2019-09-09 &middot; about 7 years</span></dd></div><div><dt>Affected</dt><dd>8.4.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>lattice translation validation (semi-formal)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Background: Lucene stores a polygon as triangles and flags each triangle edge that lies on the polygon's boundary; CONTAINS treats crossing a flagged edge as leaving the shape. Holes are cut in first, by joining each hole to the outer ring with a bridge, a cut that later becomes a triangle edge.</p><figure class='visual' id='tessellator-bridge-along-outer-edge-loses-from-polygon-flag-short-visual'><div class='frame'><a class='still' href='../assets/LFV-794/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-794/bug.png' alt='Diagram of the bug: a triangular polygon (0,0) (7,12) (12,0) with two small triangular holes, one touching the bottom edge y = 0 at (2,0) and one at (5,0). Hole A is bridged to (0,0) along the bottom edge; hole B&#x27;s bridge runs from (5,0) to (2,0), also along the bottom edge, but is flagged as an internal edge because Lucene only compares it with the ring edges at its two ends, not with the long bottom edge (0,0)-(12,0). The triangle (5,1) (2,0) (5,0) is indexed with its bottom side unflagged, so the CONTAINS query for the box x [3,4], y [-0.5,0.3], which sticks out below the polygon, matches the document (1 hit instead of 0). Boxes crossing the bottom edge left of (2,0) or right of (5,0) correctly give 0. With the whole-ring check the bridge is flagged and the box gives 0.' width='1920' height='1080'></a></div><figcaption>The executed example step by step: the triangle (0,0) (7,12) (12,0) with two holes touching its bottom edge at (2,0) and (5,0), the two bridges along that edge, the piece (2,0)-(5,0) indexed as internal, and the box x [3,4], y [-0.5,0.3] that leaves through it and is still "contained". Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index the triangle (0,0) (7,12) (12,0) with two small holes, (2,0) (5,1) (3,3) and (5,0) (8,1) (6,3), each touching the bottom edge y = 0 at one point, with <code class='nw'>XYShape</code> or <code>LatLonShape.createIndexableFields</code>. The polygon is valid (JTS reports it valid; the Tessellator allows that "Holes may only touch at one vertex"), and listing (5,0) and (2,0) as outer-ring vertices too changes nothing.</span></li><li><span>You ask CONTAINS for the box x [3,4], y [-0.5,0.3]. It sticks 0.5 below the bottom edge, between the two touch points, so you expect 0 hits. You get 1, with no error. The inside box x [3,4], y [0.05,0.3] correctly gives 1; boxes crossing the bottom edge left of (2,0) or right of (5,0) correctly give 0.</span></li><li><span>Why: hole B's bridge runs from (5,0) to (2,0), straight along the bottom edge. Lucene flags a bridge as boundary only if it overlaps a ring edge at one of its two ends, and here the bottom edge is one long ring edge, (0,0)-(12,0), next to neither end. So the bridge is flagged internal.</span></li><li><span>The triangle (5,1) (2,0) (5,0) is therefore indexed with its boundary edge (2,0)-(5,0) unflagged, and CONTAINS reads crossing it as "still inside": any box that leaves through that piece matches, even x [3,4], y [-80,0.3], 99.6% outside (for <code class='nw'>LatLonShape</code> about 8,900 km of latitude).</span></li><li><span>XY polygon, line and circle CONTAINS queries are hit too, and for this polygon every ring start and both hole orders fail. Every release from 8.4.0 to 10.5.2 and main; the wrong flag is stored in the index, so affected shapes must be reindexed after a fix.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone who indexes polygons with holes through <code class='nw'>LatLonShape</code> or <code class='nw'>XYShape</code> (default settings; one document is enough) and runs CONTAINS queries, when two holes touch the same straight outer edge and the later hole's bridge runs along it. Only silent false positives. The flag is stored in the index, so affected shapes need reindexing after a fix.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>867 words</span></summary><div class='body'><p><code class='nw'>LatLonShape</code> and <code class='nw'>XYShape</code> index a polygon as triangles and store, for each triangle edge, a flag that says whether the edge lies on the polygon's boundary. CONTAINS queries rely on it: crossing a flagged edge means the query leaves the shape, crossing only unflagged edges means it stays inside. Before ear clipping, the Tessellator joins each hole to the outer ring with a bridge, and <code>Tessellator.eliminateHole</code> flags the bridge as a boundary edge only when one of four <code class='nw'>isPointInLine</code> checks finds it on a ring edge next to one of its two ends (<code>Tessellator.java:392-397</code>). When two holes touch the same straight outer edge and the second hole's bridge runs along that edge (here because each hole touches it at its leftmost vertex), the bridge lies inside a long ring edge that is next to neither of its ends, so it is flagged internal. For the triangle (0,0) (7,12) (12,0) with holes (2,0) (5,1) (3,3) and (5,0) (8,1) (6,3), the piece (2,0)-(5,0) of the bottom edge is indexed as internal, and CONTAINS for the box x [3,4], y [-0.5,0.3], which sticks out below the polygon, matches; it still matches with the box stretched to y = -80. INTERSECTS and boxes inside the polygon are right, and no error is raised. The flag has been wrong since the flags were added (LUCENE-8620, 8.3.0) and visible since CONTAINS shipped in 8.4.0; every release executed through 10.5.2 and main is affected. Adding the whole-ring scan <code>isEdgeFromPolygon</code>, which ear clipping already uses for its diagonals, to the bridge's flag fixes it: the repro passes, and 45 geo and shape suites (393 test cases, 367 run, 26 skipped as nightly-only or similar) pass with assertions on and off.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Tessellation triangles and edge flags.</strong> <code>LatLonShape.createIndexableFields</code> and <code>XYShape.createIndexableFields</code> call <code>Tessellator.tessellate</code> (<code>LatLonShape.java:85-114</code>, <code>XYShape.java:83-112</code>) and index one <code>ShapeField.Triangle</code> per triangle, with three flags (<code>ShapeField.java:80-92</code>). <code>Tessellator.Triangle.isEdgefromPolygon</code> is documented as "get if edge is shared with the polygon for the given edge" (<code>Tessellator.java:1723-1724</code>).</li><li><strong>CONTAINS.</strong> Per triangle, the query is NOTWITHIN when it crosses a flagged edge and CANDIDATE when it crosses only unflagged edges (<code>Component2D.java:101-115</code>; LatLon boxes <code>SpatialQuery.java:947-1001</code>, XY boxes <code>Rectangle2D.java:180</code>); a document matches when some triangle is CANDIDATE and none is NOTWITHIN (<code>SpatialQuery.java:591-650</code> records both; <code class='nw'>:376</code> drops the NOTWITHIN documents with <code>result.andNot(excluded)</code>). Only the queries' <code class='nw'>contains()</code> functions read the flags.</li><li><strong>Hole bridge.</strong> Holes are processed left to right by their leftmost vertex (<code>Tessellator.java:309-325</code>). <code class='nw'>fetchHoleBridge</code> casts a ray to the left from that vertex and picks a ring vertex to connect to (<code class='nw'>:536-592</code>); <code class='nw'>splitPolygon</code> links the hole into the ring through that bridge and stores the bridge's flag on both copies (<code class='nw'>:1175-1197</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-step-by-step-executed-trace-on-main'>The bug, step by step (executed trace on main)</h3><a class="hlink" href="#what-the-bug-is-the-bug-step-by-step-executed-trace-on-main" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-step-by-step-executed-trace-on-main"><span aria-hidden="true">#</span></a></div><ol><li><code>createDoublyLinkedList</code> ends with <code class='nw'>filterPoints</code> (<code class='nw'>:243</code>), which drops collinear vertices whose two edges have the same flag (<code class='nw'>:1424-1441</code>). The outer ring reaches hole elimination as (0,0) (12,0) (7,12): the bottom edge is one ring edge, (0,0)-(12,0), even when the caller listed (2,0) and (5,0) as vertices.</li><li>Hole A (leftmost (2,0)) is bridged to (0,0). That bridge lies on the bottom edge and shares the end (0,0) with it, so it is flagged as boundary. The ring is now (2,0) (3,3) (5,1) (2,0) (0,0) (12,0) (7,12) (0,0): the edge (0,0)-(12,0) is still one ring edge, with both touch points in its interior.</li><li>Hole B (leftmost (5,0)): the ray to the left hits hole A's edge (5,1)-(2,0) at its end, so the bridge is (5,0)-(2,0), exactly along the bottom edge. <code class='nw'>eliminateHole</code> (<code class='nw'>:392-397</code>, under the comment "compute if the bridge overlaps with a polygon edge") asks four questions: is (5,0) on (2,0)-(0,0) or on (2,0)-(5,1), the ring edges at the bridge end? Is (2,0) on one of hole B's two edges at (5,0)? All four are no, so <code class='nw'>fromPolygon</code> is false.</li><li>Ear clipping copies the flag into the triangle (<code class='nw'>:650-656</code>): (5,1) (2,0) (5,0) is stored with its edge (2,0)-(5,0) unflagged, and the box that leaves through it is a CANDIDATE in that triangle and touches no other triangle, so the document matches.</li></ol><p>The whole-ring scan that would have found (0,0)-(12,0) exists: <code>isEdgeFromPolygon</code> (<code class='nw'>:1067-1083</code>), used by ear clipping for its own diagonals (<code class='nw'>:654</code>). The commit that added the flags introduced both and used the scan for every diagonal except the bridge.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-main-a9779ef3c193-executed-the-same-on-10-5-2'>The numbers (main <code class='nw'>a9779ef3c193</code>, executed; the same on 10.5.2)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-main-a9779ef3c193-executed-the-same-on-10-5-2" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-main-a9779ef3c193-executed-the-same-on-10-5-2"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>CONTAINS query box</th><th>expected</th><th>XYShape</th><th>LatLonShape</th></tr></thead><tbody><tr><td>x [3,4], y [0.05,0.3] (inside, control)</td><td>1</td><td>1</td><td>1</td></tr><tr><td>x [3,4], y [-0.5,0.3] (0.5 below the edge)</td><td>0</td><td><strong>1</strong></td><td><strong>1</strong></td></tr><tr><td>x [2.5,4.5], y [-1,0.1] (91% outside)</td><td>0</td><td><strong>1</strong></td><td><strong>1</strong></td></tr><tr><td>x [3,4], y [-80,0.3] (99.6% outside)</td><td>0</td><td><strong>1</strong></td><td><strong>1</strong></td></tr><tr><td>x [1,1.5], y [-0.5,0.3] (crosses the edge left of hole A, control)</td><td>0</td><td>0</td><td>0</td></tr><tr><td>x [9,10], y [-0.5,0.3] (crosses the edge right of hole B, control)</td><td>0</td><td>0</td><td>0</td></tr></tbody></table></div><p>INTERSECTS is 1 for every box. With the fix, every wrong 1 becomes 0 and the controls are unchanged. The credibility audit found the same false positive for XY polygon, line and circle CONTAINS queries, and for three other outer rings (a rectangle, a pentagon, a wider triangle) with the same two holes.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>357 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Applications that index polygons with holes through <code>LatLonShape.createIndexableFields</code> or <code>XYShape.createIndexableFields</code> (the default path, either <code>checkSelfIntersections</code> setting, default <code>IndexWriterConfig</code> and codec) and query them with <code>QueryRelation.CONTAINS</code>.</li><li><strong>Trigger.</strong> Two holes that each touch the same straight outer edge at one point (as vertices of both rings or in the interior of the outer edge), in a layout where the later hole's bridge runs along that edge, plus a CONTAINS query that leaves the polygon through the piece of that edge between the touch points. Every outer-ring start vertex and both hole orders fail. It is geometry-sensitive: the second hole's bridge must run along the edge, which needs that hole's leftmost vertex to be its touch point (read from the mechanism). An independent reviewer's rectangle whose holes touch the bottom edge with a vertex that is not their leftmost one did not trigger it; the audit's rectangle with these two holes did.</li><li><strong>How often.</strong> Not measured on real data. Touching-hole layouts are supported input and have come up in upstream bug reports (upstream fixed tessellation failures for them, for example #15205, #15554, #15695 and #15731). In the finder's random lattice polygons, built so that about half of the holes touch something, about 1-2% of polygon/mode pairs hit this fix site (a generator rate, not a real-data rate). The documented search found no prior report of the symptom.</li><li><strong>Effect.</strong> Silent false positives only, possibly large (a box 99.6% outside matched). No exception. INTERSECTS, WITHIN and DISJOINT do not read the flags; boxes inside the polygon and single-hole polygons are right.</li><li><strong>Default vs opt-in.</strong> Indexing is the default path; CONTAINS is a relation the caller must choose explicitly; how often it is used was not measured. Shape doc-values queries reject CONTAINS (<code>BaseShapeDocValuesQuery.java:47-49</code>).</li><li><strong>Persistence.</strong> The flag is computed at index time and stored with each triangle, so shapes indexed with an affected version keep it until reindexed (read, not executed for this bug).</li><li><strong>Not executed.</strong> LatLon polygon, line and circle CONTAINS queries (the XY ones were); polygons above 80 vertices, which use Morton-ordered ear clipping after the same bridge code; other JDKs or CPUs than JDK 25 on aarch64.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code class='nw'>lucene/core</code> (public API, 3 tests on a one-document index: the edge flag, then XY and LatLon CONTAINS with the inside box as control) and a 7-line <code class='nw'>TestTessellator</code> method running upstream's exact flag oracle. All fail on main, the class also on 10.5.2 and 9.12.3, assertions on and off; all pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestHolesTouchingSameOuterEdge.java (lucene/core, public API, 3 tests)</span><span class='meta'>96 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.Tessellator;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * A valid polygon whose two holes each touch the bottom edge y = 0 of the outer ring at one vertex:
+ * outer ring (0,0) (7,12) (12,0), holes (2,0) (5,1) (3,3) and (5,0) (8,1) (6,3). The piece of the
+ * outer edge between the two touch points, (2,0)-(5,0), is part of the polygon&#x27;s boundary.
+ */
+public class TestHolesTouchingSameOuterEdge extends LuceneTestCase {
+
+  private static XYPolygon xyPolygon() {
+    XYPolygon holeA = new XYPolygon(new float[] {2, 5, 3, 2}, new float[] {0, 1, 3, 0});
+    XYPolygon holeB = new XYPolygon(new float[] {5, 8, 6, 5}, new float[] {0, 1, 3, 0});
+    return new XYPolygon(new float[] {0, 7, 12, 0}, new float[] {0, 12, 0, 0}, holeA, holeB);
+  }
+
+  /** The same polygon in degrees, lat = y and lon = x. */
+  private static Polygon latLonPolygon() {
+    Polygon holeA = new Polygon(new double[] {0, 1, 3, 0}, new double[] {2, 5, 3, 2});
+    Polygon holeB = new Polygon(new double[] {0, 1, 3, 0}, new double[] {5, 8, 6, 5});
+    return new Polygon(new double[] {0, 12, 0, 0}, new double[] {0, 7, 12, 0}, holeA, holeB);
+  }
+
+  /** Every triangle edge that lies on the outer edge y = 0 belongs to the polygon. */
+  public void testTriangleEdgesOnOuterEdgeAreFromPolygon() {
+    for (Tessellator.Triangle t : Tessellator.tessellate(xyPolygon(), random().nextBoolean())) {
+      for (int k = 0; k &lt; 3; k++) {
+        int n = (k + 1) % 3;
+        if (t.getY(k) == 0 &amp;&amp; t.getY(n) == 0) {
+          assertTrue(
+              &quot;edge (&quot; + t.getX(k) + &quot;,0)-(&quot; + t.getX(n) + &quot;,0) is not flagged as a polygon edge&quot;,
+              t.isEdgefromPolygon(k));
+        }
+      }
+    }
+  }
+
+  public void testXYShapeContains() throws Exception {
+    Field[] fields = XYShape.createIndexableFields(&quot;s&quot;, xyPolygon());
+    // inside the polygon: contained
+    assertEquals(
+        1, count(fields, XYShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, 3, 4, 0.05f, 0.3f)));
+    // sticks out below y = 0 between the two touch points: not contained
+    assertEquals(
+        0, count(fields, XYShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, 3, 4, -0.5f, 0.3f)));
+  }
+
+  public void testLatLonShapeContains() throws Exception {
+    Field[] fields = LatLonShape.createIndexableFields(&quot;s&quot;, latLonPolygon());
+    // inside the polygon: contained
+    assertEquals(
+        1, count(fields, LatLonShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, 0.05, 0.3, 3, 4)));
+    // sticks out below lat = 0 between the two touch points: not contained
+    assertEquals(
+        0, count(fields, LatLonShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, -0.5, 0.3, 3, 4)));
+  }
+
+  private int count(Field[] fields, Query query) throws Exception {
+    try (Directory dir = newDirectory();
+        RandomIndexWriter w = new RandomIndexWriter(random(), dir)) {
+      Document doc = new Document();
+      for (Field f : fields) {
+        doc.add(f);
+      }
+      w.addDocument(doc);
+      try (IndexReader r = w.getReader()) {
+        return newSearcher(r).count(query);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestHolesTouchingSameOuterEdge.java $LUCENE/lucene/core/src/test/org/apache/lucene/document/
+cd $LUCENE &amp;&amp; git apply $REPRO/TestTessellator-testHolesTouchingSameOuterEdge.diff
+./gradlew :lucene:core:test --tests org.apache.lucene.document.TestHolesTouchingSameOuterEdge --tests org.apache.lucene.geo.TestTessellator.testHolesTouchingSameOuterEdge -Ptests.seed=DEADBEEF
+# also with -Ptests.asserts=false (recorded run: -Ptests.seed=5EED0794): the same 4 failures
+git apply $FIX/fix.diff   # then the same ./gradlew command: 4 tests pass
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>CONTAINS for the box x [3,4], y [-0.5,0.3] finds nothing (it sticks out below y = 0), the inside box x [3,4], y [0.05,0.3] finds the document, and the edge (2,0)-(5,0) is flagged as a polygon edge.</dd></div><div class='got'><dt>Observed</dt><dd>CONTAINS finds the document for the box that sticks out (<code>expected:&lt;0&gt; but was:&lt;1&gt;</code>, XY and LatLon), and the edge (2,0)-(5,0) is not flagged.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-794/'>repro/LFV-794/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>5 more files (693 lines) · 4,385 words</span></summary><div class='body'><p><code>TestHolesTouchingSameOuterEdge</code> (package <code>org.apache.lucene.document</code>, <code class='nw'>LuceneTestCase</code> with <code>RandomIndexWriter</code>; formatted with <code>./gradlew tidy</code>). The two CONTAINS tests use only the public <code class='nw'>XYShape</code>/<code>LatLonShape.createIndexableFields</code> and <code>newBoxQuery(CONTAINS)</code>; the flag test also calls the public methods <code>Tessellator.tessellate</code> and <code>Triangle.isEdgefromPolygon</code> of the <code class='nw'>@lucene.internal</code> class <code class='nw'>Tessellator</code>:</p><ul><li><code>testTriangleEdgesOnOuterEdgeAreFromPolygon</code>: every triangle edge with both ends on y = 0 lies on the outer edge and must be flagged.</li><li><code>testXYShapeContains</code>, <code>testLatLonShapeContains</code>: the inside box must match (control, asserted first), the box sticking out must not.</li></ul><p>The <code class='nw'>TestTessellator</code> method feeds the same polygon as WKT to the private <code class='nw'>checkPolygon</code> helper, which asserts the area and every flag. Its failure reads <code>expected:&lt;false&gt; but was:&lt;true&gt;</code> because the helper passes the stored flag as "expected" and the oracle as "actual".</p><p>Executed: the class fails 3 of 3 on main (assertions on, seed DEADBEEF; off, 5EED0794), 10.5.2 (on and off) and 9.12.3 (off) through the standalone runner, and with the <code class='nw'>TestTessellator</code> method 4 of 4 through gradle on main (assertions on and off); 3 of 3 and 4 of 4 pass with the fix. The same class with (2,0) and (5,0) also listed as outer-ring vertices (the shell-vertex variant, which leaves no doubt that each hole touches at one vertex; consider leading the issue with it) fails 3 of 3 on main (on and off), 10.5.2 and 9.12.3 (off) and passes with the fix. The finder's broader test, the independent reproducer's test and a box-extent probe are listed below.</p><div class="hd hd-3"><h3 id='code-2-h'>TestTessellator method (diff, +7 lines; upstream&#x27;s exact flag oracle)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Adds <code>testHolesTouchingSameOuterEdge</code>, which calls <code>checkPolygon("POLYGON((0 0, 7 12, 12 0, 0 0), (2 0, 5 1, 3 3, 2 0), (5 0, 8 1, 6 3, 5 0))")</code>. On stock: <code>expected:&lt;false&gt; but was:&lt;true&gt;</code>.</p><figure class='code'><figcaption><span class='fname'>TestTessellator method (diff, +7 lines; upstream&#x27;s exact flag oracle)</span><span class='meta'>18 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/test/org/apache/lucene/geo/TestTessellator.java b/lucene/core/src/test/org/apache/lucene/geo/TestTessellator.java
+index 72cb739f3b6..3748b461778 100644
+--- a/lucene/core/src/test/org/apache/lucene/geo/TestTessellator.java
++++ b/lucene/core/src/test/org/apache/lucene/geo/TestTessellator.java
+@@ -975,6 +975,13 @@ public class TestTessellator extends LuceneTestCase {
+     checkMultiPolygon(polygons, 0.0);
+   }
+ 
++  public void testHolesTouchingSameOuterEdge() throws Exception {
++    // each hole touches the outer edge y = 0 at one vertex, (2 0) and (5 0); the piece of that
++    // edge between them, (2 0)-(5 0), must stay flagged as a polygon edge
++    String wkt = &quot;POLYGON((0 0, 7 12, 12 0, 0 0), (2 0, 5 1, 3 3, 2 0), (5 0, 8 1, 6 3, 5 0))&quot;;
++    checkPolygon(wkt);
++  }
++
+   private static class TestCountingMonitor implements Tessellator.Monitor {
+     private int count = 0;
+     private int splitsStarted = 0;
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestHolesTouchingSameOuterEdgeShellVertices.java (the shell-vertex variant: the outer ring also lists (5,0) and (2,0))</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>The same 3 tests on the outer ring (0,0) (7,12) (12,0) (5,0) (2,0). Standalone runner: fails 3 of 3 on main (assertions on and off), 10.5.2 and 9.12.3 (off), with the same messages; passes with the fix (on and off). For the <code class='nw'>TestTessellator</code> method the same variant is <code>POLYGON((0 0, 7 12, 12 0, 5 0, 2 0, 0 0), (2 0, 5 1, 3 3, 2 0), (5 0, 8 1, 6 3, 5 0))</code> (not run through gradle here; the devil's advocate ran the same oracle on 20 shell-vertex combinations).</p><figure class='code'><figcaption><span class='fname'>TestHolesTouchingSameOuterEdgeShellVertices.java (the shell-vertex variant: the outer ring also lists (5,0) and (2,0))</span><span class='meta'>98 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.Tessellator;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * The shell-vertex variant: the outer ring (0,0) (7,12) (12,0) (5,0) (2,0) lists both touch points
+ * as vertices, so each hole, (2,0) (5,1) (3,3) and (5,0) (8,1) (6,3), shares one vertex with the
+ * outer ring. The piece (2,0)-(5,0) of the bottom edge y = 0 is part of the polygon&#x27;s boundary.
+ */
+public class TestHolesTouchingSameOuterEdgeShellVertices extends LuceneTestCase {
+
+  private static XYPolygon xyPolygon() {
+    XYPolygon holeA = new XYPolygon(new float[] {2, 5, 3, 2}, new float[] {0, 1, 3, 0});
+    XYPolygon holeB = new XYPolygon(new float[] {5, 8, 6, 5}, new float[] {0, 1, 3, 0});
+    return new XYPolygon(
+        new float[] {0, 7, 12, 5, 2, 0}, new float[] {0, 12, 0, 0, 0, 0}, holeA, holeB);
+  }
+
+  /** The same polygon in degrees, lat = y and lon = x. */
+  private static Polygon latLonPolygon() {
+    Polygon holeA = new Polygon(new double[] {0, 1, 3, 0}, new double[] {2, 5, 3, 2});
+    Polygon holeB = new Polygon(new double[] {0, 1, 3, 0}, new double[] {5, 8, 6, 5});
+    return new Polygon(
+        new double[] {0, 12, 0, 0, 0, 0}, new double[] {0, 7, 12, 5, 2, 0}, holeA, holeB);
+  }
+
+  /** Every triangle edge that lies on the outer edge y = 0 belongs to the polygon. */
+  public void testTriangleEdgesOnOuterEdgeAreFromPolygon() {
+    for (Tessellator.Triangle t : Tessellator.tessellate(xyPolygon(), random().nextBoolean())) {
+      for (int k = 0; k &lt; 3; k++) {
+        int n = (k + 1) % 3;
+        if (t.getY(k) == 0 &amp;&amp; t.getY(n) == 0) {
+          assertTrue(
+              &quot;edge (&quot; + t.getX(k) + &quot;,0)-(&quot; + t.getX(n) + &quot;,0) is not flagged as a polygon edge&quot;,
+              t.isEdgefromPolygon(k));
+        }
+      }
+    }
+  }
+
+  public void testXYShapeContains() throws Exception {
+    Field[] fields = XYShape.createIndexableFields(&quot;s&quot;, xyPolygon());
+    // inside the polygon: contained
+    assertEquals(
+        1, count(fields, XYShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, 3, 4, 0.05f, 0.3f)));
+    // sticks out below y = 0 between the two touch points: not contained
+    assertEquals(
+        0, count(fields, XYShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, 3, 4, -0.5f, 0.3f)));
+  }
+
+  public void testLatLonShapeContains() throws Exception {
+    Field[] fields = LatLonShape.createIndexableFields(&quot;s&quot;, latLonPolygon());
+    // inside the polygon: contained
+    assertEquals(
+        1, count(fields, LatLonShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, 0.05, 0.3, 3, 4)));
+    // sticks out below lat = 0 between the two touch points: not contained
+    assertEquals(
+        0, count(fields, LatLonShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, -0.5, 0.3, 3, 4)));
+  }
+
+  private int count(Field[] fields, Query query) throws Exception {
+    try (Directory dir = newDirectory();
+        RandomIndexWriter w = new RandomIndexWriter(random(), dir)) {
+      Document doc = new Document();
+      for (Field f : fields) {
+        doc.add(f);
+      }
+      w.addDocument(doc);
+      try (IndexReader r = w.getReader()) {
+        return newSearcher(r).count(query);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestTessellatorBridgeAlongOuterEdgeFlag.java (the finder&#x27;s test: both ring variants, every start vertex, both hole orders)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Fails 4 of 4 on main (assertions on and off), 10.5.2, 10.4.0, 10.3.2, 9.12.3, 9.12.2 and 9.1.0 with <code>CONTAINS box sticking out=1 CONTAINS box inside=1</code> for every combination; passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestTessellatorBridgeAlongOuterEdgeFlag.java (the finder&#x27;s test: both ring variants, every start vertex, both hole orders)</span><span class='meta'>148 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * A valid polygon (0,0) (7,12) (12,0) (5,0) (2,0) with two triangular holes; each hole touches the
+ * outer ring at exactly one vertex, (2,0) and (5,0) (vertices of both rings, as the Tessellator
+ * javadoc allows: &quot;Holes may only touch at one vertex&quot;), and the holes do not touch each other. The
+ * box x in [3,4], y in [-0.5,0.3] sticks out below the outer edge y = 0, so the polygon does not
+ * contain it and a CONTAINS query for it must not match. The box x in [3,4], y in [0.05,0.3] lies
+ * inside the polygon (control). The second polygon is the same without the outer vertices (2,0) and
+ * (5,0) (the holes then touch the outer edge (12,0)-(0,0) in its interior).
+ *
+ * &lt;p&gt;On main the outer-edge piece (2,0)-(5,0) is indexed as an internal edge (its &quot;from polygon&quot;
+ * flag is false), so CONTAINS matches the box that sticks out through it.
+ */
+public class TestTessellatorBridgeAlongOuterEdgeFlag extends LuceneTestCase {
+
+  /** outer ring, clockwise, with vertices at the two touch points */
+  private static final int[][] OUTER = {{0, 0}, {7, 12}, {12, 0}, {5, 0}, {2, 0}};
+
+  /** the same outer ring without the vertices (2,0) and (5,0) */
+  private static final int[][] OUTER_NO_TOUCH_VERTICES = {{0, 0}, {7, 12}, {12, 0}};
+
+  /** holes, counter-clockwise; each touches the outer edge (12,0)-(0,0) at one vertex */
+  private static final int[][][] HOLES = {{{2, 0}, {5, 1}, {3, 3}}, {{5, 0}, {8, 1}, {6, 3}}};
+
+  /** {minX, maxX, minY, maxY}: crosses y = 0 between the two touch points */
+  private static final float[] OUTSIDE_BOX = {3f, 4f, -0.5f, 0.3f};
+
+  /** {minX, maxX, minY, maxY}: inside the polygon */
+  private static final float[] INSIDE_BOX = {3f, 4f, 0.05f, 0.3f};
+
+  private static float[][] ring(int[][] v, int start) {
+    float[] x = new float[v.length + 1], y = new float[v.length + 1];
+    for (int i = 0; i &lt;= v.length; i++) {
+      x[i] = v[(start + i) % v.length][0];
+      y[i] = v[(start + i) % v.length][1];
+    }
+    return new float[][] {x, y};
+  }
+
+  private static double[] d(float[] f) {
+    double[] r = new double[f.length];
+    for (int i = 0; i &lt; f.length; i++) r[i] = f[i];
+    return r;
+  }
+
+  private static XYPolygon xy(int[][] outer, int start, int first) {
+    float[][] o = ring(outer, start), h0 = ring(HOLES[first], 0), h1 = ring(HOLES[1 - first], 0);
+    return new XYPolygon(o[0], o[1], new XYPolygon(h0[0], h0[1]), new XYPolygon(h1[0], h1[1]));
+  }
+
+  /** lat = y, lon = x (degrees) */
+  private static Polygon latLon(int[][] outer, int start, int first) {
+    float[][] o = ring(outer, start), h0 = ring(HOLES[first], 0), h1 = ring(HOLES[1 - first], 0);
+    return new Polygon(
+        d(o[1]), d(o[0]), new Polygon(d(h0[1]), d(h0[0])), new Polygon(d(h1[1]), d(h1[0])));
+  }
+
+  private int count(Field[] fields, Query q) throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field f : fields) doc.add(f);
+        w.addDocument(doc);
+      }
+      try (IndexReader r = DirectoryReader.open(dir)) {
+        return new IndexSearcher(r).count(q);
+      }
+    }
+  }
+
+  private Query contains(boolean latLon, float[] b) {
+    return latLon
+        ? LatLonShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, b[2], b[3], b[0], b[1])
+        : XYShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, b[0], b[1], b[2], b[3]);
+  }
+
+  private void check(int[][] outer, boolean latLon) throws Exception {
+    List&lt;String&gt; wrong = new ArrayList&lt;&gt;();
+    for (int start = 0; start &lt; outer.length; start++) {
+      for (int first = 0; first &lt; 2; first++) {
+        String at =
+            &quot;outer ring starting at (&quot;
+                + outer[start][0]
+                + &quot;,&quot;
+                + outer[start][1]
+                + &quot;), hole order &quot;
+                + (first == 0 ? &quot;AB&quot; : &quot;BA&quot;)
+                + &quot;: &quot;;
+        Field[] f =
+            latLon
+                ? LatLonShape.createIndexableFields(&quot;s&quot;, latLon(outer, start, first))
+                : XYShape.createIndexableFields(&quot;s&quot;, xy(outer, start, first));
+        int out = count(f, contains(latLon, OUTSIDE_BOX));
+        int in = count(f, contains(latLon, INSIDE_BOX));
+        if (out != 0 || in != 1) {
+          wrong.add(at + &quot;CONTAINS box sticking out=&quot; + out + &quot; CONTAINS box inside=&quot; + in);
+        }
+      }
+    }
+    assertTrue(wrong.toString(), wrong.isEmpty());
+  }
+
+  public void testXYShape() throws Exception {
+    check(OUTER, false);
+  }
+
+  public void testLatLonShape() throws Exception {
+    check(OUTER, true);
+  }
+
+  public void testXYShapeHolesTouchingEdgeInterior() throws Exception {
+    check(OUTER_NO_TOUCH_VERTICES, false);
+  }
+
+  public void testLatLonShapeHolesTouchingEdgeInterior() throws Exception {
+    check(OUTER_NO_TOUCH_VERTICES, true);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>TestTwoHolesOnOuterEdgeContains.java (independent reproducer: another shell and other holes)</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only: shell (0,0) (6,10) (12,0), 32 two-hole cases and a single-hole control. Fails 4 of 5 on main (assertions on and off), 10.5.2 and 9.12.3; the single-hole control passes; passes 5 of 5 with the fix.</p><figure class='code'><figcaption><span class='fname'>TestTwoHolesOnOuterEdgeContains.java (independent reproducer: another shell and other holes)</span><span class='meta'>336 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.Tessellator;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check: a valid polygon whose two holes each touch the same outer edge at one point.
+ *
+ * &lt;p&gt;Shell (clockwise): (0,0) (6,10) (12,0). Hole A (counter-clockwise): (2,0) (3,2) (2,3); its
+ * left-most vertex (2,0) lies on the outer edge y = 0. Hole B (counter-clockwise): (5,0) (7,1)
+ * (5,1); its left-most vertex (5,0) lies on the same outer edge. Between x = 2 and x = 5 the edge
+ * y = 0 is polygon boundary. The box x in [3,4], y in [-0.5,0.3] leaves the polygon through that
+ * piece of boundary, so the polygon does not contain it; the box x in [3,4], y in [0.05,0.3] is
+ * inside the polygon and outside both holes.
+ *
+ * &lt;p&gt;Variants: the same shell with explicit vertices at (2,0) and (5,0); every start vertex of the
+ * shell; both hole orders; a second shape of hole B; single-hole controls.
+ */
+@LuceneTestCase.SuppressSysoutChecks(bugUrl = &quot;prints one diagnostic line per case&quot;)
+public class TestTwoHolesOnOuterEdgeContains extends LuceneTestCase {
+
+  // shell without vertices at the touch points (clockwise)
+  static final double[][] SHELL_PLAIN = {{0, 0}, {6, 10}, {12, 0}};
+  // shell with explicit (collinear) vertices at both touch points (clockwise)
+  static final double[][] SHELL_EXPLICIT = {{0, 0}, {6, 10}, {12, 0}, {5, 0}, {2, 0}};
+  // holes (counter-clockwise)
+  static final double[][] HOLE_A = {{2, 0}, {3, 2}, {2, 3}};
+  static final double[][] HOLE_B = {{5, 0}, {7, 1}, {5, 1}};
+  static final double[][] HOLE_B2 = {{5, 0}, {8, 2}, {6, 2}};
+
+  static double[][] rotate(double[][] ring, int start) {
+    double[][] r = new double[ring.length + 1][];
+    for (int i = 0; i &lt; ring.length; i++) {
+      r[i] = ring[(start + i) % ring.length];
+    }
+    r[ring.length] = r[0];
+    return r;
+  }
+
+  static double[] xs(double[][] closed) {
+    double[] v = new double[closed.length];
+    for (int i = 0; i &lt; closed.length; i++) v[i] = closed[i][0];
+    return v;
+  }
+
+  static double[] ys(double[][] closed) {
+    double[] v = new double[closed.length];
+    for (int i = 0; i &lt; closed.length; i++) v[i] = closed[i][1];
+    return v;
+  }
+
+  static float[] f(double[] d) {
+    float[] v = new float[d.length];
+    for (int i = 0; i &lt; d.length; i++) v[i] = (float) d[i];
+    return v;
+  }
+
+  static XYPolygon xy(double[][] closed, XYPolygon... holes) {
+    return new XYPolygon(f(xs(closed)), f(ys(closed)), holes);
+  }
+
+  static Polygon latLon(double[][] closed, Polygon... holes) {
+    // lat = y, lon = x
+    return new Polygon(ys(closed), xs(closed), holes);
+  }
+
+  /** a case: the shell (unrotated), the list of holes in insertion order, a label */
+  static final class Case {
+    final double[][] shell;
+    final double[][][] holes;
+    final String label;
+
+    Case(double[][] shell, double[][][] holes, String label) {
+      this.shell = shell;
+      this.holes = holes;
+      this.label = label;
+    }
+  }
+
+  static List&lt;Case&gt; twoHoleCases() {
+    List&lt;Case&gt; cases = new ArrayList&lt;&gt;();
+    double[][][] shells = {SHELL_PLAIN, SHELL_EXPLICIT};
+    String[] shellNames = {&quot;plain shell&quot;, &quot;shell with touch vertices&quot;};
+    double[][][] bShapes = {HOLE_B, HOLE_B2};
+    String[] bNames = {&quot;B&quot;, &quot;B2&quot;};
+    for (int s = 0; s &lt; shells.length; s++) {
+      for (int b = 0; b &lt; bShapes.length; b++) {
+        for (int start = 0; start &lt; shells[s].length; start++) {
+          double[][] shell = rotate(shells[s], start);
+          String base =
+              shellNames[s] + &quot; start (&quot; + fmt(shell[0]) + &quot;), holes A+&quot; + bNames[b] + &quot; order &quot;;
+          cases.add(
+              new Case(
+                  shell, new double[][][] {rotate(HOLE_A, 0), rotate(bShapes[b], 0)}, base + &quot;AB&quot;));
+          cases.add(
+              new Case(
+                  shell, new double[][][] {rotate(bShapes[b], 0), rotate(HOLE_A, 0)}, base + &quot;BA&quot;));
+        }
+      }
+    }
+    return cases;
+  }
+
+  static List&lt;Case&gt; singleHoleControls() {
+    List&lt;Case&gt; cases = new ArrayList&lt;&gt;();
+    double[][][] shells = {SHELL_PLAIN, SHELL_EXPLICIT};
+    String[] shellNames = {&quot;plain shell&quot;, &quot;shell with touch vertices&quot;};
+    for (int s = 0; s &lt; shells.length; s++) {
+      for (int start = 0; start &lt; shells[s].length; start++) {
+        double[][] shell = rotate(shells[s], start);
+        cases.add(
+            new Case(
+                shell,
+                new double[][][] {rotate(HOLE_A, 0)},
+                shellNames[s] + &quot; start (&quot; + fmt(shell[0]) + &quot;), hole A only&quot;));
+        cases.add(
+            new Case(
+                shell,
+                new double[][][] {rotate(HOLE_B, 0)},
+                shellNames[s] + &quot; start (&quot; + fmt(shell[0]) + &quot;), hole B only&quot;));
+      }
+    }
+    return cases;
+  }
+
+  static String fmt(double[] p) {
+    return (p[0] == Math.rint(p[0]) ? Long.toString((long) p[0]) : Double.toString(p[0]))
+        + &quot;,&quot;
+        + (p[1] == Math.rint(p[1]) ? Long.toString((long) p[1]) : Double.toString(p[1]));
+  }
+
+  static XYPolygon toXY(Case c) {
+    XYPolygon[] holes = new XYPolygon[c.holes.length];
+    for (int i = 0; i &lt; holes.length; i++) holes[i] = xy(c.holes[i]);
+    return xy(c.shell, holes);
+  }
+
+  static Polygon toLatLon(Case c) {
+    Polygon[] holes = new Polygon[c.holes.length];
+    for (int i = 0; i &lt; holes.length; i++) holes[i] = latLon(c.holes[i]);
+    return latLon(c.shell, holes);
+  }
+
+  // ---- oracle for the edge flags: an edge belongs to the polygon iff both ends lie on one ring
+  // segment (of the shell or of a hole)
+  static boolean onSegment(double ax, double ay, double bx, double by, double px, double py) {
+    double cross = (bx - ax) * (py - ay) - (by - ay) * (px - ax);
+    if (cross != 0) return false;
+    return Math.min(ax, bx) &lt;= px
+        &amp;&amp; px &lt;= Math.max(ax, bx)
+        &amp;&amp; Math.min(ay, by) &lt;= py
+        &amp;&amp; py &lt;= Math.max(ay, by);
+  }
+
+  static boolean edgeOnRing(double[][] closed, double px, double py, double qx, double qy) {
+    for (int i = 0; i + 1 &lt; closed.length; i++) {
+      double ax = closed[i][0], ay = closed[i][1], bx = closed[i + 1][0], by = closed[i + 1][1];
+      if (onSegment(ax, ay, bx, by, px, py) &amp;&amp; onSegment(ax, ay, bx, by, qx, qy)) return true;
+    }
+    return false;
+  }
+
+  // Both shells have the same boundary point set; the plain shell&#x27;s three straight sides are the
+  // maximal straight pieces, so an edge lies on the shell boundary iff both ends lie on one of them.
+  static final double[][] SHELL_ORACLE = rotate(SHELL_PLAIN, 0);
+
+  static boolean edgeOnPolygon(Case c, double px, double py, double qx, double qy) {
+    if (edgeOnRing(SHELL_ORACLE, px, py, qx, qy)) return true;
+    for (double[][] h : c.holes) {
+      if (edgeOnRing(h, px, py, qx, qy)) return true;
+    }
+    return false;
+  }
+
+  static List&lt;String&gt; flagMismatches(Case c, List&lt;Tessellator.Triangle&gt; tris) {
+    List&lt;String&gt; bad = new ArrayList&lt;&gt;();
+    for (Tessellator.Triangle t : tris) {
+      for (int e = 0; e &lt; 3; e++) {
+        int n = (e + 1) % 3;
+        boolean expected = edgeOnPolygon(c, t.getX(e), t.getY(e), t.getX(n), t.getY(n));
+        if (t.isEdgefromPolygon(e) != expected) {
+          bad.add(
+              &quot;triangle &quot;
+                  + t
+                  + &quot; edge (&quot;
+                  + t.getX(e)
+                  + &quot;,&quot;
+                  + t.getY(e)
+                  + &quot;)-(&quot;
+                  + t.getX(n)
+                  + &quot;,&quot;
+                  + t.getY(n)
+                  + &quot;) flag=&quot;
+                  + t.isEdgefromPolygon(e)
+                  + &quot; expected=&quot;
+                  + expected);
+        }
+      }
+    }
+    return bad;
+  }
+
+  // ---- end-to-end CONTAINS counts
+  int[] xyContainsCounts(XYPolygon polygon) throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field fld : XYShape.createIndexableFields(&quot;shape&quot;, polygon)) doc.add(fld);
+        w.addDocument(doc);
+      }
+      try (IndexReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        int out =
+            s.count(XYShape.newBoxQuery(&quot;shape&quot;, QueryRelation.CONTAINS, 3f, 4f, -0.5f, 0.3f));
+        int in =
+            s.count(XYShape.newBoxQuery(&quot;shape&quot;, QueryRelation.CONTAINS, 3f, 4f, 0.05f, 0.3f));
+        int outIntersects =
+            s.count(XYShape.newBoxQuery(&quot;shape&quot;, QueryRelation.INTERSECTS, 3f, 4f, -0.5f, 0.3f));
+        return new int[] {out, in, outIntersects};
+      }
+    }
+  }
+
+  int[] latLonContainsCounts(Polygon polygon) throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field fld : LatLonShape.createIndexableFields(&quot;shape&quot;, polygon)) doc.add(fld);
+        w.addDocument(doc);
+      }
+      try (IndexReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        // newBoxQuery(field, relation, minLat, maxLat, minLon, maxLon)
+        int out = s.count(LatLonShape.newBoxQuery(&quot;shape&quot;, QueryRelation.CONTAINS, -0.5, 0.3, 3, 4));
+        int in = s.count(LatLonShape.newBoxQuery(&quot;shape&quot;, QueryRelation.CONTAINS, 0.05, 0.3, 3, 4));
+        int outIntersects =
+            s.count(LatLonShape.newBoxQuery(&quot;shape&quot;, QueryRelation.INTERSECTS, -0.5, 0.3, 3, 4));
+        return new int[] {out, in, outIntersects};
+      }
+    }
+  }
+
+  List&lt;String&gt; runContains(List&lt;Case&gt; cases, boolean latLon) throws Exception {
+    List&lt;String&gt; bad = new ArrayList&lt;&gt;();
+    for (Case c : cases) {
+      int[] counts = latLon ? latLonContainsCounts(toLatLon(c)) : xyContainsCounts(toXY(c));
+      String line =
+          c.label
+              + &quot;: CONTAINS(box sticking out)=&quot;
+              + counts[0]
+              + &quot; CONTAINS(box inside)=&quot;
+              + counts[1]
+              + &quot; INTERSECTS(box sticking out)=&quot;
+              + counts[2];
+      System.out.println((latLon ? &quot;[LatLon] &quot; : &quot;[XY] &quot;) + line);
+      if (counts[0] != 0 || counts[1] != 1 || counts[2] != 1) bad.add(line);
+    }
+    return bad;
+  }
+
+  List&lt;String&gt; runFlags(List&lt;Case&gt; cases, boolean latLon) {
+    List&lt;String&gt; bad = new ArrayList&lt;&gt;();
+    for (Case c : cases) {
+      List&lt;Tessellator.Triangle&gt; tris =
+          latLon
+              ? Tessellator.tessellate(toLatLon(c), random().nextBoolean())
+              : Tessellator.tessellate(toXY(c), random().nextBoolean());
+      List&lt;String&gt; m = flagMismatches(c, tris);
+      System.out.println(
+          (latLon ? &quot;[LatLon] &quot; : &quot;[XY] &quot;)
+              + c.label
+              + &quot;: &quot;
+              + tris.size()
+              + &quot; triangles, flag mismatches=&quot;
+              + m);
+      for (String s : m) bad.add(c.label + &quot;: &quot; + s);
+    }
+    return bad;
+  }
+
+  public void testXYShapeContainsTwoHolesOnOuterEdge() throws Exception {
+    List&lt;String&gt; bad = runContains(twoHoleCases(), false);
+    assertTrue(bad.size() + &quot; of &quot; + twoHoleCases().size() + &quot; wrong: &quot; + bad, bad.isEmpty());
+  }
+
+  public void testLatLonShapeContainsTwoHolesOnOuterEdge() throws Exception {
+    List&lt;String&gt; bad = runContains(twoHoleCases(), true);
+    assertTrue(bad.size() + &quot; of &quot; + twoHoleCases().size() + &quot; wrong: &quot; + bad, bad.isEmpty());
+  }
+
+  public void testXYTessellatorEdgeFlagsTwoHolesOnOuterEdge() {
+    List&lt;String&gt; bad = runFlags(twoHoleCases(), false);
+    assertTrue(bad.size() + &quot; wrong flags: &quot; + bad, bad.isEmpty());
+  }
+
+  public void testLatLonTessellatorEdgeFlagsTwoHolesOnOuterEdge() {
+    List&lt;String&gt; bad = runFlags(twoHoleCases(), true);
+    assertTrue(bad.size() + &quot; wrong flags: &quot; + bad, bad.isEmpty());
+  }
+
+  /** Controls: one hole only (either one) must be handled correctly. Expected to pass. */
+  public void testControlSingleHole() throws Exception {
+    List&lt;String&gt; bad = new ArrayList&lt;&gt;();
+    bad.addAll(runContains(singleHoleControls(), false));
+    bad.addAll(runContains(singleHoleControls(), true));
+    bad.addAll(runFlags(singleHoleControls(), false));
+    bad.addAll(runFlags(singleHoleControls(), true));
+    assertTrue(&quot;single-hole controls wrong: &quot; + bad, bad.isEmpty());
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-6-h'>ContainsExtentProbe.java (a main(): how far a matching box may stick out)</h3><a class="hlink" href="#code-6-h" target="_self" aria-label="Link to this section" aria-describedby="code-6-h"><span aria-hidden="true">#</span></a></div><p>Default <code>IndexWriterConfig</code>, <code>ByteBuffersDirectory</code>; prints CONTAINS and INTERSECTS for 7 boxes, XY and LatLon (the table under "The bug").</p><figure class='code'><figcaption><span class='fname'>ContainsExtentProbe.java (a main(): how far a matching box may stick out)</span><span class='meta'>93 lines</span><button type='button' class='copy' data-copy='code-6' data-status='code-6-st'>Copy</button><span class='copy-st' id='code-6-st' role='status' aria-live='polite'></span></figcaption><pre id='code-6' tabindex='0'><code>package probe;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LatLonShape;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.document.XYShape;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.ByteBuffersDirectory;
+
+/**
+ * How far a CONTAINS box may stick out through the boundary piece (2,0)-(5,0) and still match.
+ * Default IndexWriterConfig, one document. Prints one line per box; exits 1 if any box that is not
+ * contained matches.
+ */
+public class ContainsExtentProbe {
+
+  static int count(Field[] fields, Query q) throws Exception {
+    try (ByteBuffersDirectory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field f : fields) doc.add(f);
+        w.addDocument(doc);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        return new IndexSearcher(r).count(q);
+      }
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    XYPolygon xy =
+        new XYPolygon(
+            new float[] {0, 7, 12, 0},
+            new float[] {0, 12, 0, 0},
+            new XYPolygon(new float[] {2, 5, 3, 2}, new float[] {0, 1, 3, 0}),
+            new XYPolygon(new float[] {5, 8, 6, 5}, new float[] {0, 1, 3, 0}));
+    Polygon ll =
+        new Polygon(
+            new double[] {0, 12, 0, 0},
+            new double[] {0, 7, 12, 0},
+            new Polygon(new double[] {0, 1, 3, 0}, new double[] {2, 5, 3, 2}),
+            new Polygon(new double[] {0, 1, 3, 0}, new double[] {5, 8, 6, 5}));
+    Field[] xyFields = XYShape.createIndexableFields(&quot;s&quot;, xy);
+    Field[] llFields = LatLonShape.createIndexableFields(&quot;s&quot;, ll);
+    // {minX, maxX, minY, maxY, expected}
+    double[][] boxes = {
+      {3, 4, 0.05, 0.3, 1}, // inside (control)
+      {3, 4, -0.5, 0.3, 0}, // 0.5 of its 0.8 height below y = 0
+      {2.5, 4.5, -1, 0.1, 0}, // 2.0 of its 2.2 area below y = 0
+      {3, 4, -10, 0.3, 0},
+      {3, 4, -80, 0.3, 0},
+      {1, 1.5, -0.5, 0.3, 0}, // crosses the outer edge left of hole A (control)
+      {9, 10, -0.5, 0.3, 0}, // crosses the outer edge right of hole B (control)
+    };
+    boolean wrong = false;
+    for (double[] b : boxes) {
+      int xyC =
+          count(
+              xyFields,
+              XYShape.newBoxQuery(
+                  &quot;s&quot;, QueryRelation.CONTAINS, (float) b[0], (float) b[1], (float) b[2], (float) b[3]));
+      int xyI =
+          count(
+              xyFields,
+              XYShape.newBoxQuery(
+                  &quot;s&quot;,
+                  QueryRelation.INTERSECTS,
+                  (float) b[0],
+                  (float) b[1],
+                  (float) b[2],
+                  (float) b[3]));
+      int llC =
+          count(llFields, LatLonShape.newBoxQuery(&quot;s&quot;, QueryRelation.CONTAINS, b[2], b[3], b[0], b[1]));
+      int llI =
+          count(
+              llFields, LatLonShape.newBoxQuery(&quot;s&quot;, QueryRelation.INTERSECTS, b[2], b[3], b[0], b[1]));
+      int exp = (int) b[4];
+      boolean bad = xyC != exp || llC != exp;
+      wrong |= bad;
+      System.out.printf(
+          &quot;box x[%s,%s] y[%s,%s]: expected CONTAINS=%d | XY CONTAINS=%d INTERSECTS=%d | LatLon CONTAINS=%d INTERSECTS=%d%s%n&quot;,
+          b[0], b[1], b[2], b[3], exp, xyC, xyI, llC, llI, bad ? &quot;  &lt;-- wrong&quot; : &quot;&quot;);
+    }
+    System.exit(wrong ? 1 : 0);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); 10.5.2 and 9.12.3 release jars: reproduced</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (the only platform run; a pure-Java code path)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestHolesTouchingSameOuterEdge.java $LUCENE/lucene/core/src/test/org/apache/lucene/document/
+cd $LUCENE &amp;&amp; git apply $REPRO/TestTessellator-testHolesTouchingSameOuterEdge.diff
+./gradlew :lucene:core:test --tests org.apache.lucene.document.TestHolesTouchingSameOuterEdge --tests org.apache.lucene.geo.TestTessellator.testHolesTouchingSameOuterEdge -Ptests.seed=DEADBEEF
+# also with -Ptests.asserts=false (recorded run: -Ptests.seed=5EED0794): the same 4 failures
+git apply $FIX/fix.diff   # then the same ./gradlew command: 4 tests pass
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, -Ptests.seed=DEADBEEF -Ptests.asserts=true (codec Asserting(Lucene104))
+TestTessellator &gt; testHolesTouchingSameOuterEdge FAILED
+    java.lang.AssertionError: expected:&lt;false&gt; but was:&lt;true&gt;
+TestHolesTouchingSameOuterEdge &gt; testXYShapeContains FAILED
+    java.lang.AssertionError: expected:&lt;0&gt; but was:&lt;1&gt;
+TestHolesTouchingSameOuterEdge &gt; testLatLonShapeContains FAILED
+    java.lang.AssertionError: expected:&lt;0&gt; but was:&lt;1&gt;
+TestHolesTouchingSameOuterEdge &gt; testTriangleEdgesOnOuterEdgeAreFromPolygon FAILED
+    java.lang.AssertionError: edge (2.0,0)-(5.0,0) is not flagged as a polygon edge
+4 tests completed, 4 failed
+
+# the same 4 failures with -Ptests.seed=5EED0794 -Ptests.asserts=false; with the fix: 4 tests, 0 failed
+
+# box probe (main(), default IndexWriterConfig), main a9779ef3c193, assertions off; the same on 10.5.2
+box x[3.0,4.0] y[0.05,0.3]: expected CONTAINS=1 | XY CONTAINS=1 INTERSECTS=1 | LatLon CONTAINS=1 INTERSECTS=1
+box x[3.0,4.0] y[-0.5,0.3]: expected CONTAINS=0 | XY CONTAINS=1 INTERSECTS=1 | LatLon CONTAINS=1 INTERSECTS=1  &lt;-- wrong
+box x[2.5,4.5] y[-1.0,0.1]: expected CONTAINS=0 | XY CONTAINS=1 INTERSECTS=1 | LatLon CONTAINS=1 INTERSECTS=1  &lt;-- wrong
+box x[3.0,4.0] y[-10.0,0.3]: expected CONTAINS=0 | XY CONTAINS=1 INTERSECTS=1 | LatLon CONTAINS=1 INTERSECTS=1  &lt;-- wrong
+box x[3.0,4.0] y[-80.0,0.3]: expected CONTAINS=0 | XY CONTAINS=1 INTERSECTS=1 | LatLon CONTAINS=1 INTERSECTS=1  &lt;-- wrong
+box x[1.0,1.5] y[-0.5,0.3]: expected CONTAINS=0 | XY CONTAINS=0 INTERSECTS=1 | LatLon CONTAINS=0 INTERSECTS=1
+box x[9.0,10.0] y[-0.5,0.3]: expected CONTAINS=0 | XY CONTAINS=0 INTERSECTS=1 | LatLon CONTAINS=0 INTERSECTS=1
+# with the fix: every &#x27;wrong&#x27; line gives CONTAINS=0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The flag means "edge is shared with the polygon"; the code comment says "compute if the bridge overlaps with a polygon edge".</li><li>Upstream's own <code class='nw'>TestTessellator</code> flag oracle fails on this polygon (32 of 32 combinations; 0 with the fix).</li><li>The polygon is valid ("Holes may only touch at one vertex"); upstream fixed a similar lost-flag CONTAINS bug in #12020.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>334 words</span></summary><div class='body'><ul><li><strong>The contract is the flag.</strong> <code>Tessellator.Triangle.isEdgefromPolygon</code>: "get if edge is shared with the polygon for the given edge" (<code>Tessellator.java:1723-1724</code>). The comment on the expression: "compute if the bridge overlaps with a polygon edge" (<code class='nw'>:392</code>). 8.3.0 CHANGES: "Tessellator labels the edges of the generated triangles whether they belong to the original polygon" (<code>lucene/CHANGES.txt:6219-6220</code>).</li><li><strong>CONTAINS is built on it.</strong> <code>Component2D.WithinRelation</code>: CANDIDATE when the query "intersects only edges that do not belong to the original shape", NOTWITHIN when it "intersects an edge that does belong to the original shape" (<code>Component2D.java:101-115</code>); 8.4.0 CHANGES: "LUCENE-8620: Add CONTAINS support for LatLonShape and XYShape" (<code>lucene/CHANGES.txt:6049</code>). The <code class='nw'>newBoxQuery</code> javadoc says "intersect a defined bounding box" for every relation (<code>LatLonShape.java:238</code>, <code class='nw'>XYShape.java:204</code>), so the CONTAINS meaning comes from the relation name, the CHANGES entry and the <code class='nw'>WithinRelation</code> javadoc.</li><li><strong>Upstream's test asserts exact flags.</strong> <code>TestTessellator.checkPolygon</code> -&gt; <code>checkTriangleEdgesFromPolygon</code> (<code>TestTessellator.java:1011-1024, 1047-1120</code>) asserts that every triangle edge's flag equals "lies on a ring segment". The intended-behaviour devil's advocate ran it verbatim on 32 combinations (ring starts, hole orders, both <code>checkSelfIntersections</code> values): 32 mismatches on main and on 9.12.2, 0 with the fix. A 7-line <code class='nw'>TestTessellator</code> method with this polygon fails on main.</li><li><strong>Upstream treats such errors as bugs.</strong> #12020 / #12022 fixed a CONTAINS false positive from a lost boundary flag at another site (<code>ShapeField.resolveTriangleType</code>, 2022); LUCENE-9251 fixed conflicting flags in <code class='nw'>filterPoints</code>; #15739 (2026) widened this expression from 2 to 4 adjacent-edge checks for another touching-hole layout.</li><li><strong>Legal input.</strong> Clockwise outer ring, counter-clockwise holes (<code>Polygon.java:31-32</code>), disjoint holes, each touching the shell at one point (<code>Tessellator.java:47</code>), small integer coordinates; JTS 1.20 <code class='nw'>IsValidOp</code> reports it valid, with and without (2,0) and (5,0) listed as outer-ring vertices. Listing them removes any doubt about "touch at one vertex", and that variant fails the same way. The 0.5 overhang is far above the coordinate quantization (below 1e-7 degrees). The wrong answer comes through the public <code class='nw'>XYShape</code>/<code class='nw'>LatLonShape</code> calls.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>131 words</span></summary><div class='body'><p>The strongest "works as designed" case (an independent reviewer from another model family, the devil's advocate and the adjudication all built it): the four adjacent-edge checks are a deliberate constant-time shortcut, <code class='nw'>Tessellator</code> is <code class='nw'>@lucene.internal</code> (<code>Tessellator.java:72</code>), and CONTAINS is thinly documented.</p><p>Why it fails: the public <code class='nw'>LatLonShape</code>/<code class='nw'>XYShape</code> entry points carry no such tag, and nothing documents CONTAINS as approximate beyond quantization; the commit that added the flags used the whole-ring scan for every other diagonal; upstream's own oracle asserts exact flags; and the fix costs at most one extra ring scan per bridged hole, which <code class='nw'>fetchHoleBridge</code> already pays. The reviewer rated the argument weak, and the devil's advocate found no intended, documentation, misuse or reachability argument that survives (both from their review records, which rest on executed probes).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Add the whole-ring scan to the bridge flag</strong></p><p class='short'>In <code>Tessellator.eliminateHole</code>, also run the whole-ring scan <code>isEdgeFromPolygon(bridge, holeNode, false)</code> that ear clipping already uses (+3/-1). The repro passes, and 45 geo and shape suites (367 tests run, 26 skipped) pass with assertions on and off. Shapes indexed before the fix keep the wrong flag until reindexed.</p><pre class='snippet' tabindex='0'><code>           isPointInLine(bridge, bridge.next, holeNode)
+               || isPointInLine(bridge, bridge.previous, holeNode)
+               || isPointInLine(holeNode, holeNode.next, bridge)
+-              || isPointInLine(holeNode, holeNode.previous, bridge);
++              || isPointInLine(holeNode, holeNode.previous, bridge)
++              // the bridge may also lie inside a longer ring edge that is not next to either end
++              || isEdgeFromPolygon(bridge, holeNode, false);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>2 options · 716 words</span></summary><div class='body'><p>Option 1 was applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle; option 2 was not run.</p><p><strong>Wider effect (option 1).</strong> In the finder's lattice sweeps, on top of the registered Tessellator fixes, it cut the polygon/mode pairs whose only error is a missing flag from 54, 66 and 70 to 2, 0 and 0 (6x6, 8x8 and 13x13 lattices) and added no failure; on 8x8 two pairs of one polygon, where a degenerate triangle also misses a flag, remain. So it covers more layouts than the repro; how many of those gave a wrong query answer was not measured.</p><p><strong>Not sufficient: keeping the touch vertices on the outer ring.</strong> A full-ring <code class='nw'>filterPoints</code> variant (another unit's experiment, not a registered fix) happens to fix this polygon, because the adjacent-edge checks then see the outer edge, but the same sweeps still show 26, 12 and 4 pure missing-flag pairs with it (13x13, 8x8, 6x6), and 0 with option 1 added (the two composite 8x8 pairs above remain).</p><p><strong>Coupling.</strong> Other hunt rows fix other Tessellator sites (LFV-210, LFV-755, LFV-757, LFV-762, LFV-795, LFV-796; none owns this expression); LFV-755 comes from #15739, the commit that also widened this expression. The repro still fails with the LFV-210, LFV-757 and LFV-762 fixes applied, and option 1 passed the 123 upstream geo-shape tests together with the LFV-795 and LFV-796 fix sketches. Test the Tessellator fixes together before filing them separately.</p><p><strong>Workaround until a fix (not executed):</strong> an application that needs exact answers can re-check CONTAINS hits against the source geometry.</p><div class="hd hd-3"><h3 id='fix-whole-ring-scan'>Add the whole-ring scan to the bridge flag <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-whole-ring-scan" target="_self" aria-label="Link to this section" aria-describedby="fix-whole-ring-scan"><span aria-hidden="true">#</span></a></div><p>In <code>Tessellator.eliminateHole</code> (<code>Tessellator.java:393-397</code>) add <code>|| isEdgeFromPolygon(bridge, holeNode, false)</code> as a fifth term. <code>isEdgeFromPolygon</code> walks the ring and returns the flag of the ring edge that contains both ends of the bridge (<code class='nw'>:1067-1083</code>), so it adds <code class='nw'>true</code> only when the bridge lies on a ring edge that is itself flagged as boundary; for a bridge along an internal edge the added term returns <code class='nw'>false</code> (the four existing terms are unchanged). <code>isMorton = false</code> is right, because holes are eliminated before the ring is sorted by Morton code (<code class='nw'>:115-133</code>). The finder wrote this line, and the independent reproducer reports writing the same line itself. Add the repro's tests (or the <code class='nw'>TestTessellator</code> method) as regression tests, and a CHANGES line saying affected shapes must be reindexed.</p><pre class='snippet' tabindex='0'><code>           isPointInLine(bridge, bridge.next, holeNode)
+               || isPointInLine(bridge, bridge.previous, holeNode)
+               || isPointInLine(holeNode, holeNode.next, bridge)
+-              || isPointInLine(holeNode, holeNode.previous, bridge);
++              || isPointInLine(holeNode, holeNode.previous, bridge)
++              // the bridge may also lie inside a longer ring edge that is not next to either end
++              || isEdgeFromPolygon(bridge, holeNode, false);</code></pre><p class='k'>Trade-offs</p><ul><li>Cost: one extra ring scan per bridged hole, only when the four cheap checks fail; <code class='nw'>fetchHoleBridge</code> already walks the ring for every hole (twice on its normal path), so the work per hole stays linear in the ring size (read, not benchmarked).</li><li>Existing indexes: the flag is stored at index time, so the fix helps only shapes indexed after it.</li><li>Scope: it fixes the bridge flag only; ear clipping and split diagonals already use the scan.</li></ul><p class='k'>What the checks validated</p><p>Gradle, scratch worktree at <code class='nw'>a9779ef3c193</code>: the 4 repro tests pass; <code>org.apache.lucene.geo.*</code>, <code>org.apache.lucene.document.*Shape*</code> and the new class (45 suites, 393 test cases: 26 skipped (24 nightly-only, 1 awaits-fix, 1 other), 367 run; including <code class='nw'>TestTessellator</code> (78 cases, 7 skipped, many through the exact-flag <code class='nw'>checkPolygon</code>), <code class='nw'>TestLatLonShape</code>, <code class='nw'>TestXYShape</code> and the polygon, multi-polygon, line, point and doc-values shape-query suites) pass with assertions on (seed DEADBEEF) and off (5EED0794); <code>:lucene:core:check -x test</code> (format, ecjLint, forbiddenApis) passes. The full <code class='nw'>:lucene:core</code> test suite was not run. The standalone runner passes the class with the fix shadowed (assertions on and off), and every outside box of the probe gives 0. Earlier stages: the same line cures 8.3.0, 8.4.0, 9.12.3, 10.5.2 and main in the version-independent check.</p><div class="hd hd-3"><h3 id='fix-scan-only'>Use only the whole-ring scan</h3><a class="hlink" href="#fix-scan-only" target="_self" aria-label="Link to this section" aria-describedby="fix-scan-only"><span aria-hidden="true">#</span></a></div><p>Replace the four <code class='nw'>isPointInLine</code> terms with <code>isEdgeFromPolygon(bridge, holeNode, false)</code>. Simpler and uniform with the other diagonals. Not run (no check executed this option).</p><p class='k'>Trade-offs</p><p>It changes behaviour beyond this bug: when an adjacent edge that contains the hole vertex is itself an internal bridge, the current terms say <code class='nw'>true</code> and the scan returns that edge's <code class='nw'>false</code> (read). That case would need its own analysis and tests.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream relevance: a server that answers a geo-shape "contains" request with these queries returns the same false positive, so a decision taken on CONTAINS alone (a geofence or coverage check) can accept an area that leaves the polygon.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded check of the Tessellator on small integer grids (about 21 million tessellations of valid polygons with up to 4 holes, against exact oracles such as "an edge is flagged exactly when it lies on a ring") left missing-flag cases after every known fix; a traced lead turned them into this CONTAINS false positive.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>171 words</span></summary><div class='body'><p><strong>Method: bounded translation validation on the real jar</strong> (semi-formal tier).</p><ul><li>The finder tessellated JTS-valid polygons with 0 to 4 holes on 6x6, 8x8 and 13x13 XY lattices and on grid-exact LatLon lattices, with every outer-ring start, every hole order (sampled for polygons with 4 holes), the 8 symmetric images and both <code>checkSelfIntersections</code> modes, about half of the holes touching something: about 21 million tessellations, compared with exact oracles, among them "<code>Triangle.isEdgefromPolygon(k)</code> is true exactly when edge k lies on a ring".</li><li>Every registered Tessellator fix was switched in as a patched class; the missing-flag rows that survived matched a lead an earlier unit had left unexecuted. A debug copy of the Tessellator traced it to the bridge expression, and the finder turned it into an end-to-end CONTAINS test through the public API and shrank it to the 3-ring lattice polygon (2026-10-27).</li><li>Then an independent reproducer, two executing reviews by a model from another family (OpenAI GPT-5.6, refute and intended lenses), an intended-behaviour devil's advocate, an adjudication and a credibility audit.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): 220 logged queries over GitHub issues, PRs and commits, downstream projects, the mailing lists, the JIRA archive and the web, plus the changed files of 408 open PRs. Closest: #15739, which widened this same expression for another case, and #12020, a CONTAINS false positive from a lost flag elsewhere.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>, none by the owner. Nearest: #15739 / #15731 (widened this expression from 2 to 4 adjacent-edge checks for a tessellation failure; nothing about flags or CONTAINS), #12020 / #12022 (a CONTAINS false positive from a lost boundary flag, different site <code>ShapeField.resolveTriangleType</code>, fixed 2022; the repro still fails on 10.5.2), lucene-solr#771 / LUCENE-8620 (#9666) (the introducing change; its review comments are naming suggestions, none about this case), LUCENE-9251, LUCENE-9580 and LUCENE-10470 (flag-related tessellation failures fixed elsewhere), and the hole-bridge fixes #13980, #15211, #15657, #15700, #14974 and #11988. Only #12036 and #12295 among open PRs touch <code class='nw'>Tessellator.java</code>, and neither changes the expression. Earcut has no edge flags, so earcut prior art does not apply. Keyword search cannot prove absence (first result page per query; one Q&amp;A page could not be fetched); re-run a quick GitHub search before filing.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits: apache/lucene, apache/lucene-solr, Elasticsearch, OpenSearch, OpenSearch geospatial, Solr, mapbox/earcut</th><td class='when'>2026-10-27</td><td>the hunt's prior-report tool, three runs (147 queries over all legs below); 30 manual searches on apache/lucene and 19 on the downstream projects; 12 list-archive searches and 12 other manual checks (code searches, open-PR file scan, branch, commit and history reads, two JIRA entries, extra web searches) make 220</td><td>no report; only the related items above</td></tr><tr><th scope='row'>Open apache/lucene PRs</th><td class='when'>2026-10-27</td><td>changed files of all 408 open PRs; the two that touch Tessellator.java were read</td><td>none changes the expression</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@) and the JIRA archive</th><td class='when'>2026-10-27</td><td>list and JIRA-archive queries through the tool, 12 manual list-archive searches, two JIRA entries read in full</td><td>no report</td></tr><tr><th scope='row'>The web and code search</th><td class='when'>2026-10-27</td><td>web queries through the tool; a code search for the expression</td><td>only apache/lucene has the expression; no fork adds the whole-ring check</td></tr><tr><th scope='row'>Upstream branches</th><td class='when'>2026-10-27</td><td>current source of main 20ced71c1e6e, branch_10x and branch_10_6</td><td>not fixed: the same four-term expression</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-8620 (apache/lucene-solr#771, 2019-09-09, in 8.3.0), which added the edge flags; visible since CONTAINS shipped in 8.4.0 (#872). Wrong on every release executed from 8.3.0 to 10.5.2 and on main; 8.2.0 has no flags. The same one-line change cures 8.3.0, 8.4.0, 9.12.3, 10.5.2 and main.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-8620 "Update Tessellator logic to label if triangle edges belongs to the original polygon" (apache/lucene-solr#771 by iverase, merged 2019-09-09; <code class='nw'>62001b9b965</code> on master, <code class='nw'>252421bb77c</code> on branch_8x), first released in 8.3.0. It set the bridge flag from two adjacent-edge checks, while the same commit used the whole-ring <code>isEdgeFromPolygon</code> for ear-clipping and split diagonals; its one reviewer (nknize) left naming suggestions (one review in state "changes requested") and then an "LGTM" comment; nothing in the review is about the bridge flag.</p><p><strong>Visible since</strong> 8.4.0: "LUCENE-8620: Add CONTAINS support for LatLonShape and XYShape" (apache/lucene-solr#872, <code class='nw'>2ef2ddd77c5</code> / <code class='nw'>a06a2ea3da2</code>, 2019-12-11) added the only relation that reads the flags.</p><p><strong>Later edits</strong> did not cover this case: <code class='nw'>2d6ad2fee6d</code> (LUCENE-9570, reformatting), <code class='nw'>748570531e0</code> (#15700, rename to <code class='nw'>bridge</code>), <code class='nw'>faef795a460</code> (#15739, 2 to 4 adjacent-edge checks, first in 10.5.0). <strong>Not fixed:</strong> upstream main <code class='nw'>20ced71c1e6e</code>, branch_10x and branch_10_6 (read, 2026-10-27). Releases between the executed ones are affected by inference: the expression never gained a non-adjacent check. Before 9.1.0 only the LatLon CONTAINS path was executed (the version-independent <code class='nw'>main()</code>); in 8.3.x and 8.4.x <code class='nw'>Tessellator</code>, <code class='nw'>LatLonShape</code> and <code class='nw'>XYShape</code> lived in the <code class='nw'>lucene-sandbox</code> module, in core from 8.5.0.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's class 3 of 3 fail (assertions on and off), with the <code class='nw'>TestTessellator</code> method 4 of 4 through gradle; the finder's test 4 of 4</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's class 3 of 3 fail (assertions on and off); the probe matches main</td></tr><tr><th scope='row'>9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's class 3 of 3 fail (assertions off); the finder's and the reproducer's tests fail</td></tr><tr><th scope='row'>10.4.0, 10.3.2, 9.12.2, 9.1.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test 4 of 4 fail</td></tr><tr><th scope='row'>8.4.0, 8.4.1, 8.5.0, 8.11.4, 9.0.0, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> main()</span></td><td>wrong flag 16/16 and CONTAINS false positive 16/16 (version-independent check, LatLon)</td></tr><tr><th scope='row'>8.3.0, 8.3.1</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> main()</span></td><td>wrong flag 16/16 in the tessellation and the stored triangles; no CONTAINS relation yet</td></tr><tr><th scope='row'>8.2.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> main()</span></td><td>no edge flags and no CONTAINS: not applicable</td></tr><tr><th scope='row'>fix on <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the 4 repro tests pass; 45 geo and shape suites (393 test cases, 367 run, 26 skipped) pass, assertions on and off; the same line also cures 8.3.0, 8.4.0, 9.12.3 and 10.5.2</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, two executing cross-model reviews, a devil's advocate running upstream's own flag oracle (32 of 32 mismatches) and an adjudication (confirmed, high) found it real; a credibility audit added polygon, line and circle queries. This doc's runs re-confirmed it and validated the fix through gradle.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>384 words</span></summary><div class='body'><p>Every executing check wrote or re-ran its own test on stock main; every control passed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Lattice translation validation, traced lead, public-API JUnit: 4 of 4 fail on main (assertions on and off) and six releases; with the fix 4 of 4 pass and 123 upstream geo-shape tests pass; with the LFV-210, LFV-757 and LFV-762 fixes applied it still fails.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6), executing: its own public-API tests (one with <code>checkSelfIntersections=true</code>) fail with assertions on and off and pass with the fix; root cause agrees; inputs in contract; intended argument weak.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit from the claim, another shell and other holes: 32 of 32 two-hole cases wrong, always on (2,0)-(5,0); the single-hole control passes; fails on main, 10.5.2 and 9.12.3; reports writing the same one-line fix itself (5 of 5 pass).</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Executing: its own tests on a translated and scaled triangle fail on main, 10.5.2 and 9.12.3; a direct flag test isolates the flag; a rectangle with other holes does not trigger it; "constant-time shortcut" case rated weak.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Ran upstream's <code>checkTriangleEdgesFromPolygon</code> verbatim: 32 of 32 mismatches on main and 9.12.2, 0 with the fix; no intended, documentation, misuse or reachability argument survived.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test (seed 5EEDF00D, 4 of 5 fail with assertions on and off, 5 of 5 pass with the fix) and the finder's (assertions off, 4 of 4 fail); duplicate of none.</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Own test: the false positive also for XY polygon, line and circle CONTAINS queries and for a rectangle, a pentagon and a wider triangle with the same holes; fails on main and 10.5.2, passes with the fix.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>The 3-test class fails on stock main (gradle and the standalone runner), 10.5.2 and 9.12.3, and the <code class='nw'>TestTessellator</code> method on main (gradle); its shell-vertex variant fails the same way; JTS reports both variants valid; with the fix 45 geo and shape suites pass with assertions on and off, and the core static checks pass; the box probe shows the 99.6%-outside match.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-794/bug.png' download='tessellator-bridge-along-outer-edge-loses-from-polygon-flag-bug.png' target='_self'>PNG</a> <span class='n'>475 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,825 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-794, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Tessellator flags a hole bridge that lies inside a longer outer-ring edge as an internal edge, so LatLonShape and XYShape CONTAINS queries match boxes that stick out of a valid polygon whose two holes touch the same outer edge</dd></div><div><dt>Area</dt><dd>geo / Tessellator hole-bridge edge flags (LatLonShape and XYShape CONTAINS queries)</dd></div><div><dt>Priority</dt><dd>Low, rank 331: A wrong edge flag gives silent CONTAINS false positives for every ring start when two holes touch the same outer edge, so its trigger is broader than LFV-793&#x27;s, but it only affects the less used CONTAINS relation.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits applications on 8.4.0 to 10.5.2 and main that index polygons with holes through the default LatLonShape or XYShape createIndexableFields (default codec and IndexWriterConfig, either checkSelfIntersections setting, no scale needed) and query them with the CONTAINS relation, when two holes each touch the same outer-ring edge at one point (as vertices of both rings or in the interior of the outer edge; for every outer-ring start vertex and both hole orders): the piece of the outer edge between the two touch points is indexed as an internal edge, so a CONTAINS query whose box leaves the polygon through that piece matches the document with no error; only false positives were seen (INTERSECTS, the inside control box and single-hole polygons are correct), only box query geometries were executed (polygon, line and circle CONTAINS read the same flags but were not run), shape doc-values queries do not support CONTAINS, the wrong flag is stored in the index so a fix needs reindexing of affected shapes [read], and how often real data has this layout was not measured.</dd></div><div><dt>Summary</dt><dd>You index a valid polygon whose two holes each touch the same straight outer edge at one point, for example the triangle (0,0) (7,12) (12,0) with the holes (2,0) (5,1) (3,3) and (5,0) (8,1) (6,3), both touching the bottom edge y = 0, and you expect a CONTAINS box query to match only boxes that lie inside the polygon. While joining the second hole to the ring, Tessellator.eliminateHole draws a bridge from (5,0) to (2,0) that runs along the outer edge but marks it as an internal edge, because it only compares the bridge with the ring edges next to its two ends, so the indexed triangle loses its 'belongs to the polygon' flag on that piece of the boundary. LatLonShape and XYShape CONTAINS queries then match the box x [3,4], y [-0.5,0.3], which sticks out below the polygon, with no error, on every release executed since 8.4.0.</dd></div><div><dt>Introduced</dt><dd>62001b9b9651e54b54f73352801061d40da75168 on main and its branch_8x backport 252421bb77c (the commit 8.3.0 shipped): LUCENE-8620 'Update Tessellator logic to label if triangle edges belongs to the original polygon', apache/lucene-solr#771 by iverase, merged 2019-09-09. It added the triangle edge flags and set the bridge flag only from the ring edges adjacent to the bridge ends (two isPointInLine checks), although the same commit added the whole-ring isEdgeFromPolygon scan and used it for ear-clipping and split diagonals [read: git log -S/-L/-G on the expression; exec: 8.2.0 has no flag API, 8.3.0 fails the flag oracle 16 of 16, and adding the whole-ring check to each release's own expression removes every wrong flag and every wrong CONTAINS match on 8.3.0, 8.4.0, 9.12.3, 10.5.2 and main]. The user-visible symptom needs the CONTAINS relation, added by 2ef2ddd77c5 (apache/lucene-solr#872, LUCENE-8620 'Add CONTAINS support for LatLonShape and XYShape', 2019-12-11; branch_8x a06a2ea3da2, first released in 8.4.0). Later edits of the expression do not cover a bridge inside a non-adjacent ring edge: 2d6ad2fee6d (LUCENE-9570 reformat), 748570531e0 (#15700, rename to 'bridge') and faef795a460 (#15739, two to four adjacent-edge checks, first in 10.5.0) (2019-09-09 (edge flags, 62001b9b965 / 252421bb77c); 2019-12-11 (the CONTAINS relation that reads them, 2ef2ddd77c5 / a06a2ea3da2))</dd></div><div><dt>First affected version</dt><dd>8.4.0 [exec] for the wrong CONTAINS result (the first release with CONTAINS on LatLonShape and XYShape); the wrong flag itself is already in 8.3.0's Tessellator.tessellate output and stored triangle encoding [exec], where no query relation reads it; 8.2.0 has no edge flags and no CONTAINS [exec]</dd></div><div><dt>Affected versions</dt><dd>every release from 8.4.0 (the flag is wrong from 8.3.0) through 10.5.2 (the latest) and 9.12.3 (the latest 9.x), and main a9779ef3c193. [exec] the follow-up's version-independent main() check (flag oracle of upstream TestTessellator plus a LatLon CONTAINS box check, 16 cases) is wrong in 16 of 16 cases on 8.4.0, 8.4.1, 8.5.0, 8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da), flag only on 8.3.0 and 8.3.1 (no CONTAINS yet), and not applicable on 8.2.0; the finder's JUnit (XY and LatLon) fails 4 of 4 on main (-ea, -da), 10.5.2 (-ea, -da), 10.4.0, 10.3.2, 9.12.3, 9.12.2 and 9.1.0; the independent reproduction's JUnit fails 4 of 5 on main, 10.5.2 and 9.12.3 and its main() variant on 9.0.0 and 8.11.4; the cross-model reviewer's own tests fail on 10.5.2 and 9.12.3; the intended-behaviour check's upstream-oracle probe mismatches 32 of 32 on main and 9.12.2. Before 9.1.0 only the LatLon box path was executed. Releases in between were not executed and are affected by inference (the expression never gained a non-adjacent check [read]). Not fixed upstream: main 20ced71c1e6e, branch_10x and branch_10_6 still carry the four-term expression [read, 2026-10-27].</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, read-only; the prior-report record, verdict new): 220 recorded queries, including three scripted prior-report searches (the finder's 45 queries, 229 hits; follow-up runs A and B, 51 queries each, 292 and 227 hits, over apache/lucene issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and ingested web results), 30 manual searches on apache/lucene and 19 on Elasticsearch, OpenSearch, OpenSearch geospatial, Solr, lucene-solr and mapbox/earcut, the changed files of all 408 open apache/lucene PRs (only #12036 and #12295 touch Tessellator.java; neither changes the expression), a code search for the expression and 12 list-archive searches. Closest items, none a report of this bug: #15739 / #15731 (widened this exact expression from 2 to 4 adjacent-edge checks to fix a tessellation failure for a hole touching another hole mid-segment; nothing about flags or CONTAINS), #12020 / #12022 (the same symptom class, a CONTAINS false positive from a missing boundary flag, but a different defect and fix site, ShapeField.resolveTriangleType for flat triangles, fixed 2022-12), lucene-solr#771 / LUCENE-8620 (#9666) (the introducing change; no comment mentions this case), LUCENE-9251, LUCENE-9580 and LUCENE-10470 (flag-related tessellation failures fixed in filterPoints, isValidDiagonal and splitEarcut), and the hole-bridge fixes #13980, #15211, #15657, #15700, #14974 and #11988. Not fixed upstream: main 20ced71c1e6e, branch_10x and branch_10_6 still carry the four-term expression. Not filed by the owner.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27 and 28) through the standalone JUnit runner (assertions on and off) and through gradle in a scratch worktree, stock and with the fix; the 10.5.2 (assertions on and off) and 9.12.3 release jars; earlier stages ran a version-independent <code class='nw'>main()</code> on 12 releases from 8.2.0 to 10.5.2 and the finder's JUnit on 10.4.0, 10.3.2, 9.12.2 and 9.1.0. JDK 25.0.3 on Linux aarch64 only.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/geo/Tessellator.java:40-52 (at a9779ef3c193) (class javadoc NOTES: &#x27;Requires valid polygons ... Holes may only touch at one vertex&#x27;), :72 (@lucene.internal), :236-243 (createDoublyLinkedList ends with filterPoints), :386-399 (eliminateHole: the comment &#x27;compute if the bridge overlaps with a polygon edge&#x27; and the four-term fromPolygon expression at :393-397, splitPolygon at :399), :536-566 (fetchHoleBridge scans the ring), :650-656 (ear clipping copies isNextEdgeFromPolygon into the Triangle; caFromPolygon uses isEdgeFromPolygon), :1067-1083 (isEdgeFromPolygon, the whole-ring scan), :1175-1197 (splitPolygon stores the flag on both bridge edges at :1182 and :1191), :1723-1726 (Triangle.isEdgefromPolygon javadoc &#x27;get if edge is shared with the polygon for the given edge&#x27;); Tessellator.java byte-identical at a Lucene main checkout ea57360912ed (diff -q)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/ShapeField.java:80-92 (at a9779ef3c193) (the Triangle field stores the three flags), :126-127 (QueryRelation.CONTAINS &#x27;used for CONTAINS Queries&#x27;); lucene/core/src/java/org/apache/lucene/document/SpatialQuery.java:947-1001 (withinTriangle: NOTWITHIN only when the box crosses a flagged edge); lucene/core/src/java/org/apache/lucene/geo/Component2D.java:101-115 (WithinRelation javadoc: CANDIDATE when the query &#x27;intersects only edges that do not belong to the original shape&#x27;, NOTWITHIN when it &#x27;intersects an edge that does belong to the original shape&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonShape.java:85-114 (at a9779ef3c193) and lucene/core/src/java/org/apache/lucene/document/XYShape.java:83-112 (createIndexableFields and createDocValueField call Tessellator.tessellate), LatLonShape.java:238 and XYShape.java:204 (newBoxQuery javadoc says &#x27;intersect a defined bounding box&#x27; for every relation), LatLonShape.java:304 and XYShape.java:237 (newPointQuery javadoc: &#x27;comply the QueryRelation&#x27;); lucene/core/src/java/org/apache/lucene/document/BaseShapeDocValuesQuery.java:49 (shape doc-values queries &#x27;do not yet support CONTAINS&#x27;)</code></li><li><code>lucene/CHANGES.txt:6049 (at a9779ef3c193) (8.4.0 New Features: &#x27;LUCENE-8620: Add CONTAINS support for LatLonShape and XYShape&#x27;) and :6219-6220 (8.3.0: &#x27;Tessellator labels the edges of the generated triangles whether they belong to the original polygon&#x27;); lucene/core/src/test/org/apache/lucene/geo/TestTessellator.java:1016-1057 (checkPolygon -&gt; checkTriangleEdgesFromPolygon asserts exact flags)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout @ a9779ef3c193 lucene/core/src/java/org/apache/lucene/geo/Tessellator.java:243, 309-325, 392-399, 536-592, 650-656, 1067-1083, 1175-1197, 1424-1441, 1723-1724</code></li><li><code>a Lucene main checkout @ a9779ef3c193 lucene/core/src/java/org/apache/lucene/document/ShapeField.java:80-92; SpatialQuery.java:368-381, 591-650, 947-1001; LatLonShape.java:85-114; XYShape.java:83-112; geo/Component2D.java:101-115; geo/Rectangle2D.java:180</code></li><li><code>a Lucene main checkout @ a9779ef3c193 lucene/core/src/java/org/apache/lucene/document/LatLonShapeQuery.java:165-209, XYShapeQuery.java:147-191, LatLonShapeBoundingBoxQuery.java:160-205 (only contains() calls withinTriangle)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout @ a9779ef3c193 lucene/core/src/java/org/apache/lucene/document/BaseShapeDocValuesQuery.java:47-49; geo/Tessellator.java:115-133 (Morton ordering after hole elimination); document/ShapeField.java:80-92</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout @ a9779ef3c193 lucene/core/src/java/org/apache/lucene/geo/Tessellator.java:47, 72, 392, 1723-1724; geo/Component2D.java:101-115; geo/Polygon.java:31-32; document/LatLonShape.java:238; document/XYShape.java:204</code></li><li><code>a Lucene main checkout @ a9779ef3c193 lucene/CHANGES.txt:6049, 6219-6220</code></li><li><code>a Lucene main checkout @ a9779ef3c193 lucene/core/src/test/org/apache/lucene/geo/TestTessellator.java:1011-1024, 1047-1120 (checkPolygon, checkTriangleEdgesFromPolygon)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>a Lucene main checkout @ a9779ef3c193 lucene/core/src/java/org/apache/lucene/geo/Tessellator.java:115-133, 393-397, 536-592, 1067-1083</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>apache/lucene-solr#771 reviews, review comments and issue comments (read-only GitHub API, 2026-10-28): one review by nknize, state CHANGES_REQUESTED, 11 inline naming comments, then &quot;Awesome. LGTM! Thanks!&quot;</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestHolesTouchingSameOuterEdge.java (lucene/core, public API, 3 tests): <a href='../repro/LFV-794/TestHolesTouchingSameOuterEdge.java'><code>repro/LFV-794/TestHolesTouchingSameOuterEdge.java</code></a> (96 lines)</li><li>TestTessellator method (diff, +7 lines; upstream&#x27;s exact flag oracle): <a href='../repro/LFV-794/TestTessellator-testHolesTouchingSameOuterEdge.diff'><code>repro/LFV-794/TestTessellator-testHolesTouchingSameOuterEdge.diff</code></a> (18 lines)</li><li>TestHolesTouchingSameOuterEdgeShellVertices.java (the shell-vertex variant: the outer ring also lists (5,0) and (2,0)): <a href='../repro/LFV-794/TestHolesTouchingSameOuterEdgeShellVertices.java'><code>repro/LFV-794/TestHolesTouchingSameOuterEdgeShellVertices.java</code></a> (98 lines)</li><li>TestTessellatorBridgeAlongOuterEdgeFlag.java (the finder&#x27;s test: both ring variants, every start vertex, both hole orders): <a href='../repro/LFV-794/TestTessellatorBridgeAlongOuterEdgeFlag.java'><code>repro/LFV-794/TestTessellatorBridgeAlongOuterEdgeFlag.java</code></a> (148 lines)</li><li>TestTwoHolesOnOuterEdgeContains.java (independent reproducer: another shell and other holes): <a href='../repro/LFV-794/TestTwoHolesOnOuterEdgeContains.java'><code>repro/LFV-794/TestTwoHolesOnOuterEdgeContains.java</code></a> (336 lines)</li><li>ContainsExtentProbe.java (a main(): how far a matching box may stick out): <a href='../repro/LFV-794/ContainsExtentProbe.java'><code>repro/LFV-794/ContainsExtentProbe.java</code></a> (93 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made from the code at main <code class='nw'>a9779ef3c193</code> and an executed trace of this example (a plain <code class='nw'>main()</code>); the PNG is the summary still. The movie uses the shell-vertex variant (the outer ring also lists (2,0) and (5,0)), which <code class='nw'>filterPoints</code> reduces to the same ring. Its triangle mesh shows the flags that <code>Tessellator.tessellate</code> computes. A dump of the flags as stored in the index would show one more wrong flag in this example, on the boundary edge (7,12)-(12,0) of a triangle that is DISJOINT from both boxes, so no count changes; that is a separate hunt row (LFV-204, the clockwise flip in <code>ShapeField.encodeTriangle</code>).</p><ul class='paths'><li><a href='../assets/LFV-794/bug.png'><code>assets/LFV-794/bug.png</code></a> (475 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

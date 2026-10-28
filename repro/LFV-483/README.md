@@ -2,6 +2,8 @@
 
 Bug LFV-483 · Area: analysis / analysis-common miscellaneous filters (DateRecognizerFilterFactory, DateRecognizerFilter) · Priority: medium · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-483.html](../../bugs/LFV-483.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build an analyzer with CustomAnalyzer from a whitespace tokenizer and the da
 
 ## Expected vs actual
 
-- Expected: You expect every thread to get the same date tokens as a single-threaded run, because Analyzer gives each thread its own set of token stream components.
-- Actual: Some analyses throw NumberFormatException ('multiple points', 'For input string: ""') or ArrayIndexOutOfBoundsException, because DateRecognizerFilterFactory creates one java.text.DateFormat, which is not thread-safe, and create passes that same instance to the filter of every thread.
+- Expected: All 4 threads get `2024-01-15`, `1999-12-31`, `2001-07-04`, `1970-01-01` in all 20,000 analyses, as the constructor-built control does.
+- Actual: `testFactoryBuiltAnalyzerIsThreadSafe` fails: an analysis throws `NumberFormatException: multiple points` (10 of 10 repetitions fail with `-Ptests.iters=10`; the control passes).
 
 ## Files
 
@@ -42,6 +44,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDateRecognizerFactoryThreads.java](TestDateRecognizerFactoryThreads.java)
+- [TestDateRecognizerConcurrentV1.java](TestDateRecognizerConcurrentV1.java)
+- [TestDateRecognizerFactoryIndexWriterThreads.java](TestDateRecognizerFactoryIndexWriterThreads.java)
+- [DateRecognizerFactoryRace.java](DateRecognizerFactoryRace.java)
 
 ## Feedback
 

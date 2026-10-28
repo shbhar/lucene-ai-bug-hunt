@@ -6,9 +6,9 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Bugs found
 
-- LongRange/DoubleRange#getQuery(fastMatchQuery, valueSource) reports its Weight as cacheable without asking the fast-match query, so after an in-place doc-values update the query cache keeps returning the old matches (bug LFV-320; [repro](../../repro/LFV-320/))
-- LateInteractionFloatValuesSource#isCacheable always returns true although it reads the multi-vectors from binary doc values, so after an in-place update of a LateInteractionField the query cache keeps returning the old matches of a FunctionMatchQuery or DoubleRange query over it (bug LFV-336; [repro](../../repro/LFV-336/))
-- LatLonShape/XYShape newSlowDocValuesBoxQuery reports Weight#isCacheable == true although it reads the shape from binary doc values, so after an in-place doc-values update the query cache keeps returning the old matches (bug LFV-308; [repro](../../repro/LFV-308/))
+- LongRange/DoubleRange#getQuery(fastMatchQuery, valueSource) reports its Weight as cacheable without asking the fast-match query, so after an in-place doc-values update the query cache keeps returning the old matches (bug LFV-320; [repro](../../repro/LFV-320/), [bug page](../../bugs/LFV-320.html))
+- LateInteractionFloatValuesSource#isCacheable always returns true although it reads the multi-vectors from binary doc values, so after an in-place update of a LateInteractionField the query cache keeps returning the old matches of a FunctionMatchQuery or DoubleRange query over it (bug LFV-336; [repro](../../repro/LFV-336/), [bug page](../../bugs/LFV-336.html))
+- LatLonShape/XYShape newSlowDocValuesBoxQuery reports Weight#isCacheable == true although it reads the shape from binary doc values, so after an in-place doc-values update the query cache keeps returning the old matches (bug LFV-308; [repro](../../repro/LFV-308/), [bug page](../../bugs/LFV-308.html))
 
 ## Files
 

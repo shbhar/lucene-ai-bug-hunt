@@ -2,6 +2,8 @@
 
 Bug LFV-762 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-762.html](../../bugs/LFV-762.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a valid polygon whose three holes meet only at one corner P, for examp
 
 ## Expected vs actual
 
-- Expected: You expect XYShape.createIndexableFields or LatLonShape.createIndexableFields to return its triangles, as 10.3.x does for every hole order.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: Every hole order is accepted: 13 triangles with area 59 for the small polygon, as on 9.11.1 to 10.3.2.
+- Actual: Orders ABC, ACB and BAC of the small polygon, and (1,2,0), (2,0,1) and (2,1,0) of the LUCENE-9400 polygon, throw `IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.`
 
 ## Files
 
@@ -41,6 +43,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestShapeHolesMeetingAtOneVertex.java](TestShapeHolesMeetingAtOneVertex.java)
+- [test-tessellator.diff](test-tessellator.diff)
+- [TestTessellatorThreeHolesSharedVertex.java](TestTessellatorThreeHolesSharedVertex.java)
+- [TestThreeHolesMeetAtOneVertexV1.java](TestThreeHolesMeetAtOneVertexV1.java)
+- [TestThreeHolesPermutations.java](TestThreeHolesPermutations.java)
 
 ## Feedback
 

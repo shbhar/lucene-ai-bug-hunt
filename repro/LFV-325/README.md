@@ -2,6 +2,8 @@
 
 Bug LFV-325 · Area: monitor / query decomposition (QueryDecomposer.decomposeBoolean) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-325.html](../../bugs/LFV-325.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You register with the Monitor a BooleanQuery that has one required clause and mi
 
 ## Expected vs actual
 
-- Expected: You expect the Monitor never to report it.
-- Actual: The default QueryDecomposer keeps such a query whole only when minimumNumberShouldMatch &gt; 1 and otherwise replaces it by its lone required clause (plus its MUST_NOT exclusions), which the Monitor runs as the final matcher, so Monitor.match reports the query for every document containing alpha, for example 'alpha beta'.
+- Expected: IndexSearcher counts 0 hits for `(+text:alpha)~1` on "alpha beta", so the Monitor does not report it.
+- Actual: `Monitor.match` reports it (stored as `text:alpha`), and the same for the FILTER, exclusion, disjunction and DisjunctionMaxQuery forms; the controls pass.
 
 ## Files
 
@@ -45,6 +47,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMonitorMinShouldMatchRequiredClause.java](TestMonitorMinShouldMatchRequiredClause.java)
+- [TestDecomposerMinShouldMatch.java](TestDecomposerMinShouldMatch.java)
+- [TestMonitorMsmOneRequiredClause.java](TestMonitorMsmOneRequiredClause.java)
 
 ## Feedback
 

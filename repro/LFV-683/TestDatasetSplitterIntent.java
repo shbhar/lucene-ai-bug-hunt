@@ -43,7 +43,7 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.BytesRef;
 
 /**
- * Verifier V3 (intended-behaviour devil's advocate) probes for DatasetSplitter with documents that
+ * Verifier (intended-behaviour devil's advocate) probes for DatasetSplitter with documents that
  * have no class value. Methods marked "mechanism" or "control" are expected to pass; the others
  * assert the documented "split the original index" behaviour.
  */

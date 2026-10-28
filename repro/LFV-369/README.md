@@ -2,6 +2,8 @@
 
 Bug LFV-369 · Area: spatial-extras / BBoxStrategy overlap-ratio relevance (BBoxOverlapRatioValueSource.score: intersection width when both boxes cross the dateline) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-369.html](../../bugs/LFV-369.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a dateline-crossing rectangle with BBoxStrategy in the default geo con
 
 ## Expected vs actual
 
-- Expected: You expect the documented score intersectionArea/queryArea*p + intersectionArea/targetArea*(1-p), where intersectionArea is 'the area of the intersection between the query and target envelopes'.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: The two boxes overlap in 30° x 20°, so the score is 0.15476190476190477, and document A sorts above document B (0.1389).
+- Actual: The score is 0.10317460317460317 (width 20°), and B sorts above A; the same pair moved 30° west scores 0.15476190476190477.
 
 ## Files
 
@@ -46,6 +48,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestBBoxOverlapRatioBothCrossDateline.java](TestBBoxOverlapRatioBothCrossDateline.java)
+- [TestOverlapRatioRotationAudit.java](TestOverlapRatioRotationAudit.java)
+- [TestOverlapRatioBothCrossVerifyV1.java](TestOverlapRatioBothCrossVerifyV1.java)
+- [TestOverlapRatioTwoPieceIntersection.java](TestOverlapRatioTwoPieceIntersection.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/spatial-extras/](../../models/spatial-extras/)
 

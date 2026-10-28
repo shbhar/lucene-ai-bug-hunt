@@ -1,0 +1,897 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>S2PrefixTree: a Contains query for a point misses the document stored at that same point when the point lies on an S2 cell edge, such as the equator</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-371 &middot; s2-point-query-on-cell-edge-contains-miss</p><h1 id='top'>S2PrefixTree: a Contains query for a point misses the document stored at that same point when the point lies on an S2 cell edge, such as the equator</h1><p class='tldr'>With the experimental S2 prefix tree, <code>Contains(Point(10, 0))</code> finds 0 documents for a document stored at <code>Point(10, 0)</code>, while <code class='nw'>Intersects</code> finds 1: a point exactly on an S2 cell edge (the equator, some meridians, (0,0)) is missed. Every release since 7.3.0 is affected; a small query-side fix needs no reindexing.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 351</span><span class='sub'>The experimental S2 tree silently misses a point that lies exactly on a cell edge, and only for Contains(point) queries.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.3.0 (LUCENE-8126, 2018)<span class='sub'>introduced 2018-03-02 &middot; about 8 years</span></dd></div><div><dt>Affected</dt><dd>7.3.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>randomized differential test of RPT against the exact spatial predicate</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>S2PrefixTree</code> cuts the globe into cells, level by level. A point exactly on the border between two cells is stored under one of them, but a <code class='nw'>Contains</code> query looks in every cell that touches the point and requires the document to be in all of them.</p><figure class='visual' id='s2-point-query-on-cell-edge-contains-miss-short-visual'><div class='frame'><a class='still' href='../assets/LFV-371/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-371/bug.png' alt='Three-panel diagram. Panel 1, the example: the repro code (Intersects 1 hit, Contains 0 hits) and face 0 drawn as four child cells, with P = (10, 0) on the shared edge of the northern cell .0, where the document is indexed, and the southern cell .1, which holds none of its terms; getNextLevelCells(P) returns both. Panel 2, inside Lucene: indexing uses one cell per level, just north of the equator; the S2 cell has no point case, so FilterCellIterator keeps .0 and .1 (4 children at (0, 0)); ContainsPrefixTreeQuery ANDs the children, .0 gives doc 0 and .1 has no term, so 0 hits; the geohash and quad trees give a point one child. Panel 3, effects, reach and fix: documents indexed exactly at an edge point such as (10, 0), (160, 0), (45, 20) or (0, 0) are lost; CompositeSpatialStrategy returns 1 of 2 true matches; off-edge points, Intersects, IsWithin and the geohash and quad trees are fine; only the experimental S2 tree with the Geo3D context, false negatives only; the fix returns the single S2CellId.fromLatLng child, with no reindexing.' width='1920' height='1080'></a></div><figcaption>The point (10, 0) sits on the equator, the edge between two cells of face 0: the document is indexed under the northern one, the southern one holds none of its terms, and the <code class='nw'>Contains</code> query requires the document in both, so it returns 0 hits. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index one document at <code>Point(10, 0)</code>, on the equator, with <code>RecursivePrefixTreeStrategy</code> over <code>new S2PrefixTree(ctx, 8)</code> in the Geo3d spatial context, and count an <code class='nw'>Intersects</code> and a <code class='nw'>Contains</code> query for that same point.</span></li><li><span>You expect 1 and 1: <code class='nw'>Contains</code> means OGC "Covers", and a point covers itself. The geohash and quad trees return 1, and so does the S2 tree for <code>(10, 0.5)</code>, just off the equator.</span></li><li><span>You get 1 and 0. The same at every S2 cell edge point tried: on the equator, on longitudes 0, ±45, ±90, ±135 and 180 near the equator, and at <code class='nw'>(0,0)</code>.</span></li><li><span>Why: the equator is the border between two S2 cells. Indexing stores the point under just one of them, here the northern one, one cell per level.</span></li><li><span>But the <code class='nw'>Contains</code> query takes every cell the point touches, here both, and keeps only documents found in all of them. The other cell holds nothing, so the document drops out. The geohash and quad trees take only the cell the point is stored in.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications on the opt-in, experimental <code class='nw'>S2PrefixTree</code> (Geo3d context only; Solr can select it with <code class='nw'>prefixTree="s2"</code>) that run <code class='nw'>Contains</code> with a point, through <code>RecursivePrefixTreeStrategy</code> or <code>CompositeSpatialStrategy</code>. Every document stored at exactly that point is silently lost when the point is on a cell edge. The rectangles and circles tested, <code class='nw'>Intersects</code> and <code class='nw'>IsWithin</code> are fine.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>896 words</span></summary><div class='body'><p>With <code>RecursivePrefixTreeStrategy</code> over the experimental <code class='nw'>S2PrefixTree</code> (Geo3d spatial context), a <code class='nw'>Contains</code> query whose shape is a point P misses every document indexed as exactly P when P lies on an S2 cell edge: <code>Contains(Point(10, 0))</code> returns 0 hits for a document at <code>Point(10, 0)</code>, while <code class='nw'>Intersects</code> returns 1, and the geohash and quad trees return 1. Indexing stores a point under one cell per level (<code>S2CellId.fromLatLng</code>), but <code>S2PrefixTreeCell.getNextLevelCells</code> has no point case and returns every child cell that touches P (2 on an edge, 4 at (0,0)); <code>ContainsPrefixTreeQuery</code> ANDs the documents of those children, and the child P was not stored under has none. It affects every release from 7.3.0 to 10.5.2 and main, also through <code>CompositeSpatialStrategy</code>. A point case in <code>getNextLevelCells</code> that returns the one child P is stored under, as <code class='nw'>LegacyCell</code> already does for the other trees, fixes it without reindexing.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Prefix tree (RPT)</strong>: <code>RecursivePrefixTreeStrategy</code> indexes a shape as the grid cells it covers, one term per cell, from coarse to fine levels. A query walks the same grid from the top and looks the cells up.</li><li><strong>S2 cells</strong>: <code class='nw'>S2PrefixTree</code> uses S2 geometry: the sphere is projected onto the 6 faces of a cube, the 6 faces are the first level, and each further level splits a cell into 4 children (16 or 64 with arity 2 or 3), the first split running along the face's centre lines. So on the four equatorial faces the face borders (longitudes ±45 and ±135) are cell edges from the first level on, the equator and longitudes 0, ±90 and 180 from the second level on, and (0,0), the centre of face 0, is a corner where 4 cells meet.</li><li><strong>Contains</strong>: <code>SpatialOperation.Contains</code>, the OGC "Covers" predicate: the indexed shape covers the query shape, boundary included; equal shapes count.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-step-1-indexing-stores-a-point-under-one-cell-per-level'>Step 1: indexing stores a point under one cell per level</h3><a class="hlink" href="#what-the-bug-is-step-1-indexing-stores-a-point-under-one-cell-per-level" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-step-1-indexing-stores-a-point-under-one-cell-per-level"><span aria-hidden="true">#</span></a></div><p><code>S2PrefixTree.getTreeCellIterator</code> (<code>S2PrefixTree.java:141-155</code> at <code class='nw'>a9779ef3c193</code>) handles a <code class='nw'>Point</code> by computing <code>S2CellId.fromLatLng(S2LatLng.fromDegrees(lat, lon)).parent(...)</code> and emitting that cell and its ancestors: exactly one cell per level. For a point on an edge, <code class='nw'>fromLatLng</code> puts it into one of the touching cells.</p><div class="hd hd-3"><h3 id='what-the-bug-is-step-2-the-contains-query-ands-the-children-it-is-given'>Step 2: the Contains query ANDs the children it is given</h3><a class="hlink" href="#what-the-bug-is-step-2-the-contains-query-ands-the-children-it-is-given" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-step-2-the-contains-query-ands-the-children-it-is-given"><span aria-hidden="true">#</span></a></div><p>For <code class='nw'>Contains</code>, <code>RecursivePrefixTreeStrategy.makeQuery</code> builds a <code>ContainsPrefixTreeQuery</code> (<code>RecursivePrefixTreeStrategy.java:199-201</code>). Its visitor asks <code>cell.getNextLevelCells(queryShape)</code> (<code>ContainsPrefixTreeQuery.java:120</code>) and computes "the AND of all child results" (<code class='nw'>:111</code>): a child with no indexed term makes the result empty and stops the loop (<code class='nw'>:123-124</code>, <code class='nw'>:137</code>); otherwise the next child is searched only among the documents found so far (<code class='nw'>:138</code>).</p><div class="hd hd-3"><h3 id='what-the-bug-is-step-3-the-s2-query-side-has-no-point-case'>Step 3: the S2 query side has no point case</h3><a class="hlink" href="#what-the-bug-is-step-3-the-s2-query-side-has-no-point-case" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-step-3-the-s2-query-side-has-no-point-case"><span aria-hidden="true">#</span></a></div><p><code>S2PrefixTreeCell.getNextLevelCells</code> (<code>S2PrefixTreeCell.java:156-173</code>) builds all children and returns <code>new FilterCellIterator(cells.iterator(), shapeFilter)</code>. <code>FilterCellIterator</code> keeps every cell whose relation to the filter <code class='nw'>intersects()</code> (<code>FilterCellIterator.java:48-53</code>), and a closed cell whose border passes through the point intersects it. The geohash and quad trees special-case a point and return only the sub-cell it falls in (<code>LegacyCell.java:134-143</code>):</p><pre><code>if (shapeFilter instanceof Point point) {
+  LegacyCell cell = getSubCell(point);
+  cell.shapeRel = SpatialRelation.CONTAINS;
+  return new SingletonCellIterator(cell);
+}</code></pre><div class="hd hd-3"><h3 id='what-the-bug-is-step-4-the-result'>Step 4: the result</h3><a class="hlink" href="#what-the-bug-is-step-4-the-result" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-step-4-the-result"><span aria-hidden="true">#</span></a></div><p>Of the touching children, only the one the point was stored under has terms for the document, so the AND is empty. For <code>Point(10, 0)</code> this happens at the second level, where the equator splits face 0 into a northern and a southern half: the query side gets 2 children there. A probe with the arity-1 S2 tree at its maximum depth (31 levels) measured 2 children for 11 points on the equator, the face borders and the face-centre meridians and 4 for (0,0); all 12 miss with <code class='nw'>Contains</code> and are found by <code class='nw'>Intersects</code>, while (1,10), (46,20), (10,0.001) and (91,10) get 1 child per level and are found by both. A trace of the stock visitor on the repro's index shows it asks the world cell, face 0 and the <code class='nw'>.0</code> side down to level 7 for children and never <code class='nw'>.1</code> or anything below it: after <code class='nw'>.0</code>'s leaf term the term enumeration is used up, so <code class='nw'>seek(.1)</code> is false and the loop breaks (<code>ContainsPrefixTreeQuery.java:144-145</code>, <code class='nw'>:123-124</code>, <code class='nw'>:137</code>).</p><div class="hd hd-3"><h3 id='what-the-bug-is-what-is-not-affected'>What is not affected</h3><a class="hlink" href="#what-the-bug-is-what-is-not-affected" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-is-not-affected"><span aria-hidden="true">#</span></a></div><ul><li><strong>Intersects</strong>: for a point query <code class='nw'>makeQuery</code> takes the grid-aligned fast path (<code>RecursivePrefixTreeStrategy.java:185-187</code>): with <code class='nw'>pointsOnly</code> a single <code class='nw'>TermQuery</code> on the indexing cell (<code class='nw'>:218-229</code>), else a visiting query that ORs over the cells it visits, so extra cells only add hits.</li><li><strong>IsWithin</strong>: RPT passes no buffer (<code class='nw'>queryBuffer</code> -1, <code class='nw'>:191-198</code>), so the query walks the cells with no point filter (<code>WithinPrefixTreeQuery.java:74</code>).</li><li><strong>Rectangle and circle documents</strong> (the area shapes tested): one that covers P is indexed under every cell it intersects, including all the touching ones, so it is still found. Polygons, lines and shape collections were not tested.</li><li><strong>Shallow trees</strong>: the edge must exist at the tree's depth. With <code>new S2PrefixTree(ctx, 1)</code> (faces only) the equator is not an edge yet and <code>(10, 0)</code> and <code>(0, 0)</code> are found; from 2 levels on they are missed. <code>(45, 20)</code>, on a face edge, is missed from 1 level on.</li><li><strong>The two sides disagree</strong>: the index stores an edge point under one cell, the query follows every touching cell. The recommended fix makes the query side follow the index side, so it needs no reindexing; changing the index side instead is the other option.</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>323 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Applications that use <code>RecursivePrefixTreeStrategy</code>, or <code>CompositeSpatialStrategy</code> (which pre-filters <code class='nw'>Contains</code> with RPT's own Contains query, <code>CompositeSpatialStrategy.java:139-142</code>), over <code class='nw'>S2PrefixTree</code>, and run <code class='nw'>Contains</code> (alias "Covers") with a point as the query shape.</li><li><strong>Opt-in.</strong> <code class='nw'>S2PrefixTree</code> is <code>@lucene.experimental</code> and works only with a context whose shape factory is an <code class='nw'>S2ShapeFactory</code>, i.e. the Geo3d context (constructor check, <code>S2PrefixTree.java:83-85</code>; CHANGES for LUCENE-8126: "It can only be used currently with Geo3D spatial context"). <code>SpatialPrefixTreeFactory</code> defaults to geohash for a geo context and selects S2 for <code class='nw'>prefixTree="s2"</code>; Solr's RPT field types build their tree through that factory and parse <code class='nw'>Contains</code> (code reading, not run). A GitHub code search found no use of <code class='nw'>S2PrefixTree</code> in Elasticsearch or OpenSearch.</li><li><strong>What is lost.</strong> Documents indexed as exactly the query point, when that point lies on an S2 cell edge that exists at the tree's depth: on the equator, and in the band around the equator on the face borders (longitudes ±45, ±135) and the face-centre meridians (0, ±90, 180), and (0,0), a common placeholder coordinate (all of these tried; multi-valued documents not tested). Continuous coordinates rarely land exactly on an edge; round-number and placeholder data does. With <code>CompositeSpatialStrategy</code>, a point document and a rectangle around it, <code class='nw'>Contains(p)</code> returns 1 of the 2 true matches.</li><li><strong>Silent, deterministic, false negatives only.</strong> No exception, the same with assertions off, per document, so at any index size. In 600 random <code class='nw'>Contains(point)</code> queries (300 per tree, 2 trees, 400 random documents per tree), the stock hits were always a subset of the fixed hits.</li><li><strong>How likely.</strong> <code class='nw'>Contains(point)</code> against point data is an equality test that users would usually write as <code class='nw'>Intersects</code>; the realistic case is a mixed-shape field asked "which shapes cover this location" when the location equals a stored point on a cell edge. No prior report was found in the recorded searches, although the code dates from 7.3.0 (2018); the registry rates the likelihood rare and the priority low.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit for <code>lucene/spatial-extras</code> on the public API: one document at <code>Point(10, 0)</code>, an <code class='nw'>Intersects</code> control that passes, then the <code class='nw'>Contains</code> assertion that fails. It fails with assertions on and off on main and on every release tried from 7.3.0 to 10.5.2.</p><figure class='code'><figcaption><span class='fname'>TestS2PointOnCellEdgeContains.java (lucene/spatial-extras, 1 test with an Intersects control)</span><span class='meta'>68 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix.tree;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.spatial4j.Geo3dSpatialContextFactory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+
+/**
+ * S2PrefixTree: a point on an S2 cell edge (here the equator, a cell border on the four equatorial
+ * faces) is indexed under exactly one cell per level (S2CellId.fromLatLng), but at query time
+ * S2PrefixTreeCell.getNextLevelCells(point) returns every cell that touches the point. A Contains
+ * query then requires the document to be found under all of those cells, so a document is not found
+ * to contain the very point it was indexed with. GeohashPrefixTree / QuadPrefixTree return 1.
+ */
+public class TestS2PointOnCellEdgeContains extends LuceneTestCase {
+
+  private int count(SpatialPrefixTree grid, Point indexed, SpatialOperation op, Point query)
+      throws IOException {
+    RecursivePrefixTreeStrategy strategy = new RecursivePrefixTreeStrategy(grid, &quot;s2&quot;);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter writer = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field f : strategy.createIndexableFields(indexed)) {
+          doc.add(f);
+        }
+        writer.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        return new IndexSearcher(reader).count(strategy.makeQuery(new SpatialArgs(op, query)));
+      }
+    }
+  }
+
+  public void testPointOnEquatorContainsItself() throws IOException {
+    SpatialContext ctx = new Geo3dSpatialContextFactory().newSpatialContext();
+    Point p = ctx.getShapeFactory().pointXY(10, 0);
+    assertTrue(SpatialOperation.Contains.evaluate(p, p));
+    SpatialPrefixTree grid = new S2PrefixTree(ctx, 8);
+    assertEquals(1, count(grid, p, SpatialOperation.Intersects, p)); // found by Intersects
+    assertEquals(1, count(grid, p, SpatialOperation.Contains, p)); // but not by Contains
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:spatial-extras:test --tests org.apache.lucene.spatial.prefix.tree.TestS2PointOnCellEdgeContains -Ptests.seed=DEADBEEF
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>Intersects</code> and <code class='nw'>Contains</code> both find the document indexed at <code>Point(10, 0)</code>: 1 and 1.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>Intersects</code> finds 1, <code class='nw'>Contains</code> finds 0: <code>expected:&lt;1&gt; but was:&lt;0&gt;</code> at the <code class='nw'>Contains</code> assertion.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-371/'>repro/LFV-371/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (482 lines) · 2,638 words</span></summary><div class='body'><p>Copy the file into <code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/tree/</code> of a checkout and run the command below; add <code>-Ptests.asserts=false</code> for a production-like run (same failure). The test sits in the <code class='nw'>prefix.tree</code> package only because that is where the S2 tests live; it uses public API only. Its class javadoc was edited on 2026-10-28, comment only (the hunt's original said Contains "demands that the indexed shape cover all of those cells" and was not wrapped as google-java-format wants; the edit also changed "an edge of every cell of the equatorial faces" to "a cell border on the four equatorial faces" and "exactly one cell" to "exactly one cell per level"; line numbers did not change); the edited file fails on stock main and passes with the fix, assertions on and off.</p><p>The other files: the independent reproducer's JUnit (96 configurations: SPHERE and WGS84, points (10,0), (160,0), (45,20) and (0,0), arity 1-3, shallow and full depth, <code>pruneLeafyBranches</code> on and off, with an off-edge and a geohash/quad control), and the two scope probes of this doc (the predicates against area documents around edge points, stock and fixed; and which coordinates are cell edges).</p><div class="hd hd-3"><h3 id='code-2-h'>TestV1S2EdgePointContains.java (independent reproducer: 96 configurations plus two controls)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails 1 of 3 on main (assertions on and off), 10.5.2, 9.12.3, 8.11.4 and 7.3.0: "96 of 96 S2 configs: Contains(p) misses the doc indexed with p", each with intersects=1, contains=0 and 2 touching children (4 at (0,0)); the off-edge S2 control and the geohash/quad control pass.</p><figure class='code'><figcaption><span class='fname'>TestV1S2EdgePointContains.java (independent reproducer: 96 configurations plus two controls)</span><span class='meta'>197 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.prefix.tree.Cell;
+import org.apache.lucene.spatial.prefix.tree.CellIterator;
+import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.S2PrefixTree;
+import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.spatial4j.Geo3dSpatialContextFactory;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+
+/**
+ * Independent check: with RecursivePrefixTreeStrategy over S2PrefixTree, a document whose indexed
+ * shape is a point P must match SpatialOperation.Contains with query shape P (Contains is &quot;Covers&quot;,
+ * boundary-neutral, and SpatialOperation.Contains.evaluate(P, P) is true). Only public API is used.
+ */
+public class TestV1S2EdgePointContains extends LuceneTestCase {
+
+  private static SpatialContext geo3dContext() {
+    return new Geo3dSpatialContextFactory().newSpatialContext();
+  }
+
+  private static SpatialContext geo3dContext(PlanetModel planetModel) {
+    Geo3dSpatialContextFactory factory = new Geo3dSpatialContextFactory();
+    factory.planetModel = planetModel;
+    return factory.newSpatialContext();
+  }
+
+  /** Indexes one document with {@code indexed}; returns the hit count of {@code op(query)}. */
+  private int hits(
+      SpatialPrefixTree grid,
+      boolean pruneLeafyBranches,
+      Point indexed,
+      SpatialOperation op,
+      Point query)
+      throws IOException {
+    RecursivePrefixTreeStrategy strategy = new RecursivePrefixTreeStrategy(grid, &quot;geo&quot;);
+    strategy.setPruneLeafyBranches(pruneLeafyBranches);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field f : strategy.createIndexableFields(indexed)) {
+          doc.add(f);
+        }
+        w.addDocument(doc);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        return s.count(strategy.makeQuery(new SpatialArgs(op, query)));
+      }
+    }
+  }
+
+  /** Max number of next-level cells the query-side traversal accepts for the point, at any level. */
+  private static int maxTouchingChildren(SpatialPrefixTree grid, Point p) {
+    // Walk down from the world cell, following the indexing-side cell of each level, and count how
+    // many children each level&#x27;s getNextLevelCells(p) returns.
+    int max = 0;
+    Cell cell = grid.getWorldCell();
+    List&lt;Cell&gt; indexingPath = new ArrayList&lt;&gt;();
+    CellIterator it = grid.getTreeCellIterator(p, grid.getMaxLevels());
+    while (it.hasNext()) {
+      indexingPath.add(it.next());
+    }
+    for (Cell target : indexingPath) {
+      if (cell.getLevel() &gt;= grid.getMaxLevels()) {
+        break;
+      }
+      CellIterator kids = cell.getNextLevelCells(p);
+      int n = 0;
+      Cell next = null;
+      while (kids.hasNext()) {
+        Cell k = kids.next();
+        n++;
+        if (k.getTokenBytesNoLeaf(null).equals(target.getTokenBytesNoLeaf(null))) {
+          next = k;
+        }
+      }
+      max = Math.max(max, n);
+      if (next == null) {
+        break;
+      }
+      cell = next;
+    }
+    return max;
+  }
+
+  /** The main claim: S2 + an edge point + Contains(same point) returns no hit. */
+  public void testS2EdgePointContainsItself() throws IOException {
+    // (lon, lat): two points on the equator (an S2 child-cell edge on faces 0 and 3), one on
+    // the lon=45 meridian (the face 0 / face 1 edge) and (0, 0), the centre of face 0 where four
+    // child cells meet.
+    double[][] lonLat = {{10, 0}, {160, 0}, {45, 20}, {0, 0}};
+    List&lt;String&gt; misses = new ArrayList&lt;&gt;();
+    int configs = 0;
+    for (PlanetModel pm : new PlanetModel[] {PlanetModel.SPHERE, PlanetModel.WGS84})
+    for (double[] ll : lonLat) {
+      SpatialContext ctx = geo3dContext(pm);
+      Point p = ctx.getShapeFactory().pointXY(ll[0], ll[1]);
+      assertTrue(&quot;Contains.evaluate(p, p)&quot;, SpatialOperation.Contains.evaluate(p, p));
+      for (int arity = 1; arity &lt;= 3; arity++) {
+        for (int maxLevels : new int[] {3, S2PrefixTree.getMaxLevels(arity)}) {
+          for (boolean prune : new boolean[] {true, false}) {
+            S2PrefixTree grid = new S2PrefixTree(ctx, maxLevels, arity);
+            configs++;
+            int intersects = hits(grid, prune, p, SpatialOperation.Intersects, p);
+            assertEquals(&quot;control: Intersects finds the doc for &quot; + p, 1, intersects);
+            int contains = hits(grid, prune, p, SpatialOperation.Contains, p);
+            if (contains != 1) {
+              misses.add(
+                  pm + &quot; point=&quot;
+                      + p
+                      + &quot; arity=&quot;
+                      + arity
+                      + &quot; maxLevels=&quot;
+                      + maxLevels
+                      + &quot; pruneLeafy=&quot;
+                      + prune
+                      + &quot; intersects=&quot;
+                      + intersects
+                      + &quot; contains=&quot;
+                      + contains
+                      + &quot; maxTouchingChildren=&quot;
+                      + maxTouchingChildren(grid, p));
+            }
+          }
+        }
+      }
+    }
+    if (!misses.isEmpty()) {
+      fail(
+          misses.size()
+              + &quot; of &quot;
+              + configs
+              + &quot; S2 configs: Contains(p) misses the doc indexed with p:\n  &quot;
+              + String.join(&quot;\n  &quot;, misses));
+    }
+  }
+
+  /** Control: an S2 point that is not on a cell edge is found by Contains(same point). */
+  public void testS2OffEdgePointContainsItself() throws IOException {
+    SpatialContext ctx = geo3dContext();
+    Point p = ctx.getShapeFactory().pointXY(10.3, 0.7);
+    for (int arity = 1; arity &lt;= 3; arity++) {
+      for (int maxLevels : new int[] {3, 8}) {
+        S2PrefixTree grid = new S2PrefixTree(ctx, maxLevels, arity);
+        assertEquals(&quot;maxTouchingChildren&quot;, 1, maxTouchingChildren(grid, p));
+        assertEquals(1, hits(grid, true, p, SpatialOperation.Contains, p));
+      }
+    }
+  }
+
+  /** Control: geohash and quad trees (same Geo3d context, same edge points) find the doc. */
+  public void testLegacyTreesEdgePointContainsItself() throws IOException {
+    SpatialContext ctx = geo3dContext();
+    double[][] lonLat = {{10, 0}, {160, 0}, {45, 20}, {0, 0}};
+    for (double[] ll : lonLat) {
+      Point p = ctx.getShapeFactory().pointXY(ll[0], ll[1]);
+      for (SpatialPrefixTree grid :
+          new SpatialPrefixTree[] {new GeohashPrefixTree(ctx, 4), new QuadPrefixTree(ctx, 8)}) {
+        assertEquals(
+            grid + &quot; &quot; + p, 1, hits(grid, true, p, SpatialOperation.Contains, p));
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestS2EdgePointPredicatesProbe.java (Intersects, Contains, IsWithin against point, rectangle and circle documents around edge points; the rectangles have the point on an edge or a corner, the circle around it)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Stock: <code class='nw'>Contains</code> misses 6 documents in each of 8 configurations (48; the 40 listed are all edge-point documents, and each count of 6 matches the 6 edge points); <code class='nw'>Intersects</code> and <code class='nw'>IsWithin</code> miss nothing. With the fix: 0 misses for all three, and the <code class='nw'>Intersects</code> and <code class='nw'>IsWithin</code> answers are unchanged.</p><figure class='code'><figcaption><span class='fname'>TestS2EdgePointPredicatesProbe.java (Intersects, Contains, IsWithin against point, rectangle and circle documents around edge points; the rectangles have the point on an edge or a corner, the circle around it)</span><span class='meta'>184 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.spatial.prefix.tree.S2PrefixTree;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.spatial4j.Geo3dSpatialContextFactory;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.Shape;
+
+/**
+ * Scope probe for the S2 point fix: for query points on S2 cell edges (and one off-edge control),
+ * index the point itself plus rectangles and a circle that touch or cover it from every side, and
+ * compare Intersects(P), Contains(P) and IsWithin(P) with SpatialOperation.evaluate. Reports false
+ * negatives (evaluate true, not found) and extra hits (found, evaluate false; allowed for RPT&#x27;s
+ * grid approximation). Fails if any false negative is found. Public API only.
+ */
+public class TestS2EdgePointPredicatesProbe extends LuceneTestCase {
+
+  public void testEdgePointPredicates() throws Exception {
+    double[][] lonLat = {
+      {10, 0}, {160, 0}, {-73.5, 0}, {45, 20}, {90, 10}, {0, 0}, {10.3, 0.7} // last: off-edge
+    };
+    SpatialOperation[] ops = {
+      SpatialOperation.Intersects, SpatialOperation.Contains, SpatialOperation.IsWithin
+    };
+    long totalFalseNeg = 0;
+    List&lt;String&gt; falseNegExamples = new ArrayList&lt;&gt;();
+    for (PlanetModel pm : new PlanetModel[] {PlanetModel.SPHERE, PlanetModel.WGS84}) {
+      Geo3dSpatialContextFactory f = new Geo3dSpatialContextFactory();
+      f.planetModel = pm;
+      SpatialContext ctx = f.newSpatialContext();
+      for (int[] cfg : new int[][] {{1, 8}, {1, 31}, {2, 16}, {3, 11}}) {
+        int arity = cfg[0];
+        int levels = cfg[1];
+        RecursivePrefixTreeStrategy st =
+            new RecursivePrefixTreeStrategy(new S2PrefixTree(ctx, levels, arity), &quot;geo&quot;);
+        List&lt;Shape&gt; docs = new ArrayList&lt;&gt;();
+        List&lt;String&gt; names = new ArrayList&lt;&gt;();
+        for (double[] ll : lonLat) {
+          double x = ll[0];
+          double y = ll[1];
+          String at = &quot;(&quot; + x + &quot;,&quot; + y + &quot;) &quot;;
+          docs.add(ctx.getShapeFactory().pointXY(x, y));
+          names.add(at + &quot;point&quot;);
+          docs.add(ctx.getShapeFactory().rect(x - 1, x + 1, y, y + 1));
+          names.add(at + &quot;rect north, P on its south edge&quot;);
+          docs.add(ctx.getShapeFactory().rect(x - 1, x + 1, y - 1, y));
+          names.add(at + &quot;rect south, P on its north edge&quot;);
+          docs.add(ctx.getShapeFactory().rect(x, x + 1, y - 1, y + 1));
+          names.add(at + &quot;rect east, P on its west edge&quot;);
+          docs.add(ctx.getShapeFactory().rect(x - 1, x, y - 1, y + 1));
+          names.add(at + &quot;rect west, P on its east edge&quot;);
+          docs.add(ctx.getShapeFactory().rect(x, x + 1, y, y + 1));
+          names.add(at + &quot;rect NE, P at its corner&quot;);
+          docs.add(ctx.getShapeFactory().rect(x - 1, x, y - 1, y));
+          names.add(at + &quot;rect SW, P at its corner&quot;);
+          docs.add(ctx.getShapeFactory().circle(ctx.getShapeFactory().pointXY(x, y), 1));
+          names.add(at + &quot;circle r=1 around P&quot;);
+        }
+        try (Directory dir = new ByteBuffersDirectory()) {
+          try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+            for (int i = 0; i &lt; docs.size(); i++) {
+              Document d = new Document();
+              for (Field fl : st.createIndexableFields(docs.get(i))) {
+                d.add(fl);
+              }
+              d.add(new StoredField(&quot;id&quot;, i));
+              w.addDocument(d);
+            }
+          }
+          try (DirectoryReader r = DirectoryReader.open(dir)) {
+            IndexSearcher s = new IndexSearcher(r);
+            Map&lt;SpatialOperation, Set&lt;String&gt;&gt; truthSets = new HashMap&lt;&gt;();
+            for (SpatialOperation op : ops) {
+              Set&lt;String&gt; truthSet = new HashSet&lt;&gt;();
+              truthSets.put(op, truthSet);
+              int truth = 0;
+              int found = 0;
+              int falseNeg = 0;
+              int extra = 0;
+              for (double[] ll : lonLat) {
+                Point q = ctx.getShapeFactory().pointXY(ll[0], ll[1]);
+                Set&lt;Integer&gt; hits = new HashSet&lt;&gt;();
+                for (ScoreDoc sd : s.search(st.makeQuery(new SpatialArgs(op, q)), 10_000).scoreDocs) {
+                  hits.add(s.storedFields().document(sd.doc).getField(&quot;id&quot;).numericValue().intValue());
+                }
+                for (int i = 0; i &lt; docs.size(); i++) {
+                  boolean expected = op.evaluate(docs.get(i), q);
+                  boolean got = hits.contains(i);
+                  if (expected) {
+                    truth++;
+                    truthSet.add(ll[0] + &quot;,&quot; + ll[1] + &quot;|&quot; + i);
+                  }
+                  if (got) {
+                    found++;
+                  }
+                  if (expected &amp;&amp; !got) {
+                    falseNeg++;
+                    if (falseNegExamples.size() &lt; 40) {
+                      falseNegExamples.add(
+                          pm + &quot; arity=&quot; + arity + &quot; levels=&quot; + levels + &quot; &quot; + op + &quot; q=(&quot; + ll[0]
+                              + &quot;,&quot; + ll[1] + &quot;) missed doc &quot; + names.get(i));
+                    }
+                  }
+                  if (got &amp;&amp; !expected) {
+                    extra++;
+                  }
+                }
+              }
+              totalFalseNeg += falseNeg;
+              System.out.println(
+                  &quot;PROBE &quot;
+                      + pm
+                      + &quot; arity=&quot;
+                      + arity
+                      + &quot; levels=&quot;
+                      + levels
+                      + &quot; op=&quot;
+                      + op
+                      + &quot; truePairs=&quot;
+                      + truth
+                      + &quot; found=&quot;
+                      + found
+                      + &quot; falseNeg=&quot;
+                      + falseNeg
+                      + &quot; extra=&quot;
+                      + extra);
+            }
+            System.out.println(
+                &quot;SAME-TRUTH &quot;
+                    + pm
+                    + &quot; arity=&quot;
+                    + arity
+                    + &quot; levels=&quot;
+                    + levels
+                    + &quot; Intersects(P) and Contains(P) have the same true pairs: &quot;
+                    + truthSets
+                        .get(SpatialOperation.Intersects)
+                        .equals(truthSets.get(SpatialOperation.Contains)));
+          }
+        }
+      }
+    }
+    for (String e : falseNegExamples) {
+      System.out.println(&quot;FALSE-NEG &quot; + e);
+    }
+    assertEquals(&quot;false negatives (first 40 listed above)&quot;, 0, totalFalseNeg);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestS2GridLinesProbe.java (which coordinates are S2 cell edges with the arity-1 tree at its maximum depth)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Equator, longitudes 0, ±45, ±90, ±135, 180 and (0,0): <code class='nw'>Contains</code> 0, <code class='nw'>Intersects</code> 1, 2 children (4 at (0,0)) where the edge first appears; (1,10), (46,20), (10,0.001), (91,10): 1 and 1, 1 child per level.</p><figure class='code'><figcaption><span class='fname'>TestS2GridLinesProbe.java (which coordinates are S2 cell edges with the arity-1 tree at its maximum depth)</span><span class='meta'>101 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.prefix.tree.Cell;
+import org.apache.lucene.spatial.prefix.tree.CellIterator;
+import org.apache.lucene.spatial.prefix.tree.S2PrefixTree;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.spatial4j.Geo3dSpatialContextFactory;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+
+/**
+ * Which coordinates are on S2 cell edges: for each point, index it alone with the default S2 tree
+ * (arity 1, 31 levels), count Contains(p) and Intersects(p), and count how many children the query
+ * side gets at the first level below the point&#x27;s face. Prints one line per point; never fails.
+ */
+public class TestS2GridLinesProbe extends LuceneTestCase {
+
+  public void testGridLines() throws Exception {
+    SpatialContext ctx = new Geo3dSpatialContextFactory().newSpatialContext();
+    S2PrefixTree grid = new S2PrefixTree(ctx, S2PrefixTree.getMaxLevels(1));
+    RecursivePrefixTreeStrategy st = new RecursivePrefixTreeStrategy(grid, &quot;geo&quot;);
+    double[][] lonLat = {
+      {10, 0}, {-120, 0}, {0, 10}, {0, -33}, {90, 10}, {-90, 10}, {180, 10}, {45, 20}, {-45, 20},
+      {135, -20}, {-135, -20}, {0, 0}, {1, 10}, {46, 20}, {10, 0.001}, {91, 10}
+    };
+    for (double[] ll : lonLat) {
+      Point p = ctx.getShapeFactory().pointXY(ll[0], ll[1]);
+      int contains;
+      int intersects;
+      try (Directory dir = new ByteBuffersDirectory()) {
+        try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+          Document d = new Document();
+          for (Field f : st.createIndexableFields(p)) {
+            d.add(f);
+          }
+          w.addDocument(d);
+        }
+        try (DirectoryReader r = DirectoryReader.open(dir)) {
+          IndexSearcher s = new IndexSearcher(r);
+          contains = s.count(st.makeQuery(new SpatialArgs(SpatialOperation.Contains, p)));
+          intersects = s.count(st.makeQuery(new SpatialArgs(SpatialOperation.Intersects, p)));
+        }
+      }
+      // children touching p, per level, along the indexing path (first 4 levels below the world)
+      StringBuilder touching = new StringBuilder();
+      CellIterator path = grid.getTreeCellIterator(p, 5);
+      Cell cell = grid.getWorldCell();
+      while (path.hasNext()) {
+        Cell target = path.next();
+        int n = 0;
+        CellIterator kids = cell.getNextLevelCells(p);
+        while (kids.hasNext()) {
+          kids.next();
+          n++;
+        }
+        touching.append(touching.length() == 0 ? &quot;&quot; : &quot;,&quot;).append(n);
+        cell = target;
+        if (cell.getLevel() &gt;= 4) {
+          break;
+        }
+      }
+      System.out.println(
+          &quot;LINE p=(&quot;
+              + ll[0]
+              + &quot;,&quot;
+              + ll[1]
+              + &quot;) contains=&quot;
+              + contains
+              + &quot; intersects=&quot;
+              + intersects
+              + &quot; touchingChildrenPerLevel(levels 1-4)=&quot;
+              + touching);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle): fails; main ea57360912ed and 7.3.0, 7.3.1, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2: fail; 7.2.1: no S2PrefixTree</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp TestS2PointOnCellEdgeContains.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/tree/
+cd $LUCENE
+./gradlew :lucene:spatial-extras:test --tests org.apache.lucene.spatial.prefix.tree.TestS2PointOnCellEdgeContains -Ptests.seed=DEADBEEF
+./gradlew :lucene:spatial-extras:test --tests org.apache.lucene.spatial.prefix.tree.TestS2PointOnCellEdgeContains -Ptests.seed=DEADBEEF -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, seed DEADBEEF, -Ptests.asserts=true (identical with false)
+TestS2PointOnCellEdgeContains &gt; testPointOnEquatorContainsItself FAILED
+    java.lang.AssertionError: expected:&lt;1&gt; but was:&lt;0&gt;
+        ... (randomizedtesting seed frame and 4 org.junit.Assert frames)
+        at org.apache.lucene.spatial.prefix.tree.TestS2PointOnCellEdgeContains.testPointOnEquatorContainsItself(TestS2PointOnCellEdgeContains.java:66)
+...
+1 test completed, 1 failed
+
+# line 66 is the Contains assertion; the Intersects control on line 65 passes
+# with the fix: 1 test completed, 0 failed (assertions on and off)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>Contains</code> is documented as OGC "Covers", <code>Contains.evaluate(p, p)</code> is true, and RPT has an explicit <code class='nw'>Contains</code> branch (LUCENE-4645).</li><li>The tree disagrees with itself: indexing stores a point in one cell per level, the query follows every touching cell. Other trees special-case points.</li><li>Upstream's random RPT test fails on any missed <code class='nw'>Contains</code> match, but runs only quad and geohash trees.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>289 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>SpatialOperation.Contains</code>: "Meets the 'Covers' OGC definition (boundary-neutral)", <code class='nw'>evaluate</code> = <code>indexedShape.relate(queryShape) == CONTAINS || indexedShape.equals(queryShape)</code> (<code>SpatialOperation.java:75-87</code>). <code>ContainsPrefixTreeQuery</code>: "Finds docs where its indexed shape CONTAINS the query shape. For use on RecursivePrefixTreeStrategy". <code>RecursivePrefixTreeStrategy.makeQuery</code> has an explicit <code class='nw'>Contains</code> branch and throws <code>UnsupportedSpatialOperation</code> only for other operations (<code class='nw'>:199-203</code>). CHANGES: "LUCENE-4645: Added support for the 'Contains' spatial predicate for RecursivePrefixTreeStrategy".</li><li><strong>Approximation may only add matches.</strong> <code class='nw'>SpatialArgs</code>: the error "effectively inflates the size of the shape but should not shrink it", and it is 0 for a point.</li><li><strong>Upstream tests assert this for the other trees.</strong> <code>TestRandomSpatialOpFuzzyPrefixTree.testContains</code> ensures "true-positive matches (if the predicate on the raw shapes match then the search should find those same matches)", sometimes queries with "an existing indexed shape" (when it is a point or a rectangle), and uses power-of-two boundaries for "the prospect of edge conditions we want to test"; it runs only the quad and geohash trees. The only S2 RPT test, <code class='nw'>TestGeo3dRpt</code>, runs only <code class='nw'>Intersects</code>.</li><li><strong>The tree disagrees with itself.</strong> Its index side stores a point in one cell per level; its query side follows every touching cell. In LUCENE-8126 (#9174) the tree's author wrote that S2 "Cells at the same level are disjoint" (in a comment about leaf pruning, not about queries). The legacy trees make the query side follow the index side for points (<code>LegacyCell.java:134-143</code>).</li><li><strong>History.</strong> The introducing commit added the S2 cell class without the point case and tested S2 with <code class='nw'>Intersects</code> only; no review or JIRA comment discusses <code class='nw'>Contains</code> or edge points.</li><li><strong>Precedent.</strong> LUCENE-4770 (#5835): a false negative from an index-side versus query-side cell mismatch in the legacy trees' Intersects (<code>TermQueryPrefixTreeStrategy</code> over indexed non-point shapes), fixed as a bug in 4.2.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>225 words</span></summary><div class='body'><p>The strongest case for "works as designed" (the reading-only cross-model reviews rated it moderate; one of them, the refute lens, returned "not real" at low confidence for a procedural reason, as it could not run the repro, while its static analysis agreed on the root cause): <code>PrefixTreeStrategy</code>'s class javadoc, which RPT inherits, says "Only SpatialOperation#Intersects is supported" (<code>PrefixTreeStrategy.java:52-53</code>); S2 cells are closed, so a point on an edge really does touch several cells, and <code>Cell#getNextLevelCells</code> only promises the cells "optionally filtered by shapeFilter"; and <code class='nw'>S2PrefixTree</code>, RPT and <code>ContainsPrefixTreeQuery</code> are all <code>@lucene.experimental</code>.</p><p>The answer: the "Only Intersects" sentence was written on 2012-09-24 (<code class='nw'>84c5a4addeb</code>), six months before LUCENE-4645 added <code class='nw'>Contains</code> to RPT (<code class='nw'>8b573c413d4</code>, 2013-04-03), and <code class='nw'>makeQuery</code>, the <code>ContainsPrefixTreeQuery</code> javadoc and the <code>CompositeSpatialStrategy</code> javadoc ("All predicates are supported except for the BBox* ones, and Disjoint") all say <code class='nw'>Contains</code> works. Closed cells would justify "several touching cells" only if the index side did the same, and it does not. <code>@lucene.experimental</code> is about API stability, not missing results. A maintainer could still prefer an index-side fix, a <code class='nw'>Contains</code>-only fix or a documentation change. <strong>Verdict: not intended</strong> (the intended-behaviour devil's advocate, high confidence, and the adjudication). Expect the "Only Intersects" sentence to be quoted back; answer with LUCENE-4645 and the dates, and consider fixing that sentence in the same patch.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Point case in S2PrefixTreeCell.getNextLevelCells (one method, no reindexing)</strong></p><p class='short'>Give <code>S2PrefixTreeCell.getNextLevelCells</code> a point case that returns the one child the point is indexed under (the same <code>S2CellId.fromLatLng</code> cell as indexing), as <code class='nw'>LegacyCell</code> does for the geohash and quad trees. One method, no reindexing. The repro and the whole spatial-extras test suite pass with it.</p><pre class='snippet' tabindex='0'><code>   @Override
+   public CellIterator getNextLevelCells(Shape shapeFilter) {
++    if (shapeFilter instanceof Point point) {
++      // A point gets the one child cell it is indexed under (see S2PrefixTree.getTreeCellIterator),
++      // not every child that touches it: on a cell edge 2 to 4 children touch the point.
++      int childLevel = cellId == null ? 0 : cellId.level() + tree.arity;
++      S2CellId child =
++          S2CellId.fromLatLng(S2LatLng.fromDegrees(point.getY(), point.getX())).parent(childLevel);
++      S2PrefixTreeCell cell = new S2PrefixTreeCell(tree, child);
++      cell.shapeRel = SpatialRelation.CONTAINS;
++      return new SingletonCellIterator(cell);
++    }
+     S2CellId[] children;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 897 words</span></summary><div class='body'><p>One fix was applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF) and through the scope probes; the alternatives were not run. The workaround was checked in the scope probe only.</p><div class="hd hd-3"><h3 id='fix-point-case'>Point case in S2PrefixTreeCell.getNextLevelCells (one method, no reindexing) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-point-case" target="_self" aria-label="Link to this section" aria-describedby="fix-point-case"><span aria-hidden="true">#</span></a></div><p>For a point filter, return a <code>SingletonCellIterator</code> of the child cell <code>S2CellId.fromLatLng(point).parent(childLevel)</code> with <code class='nw'>shapeRel</code> CONTAINS: the cell the index side uses, and the pattern of <code class='nw'>LegacyCell</code>. This is the finder's fix rewritten with imports instead of fully qualified names and with a comment; the logic is the same (+12 lines). It changes every S2 traversal that filters by a point, not only <code class='nw'>Contains</code> (see the trade-offs); faceting with a point shape was not tested.</p><pre class='snippet' tabindex='0'><code>   @Override
+   public CellIterator getNextLevelCells(Shape shapeFilter) {
++    if (shapeFilter instanceof Point point) {
++      // A point gets the one child cell it is indexed under (see S2PrefixTree.getTreeCellIterator),
++      // not every child that touches it: on a cell edge 2 to 4 children touch the point.
++      int childLevel = cellId == null ? 0 : cellId.level() + tree.arity;
++      S2CellId child =
++          S2CellId.fromLatLng(S2LatLng.fromDegrees(point.getY(), point.getX())).parent(childLevel);
++      S2PrefixTreeCell cell = new S2PrefixTreeCell(tree, child);
++      cell.shapeRel = SpatialRelation.CONTAINS;
++      return new SingletonCellIterator(cell);
++    }
+     S2CellId[] children;</code></pre><p class='k'>Trade-offs</p><ul><li><strong>No reindexing, no format change</strong>: the index side already writes the single <code class='nw'>fromLatLng</code> path.</li><li><strong>The other point callers take the single path too</strong>: the visiting queries (<code>AbstractVisitingPrefixTreeQuery.java:245</code>), i.e. RPT's <code class='nw'>Intersects</code> without <code class='nw'>pointsOnly</code>, the <code class='nw'>Intersects</code> pre-filter of <code>CompositeSpatialStrategy</code> and <code>PrefixTreeFacetCounter</code> with a point shape. They then visit 1 cell per level instead of 2 to 4. An area document that covers the point is still indexed under that cell: in the probe the <code class='nw'>Intersects</code> answers did not change. The facet counter with a point shape was not probed. Indexing never passes a point, and <code class='nw'>IsWithin</code> passes no filter.</li><li><strong>Tests</strong>: the upstream tests never ran <code class='nw'>Contains</code> on S2, so their passing shows only that nothing else broke; add the repro (or an S2 grid in a <code class='nw'>Contains</code> test) with the fix.</li><li><strong>Javadoc</strong>: consider fixing <code>PrefixTreeStrategy</code>'s stale "Only SpatialOperation#Intersects is supported" sentence in the same patch.</li><li><strong>Valid depths assumed</strong>: like the index side, the point case computes <code>parent(childLevel)</code> and assumes a depth S2 supports; <code class='nw'>S2PrefixTree</code> does not check <code class='nw'>maxLevels</code> against <code>getMaxLevels(arity)</code> (the base constructor only asserts it is positive, <code>SpatialPrefixTree.java:38-42</code>). This predates the patch.</li></ul><p class='k'>What the checks validated</p><ul><li><strong>Stock <code class='nw'>a9779ef3c193</code></strong> (scratch worktree, gradle, seed DEADBEEF): the repro fails 1 of 1 with assertions on and off; the closest suites (<code class='nw'>TestS2PrefixTree</code>, <code class='nw'>TestGeo3dRpt</code>, <code>TestRandomSpatialOpFuzzyPrefixTree</code>, <code>TestSpatialPrefixTree</code>, <code>TestCompositeStrategy</code>) pass: 19 tests, 1 skipped.</li><li><strong>With the fix</strong>: the repro passes with assertions on and off; the same closest suites pass (19 tests, 1 skipped); the whole <code>:lucene:spatial-extras:test</code> with the repro in place passes (118 tests, 5 skipped, 0 failures); <code class='nw'>TestS2PrefixTree</code>, <code class='nw'>TestGeo3dRpt</code> and <code>TestRandomSpatialOpFuzzyPrefixTree</code> with 5 iterations and a random seed pass (80 tests, 5 skipped); <code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code> and <code>checkGoogleJavaFormat</code> pass. The repro's class javadoc first failed <code>checkGoogleJavaFormat</code> on its wrapping; after a comment-only edit (formatted with <code>./gradlew tidy</code>, which left the fix unchanged) the edited repro fails on stock and passes with the fix, assertions on and off. <code class='nw'>fix.diff</code> and <code>fix-with-test.diff</code> pass <code>git apply --check</code> on a clean tree.</li><li><strong>Scope probe</strong> (main jars, stock and with the fixed class): 6 edge points and 1 off-edge point, 8 documents each (the point, 6 rectangles that have the point on an edge (4) or at a corner (2), and a circle around it), <code class='nw'>Intersects</code>, <code class='nw'>Contains</code> and <code class='nw'>IsWithin</code>, SPHERE and WGS84, 4 tree shapes. Stock: <code class='nw'>Contains</code> misses 6 documents in each configuration (48 misses; the probe lists the first 40, all edge-point documents, and each count of 6 matches the 6 edge points). Fixed: 0 misses, and the <code class='nw'>Intersects</code> and <code class='nw'>IsWithin</code> lines are identical to stock.</li><li><strong>Earlier hunt runs</strong> with the same logic: the finder's and the independent reproducer's JUnits pass; the security probe (600 random <code class='nw'>Contains(point)</code> queries, 300 per tree) finds 0 misses; the four upstream S2/RPT suites passed 17 of 17 and 170 of 170 over 10 iterations.</li></ul><div class="hd hd-3"><h3 id='fix-contains-point-case'>Point case in ContainsPrefixTreeQuery (not run)</h3><a class="hlink" href="#fix-contains-point-case" target="_self" aria-label="Link to this section" aria-describedby="fix-contains-point-case"><span aria-hidden="true">#</span></a></div><p>For a point query, descend only the cells of <code>getTreeCellIterator</code>.</p><p class='k'>Trade-offs</p><p>Fixes <code class='nw'>Contains</code> for any tree, but changes a query shared by all trees to work around one tree's cell iterator, and leaves the S2 <code class='nw'>Intersects</code> traversal visiting extra cells.</p><div class="hd hd-3"><h3 id='fix-index-all-touching'>Index a point under every cell it touches (not run)</h3><a class="hlink" href="#fix-index-all-touching" target="_self" aria-label="Link to this section" aria-describedby="fix-index-all-touching"><span aria-hidden="true">#</span></a></div><p>Make the index side match the query side instead.</p><p class='k'>Trade-offs</p><p>Gives the index side closed-cell semantics, but needs reindexing and writes up to 4x the terms for edge points. The <code class='nw'>pointsOnly</code> <code class='nw'>Intersects</code> fast path would still work: it looks up the single <code>getTreeCellIterator</code> cell (<code>RecursivePrefixTreeStrategy.java:218-229</code>), which stays among the indexed terms.</p><div class="hd hd-3"><h3 id='fix-use-intersects'>Workaround for users today: query Intersects(P) instead of Contains(P) for a point (not a fix) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-use-intersects" target="_self" aria-label="Link to this section" aria-describedby="fix-use-intersects"><span aria-hidden="true">#</span></a></div><p>In the OGC sense "covers P" and "intersects P" are the same predicate for a point: a shape covers a point exactly when the point lies in the closed shape.</p><p class='k'>Trade-offs</p><p>Only for point query shapes; checked on the probe's shapes only.</p><p class='k'>What the checks validated</p><p>In the scope probe, with point, rectangle and circle documents, the two predicates had identical sets of true document-query pairs in all 8 configurations, and stock <code class='nw'>Intersects</code> missed none of them.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream engines that expose the S2 tree with <code class='nw'>Contains</code> (Solr can select it with <code class='nw'>prefixTree="s2"</code>, by code reading) inherit the miss; it only ever drops matches.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A randomized differential test compared <code>RecursivePrefixTreeStrategy</code>'s hits with the exact spatial predicate over random points, rectangles and circles, and, among other findings, flagged <code class='nw'>Contains</code> on the point (160, 0) with the S2 tree only. Probes then showed that the tested points exactly on S2 cell edges miss while nearby off-edge points are found; reading <code>getNextLevelCells</code> gave the cause.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>187 words</span></summary><div class='body'><p><strong>Method: a randomized differential test</strong> (non-formal tier; the finder tagged it semi-formal) in a hunt unit on spatial-extras.</p><ul><li>The harness indexed random rectangles, circles and points snapped to a 5- or 10-degree grid (150 documents and 60 queries in each of two S2 configurations) and reported every document that <code>SpatialOperation.evaluate</code> says should match but the query missed. Among its findings it flagged <code class='nw'>Contains</code>, indexed <code>Point(160, 0)</code>, query the same point, on <code class='nw'>S2PrefixTree</code> only; the same run also reported other S2 <code class='nw'>Within</code> and area-shape <code class='nw'>Contains</code> misses, which are not part of this report.</li><li>A point probe then showed that S2 <code class='nw'>Contains</code> misses the tested points on S2 cell edges ((160,0), (10,0), (45,20)), while off-edge points and the geohash and quad trees find them; the finder found the cause by reading <code>S2PrefixTreeCell.getNextLevelCells</code> and confirmed it with a public-API JUnit on the stock main jar.</li><li>It was then checked by an independent reproducer, an intended-behaviour devil's advocate, reading-only reviews by a model from another family (OpenAI GPT-5.6), an adjudication, a history, prior-report and security follow-up, and an audit. Found 2026-10-26 on main <code class='nw'>ea57360912ed</code>; re-checked on <code class='nw'>a9779ef3c193</code>.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-26): 186 logged search records (180 individual queries) over GitHub issues, PRs and code, JIRA, the Lucene and Solr mailing lists and the web, plus the changed files of all 411 open PRs. The closest item, LUCENE-4770, is an older index-side versus query-side cell mismatch in other trees, fixed as a bug.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>3 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: the recorded searches found no report by anyone, the owner included. Keyword search cannot prove absence: closed unmerged PRs are covered by text search only, and private reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene, apache/lucene-solr, apache/solr, downstream repos), dev@, java-user@, issues@, commits@, the JIRA archive, the web</th><td class='when'>2026-10-26</td><td>the hunt's prior-report tool, three runs (57, 30 and 24 queries)</td><td>no report; the tree's own issue #9174 / LUCENE-8126 has no Contains or edge-point discussion in its 49 JIRA comments (48 on the GitHub mirror)</td></tr><tr><th scope='row'>apache/lucene, apache/lucene-solr, apache/solr, Elasticsearch, OpenSearch, all of GitHub</th><td class='when'>2026-10-26</td><td>50 GitHub GraphQL searches; 9 JIRA searches over LUCENE and SOLR; 10 list searches including the Solr user lists</td><td>context only: #5835 (LUCENE-4770, index/query cell mismatch in the legacy trees, fixed in 4.2), #8896 (LUCENE-7845, the Intersects-only point fast path), #6126 (LUCENE-5062, a different Contains false negative), #5710 (LUCENE-4645, Contains support), SOLR-13467 (Solr bundles S2)</td></tr><tr><th scope='row'>all 411 open apache/lucene PRs; upstream blobs</th><td class='when'>2026-10-26 and 2026-10-28</td><td>changed-file lists; blob comparison of the three files on upstream main and the release branches</td><td>no open PR touches S2PrefixTreeCell.java or ContainsPrefixTreeQuery.java (#14599 and #12295 touch S2PrefixTree.java with a dependency switch and a refactor); the files are unchanged on upstream main 20ced71c1e6</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with the S2 tree itself, LUCENE-8126 (master <code class='nw'>e3032dd3fcc2</code>, branch_7x backport <code class='nw'>1e86af061e41</code>, 2018-03-02), first released in 7.3.0. Executed: 7.3.0 through 10.5.2 and main fail; 7.2.1 has no S2 tree. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-8126 "New spatial prefix tree (SPT) based on google S2 geometry" (GitHub #9174; review PR apache/lucene-solr#302, committed directly), by iverase, 2018-03-02: master <code class='nw'>e3032dd3fcc2</code> (first released in 8.0.0) and the branch_7x backport <code class='nw'>1e86af061e41</code> (identical tree sources; first released in 7.3.0). Both halves of the mismatch come from this commit: <code>git blame</code> (ignoring the 2021 reformat) attributes every line of <code>getNextLevelCells</code> and <code>getTreeCellIterator</code> to it. <code>ContainsPrefixTreeQuery</code> (LUCENE-4645, 2013) and <code class='nw'>LegacyCell</code>'s point case are older. Not a regression.</p><p><strong>Not fixed upstream</strong>: the three files are byte-identical on upstream main <code class='nw'>20ced71c1e6</code> (2026-10-27); on <code class='nw'>branch_10x</code> and <code class='nw'>branch_10_6</code> the two S2 files are identical too. Releases 7.4.0-7.7.2, 8.1.0-8.11.3, 9.1.0-9.12.2 and 10.1.0-10.5.1 are inferred affected from the unchanged code.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails 1 of 1 (gradle, assertions on and off); passes with the fix</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails 1 of 1 (assertions on and off); the 96-configuration JUnit misses 96 of 96</td></tr><tr><th scope='row'>10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails 1 of 1</td></tr><tr><th scope='row'>9.0.0, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails 1 of 1</td></tr><tr><th scope='row'>8.0.0, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails 1 of 1 (8.0.0: first release of the master commit)</td></tr><tr><th scope='row'>7.3.0, 7.3.1, 7.7.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release 7.3.0</span></td><td>fails 1 of 1; the 96-configuration JUnit also fails on 7.3.0 with its controls passing</td></tr><tr><th scope='row'>7.2.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>compile error: no S2PrefixTree class (the only error)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer (96 of 96 configurations) and an intended-behaviour devil's advocate (80 of 80 queries) reproduced it with their own tests, controls passing; reading-only reviews by a model from another family (OpenAI GPT-5.6) agreed on the root cause; an adjudication and an audit re-ran it with new seeds, and this doc's gradle runs reproduce it on <code class='nw'>a9779ef3c193</code>.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>351 words</span></summary><div class='body'><p>Every executing check wrote or re-ran a repro on stock main, and every control passed. The cross-model reviews could not execute code, so all execution evidence comes from the hunt's own runs.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Random differential, point probe, then the public-API JUnit: fails on main (-ea, -da), 10.5.2 and 9.12.3; passes with the fix.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, reading only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real, low (procedural)</span></td><td>Could not execute anything, and its rules forbid "real" without its own run; on substance the root cause agrees, the inputs are in contract and the intended argument is moderate. A separate re-run failed 1 of 1.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit: 96 of 96 S2 configurations miss on main (-ea, -da), 10.5.2, 9.12.3 and 8.11.4; off-edge and geohash/quad controls pass; 3 of 3 pass with the fix; area shapes, Intersects and IsWithin unaffected.</td></tr><tr><th scope='row'>cross-model review, intended lens (the cross-model review, OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>Intended argument moderate (base-class javadoc, closed cells, generic Cell contract) against the explicit Contains branch, the Covers definition and the legacy trees' point case; a separate re-run failed 1 of 1.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high confidence not intended</span></td><td>Five intended readings tried, none survives; probe: 80 of 80 Contains misses on grid-line points, 0 off-line and 0 for geohash/quad; CompositeSpatialStrategy returns 1 of 2 true matches.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent JUnit (-ea, -da: 1 of 3 fail, controls pass), the finder's JUnit (1 of 1 fail) and the independent JUnit with the fix (3 of 3 pass); not a duplicate.</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran with seeds A4D17001-2: 1 of 1 fails with -ea and -da.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Gradle in a scratch worktree at <code class='nw'>a9779ef3c193</code>: the repro fails (assertions on and off) and passes with the fix; with the fix the whole spatial-extras module (118 tests) passes, and lint and format pass after a comment-only edit of the repro's javadoc; the scope probes ran on the stock jars and with the fixed class.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-371/bug.png' download='s2-point-query-on-cell-edge-contains-miss-bug.png' target='_self'>PNG</a> <span class='n'>502 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,471 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-371, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>S2PrefixTree: a Contains query whose shape is a point P misses a document indexed with that same point P when P lies on an S2 cell edge (the equator, an S2 face edge, (0,0)), because the query side follows every child cell that touches P while indexing puts P in one cell per level</dd></div><div><dt>Area</dt><dd>spatial-extras / prefix trees (S2PrefixTree and S2PrefixTreeCell under RecursivePrefixTreeStrategy; Contains through ContainsPrefixTreeQuery)</dd></div><div><dt>Priority</dt><dd>Low, rank 351: The experimental S2 tree silently misses a point that lies exactly on a cell edge, and only for Contains(point) queries.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that use RecursivePrefixTreeStrategy, or CompositeSpatialStrategy (which pre-filters with it), over the @lucene.experimental S2PrefixTree, which works only with the Geo3d spatial context (Solr's RPT field types can select it with prefixTree="s2", by code reading), and run a Contains query whose shape is a point silently lose every document indexed as exactly that point when the point lies on an S2 cell edge, such as any point on the equator, (45,20) on a face edge, (90,10) on a face-centre meridian or the common placeholder (0,0), at any index size and with every arity, depth, planet model, pointsOnly and pruneLeafyBranches setting tried; released since 7.3.0; false negatives only, while Intersects, IsWithin and indexed area shapes that cover the point are unaffected.</dd></div><div><dt>Summary</dt><dd>You index a document with point P through RecursivePrefixTreeStrategy over S2PrefixTree in the Geo3d spatial context and search with SpatialOperation.Contains and the same point P, expecting the document, because Contains is documented as the OGC 'Covers' predicate and its evaluate(P, P) is true, RecursivePrefixTreeStrategy builds a ContainsPrefixTreeQuery for it, a point query is resolved at full precision, and the geohash and quad trees do return the document. When P lies exactly on an S2 cell edge, for example Point(10, 0) on the equator, Contains finds 0 documents while Intersects finds 1. Indexing puts P in one cell per level (S2PrefixTree.getTreeCellIterator, from S2CellId.fromLatLng), but at query time S2PrefixTreeCell.getNextLevelCells has no point case and returns every child cell that touches P (2 on an edge, 4 at (0,0)), and ContainsPrefixTreeQuery requires the document to be in all of them.</dd></div><div><dt>Introduced</dt><dd>e3032dd3fcc28570c5f9d2dab4961b5b07555912 (master, first released in 8.0.0) and its branch_7x backport 1e86af061e41f1a7df1740f34ef58a1110626d96 (identical prefix/tree sources; the copy that shipped first, in 7.3.0), 'LUCENE-8126: New spatial prefix tree (SPT) based on google S2 geometry' (GitHub issue #9174; review PR apache/lucene-solr#302, closed without a GitHub merge and committed directly), by GitHub iverase [read: git blame -w --ignore-rev 2cbf261032dc in the history clone attributes every line of S2PrefixTreeCell.getNextLevelCells and S2PrefixTree.getTreeCellIterator to e3032dd3fcc2; exec: 7.2.1 has no S2PrefixTree, 7.3.0 fails]. Both halves of the mismatch (the query side without a point case and the one-cell-per-level index side) come from this commit; ContainsPrefixTreeQuery (LUCENE-4645, 8b573c413d4, 2013) and LegacyCell's point special case predate it. Not a regression (2018-03-02 (master e3032dd3fcc2 and branch_7x 1e86af061e41))</dd></div><div><dt>First affected version</dt><dd>7.3.0 [exec] (the first release with S2PrefixTree, from the branch_7x backport; the master commit first shipped in 8.0.0 [exec]); 7.2.1 has no such API [exec: the repro fails to compile only on the missing S2PrefixTree class]</dd></div><div><dt>Affected versions</dt><dd>Every release from 7.3.0 to 10.5.2 and main ea57360912ed; not fixed upstream. [exec] the finder's JUnit fails 1 of 1 (Contains 0 hits after the Intersects control finds 1) on 7.3.0, 7.3.1, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea; main also -da) (follow-up; releases up to 9.0.0 with only the LuceneTestCase import changed, 7.x with the JUnitCore runner); the independent reproduction's 96-configuration JUnit fails on main (-ea and -da), 10.5.2, 9.12.3, 8.11.4 and 7.3.0 with its controls passing. [read] no later commit changes either method (only the LUCENE-9570 reformat touches their lines); releases 7.4.0-7.7.2, 8.1.0-8.11.3, 9.1.0-9.12.2 and 10.1.0-10.5.1 are inferred from the unchanged code; upstream main e1c4184cb983 (2026-10-26) and branch_10x 1309534296e3 (2026-10-24) have S2PrefixTreeCell.java, S2PrefixTree.java and ContainsPrefixTreeQuery.java byte-identical to the tested commit. All runs on aarch64 with JDK 25</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only, the prior-report record, verdict new: 186 logged queries: three scripted prior-report searches (57, 30 and 24 queries over GitHub issues and PRs, commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, JIRA and the web), 50 read-only GitHub GraphQL searches over apache/lucene, apache/lucene-solr, apache/solr, Elasticsearch, OpenSearch and all of GitHub, 9 JIRA searches over LUCENE and SOLR, 10 mailing-list searches including the Solr user lists, a scan of the file lists of all 411 open apache/lucene PRs, an upstream blob check and the local git history; plus the finder's, the independent reproduction's and the intended-behaviour check's earlier searches); no hit is the same bug. Not fixed upstream: S2PrefixTreeCell.java, S2PrefixTree.java and ContainsPrefixTreeQuery.java are byte-identical on upstream main e1c4184cb983 (2026-10-26) and branch_10x 1309534296e3 (2026-10-24); no open PR touches S2PrefixTreeCell.java or ContainsPrefixTreeQuery.java (#14599 and #12295 touch S2PrefixTree.java with a dependency switch and a pattern-matching refactor only). Related items, not reports of this bug: #9174 / LUCENE-8126 (introduced the tree; no Contains or edge-point discussion in its 49 comments), #5835 / LUCENE-4770 (an index-side versus query-side cell mismatch in the legacy trees' Intersects, fixed as a bug in 4.2), #8896 / LUCENE-7845 (the point fast path, Intersects only), #6126 / LUCENE-5062 (a different Contains false negative), #5710 / LUCENE-4645 (RPT Contains support), SOLR-13467 (Solr bundles S2 for prefixTree="s2"). Not filed</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26): this doc's gradle runs in a scratch worktree (stock and fixed, assertions on and off, the closest suites and the whole spatial-extras module) and its scope probes on the main jars (stock and with the fixed class); the hunt's runs of the same JUnit on main <code class='nw'>ea57360912ed</code> and on 7.3.0, 7.3.1, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 (Maven Central jars; 7.2.1 has no S2 tree); and three small probes made while resolving the fact checks (the factory-built tree's depth, the miss against tree depth, and a trace of which cells the stock Contains visitor asks for children). OpenJDK 25.0.3 on Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/S2PrefixTreeCell.java:155-173 (getNextLevelCells: all children wrapped in a FilterCellIterator, no Point case)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/S2PrefixTree.java:39 (@lucene.experimental), :81-86 (S2ShapeFactory, i.e. the Geo3d context, required), :140-157 (getTreeCellIterator: a Point gets one S2CellId.fromLatLng cell per level)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/LegacyCell.java:134-143 (getNextLevelCells: a Point gets a SingletonCellIterator of getSubCell(point))</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/ContainsPrefixTreeQuery.java:41 (@lucene.experimental), :106-142 (ContainsVisitor.visit ANDs the doc sets of every returned child; acceptContains narrowed at :138)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:185-202 (makeQuery: Intersects point fast path, explicit Contains branch at :199-201), :211-237 (isGridAlignedShape and makeGridShapeIntersectsQuery)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/query/SpatialOperation.java:75-87 (Contains: &#x27;Meets the &quot;Covers&quot; OGC definition (boundary-neutral)&#x27;, evaluate = relate CONTAINS or equals)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/query/SpatialArgs.java:60-61, :117-120, :133-136 (point distance error 0; the error &#x27;should not shrink&#x27; a shape)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeStrategy.java:52-53 (&#x27;Only SpatialOperation#Intersects is supported&#x27;, written 2012-09-24 in 84c5a4addeb)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeSpatialStrategy.java:40-41 (&#x27;All predicates are supported except for the BBox* ones, and Disjoint&#x27;) and :139-142 (Contains pre-filters with RPT&#x27;s own Contains query)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/SpatialPrefixTreeFactory.java:59 (&#x27;s2&#x27; selects S2PrefixTree)</code></li><li><code>lucene/CHANGES.txt:7564 (LUCENE-8126, &#x27;It can only be used currently with Geo3D spatial context&#x27;) and :14016 (LUCENE-4645, Contains support for RecursivePrefixTreeStrategy)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/S2PrefixTree.java:141-155 (getTreeCellIterator: one fromLatLng cell per level for a Point)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/S2PrefixTreeCell.java:156-173 (getNextLevelCells: all children through FilterCellIterator, no Point case)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/FilterCellIterator.java:43-57 (keeps cells whose relation intersects())</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/LegacyCell.java:134-143 (Point case: SingletonCellIterator of getSubCell(point))</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/ContainsPrefixTreeQuery.java:106-142 (ContainsVisitor.visit: AND of the children)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:178-237 (makeQuery: point fast path for Intersects, IsWithin with -1, explicit Contains branch)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/WithinPrefixTreeQuery.java:74, :171-174 (no filter when queryBuffer is -1)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/ContainsPrefixTreeQuery.java:144-145 (seek is false once the terms are used up)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/S2PrefixTree.java:39 (@lucene.experimental), :81-94 (S2ShapeFactory required)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/SpatialPrefixTreeFactory.java:44-59 (default geohash for geo; &#x27;s2&#x27; selects S2PrefixTree)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeSpatialStrategy.java:139-142 (Contains pre-filter is RPT&#x27;s Contains)</code></li><li><code>lucene/CHANGES.txt:7580-7583 (LUCENE-8126)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/query/SpatialOperation.java:75-87</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/ContainsPrefixTreeQuery.java:36-43; lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:199-203</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/query/SpatialArgs.java:60-61, :117-120, :133-136</code></li><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestRandomSpatialOpFuzzyPrefixTree.java:72-74, :98-101, :138-141, :345-350, :363-364; lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/TestGeo3dRpt.java:62, :101, :123, :129, :167</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeStrategy.java:52-53; lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/Cell.java:96-109; lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeSpatialStrategy.java:40-41</code></li><li><code>lucene/CHANGES.txt:14459 (LUCENE-4770 under 4.2.0 Bug Fixes)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/AbstractVisitingPrefixTreeQuery.java:244-246; lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/IntersectsRPTVerifyQuery.java:169; lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeFacetCounter.java:135-136; lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:124-126, :218-229</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/SpatialPrefixTree.java:38-42 (only asserts maxLevels &gt; 0); prefix/tree/S2PrefixTree.java:102-104 (getMaxLevels)</code></li></ul></dd></div><div><dt>Prior reports</dt><dd><ul class='paths'><li><code>a Lucene clone origin/main 20ced71c1e6, origin/branch_10x 1309534296e, origin/branch_10_6 2763db11b0a (blob comparison, 2026-10-28)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestS2PointOnCellEdgeContains.java (lucene/spatial-extras, 1 test with an Intersects control): <a href='../repro/LFV-371/TestS2PointOnCellEdgeContains.java'><code>repro/LFV-371/TestS2PointOnCellEdgeContains.java</code></a> (68 lines)</li><li>TestV1S2EdgePointContains.java (independent reproducer: 96 configurations plus two controls): <a href='../repro/LFV-371/TestV1S2EdgePointContains.java'><code>repro/LFV-371/TestV1S2EdgePointContains.java</code></a> (197 lines)</li><li>TestS2EdgePointPredicatesProbe.java (Intersects, Contains, IsWithin against point, rectangle and circle documents around edge points; the rectangles have the point on an edge or a corner, the circle around it): <a href='../repro/LFV-371/TestS2EdgePointPredicatesProbe.java'><code>repro/LFV-371/TestS2EdgePointPredicatesProbe.java</code></a> (184 lines)</li><li>TestS2GridLinesProbe.java (which coordinates are S2 cell edges with the arity-1 tree at its maximum depth): <a href='../repro/LFV-371/TestS2GridLinesProbe.java'><code>repro/LFV-371/TestS2GridLinesProbe.java</code></a> (101 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><ul class='paths'><li><a href='../assets/LFV-371/bug.png'><code>assets/LFV-371/bug.png</code></a> (502 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -10,8 +10,8 @@ You use MMapDirectory with its default shared-arena grouping while files of one 
 
 ## Expected vs actual
 
-- Expected: You expect the files of a group to share one arena.
-- Actual: onClose of an old arena removes the newer live arena's entry, so grouping is lost (577 arenas instead of 10 in the repro).
+- Expected: The open after the old arena closed shares the newer arena, which is alive and has 63 permits left.
+- Actual: It gets a new arena: `AssertionError: the next open of group 0 got a new arena instead of the live arena that still has 63 permits left`.
 
 ## Files
 

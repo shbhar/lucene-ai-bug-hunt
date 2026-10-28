@@ -2,16 +2,18 @@
 
 Bug LFV-237 · Area: index / vector values iteration (KnnVectorValues.fromDISI) with backward-codecs / Lucene 9.4 sparse byte vector reader · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-237.html](../../bugs/LFV-237.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You open, on Lucene 10, an index whose segment was written by Lucene 9.4.2 with a byte vector field that only some documents have, move the field's iterator to a document with advance(doc) and read vectorValue(iterator.index), which is what ByteKnnVectorFieldSource does, and expect that document's own vector, because DocIndexIterator.index is documented as the ordinal of the current document and DocIdSetIterator.advance must behave like repeated nextDoc calls. Instead every document reads as all zeros: the iterator that KnnVectorValues.fromDISI builds, which this one reader returns, counts the ordinal only in nextDoc, and its advance moves to the document without moving the ordinal, so index stays at -1 (the reader then hands back its never-filled buffer); after earlier nextDoc calls, index is an earlier document's ordinal and the read returns that document's vector. Lucene 9.x reads the same index correctly; the defect came with the 10.0 vector-values API change #13779.
+You open, on Lucene 10, an index whose segment was written by Lucene 9.4.2 with a byte vector field that only some documents have, move the field's iterator to a document with advance(doc) and read vectorValue(iterator.index), which is what ByteKnnVectorFieldSource does, and expect that document's own vector, because DocIndexIterator.index is documented as the ordinal of the current document and DocIdSetIterator.advance must behave like repeated nextDoc calls. Instead every document that has a vector reads as all zeros: the iterator that KnnVectorValues.fromDISI builds, which this one reader returns, counts the ordinal only in nextDoc, and its advance moves to the document without moving the ordinal, so index stays at -1 (the reader then hands back its never-filled buffer); after earlier nextDoc calls, index is an earlier document's ordinal and the read returns that document's vector. Lucene 9.x reads the same index correctly; the defect came with the 10.0 vector-values API change #13779.
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Every document reads as all zeros: the iterator that KnnVectorValues.fromDISI builds, which this one reader returns, counts the ordinal only in nextDoc, and its advance moves to the document without moving the ordinal, so index stays at -1 (the reader then hands back its never-filled buffer); after earlier nextDoc calls, index is an earlier document's ordinal and the read returns that document's vector.
+- Expected: `advance(2)` then `vectorValue(index)` gives ordinal 1 and `[2, 3]`; after `nextDoc`, `advance(4)` gives ordinal 2 and `[4, 5]`; `fromDISI`'s `index` at doc 5 is 2.
+- Actual: Ordinal -1 and `[0, 0]`; ordinal 0 and doc 0's vector `[0, 1]`; `index` -1. Same with assertions off, and no exception.
 
 ## Files
 
@@ -53,6 +55,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestLucene94SparseByteVectorsAdvance.java](TestLucene94SparseByteVectorsAdvance.java)
+- [TestSparseByteVectors94Advance.java](TestSparseByteVectors94Advance.java)
 
 ## Feedback
 

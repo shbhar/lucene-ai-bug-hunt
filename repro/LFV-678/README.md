@@ -2,6 +2,8 @@
 
 Bug LFV-678 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dShapeFactory line-string builder, Geo3dLineStringBuilder.build), reached through the public LineStringBuilder API, the deprecated lineString(List, double), multi-line builders and the Geo3d context's polyshape reader (and the GeoJSON reader when its optional parser is present) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-678.html](../../bugs/LFV-678.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You use the Geo3d spatial context, build a line from (0,0) to (10,0) with buffer
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The line CONTAINS that point and its bounding box is about [-57.3, 67.3] x [-57.3, 57.3]: Geo3dLineStringBuilder.build hands the buffer straight to GeoPathFactory.makeGeoPath, whose width is an angle in radians, while the factory's circle and Geo3dRectangleShape.getBuffered convert degrees with DEGREES_TO_RADIANS.
+- Expected: (5, 20) is DISJOINT from the 1-degree line, built or read from polyshape, and `buffer(2)` builds a 2-degree corridor.
+- Actual: CONTAINS, bounding box [-57.3, 67.3] x [-57.3, 57.3]; `buffer(2)` throws `IllegalArgumentException: Cutoff angle out of bounds`.
 
 ## Files
 
@@ -50,6 +52,12 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeo3dLineStringBuffer.java](TestGeo3dLineStringBuffer.java)
+- [2-TestGeo3dLineStringBuffer.java](2-TestGeo3dLineStringBuffer.java)
+- [TestLineBufferWidth.java](TestLineBufferWidth.java)
 
 ## Feedback
 

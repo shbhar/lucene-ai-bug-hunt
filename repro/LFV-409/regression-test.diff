@@ -1,0 +1,60 @@
+diff --git a/lucene/queries/src/test/org/apache/lucene/queries/function/TestFunctionRangeQuery.java b/lucene/queries/src/test/org/apache/lucene/queries/function/TestFunctionRangeQuery.java
+index 251bbd634c8..52d96b94048 100644
+--- a/lucene/queries/src/test/org/apache/lucene/queries/function/TestFunctionRangeQuery.java
++++ b/lucene/queries/src/test/org/apache/lucene/queries/function/TestFunctionRangeQuery.java
+@@ -17,17 +17,22 @@
+ package org.apache.lucene.queries.function;
+ 
+ import java.io.IOException;
++import org.apache.lucene.document.Document;
++import org.apache.lucene.document.DoubleDocValuesField;
++import org.apache.lucene.document.NumericDocValuesField;
+ import org.apache.lucene.index.DirectoryReader;
+ import org.apache.lucene.index.IndexReader;
+ import org.apache.lucene.index.IndexWriter;
+ import org.apache.lucene.index.IndexWriterConfig;
+ import org.apache.lucene.search.BooleanClause;
+ import org.apache.lucene.search.BooleanQuery;
++import org.apache.lucene.search.DoubleValuesSource;
+ import org.apache.lucene.search.Explanation;
+ import org.apache.lucene.search.IndexSearcher;
+ import org.apache.lucene.search.Query;
+ import org.apache.lucene.search.ScoreDoc;
+ import org.apache.lucene.search.TopDocs;
++import org.apache.lucene.store.Directory;
+ import org.junit.After;
+ import org.junit.Before;
+ import org.junit.BeforeClass;
+@@ -148,6 +153,32 @@ public class TestFunctionRangeQuery extends FunctionTestSetup {
+     expectScores(scoreDocs, 10, 9, 8, 4, 3, 2);
+   }
+ 
++  public void testRangeOverDoubleValuesSource() throws IOException {
++    // values that round to the same float as a bound, or are beyond Float.MAX_VALUE, must be
++    // compared as doubles
++    double[] doubles = {1.0, 1.0000000000000002, 1e301};
++    long[] longs = {1_700_000_000_000L, 1_700_000_060_000L, 1_700_000_120_000L};
++    try (Directory dir = newDirectory()) {
++      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
++        for (int i = 0; i < doubles.length; i++) {
++          Document doc = new Document();
++          doc.add(new DoubleDocValuesField("d", doubles[i]));
++          doc.add(new NumericDocValuesField("l", longs[i]));
++          w.addDocument(doc);
++        }
++      }
++      try (IndexReader reader = DirectoryReader.open(dir)) {
++        IndexSearcher searcher = newSearcher(reader);
++        ValueSource d = ValueSource.fromDoubleValuesSource(DoubleValuesSource.fromDoubleField("d"));
++        ValueSource l = ValueSource.fromDoubleValuesSource(DoubleValuesSource.fromLongField("l"));
++        assertEquals(1, searcher.count(new FunctionRangeQuery(d, 1.0, 1.0, true, true)));
++        assertEquals(2, searcher.count(new FunctionRangeQuery(d, null, 1e300, true, true)));
++        assertEquals(
++            1, searcher.count(new FunctionRangeQuery(l, null, 1_700_000_000_000L, true, true)));
++      }
++    }
++  }
++
+   private void expectScores(ScoreDoc[] scoreDocs, int... docScores) {
+     assertEquals(docScores.length, scoreDocs.length);
+     for (int i = 0; i < docScores.length; i++) {

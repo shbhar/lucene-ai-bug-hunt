@@ -2,6 +2,8 @@
 
 Bug LFV-269 · Area: index / merged CodecReader view (SlowCompositeCodecReaderWrapper vector values); misc / BP merge-time reordering · Priority: medium · Impact: index unusable · Novelty: new
 
+Bug page: [../../bugs/LFV-269.html](../../bugs/LFV-269.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You use BPReorderingMergePolicy with a BpVectorReorderer on a float vector field
 
 ## Expected vs actual
 
-- Expected: You expect merges to combine it with the other segments, as they do when every segment has vectors.
-- Actual: The merged view's FloatVectorValues.copy throws NullPointerException ('Cannot invoke KnnVectorValues.copy because this.sub is null'), IndexWriter treats the failed merge as a tragic event, closes itself and drops every change since the last commit, and the same merge fails again after each reopen.
+- Expected: `forceMerge(1)` gives 1 segment with 110 documents and 100 vectors, each with its document, and the writer stays open.
+- Actual: `forceMerge(1)` throws `IOException: background merge hit exception`, caused by `NullPointerException... because "this.sub" is null`, and the writer closes itself. (In the writer-state probe, depending on timing, `forceMerge` can throw `IllegalStateException: this writer hit an unrecoverable error; cannot complete forceMerge` instead, with the same cause.)
 
 ## Files
 
@@ -50,6 +52,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestBpVectorReorderSegmentWithoutVectors.java](TestBpVectorReorderSegmentWithoutVectors.java)
+- [TestSlowCompositeVectorValuesCopy.java](TestSlowCompositeVectorValuesCopy.java)
+- [TestBpVectorReorderThreshold.java](TestBpVectorReorderThreshold.java)
+- [TestFieldlessSegmentMergeWriterState.java](TestFieldlessSegmentMergeWriterState.java)
 
 ## Feedback
 

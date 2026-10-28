@@ -2,6 +2,8 @@
 
 Bug LFV-340 · Area: memory / MemoryIndex term inversion (multi-valued analyzed fields: positions and offsets carried from one value to the next); reached in-tree through monitor single-document batches · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-340.html](../../bugs/LFV-340.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You add a document whose text field has two values, 'quick the' and 'fox', to a 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: As with `IndexWriter`: `fox` at 2 and 0 hits for `"quick fox"`; 1 hit for `"just ? test"`; `quick` at 101 (offsets 4-9); Monitor gives the same answer alone and in a batch.
+- Actual: `fox` at 1 and 1 hit for `"quick fox"`; 0 hits for `"just ? test"`; `quick` at 0 (offsets 0-5); Monitor: 1 match alone, 0 in a batch of two.
 
 ## Files
 
@@ -47,6 +49,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMemoryIndexMultiValuedPositions.java](TestMemoryIndexMultiValuedPositions.java)
+- [TestMonitorSingleVsBatchPositions.java](TestMonitorSingleVsBatchPositions.java)
+- [TestMemoryIndexMultiValuePositions.java](TestMemoryIndexMultiValuePositions.java)
+- [TestMultiValueInversionEquivalence.java](TestMultiValueInversionEquivalence.java)
 
 ## Feedback
 

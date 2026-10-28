@@ -2,6 +2,8 @@
 
 Bug LFV-693 · Area: analysis-stempel / egothor stemmer trie reductions (Optimizer, Optimizer2; Compile tool, Trie.reduce) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-693.html](../../bugs/LFV-693.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a stempel table with the Compile tool and a method string that has two
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The second pass silently corrupts the trie: two Optimizer2 passes over the one-word trie {aab -&gt; Da} lose its only entry, Compile '-22' stems every training form of a small table to null and '-M22' leaves every form unstemmed (while '-2' and '-M2' are correct), and one more Optimizer2 pass over the bundled Polish table changes 8,356 of 21,147 keys whose whole path is stored.
+- Expected: `Da` after two `Optimizer2` passes, `Db` after two `Optimizer` passes, and all 9 training words stemmed with `-22` and `-M22`, as with `-2` and `-M2`.
+- Actual: `null` after the second `Optimizer2` pass, `Da` for `ab` after the second `Optimizer` pass; `-22` stems all 9 words to `null`, `-M22` returns all 9 unchanged. 3 of 3 tests fail, assertions on and off.
 
 ## Files
 
@@ -42,6 +44,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSecondMergePass.java](TestSecondMergePass.java)
+- [TestRepeatedOptimizer2.java](TestRepeatedOptimizer2.java)
 
 ## Feedback
 

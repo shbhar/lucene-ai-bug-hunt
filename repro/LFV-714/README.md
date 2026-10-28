@@ -2,6 +2,8 @@
 
 Bug LFV-714 · Area: queryparser / complexPhrase: ComplexPhraseQueryParser (ComplexPhraseQuery.parsePhraseElements second-pass parse, read by ComplexPhraseQuery.rewrite) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-714.html](../../bugs/LFV-714.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You parse "(john OR jonathan)" or "(jo* -john)" with ComplexPhraseQueryParser an
 
 ## Expected vs actual
 
-- Expected: You expect the documents that contain john or jonathan, or a jo* term other than john.
-- Actual: The classic grammar drops parentheses around the whole input (QueryParser.jj:289-293 and:311), so the second pass gets the same BooleanQuery as for "john OR jonathan", and ComplexPhraseQuery.rewrite makes each member a consecutive position: "(john OR jonathan)" becomes spanNear([john, jonathan], 0, true) and matches only documents that contain the sequence 'john jonathan', and "(jo* -john)" becomes spanNot(spanOr(jo*), spanNear([spanOr(jo*), john])) and also matches 'john smith', whose only jo* term is john.
+- Expected: `"(john OR jonathan)"` and `"(jo* -john)"` each return 4 documents, as one position with alternatives, like the control.
+- Actual: `"(john OR jonathan)"` returns 1, "john jonathan" (rewritten `spanNear([john, jonathan])`), and `"(jo* -john)"` returns all 5, including "john smith".
 
 ## Files
 
@@ -47,6 +49,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestComplexPhraseLoneGroup.java](TestComplexPhraseLoneGroup.java)
+- [test-lines.diff](test-lines.diff)
+- [TestLoneGroupCompatProbe.java](TestLoneGroupCompatProbe.java)
+- [TestLoneGroupEdgeProbe.java](TestLoneGroupEdgeProbe.java)
 
 ## Feedback
 

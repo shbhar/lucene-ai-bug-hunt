@@ -2,6 +2,8 @@
 
 Bug LFV-274 · Area: spatial3d / geom outside distance (Plane.arcDistance and Plane.linearDistance behind GeoStandardCircle and GeoExactCircle computeOutsideDistance; user-facing Geo3DDocValuesField.newOutsideDistanceSort via Geo3DPointOutsideDistanceComparator) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-274.html](../../bugs/LFV-274.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a 1 km circle on the default WGS84 planet model (GeoCircleFactory.make
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: computeOutsideDistance returns +Infinity at 10 of 12 bearings (only due north and due south are right), and the sort gives most documents outside the circle +Infinity, the value the javadoc reserves for documents missing the field, so they sort last.
+- Expected: About 2,000 m at all 12 bearings, and 12 sort values of about 20,000 m.
+- Actual: 2,000 m due north and due south, +Infinity at the other 10 bearings; sort values 20,001 m and 20,007 m, then 10 × +Infinity.
 
 ## Files
 
@@ -43,6 +45,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeo3DOutsideDistanceSmallCircle.java](TestGeo3DOutsideDistanceSmallCircle.java)
+- [TestSmallCircleOutsideDistance.java](TestSmallCircleOutsideDistance.java)
 
 ## Feedback
 

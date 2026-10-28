@@ -1,0 +1,719 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>ICUTokenizerFactory keeps the UTF-8 byte order mark of a custom rule file as rule text</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-719 &middot; icutokenizerfactory-rulefile-utf8-bom-kept</p><h1 id='top'>ICUTokenizerFactory keeps the UTF-8 byte order mark of a custom rule file as rule text</h1><p class='tldr'>An <code>ICUTokenizerFactory</code> rule file saved with a UTF-8 byte order mark has the invisible mark glued to its first rule: with a BOM, Lucene's <code>KeywordTokenizer.rbbi</code> silently loses its Cyrillic and Thai tokens (4 of 6 left). Files starting with a <code class='nw'>!!</code> directive fail with a misleading syntax error.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 413</span><span class='sub'>This is the same kept-BOM slip in ICUTokenizerFactory&#x27;s opt-in custom rule files, where most such files fail loudly and only a file that starts with a rule silently loses tokens.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>4.1.0 (SOLR-4123, 2012)<span class='sub'>introduced 2012-12-03 &middot; over 13 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>4.1.0 to 10.5.2 and main, with custom rulefiles only</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded enumeration of rule-file variants through the tokenizer</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>A custom ICU rule file saved with a UTF-8 byte order mark: the mark ends up inside the first rule.</p><figure class='visual' id='icutokenizerfactory-rulefile-utf8-bom-kept-short-visual'><div class='frame'><a class='still' href='../assets/LFV-719/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-719/bug.png' alt='Diagram of a custom ICU rule file that starts with a UTF-8 byte order mark: Lucene keeps the mark as U+FEFF in front of the first rule, so that rule no longer matches and the tokenizer emits no tokens for its text.' width='1920' height='1080'></a></div><figcaption>How the 3 invisible bytes at the start of a custom rule file end up inside the first ICU rule, and what the tokenizer then emits. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You tailor one script with your own rule file: <code>rulefiles="Latn:keyword.rbbi"</code>, where the file holds the single rule <code>.+ {200};</code> (all Latin text is one token). Your editor saves it as UTF-8 with a byte order mark (BOM): 3 invisible bytes, <code>EF BB BF</code>, at the start. ICU's own rule-file compiler, <code class='nw'>genbrk</code>, accepts and recommends that.</span></li><li><span>You expect the same tokens as from the file without the BOM: <code>ab cd</code> gives one token, <code>[ab cd]</code>.</span></li><li><span>You get 0 tokens and no error. Lucene decodes the BOM to the character U+FEFF and hands it to ICU as the first character of the first rule, so that rule only matches text that starts with U+FEFF. The tokenizer drops every piece of text with rule status 0, which is what text that no rule matched gets.</span></li><li><span>Lucene's own test file <code>KeywordTokenizer.rbbi</code> (comment lines, then <code>.+ {200};</code>) with a BOM loses the Cyrillic and Thai tokens of its upstream test: 4 tokens instead of 6. With a second rule after the first, only the first rule's tokens vanish: <code>ab 12 cd</code> gives <code class='nw'>[12]</code> instead of <code>[ab] [12] [cd]</code>.</span></li><li><span>A file that starts with a <code class='nw'>!!</code> directive fails instead: Lucene's <code>Latin-break-only-on-whitespace.rbbi</code> with a BOM throws <code>IllegalArgumentException: Error 66052 at line 20 column 1</code>, an ICU syntax error that points at line 20, while the cause sits invisibly on line 1.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Only applications that set <code class='nw'>rulefiles</code> (custom per-script ICU rules) and save a rule file as UTF-8 with a BOM, as editors such as Windows Notepad often do. The default configuration is unaffected. A file that starts with a rule silently loses that rule's tokens; one that starts with a directive fails at setup. Rare: no report found since 4.1.0.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>745 words</span></summary><div class='body'><p><code>ICUTokenizerFactory</code>'s <code class='nw'>rulefiles</code> argument replaces the break rules of one script with a rule file of your own. <code class='nw'>parseRules</code> reads that file as UTF-8, blanks the lines that start with <code class='nw'>#</code> and passes the text to ICU's <code>new RuleBasedBreakIterator(String)</code>, but it never removes a leading byte order mark. ICU's string API treats U+FEFF as an ordinary literal character, so the BOM becomes part of the file's first statement. If that statement is a rule, it compiles but can no longer match: the one-rule file <code>.+ {200};</code> gives no token for <code>ab cd</code>, and Lucene's own test file <code>KeywordTokenizer.rbbi</code> with a BOM drops the Cyrillic and Thai tokens (4 tokens instead of 6), with no error. If it is a <code class='nw'>!!</code> directive, ICU throws <code>Error 66052 at line 20 column 1</code> (a rule syntax error) for Lucene's <code>Latin-break-only-on-whitespace.rbbi</code>, pointing away from the invisible cause on line 1. ICU's own compiler for this file format, <code class='nw'>genbrk</code>, strips a BOM and its man page recommends one; Lucene's word-list and hunspell readers skip it too. Present since <code class='nw'>rulefiles</code> arrived in 4.1.0 (SOLR-4123, 2012). Skipping a U+FEFF at the start of the first line fixes it; the whole ICU module passes with that change.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong><code class='nw'>rulefiles</code></strong>: an argument of <code>ICUTokenizerFactory</code> (ICU analysis module) that replaces the break rules of one script with your own ICU rule file, for example <code>rulefiles="Latn:my.Latin.rules.rbbi"</code>.</li><li><strong>Rule status</strong>: each ICU rule ends with a number such as <code class='nw'>{200}</code>; text a rule matches gets that status. <code class='nw'>ICUTokenizer</code> emits only pieces with a non-zero status and skips status-0 pieces (<code>ICUTokenizer.java:209-213</code>).</li><li><strong>Byte order mark (BOM)</strong>: the 3 bytes <code>EF BB BF</code> that many editors write at the start of a UTF-8 file. Decoded, it is the character U+FEFF.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>inform</code> calls <code class='nw'>parseRules</code> once per script entry of the <code class='nw'>rulefiles</code> map (<code>ICUTokenizerFactory.java:108-135</code>, the call at <code class='nw'>:119</code>; a repeated script overwrites the earlier pair, <code class='nw'>:86-95</code>).</li><li><code class='nw'>parseRules</code> reads the file with <code>IOUtils.getDecodingReader(stream, UTF_8)</code> (<code class='nw'>:141</code>). Java's UTF-8 decoder keeps a leading BOM as U+FEFF.</li><li><code>line.startsWith("#")</code> is false for <code>U+FEFF# ...</code>, so the negated test <code>if (!line.startsWith("#"))</code> (<code class='nw'>:144</code>) is true and the first line is kept instead of blanked. Lines are joined with <code class='nw'>\n</code>, so line numbers stay as in the file (<code class='nw'>:147</code>).</li><li><code>new RuleBasedBreakIterator(rules.toString())</code> (<code class='nw'>:150</code>). ICU's rule scanner skips only <code>Pattern_White_Space</code>; U+FEFF is not in that set, so it is a literal character. ICU still reads the rest of a <code class='nw'>#</code> line as a comment, so U+FEFF joins the <strong>first statement</strong>, after any comment lines.</li><li><strong>First statement is a rule</strong> (<code>.+ {200};</code>): it compiles as "U+FEFF, then <code class='nw'>.+</code>". Ordinary text has no U+FEFF, so the rule does not match it and ICU falls back to breaking after each character with status 0. Directly in ICU4J: <code>.+ {200};</code> on <code>ab cd</code> gives its first boundary at 5 with status 200; with U+FEFF in front, at 1 with status 0. The tokenizer skips all of it. No error.</li><li><strong>First statement is a directive or a variable definition</strong>: <code>U+FEFF !!forward;</code> is ICU error 66052 (<code>U_BRK_RULE_SYNTAX</code>), reported at the start of the directive (Lucene's two files: line 20 or 44, column 1, after their comment lines); <code>U+FEFF $Var = ...;</code> reads as a use of an undefined variable, error 66058, reported just past the variable name (the independent reproduction's <code class='nw'>$Ws</code> file: line 1, column 5; with <code class='nw'>$Whitespace</code>, column 13). Neither message names the invisible character at line 1, column 1.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>rule file</th><th>without BOM</th><th>with BOM</th></tr></thead><tbody><tr><td><code>.+ {200};</code>, text <code>ab cd</code></td><td><code>[ab cd]</code></td><td>no tokens, no error</td></tr><tr><td><code>[\p{Letter}]+ {200};</code> then <code>[\p{Number}]+ {100};</code>, text <code>ab 12 cd</code></td><td><code>[ab] [12] [cd]</code></td><td><code class='nw'>[12]</code></td></tr><tr><td>Lucene's <code>KeywordTokenizer.rbbi</code> for Cyrillic and Thai, upstream test text</td><td>6 tokens</td><td>4 tokens: <code>[Some] [English] [More] [English]</code></td></tr><tr><td>Lucene's <code>Latin-break-only-on-whitespace.rbbi</code> (<code class='nw'>!!forward;</code> on line 20)</td><td>2 tokens</td><td><code>Error 66052 at line 20 column 1</code></td></tr><tr><td>Lucene's <code>Latin-dont-break-on-hyphens.rbbi</code> (<code class='nw'>!!chain;</code> on line 44)</td><td>2 tokens</td><td><code>Error 66052 at line 44 column 1</code></td></tr><tr><td>The independent reproduction's file whose first line is <code>$Ws = [\p{Whitespace}];</code></td><td><code>[ab] [cd]</code></td><td><code>Error 66058 at line 1 column 5</code> (just past the variable name)</td></tr></tbody></table></div><p>The default configuration (no <code class='nw'>rulefiles</code>) loads precompiled <code class='nw'>Default.brk</code> and <code>MyanmarSyllable.brk</code> (<code>DefaultICUTokenizerConfig.java:81-84</code>, <code class='nw'>:147</code>) and never runs <code class='nw'>parseRules</code>; none of Lucene's five checked-in <code class='nw'>.rbbi</code> files starts with a BOM (the build-time sources <code class='nw'>Default.rbbi</code> and <code>MyanmarSyllable.rbbi</code>, and the three test files).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>274 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications that opt in to custom per-script rules: <code>ICUTokenizerFactory</code> with <code class='nw'>rulefiles</code>, directly, through the <code class='nw'>icu</code> SPI name, or through a search server schema built on it (the factory javadoc shows such a schema).</li><li><strong>What it takes.</strong> One custom rule file saved as UTF-8 with a BOM. Editors such as Windows Notepad often write one (the SOLR-1865 change note says so), and ICU's <code class='nw'>genbrk(1)</code> man page recommends one.</li><li><strong>Silent case.</strong> The first statement is a rule, the shape of Lucene's <code>KeywordTokenizer.rbbi</code>: no error; text that only the first rule covers gets no tokens. With a one-rule file that is all text of the script, which is then not indexed and cannot be found; an index built that way needs reindexing after the fix.</li><li><strong>Loud case.</strong> The first statement is a <code class='nw'>!!</code> directive or a variable definition, the shape of two of Lucene's three test rule files: the analyzer fails to build with an ICU syntax error whose position points at that statement (a directive's line, or just past a variable's name), not at the invisible BOM at line 1, column 1. ICU's own rule guide calls stray literals "surprisingly hard to recognize and debug".</li><li><strong>Scale.</strong> Deterministic: the rules are compiled once, when the analyzer is built, whatever the index size. Which tokens are lost depends on the text and on which rules cover it.</li><li><strong>How likely.</strong> Rare (registry: rare, priority low): opt-in, needs the BOM, a file that starts with a directive or a variable fails loudly (two of Lucene's three test files have that shape), and no report was found in the searched public sources since 4.1.0 (January 2013).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One new test class for the ICU analysis module, 3 tests: a one-line rule file and two of Lucene's own test rule files. Each test runs the file without a BOM first (passes), then the same bytes behind <code>EF BB BF</code>.</p><figure class='code'><figcaption><span class='fname'>TestICUTokenizerFactoryRuleFileBom.java (new test class, 3 tests)</span><span class='meta'>104 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.icu.segmentation;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.tests.util.StringMockResourceLoader;
+import org.apache.lucene.util.ClasspathResourceLoader;
+import org.apache.lucene.util.ResourceLoader;
+
+/**
+ * A per-script rule file saved as UTF-8 with a byte order mark (BOM) must tokenize like the same
+ * file without the BOM. Each test runs the file without a BOM first (passes), then with one.
+ */
+public class TestICUTokenizerFactoryRuleFileBom extends BaseTokenStreamTestCase {
+
+  /** The rule files next to this test (as used by TestICUTokenizerFactory), maybe behind a BOM. */
+  private ResourceLoader classpathLoader(boolean withBom) {
+    ResourceLoader classpath = new ClasspathResourceLoader(getClass());
+    return new ResourceLoader() {
+      @Override
+      public InputStream openResource(String resource) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        if (withBom) {
+          bytes.write(new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
+        }
+        try (InputStream in = classpath.openResource(resource)) {
+          in.transferTo(bytes);
+        }
+        return new ByteArrayInputStream(bytes.toByteArray());
+      }
+
+      @Override
+      public &lt;T&gt; Class&lt;? extends T&gt; findClass(String cname, Class&lt;T&gt; expectedType) {
+        return classpath.findClass(cname, expectedType);
+      }
+    };
+  }
+
+  private Tokenizer tokenizer(String rulefiles, ResourceLoader loader, String text)
+      throws IOException {
+    Map&lt;String, String&gt; args = new HashMap&lt;&gt;();
+    args.put(ICUTokenizerFactory.RULEFILES, rulefiles);
+    ICUTokenizerFactory factory = new ICUTokenizerFactory(args);
+    factory.inform(loader);
+    Tokenizer stream = factory.create(newAttributeFactory());
+    stream.setReader(new StringReader(text));
+    return stream;
+  }
+
+  /** A one-line rule file that makes all Latin text one token. */
+  public void testOneRuleFileWithBom() throws Exception {
+    String rules = &quot;.+ {200};\n&quot;;
+    // without a BOM: &quot;ab cd&quot; is one token
+    assertTokenStreamContents(
+        tokenizer(&quot;Latn:keyword.rbbi&quot;, new StringMockResourceLoader(rules), &quot;ab cd&quot;),
+        new String[] {&quot;ab cd&quot;});
+    // StringMockResourceLoader encodes as UTF-8, so U+FEFF becomes the bytes EF BB BF
+    assertTokenStreamContents(
+        tokenizer(&quot;Latn:keyword.rbbi&quot;, new StringMockResourceLoader(&quot;\uFEFF&quot; + rules), &quot;ab cd&quot;),
+        new String[] {&quot;ab cd&quot;});
+  }
+
+  /** KeywordTokenizer.rbbi: &#x27;#&#x27; comment lines, then &quot;.+ {200};&quot;. */
+  public void testKeywordTokenizerRbbiWithBom() throws Exception {
+    String rulefiles = &quot;Cyrl:KeywordTokenizer.rbbi,Thai:KeywordTokenizer.rbbi&quot;;
+    String text = &quot;Some English.  Немного русский.  ข้อความภาษาไทยเล็ก ๆ น้อย ๆ  More English.&quot;;
+    String[] expected = {
+      &quot;Some&quot;, &quot;English&quot;, &quot;Немного русский.  &quot;, &quot;ข้อความภาษาไทยเล็ก ๆ น้อย ๆ  &quot;, &quot;More&quot;, &quot;English&quot;
+    };
+    assertTokenStreamContents(tokenizer(rulefiles, classpathLoader(false), text), expected);
+    assertTokenStreamContents(tokenizer(rulefiles, classpathLoader(true), text), expected);
+  }
+
+  /** Latin-break-only-on-whitespace.rbbi: &#x27;#&#x27; comment lines, then &quot;!!forward;&quot;. */
+  public void testLatinWhitespaceRbbiWithBom() throws Exception {
+    String rulefiles = &quot;Latn:Latin-break-only-on-whitespace.rbbi&quot;;
+    String text = &quot;Don&#x27;t,break.at?/(punct)!  here&quot;;
+    String[] expected = {&quot;Don&#x27;t,break.at?/(punct)!&quot;, &quot;here&quot;};
+    assertTokenStreamContents(tokenizer(rulefiles, classpathLoader(false), text), expected);
+    assertTokenStreamContents(tokenizer(rulefiles, classpathLoader(true), text), expected);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:analysis:icu:test --tests &quot;org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerFactory*&quot; -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (same failures)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Each BOM file gives the tokens of the same file without the BOM: <code>[ab cd]</code>, the 6 tokens of the Cyrillic and Thai test, and <code>[Don't,break.at?/(punct)!] [here]</code>.</dd></div><div class='got'><dt>Observed</dt><dd><code>token 0 does not exist</code>, <code>term 2 expected:&lt;[Немного русский.  ]&gt; but was:&lt;[More]&gt;</code> and <code>IllegalArgumentException: Error 66052 at line 20 column 1</code>: 3 of 3 tests fail, assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-719/'>repro/LFV-719/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (267 lines) · 1,622 words</span></summary><div class='body'><p>Copy the file into <code>lucene/analysis/icu/src/test/org/apache/lucene/analysis/icu/segmentation/</code>, next to the two <code class='nw'>.rbbi</code> files it reuses (<code>KeywordTokenizer.rbbi</code>, <code>Latin-break-only-on-whitespace.rbbi</code>), and run the command from the checkout root. It uses the public API (<code>new ICUTokenizerFactory(Map)</code>, <code>inform(ResourceLoader)</code>, <code class='nw'>create</code>), the package-private constant <code>ICUTokenizerFactory.RULEFILES</code> (the literal <code class='nw'>"rulefiles"</code>, reachable because the test sits in the factory's package) and the test framework's <code>assertTokenStreamContents</code>, <code>newAttributeFactory</code> and <code>StringMockResourceLoader</code> (which encodes U+FEFF as the bytes <code>EF BB BF</code>). The test pattern also runs the 5 upstream <code>TestICUTokenizerFactory</code> tests. Pass <code class='nw'>-Ptests.asserts</code> explicitly; the result is the same with <code class='nw'>false</code>. The seed only picks one of three attribute factories (<code>newAttributeFactory()</code>); it does not change the result.</p><p>Each test stops at its first failing assertion, after its BOM-less control passed. The older JUnit repros below are independent: the finder's (inline rule strings, 3 tests) and the reproducer's (raw bytes through its own <code class='nw'>ResourceLoader</code>: 4 BOM shapes, their 4 BOM-less controls, an ICU4J mechanism control and a <code>WordlistLoader.getLines</code> control, 10 tests).</p><div class="hd hd-3"><h3 id='code-2-h'>The recommended fix (fix-option-A.diff)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The recommended fix (fix-option-A.diff)</span><span class='meta'>16 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>--- a/lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizerFactory.java
++++ b/lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizerFactory.java
+@@ -140,7 +140,13 @@
+     BufferedReader reader =
+         new BufferedReader(IOUtils.getDecodingReader(rulesStream, StandardCharsets.UTF_8));
+     String line = null;
++    boolean firstLine = true;
+     while ((line = reader.readLine()) != null) {
++      // skip initial bom marker
++      if (firstLine &amp;&amp; line.length() &gt; 0 &amp;&amp; line.charAt(0) == &#x27;\uFEFF&#x27;) {
++        line = line.substring(1);
++      }
++      firstLine = false;
+       if (!line.startsWith(&quot;#&quot;)) {
+         rules.append(line);
+       }
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>The finder&#x27;s JUnit (TestICUTokenizerFactoryRuleFileBom.java, inline rules)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The finder&#x27;s JUnit (TestICUTokenizerFactoryRuleFileBom.java, inline rules)</span><span class='meta'>82 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.icu.segmentation;
+
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.tests.util.StringMockResourceLoader;
+
+/**
+ * An ICUTokenizerFactory per-script rule file saved as UTF-8 with a byte order mark (as some
+ * editors do) is accepted without an error, but the BOM becomes a literal character of the first
+ * rule, so every token of that script disappears.
+ *
+ * &lt;p&gt;Public API only: ICUTokenizerFactory(Map), inform(ResourceLoader), create(AttributeFactory).
+ */
+public class TestICUTokenizerFactoryRuleFileBom extends BaseTokenStreamTestCase {
+
+  private static final String BOM = &quot;\uFEFF&quot;;
+
+  /** The rules of the upstream test file Latin-break-only-on-whitespace.rbbi (with a comment). */
+  private static final String WHITESPACE_RULES =
+      &quot;# Latin: break only on whitespace\n&quot;
+          + &quot;!!forward;\n&quot;
+          + &quot;$Whitespace = [\\p{Whitespace}];\n&quot;
+          + &quot;$NonWhitespace = [\\P{Whitespace}];\n&quot;
+          + &quot;$Letter = [\\p{Letter}];\n&quot;
+          + &quot;$Number = [\\p{Number}];\n&quot;
+          + &quot;$Whitespace;\n&quot;
+          + &quot;$NonWhitespace* $Letter $NonWhitespace*   {200};\n&quot;
+          + &quot;$NonWhitespace* $Number $NonWhitespace*   {100};\n&quot;
+          + &quot;$NonWhitespace+   {1};\n&quot;;
+
+  private static final String KEYWORD_RULES = &quot;.+ {200};\n&quot;;
+
+  private Tokenizer latin(String ruleFile) throws Exception {
+    Map&lt;String, String&gt; args = new HashMap&lt;&gt;();
+    args.put(&quot;rulefiles&quot;, &quot;Latn:latin.rbbi&quot;);
+    ICUTokenizerFactory factory = new ICUTokenizerFactory(args);
+    factory.inform(new StringMockResourceLoader(ruleFile));
+    return factory.create(newAttributeFactory());
+  }
+
+  private void check(String ruleFile, String text, String... expected) throws Exception {
+    Tokenizer t = latin(ruleFile);
+    t.setReader(new StringReader(text));
+    assertTokenStreamContents(t, expected);
+  }
+
+  /** Control: the files without a BOM. */
+  public void testNoBom() throws Exception {
+    check(WHITESPACE_RULES, &quot;Don&#x27;t,break.at?/(punct)! here&quot;, &quot;Don&#x27;t,break.at?/(punct)!&quot;, &quot;here&quot;);
+    check(KEYWORD_RULES, &quot;ab cd&quot;, &quot;ab cd&quot;);
+  }
+
+  /** The same whitespace rules file saved with a BOM. */
+  public void testWhitespaceRulesWithBom() throws Exception {
+    check(
+        BOM + WHITESPACE_RULES, &quot;Don&#x27;t,break.at?/(punct)! here&quot;, &quot;Don&#x27;t,break.at?/(punct)!&quot;, &quot;here&quot;);
+  }
+
+  /** The same keyword rules file saved with a BOM. */
+  public void testKeywordRulesWithBom() throws Exception {
+    check(BOM + KEYWORD_RULES, &quot;ab cd&quot;, &quot;ab cd&quot;);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>The independent reproducer&#x27;s JUnit (TestIcuRuleFileBom.java, raw bytes)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The independent reproducer&#x27;s JUnit (TestIcuRuleFileBom.java, raw bytes)</span><span class='meta'>169 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.icu.v1;
+
+import com.ibm.icu.text.RuleBasedBreakIterator;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.WordlistLoader;
+import org.apache.lucene.analysis.icu.segmentation.ICUTokenizerFactory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.util.ResourceLoader;
+
+/**
+ * Independent check: a per-script RBBI rule file for ICUTokenizerFactory (&quot;rulefiles&quot; argument)
+ * that is saved as UTF-8 with a byte order mark should tokenize exactly like the same file saved
+ * without the byte order mark. Public API only (a package outside Lucene).
+ */
+public class TestIcuRuleFileBom extends BaseTokenStreamTestCase {
+
+  private static final byte[] UTF8_BOM = {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+
+  /** First statement is a rule (the shape of a keyword-style rule file). */
+  private static final String KEYWORD_RULES = &quot;.+ {200};\n&quot;;
+
+  /** Starts with a comment line, then a &#x27;!!&#x27; directive (the shape of a typical rule file). */
+  private static final String COMMENT_FIRST_RULES =
+      &quot;# Break only on whitespace\n&quot;
+          + &quot;!!forward;\n&quot;
+          + &quot;$Ws = [\\p{Whitespace}];\n&quot;
+          + &quot;$NonWs = [\\P{Whitespace}];\n&quot;
+          + &quot;$Ws;\n&quot;
+          + &quot;$NonWs+ {200};\n&quot;;
+
+  /** First statement is a variable definition. */
+  private static final String VARIABLE_FIRST_RULES =
+      &quot;$Ws = [\\p{Whitespace}];\n&quot; + &quot;$NonWs = [\\P{Whitespace}];\n&quot; + &quot;$Ws;\n&quot; + &quot;$NonWs+ {200};\n&quot;;
+
+  /** A comment header (e.g. a license header), then a rule as the first statement. */
+  private static final String HEADER_THEN_RULE =
+      &quot;# Keyword rules: the whole run is one token\n&quot; + &quot;#\n&quot; + &quot;\n&quot; + &quot;.+ {200};\n&quot;;
+
+  /** In-memory resource loader serving raw bytes, as a file on disk would. */
+  private static final class BytesLoader implements ResourceLoader {
+    private final Map&lt;String, byte[]&gt; files = new HashMap&lt;&gt;();
+
+    BytesLoader put(String name, byte[] bytes) {
+      files.put(name, bytes);
+      return this;
+    }
+
+    @Override
+    public InputStream openResource(String resource) throws IOException {
+      byte[] b = files.get(resource);
+      if (b == null) {
+        throw new IOException(&quot;no such resource: &quot; + resource);
+      }
+      return new ByteArrayInputStream(b);
+    }
+
+    @Override
+    public &lt;T&gt; Class&lt;? extends T&gt; findClass(String cname, Class&lt;T&gt; expectedType) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  private static byte[] utf8(String s, boolean bom) {
+    byte[] body = s.getBytes(StandardCharsets.UTF_8);
+    if (!bom) {
+      return body;
+    }
+    byte[] out = new byte[UTF8_BOM.length + body.length];
+    System.arraycopy(UTF8_BOM, 0, out, 0, UTF8_BOM.length);
+    System.arraycopy(body, 0, out, UTF8_BOM.length, body.length);
+    return out;
+  }
+
+  private Tokenizer latinTokenizer(String rules, boolean bom) throws IOException {
+    Map&lt;String, String&gt; args = new HashMap&lt;&gt;();
+    args.put(&quot;rulefiles&quot;, &quot;Latn:latin.rbbi&quot;);
+    ICUTokenizerFactory factory = new ICUTokenizerFactory(args);
+    factory.inform(new BytesLoader().put(&quot;latin.rbbi&quot;, utf8(rules, bom)));
+    Tokenizer t = factory.create(newAttributeFactory());
+    t.setReader(new StringReader(&quot;ab cd&quot;));
+    return t;
+  }
+
+  // ---- controls: same rules without a BOM ----
+
+  public void testKeywordRulesNoBom() throws Exception {
+    assertTokenStreamContents(latinTokenizer(KEYWORD_RULES, false), new String[] {&quot;ab cd&quot;});
+  }
+
+  public void testCommentFirstRulesNoBom() throws Exception {
+    assertTokenStreamContents(latinTokenizer(COMMENT_FIRST_RULES, false), new String[] {&quot;ab&quot;, &quot;cd&quot;});
+  }
+
+  public void testVariableFirstRulesNoBom() throws Exception {
+    assertTokenStreamContents(latinTokenizer(VARIABLE_FIRST_RULES, false), new String[] {&quot;ab&quot;, &quot;cd&quot;});
+  }
+
+  public void testHeaderThenRuleNoBom() throws Exception {
+    assertTokenStreamContents(latinTokenizer(HEADER_THEN_RULE, false), new String[] {&quot;ab cd&quot;});
+  }
+
+  // ---- the claim: same rules saved as UTF-8 with a BOM ----
+
+  public void testKeywordRulesWithBom() throws Exception {
+    assertTokenStreamContents(latinTokenizer(KEYWORD_RULES, true), new String[] {&quot;ab cd&quot;});
+  }
+
+  public void testCommentFirstRulesWithBom() throws Exception {
+    assertTokenStreamContents(latinTokenizer(COMMENT_FIRST_RULES, true), new String[] {&quot;ab&quot;, &quot;cd&quot;});
+  }
+
+  public void testVariableFirstRulesWithBom() throws Exception {
+    assertTokenStreamContents(latinTokenizer(VARIABLE_FIRST_RULES, true), new String[] {&quot;ab&quot;, &quot;cd&quot;});
+  }
+
+  public void testHeaderThenRuleWithBom() throws Exception {
+    assertTokenStreamContents(latinTokenizer(HEADER_THEN_RULE, true), new String[] {&quot;ab cd&quot;});
+  }
+
+  // ---- mechanism / convention controls (expected to pass) ----
+
+  /**
+   * ICU4J&#x27;s String constructor treats a leading U+FEFF as a literal character of the first rule:
+   * it compiles, but the rule no longer matches &quot;ab cd&quot;, so the status is 0 (not 200).
+   */
+  public void testIcuStringApiTreatsLeadingFeffAsLiteral() throws Exception {
+    RuleBasedBreakIterator plain = new RuleBasedBreakIterator(KEYWORD_RULES);
+    plain.setText(&quot;ab cd&quot;);
+    assertEquals(5, plain.next());
+    assertEquals(200, plain.getRuleStatus());
+
+    RuleBasedBreakIterator withFeff = new RuleBasedBreakIterator(&quot;\uFEFF&quot; + KEYWORD_RULES);
+    withFeff.setText(&quot;ab cd&quot;);
+    withFeff.next();
+    assertEquals(0, withFeff.getRuleStatus());
+  }
+
+  /** Lucene&#x27;s own resource line loader drops a leading BOM (convention for resource files). */
+  public void testWordlistLoaderGetLinesSkipsBom() throws Exception {
+    List&lt;String&gt; lines =
+        WordlistLoader.getLines(
+            new ByteArrayInputStream(utf8(&quot;foo\nbar\n&quot;, true)), StandardCharsets.UTF_8);
+    assertEquals(List.of(&quot;foo&quot;, &quot;bar&quot;), lines);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle); the hunt&#x27;s repros also fail on 4.1.0 to 10.5.2</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>./gradlew :lucene:analysis:icu:test --tests &quot;org.apache.lucene.analysis.icu.segmentation.TestICUTokenizerFactory*&quot; -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, seed DEADBEEF, -Ptests.asserts=true (identical with -Ptests.asserts=false)
+TestICUTokenizerFactoryRuleFileBom &gt; testOneRuleFileWithBom FAILED
+    java.lang.AssertionError: token 0 does not exist
+TestICUTokenizerFactoryRuleFileBom &gt; testKeywordTokenizerRbbiWithBom FAILED
+    org.junit.ComparisonFailure: term 2 expected:&lt;[Немного русский.  ]&gt; but was:&lt;[More]&gt;
+TestICUTokenizerFactoryRuleFileBom &gt; testLatinWhitespaceRbbiWithBom FAILED
+    java.lang.IllegalArgumentException: Error 66052 at line 20 column 1
+8 tests completed, 3 failed   (TestICUTokenizerFactory 5/0; every no-BOM control passes)
+# with the recommended fix: 8 tests, 0 failed, asserts on and off; the whole ICU module 161 tests, 0 failed
+
+# public-API probe, stock main
+no BOM one-rule file &#x27;.+ {200};&#x27; Latn, &#x27;ab cd&#x27;: 1 tokens [[ab cd]]
+BOM    one-rule file &#x27;.+ {200};&#x27; Latn, &#x27;ab cd&#x27;: 0 tokens []
+no BOM two-rule file Letter {200} then Number {100}, &#x27;ab 12 cd&#x27;: 3 tokens [[ab], [12], [cd]]
+BOM    two-rule file Letter {200} then Number {100}, &#x27;ab 12 cd&#x27;: 1 tokens [[12]]
+no BOM KeywordTokenizer.rbbi Cyrl+Thai: 6 tokens [[Some], [English], [Немного русский.  ], [ข้อความภาษาไทยเล็ก ๆ น้อย ๆ  ], [More], [English]]
+BOM    KeywordTokenizer.rbbi Cyrl+Thai: 4 tokens [[Some], [English], [More], [English]]
+BOM    Latin-break-only-on-whitespace.rbbi: java.lang.IllegalArgumentException: Error 66052 at line 20 column 1
+BOM    Latin-dont-break-on-hyphens.rbbi: java.lang.IllegalArgumentException: Error 66052 at line 44 column 1
+ICU4J RuleBasedBreakIterator(&#x27;.+ {200};&#x27;) on &#x27;ab cd&#x27;: first boundary 5, rule status 200
+ICU4J RuleBasedBreakIterator(U+FEFF + &#x27;.+ {200};&#x27;) on &#x27;ab cd&#x27;: first boundary 1, rule status 0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>ICU's own rule-file compiler, <code class='nw'>genbrk</code>, strips a leading BOM; its man page recommends saving rule files "in UTF-8 with the BOM".</li><li>Lucene's word-list and hunspell readers skip a leading BOM; this reader never did, and no document or test covers its behaviour.</li><li>Lucene's own <code>KeywordTokenizer.rbbi</code> with a BOM loses the Cyrillic and Thai tokens its upstream test asserts.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>277 words</span></summary><div class='body'><ul><li><strong>The factory owns the file reading.</strong> It turns bytes into a String and already pre-processes the file (blanking <code class='nw'>#</code> lines) before handing a String to ICU (<code>ICUTokenizerFactory.java:137-151</code>). ICU maintainers place the encoding signature in the file reader, not the string API (ICU-21907, open: <code class='nw'>genbrk</code> "detects and honors a BOM"; "the rbbi API for building from rules takes a UnicodeString. The code page stuff is in the genbrk tool").</li><li><strong>ICU's reader for this file format strips the BOM.</strong> <code class='nw'>genbrk.cpp</code> calls <code>ucnv_detectUnicodeSignature</code> and skips the signature (<code>ruleSourceC += signatureLength</code>); its man page (CAVEATS) says "it is recommended that you write this file in UTF-8 with the BOM". (The man page's sentence that a BOM-less file is read in the operating system's codepage is stale: the code assumes UTF-8.)</li><li><strong>Lucene's other resource readers skip it.</strong> <code>WordlistLoader.getLines</code> ("skip initial bom marker", <code>WordlistLoader.java:302-304</code>, SOLR-1865, 2010) and the hunspell <code class='nw'>Dictionary</code> (<code>Dictionary.java:246</code>, <code class='nw'>:351-352</code>; LUCENE-5505, listed under "Bug fixes" in 4.8.0). <code class='nw'>parseRules</code> (2012, more than two years later) never adopted it.</li><li><strong>Nothing documents or tests the current behaviour.</strong> The javadoc says only that rule files "are compiled by the ICU RuleBasedBreakIterator" and links ICU's syntax page (<code>ICUTokenizerFactory.java:49-52</code>), which says nothing about encodings. SOLR-4123's 21 JIRA comments never discuss encoding, no later commit on the file mentions a BOM, and all five checked-in <code class='nw'>.rbbi</code> files are BOM-free.</li><li><strong>Classification is open.</strong> No Lucene document promises BOM handling for rule files, so upstream may call the fix an improvement: SOLR-1865 was typed Improvement. Frame the report as "rule files saved with a UTF-8 BOM, which ICU's genbrk strips and recommends, are mis-parsed", not as a broken documented contract.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>268 words</span></summary><div class='body'><p>An independent reviewer from another model family (OpenAI GPT-5.6), refute lens, executed, without network access: "not real, high", although it reproduced the silent no-token outcome. (a) The javadoc delegates the format to ICU, and <code>RuleBasedBreakIterator(String)</code> treats U+FEFF as a literal by design; Java's UTF-8 decoder keeps it on purpose. (b) Lucene's build-time <code>RBBIRuleCompiler.getRules</code> keeps a BOM the same way. (c) BOM skipping in <code class='nw'>WordlistLoader</code> and hunspell is component-specific, and Lucene bans BOMs in its own source tree (SOLR-9295, #12937). (d) In 2010 a committer answered "No." to "should we consider that a bug?" about BOMs in Solr's resource files.</p><p>Why it fails: (a) the factory reads a file, and ICU's own file reader for this format strips the BOM; the reviewer did not have ICU's <code class='nw'>genbrk</code> source or man page, and the same reviewer family, given the <code class='nw'>genbrk</code> man page's CAVEATS section, rated the case real (high), intended-behaviour argument moderate. (b) <code class='nw'>RBBIRuleCompiler</code> compiles only Lucene's own BOM-free files at build time. (c) The source-tree ban is repository hygiene, not a rule for users' files. (d) That remark predates rule files by more than two years, and the same reply went on: "we can ignore them for the first line of the file to be more user-friendly. I'll open an issue" (SOLR-1865); in 2014 the same slip in hunspell went under "Bug fixes". Two points stand: rule files are trusted configuration, and ICU-2003 (2002, Won't Fix) declined to make ICU's own rule parsers ignore such characters; both fit fixing it in Lucene's file reader (ICU-21907) but keep the classification open. What survives is the bug-or-improvement classification, not the defect.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Skip a BOM at the start of the first line (recommended, validated)</strong></p><p class='short'>In <code>ICUTokenizerFactory.parseRules</code>, drop a U+FEFF at the start of the first line before the <code class='nw'>#</code> comment check, the idiom <code>WordlistLoader.getLines</code> already uses (+6 lines). The 3 new tests pass, and so do the ICU module's 161 tests and its static checks.</p><pre class='snippet' tabindex='0'><code>    String line = null;
+    boolean firstLine = true;
+    while ((line = reader.readLine()) != null) {
+      // skip initial bom marker
+      if (firstLine &amp;&amp; line.length() &gt; 0 &amp;&amp; line.charAt(0) == &#x27;\uFEFF&#x27;) {
+        line = line.substring(1);
+      }
+      firstLine = false;
+      if (!line.startsWith(&quot;#&quot;)) {
+        rules.append(line);
+      }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 488 words</span></summary><div class='body'><p>One fix was applied in a scratch worktree of <code class='nw'>a9779ef3c193</code> and run with gradle, assertions on and off; the worktree was removed afterwards. The other options were not run.</p><div class="hd hd-3"><h3 id='fix-skip-first-line-bom'>Skip a BOM at the start of the first line (recommended, validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-skip-first-line-bom" target="_self" aria-label="Link to this section" aria-describedby="fix-skip-first-line-bom"><span aria-hidden="true">#</span></a></div><p>Before the <code class='nw'>#</code> test, remove a U+FEFF at position 0 of the first line. The first comment line is then blanked as intended, and every other line, and so every line number in ICU's error messages, stays as in the file. Same idiom as <code>WordlistLoader.getLines:302-304</code>, with braces; the hunt's sketch is the same change on one line.</p><pre class='snippet' tabindex='0'><code>    String line = null;
+    boolean firstLine = true;
+    while ((line = reader.readLine()) != null) {
+      // skip initial bom marker
+      if (firstLine &amp;&amp; line.length() &gt; 0 &amp;&amp; line.charAt(0) == &#x27;\uFEFF&#x27;) {
+        line = line.substring(1);
+      }
+      firstLine = false;
+      if (!line.startsWith(&quot;#&quot;)) {
+        rules.append(line);
+      }</code></pre><p class='k'>Trade-offs</p><p>Only a U+FEFF at the very start of the file is removed; one later in the file, a legitimate literal, is untouched. A file that deliberately began its first rule with a literal U+FEFF would change meaning; ICU's own <code class='nw'>genbrk</code> strips that character too. Scope: a UTF-8 BOM only (the factory decodes strictly as UTF-8, so UTF-16 files stay unsupported); a file that holds only a BOM was not tested. No CHANGES entry is drafted.</p><p class='k'>What the checks validated</p><ul><li>The 3 new tests and the 5 upstream <code>TestICUTokenizerFactory</code> tests pass, assertions on and off (stock: the 3 new tests fail).</li><li>All of <code>:lucene:analysis:icu:test</code>, assertions on: 17 classes, 161 tests, 10 skipped, 0 failures.</li><li><code>:lucene:analysis:icu:check -x test</code> passes with the new test in place (google-java-format, ecjLint and forbiddenApis on main, test and tools sources, checkLicenses).</li><li>The public-API probe with the patched classes: every BOM file gives exactly the tokens of its BOM-less copy, including the two-rule file and <code>Latin-dont-break-on-hyphens.rbbi</code>.</li><li>Earlier, in the repro harness with the hunt's one-line version: the finder's repro 3/3, the reproducer's 10/10, the devil's advocate's 6/6 and the version-independent check on main pass.</li></ul><div class="hd hd-3"><h3 id='fix-strip-from-rules'>Strip a leading U+FEFF from the assembled rule text (not run)</h3><a class="hlink" href="#fix-strip-from-rules" target="_self" aria-label="Link to this section" aria-describedby="fix-strip-from-rules"><span aria-hidden="true">#</span></a></div><p><code>if (rules.length() &gt; 0 &amp;&amp; rules.charAt(0) == '\uFEFF') rules.deleteCharAt(0);</code> before compiling.</p><p class='k'>Trade-offs</p><p>One line. Lucene would no longer blank the first line, but ICU reads <code># ...</code> as a comment anyway, so the result should be the same; not executed.</p><div class="hd hd-3"><h3 id='fix-reject-bom'>Reject a BOM with a clear message (not run)</h3><a class="hlink" href="#fix-reject-bom" target="_self" aria-label="Link to this section" aria-describedby="fix-reject-bom"><span aria-hidden="true">#</span></a></div><p>Throw an <code>IllegalArgumentException</code> naming the file and the byte order mark.</p><p class='k'>Trade-offs</p><p>Nothing is lost silently and the message is precise, but it refuses a file that ICU's own tool accepts and recommends.</p><div class="hd hd-3"><h3 id='fix-shared-reader'>One BOM-aware reader for every resource reader that bypasses WordlistLoader.getLines (not run)</h3><a class="hlink" href="#fix-shared-reader" target="_self" aria-label="Link to this section" aria-describedby="fix-shared-reader"><span aria-hidden="true">#</span></a></div><p>Use one small helper here and in the snowball word-set loader, the synonym file parsers and the Kuromoji and Nori user dictionaries, which keep a BOM the same way.</p><p class='k'>Trade-offs</p><p>Fixes the whole class at once but touches several modules; worth raising if upstream wants one issue.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Two downstream search servers' ICU plugins have their own copy of this rule-file reader with the same pattern, so a Lucene fix would not reach them.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded enumeration ran the same rule through the tokenizer in 9 file layouts (line ends, comments, blank lines, a leading BOM) and 8 spellings of the <code class='nw'>rulefiles</code> argument, each compared with the plain file, plus a default-configuration control: 18 checks, 2 mismatches, both with a BOM. The idea came from a sibling BOM bug in a word-list loader.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>158 words</span></summary><div class='body'><p><strong>Method (semi-formal): bounded enumeration</strong> in a hunt unit on analysis-factory resource file formats, on the stock main jar.</p><ul><li>The harness tried 8 spellings of the <code class='nw'>rulefiles</code> argument and 9 layouts of the same rule file: with and without a final newline, LF and CRLF line ends, comment lines, indented and trailing comments, blank lines, and a leading BOM. Each was checked through the tokenizer against the tokens of the plain BOM-less file, plus one default-configuration control: 18 checks, 2 mismatches, both BOM files (<code>.+ {200};</code>, alone and after a <code class='nw'>#</code> line).</li><li>The hypothesis came from extending the unit's earlier finding, a BOM kept by the snowball word-set loader (LFV-718), to the other resource readers that do not go through <code>WordlistLoader.getLines</code>.</li><li>The finder reduced it to a public-API JUnit test; no model checker, solver or proof was involved. Writing this doc, a probe added the two-rule case, which shows that only the first rule is broken.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found in GitHub issues, PRs and all 410 open PRs, Lucene, Solr and ICU JIRA, the Lucene and Solr mailing lists or the web (searched 2026-10-27). SOLR-1865 and LUCENE-5505 fixed the same slip in other readers.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No report of this defect was found. The nearest items fixed the same slip at other fix sites or discuss BOM handling in ICU itself.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), downstream repos, Lucene mailing lists, LUCENE JIRA archive</th><td class='when'>2026-10-27</td><td>a scripted prior-report search, two runs: 44 GitHub, 6 commit, 6 downstream, 36 list (dev@, java-user@, issues@, commits@) and 9 JIRA queries, plus 8 web queries</td><td>201 and 648 distinct hits, none about this bug</td></tr><tr><th scope='row'>GitHub (apache/lucene, apache/solr, two downstream search servers)</th><td class='when'>2026-10-27</td><td>27 manual issue and PR searches</td><td>no BOM or rule-file encoding report</td></tr><tr><th scope='row'>Open apache/lucene PRs</th><td class='when'>2026-10-27</td><td>changed files of all 410 open PRs</td><td>only #16911 (branch_10x decommission) touches the file</td></tr><tr><th scope='row'>SOLR, LUCENE and ICU JIRA; Solr and Lucene lists</th><td class='when'>2026-10-27</td><td>8 SOLR/LUCENE and 5 ICU JQL queries, 25 list queries (the web searches are the 8 queries counted above)</td><td>SOLR-4123 (origin, no encoding discussion); ICU-21907 (BOM handling belongs to the file reader); ICU-2003 (2002, Won't Fix); none reports this bug</td></tr><tr><th scope='row'>Related, at other fix sites</th><td class='when'>2026-10-27</td><td>read</td><td>SOLR-1865 (word-list loader, Improvement), #6568 / LUCENE-5505 (hunspell, Bug); #12937 and SOLR-9295 are source-tree hygiene</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with the <code class='nw'>rulefiles</code> feature (SOLR-4123, 2012-12-03), first released in 4.1.0, unchanged since and not fixed on main. Every executed release from 4.1.0 to 10.5.2 is affected; 4.0.0 has no such feature.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> SOLR-4123 "ICUTokenizerFactory - per-script RBBI customization" (JIRA, Improvement; Subversion era, no PR): trunk <code class='nw'>6024e1465e0</code> and the branch_4x merge <code class='nw'>9a23a0799e5</code>, both 2012-12-03, committed by Steve Rowe; the 4.1.0 change note credits Shawn Heisey, Robert Muir and Steve Rowe. It added <code class='nw'>rulefiles</code> and <code class='nw'>parseRules</code> with no BOM handling. Later commits only changed the charset constant (LUCENE-5560, 2014) and the formatting (LUCENE-9570, 2021).</p><p>Not a regression and not tied to an ICU4J version (the bundled 49.1, 53.1, 54.1, 56.1, 62.1, 68.2, 74.2, 77.1 and 78.3 behave the same). In the history clone's release tags the whitespace-normalized <code class='nw'>parseRules</code> body has three forms, none of which changes behaviour: 4.1.0 to 4.7.2, 4.8.0 to 8.8.1 (charset constant) and 9.0.0 to 10.5.2 (reformat). The clone has no tags for 8.8.2 to 8.11.4; 8.11.4 was executed, and the releases not executed are inferred to be affected from the unchanged code. Upstream main <code class='nw'>c5ab3e57b9b</code> (2026-10-28) has the same ICU module as <code class='nw'>a9779ef3c193</code>, with no BOM handling.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>new test 3/3 fail (gradle, <code class='nw'>-ea</code> and <code class='nw'>-da</code>); finder's 2/3, reproducer's 4/10 fail; ICU4J 78.3</td></tr><tr><th scope='row'>10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>finder's JUnit 2/3 fail; version-independent check fails with both outcomes; ICU4J 74.2, 77.1</td></tr><tr><th scope='row'>9.0.0, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>both outcomes; ICU4J 68.2, 74.2</td></tr><tr><th scope='row'>4.1.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>both outcomes (version-independent public-API check); ICU4J 49.1 to 62.1</td></tr><tr><th scope='row'>4.0.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no feature</span></td><td>the factory ignores <code class='nw'>rulefiles</code> and never opens the file</td></tr><tr><th scope='row'>main with the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix</span></td><td>every BOM file tokenizes like its BOM-less copy</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>A finder, an independent reproducer, an intended-behaviour devil's advocate, cross-model reviews (OpenAI GPT-5.6) and an adjudication: confirmed, medium confidence on the bug-or-improvement framing, not on the defect. One review said not real; it lacked ICU's rule-file documentation.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>213 words</span></summary><div class='body'><p>Every check except the refute review returned real; all of them reproduced the behaviour.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-API JUnit fails 2 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3; passes with its fix sketch, with the 5 upstream factory tests.</td></tr><tr><th scope='row'>refute review (OpenAI GPT-5.6)</th><td><span class='v bad'><span aria-hidden='true'>&#10007;</span> not real (high)</span></td><td>Reproduced the silent no-token outcome but argued there is no BOM promise; ran without network access and without ICU's genbrk documentation.</td></tr><tr><th scope='row'>intended review (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Given ICU's genbrk CAVEATS: intended-behaviour argument moderate; root cause and fix agree.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own raw-byte JUnit fails 4 of 10 on main, 10.5.2 and 9.12.3; ICU4J mechanism control; 10 of 10 with the fix.</td></tr><tr><th scope='row'>root-cause review (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Instrumentation shows U+FEFF as the first code point handed to ICU; the fix fixes it.</td></tr><tr><th scope='row'>devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>BOM copies of the three upstream fixtures fail 3 of 6; intended-behaviour argument weak-to-moderate.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (medium)</span></td><td>Re-ran the reproducer's and the finder's tests with assertions on and off, and the fix.</td></tr><tr><th scope='row'>registry re-run, audit and this doc</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> keep</span></td><td>Re-runs fail on main and pass with the fix; this doc's gradle validation and the two-rule probe.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-719/bug.png' download='icutokenizerfactory-rulefile-utf8-bom-kept-bug.png' target='_self'>PNG</a> <span class='n'>522 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,476 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-719, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>ICUTokenizerFactory keeps the UTF-8 byte order mark at the start of a custom per-script rule file (rulefiles) as rule text, so the file either fails with a misleading ICU syntax error or loads without error and the tokenizer then emits no tokens for that script (every release since 4.1.0)</dd></div><div><dt>Area</dt><dd>analysis / ICU (ICUTokenizerFactory per-script rule files: rulefiles, parseRules)</dd></div><div><dt>Priority</dt><dd>Low, rank 413: This is the same kept-BOM slip in ICUTokenizerFactory&#x27;s opt-in custom rule files, where most such files fail loudly and only a file that starts with a rule silently loses tokens.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Only applications that opt in to custom per-script ICU rule files (the rulefiles argument of ICUTokenizerFactory, analysis-icu module) and save such a file as UTF-8 with a byte order mark are hit, at analyzer setup: a file whose first statement is a rule (for example '.+ {200};', alone or after '#' comment lines, the shape of Lucene's own test file KeywordTokenizer.rbbi) compiles without error and every token of that script is then silently dropped, while a file that starts with a '!!' directive or a variable definition is rejected with an IllegalArgumentException whose position does not point at the BOM; the default configuration (no rulefiles) is not affected, no scale is needed, and it is the same with -ea and -da in every release from 4.1.0 to 10.5.2 [exec].</dd></div><div><dt>Summary</dt><dd>You configure ICUTokenizerFactory with rulefiles="Latn:latin.rbbi" and a rule file saved as UTF-8 with a byte order mark (BOM), as editors such as Windows Notepad often write and as ICU's own rule-file compiler genbrk accepts (it strips the BOM, and its man page recommends one), and expect the same tokens as with the same file without the BOM. Instead ICUTokenizerFactory.parseRules decodes the BOM to U+FEFF and passes it to ICU's RuleBasedBreakIterator(String) as rule text: a file that starts with the rule '.+ {200};' (alone or after '#' comment lines) compiles with U+FEFF as a literal prefix of that rule, so 'ab cd' gives no tokens at all instead of ['ab cd'], and a file that starts with a comment and '!!forward;' (the shape of Lucene's Latin-break-only-on-whitespace.rbbi) fails with 'IllegalArgumentException: Error 66052 at line 2 column 1'. Nothing on disk is corrupted, but in the silent case all text of the tailored script disappears from the analyzed output with no error.</dd></div><div><dt>Introduced</dt><dd>6024e1465e02 (svn trunk r1416617, 2012-12-03, by sarowe), SOLR-4123 'Add per-script customizability to ICUTokenizerFactory via rule files in the ICU RuleBasedBreakIterator format' (Subversion and JIRA era, no PR; none of the 21 JIRA comments mentions a BOM or the file encoding); merged to branch_4x the same day as 9a23a0799e5e (r1416629), the commit that shipped in 4.1.0. It added the rulefiles argument and parseRules, which reads the file through a UTF-8 decoding reader, drops '#' lines and never removes a leading U+FEFF [read: git log -S parseRules, git blame -w -M -C -C, git log -L in the full-history clone] [exec: 4.0.0 ignores rulefiles, 4.1.0 fails]. Later commits on parseRules changed no behaviour (2f8192f3c5a, LUCENE-5560, 2014, charset constant; 7f8b7ffbcad, LUCENE-9570, 2021, reformatting), and git log --all -G 'FEFF|bom' on the file finds no commit. Not a regression and not tied to an ICU4J version (2012-12-03)</dd></div><div><dt>First affected version</dt><dd>4.1.0 [exec] (the first release with rulefiles; 4.0.0 has no inform(ResourceLoader) in this factory, ignores the argument and never opens the file [exec])</dd></div><div><dt>Affected versions</dt><dd>Every release from 4.1.0 to 10.5.2 and main a9779ef3c193; never fixed. [exec] the follow-up's portable public-API check fails with both outcomes on 4.1.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main (BOM-less controls give the custom-rule tokens everywhere) and passes on main with the fix shadowed; the finder's JUnit fails 2 of 3 on 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da on main); the independent reproduction's JUnit fails 4 of 10 on main (-ea and -da), 10.5.2 (-ea and -da) and 9.12.3 (-ea); the cross-model review's own test fails on main (-ea and -da), 10.5.2 and 9.12.3; the intended-behaviour check's probe fails 3 of 6 on main (-ea and -da) and 10.5.2. The bundled ICU4J versions from 49.1 to 78.3 all behave the same. [read] the normalized parseRules body is identical in every release tag of the history clone from 4.1.0 to 8.8.1 and from 9.0.0 to 10.5.2 (8.9-8.11 are untagged there; 8.11.4 was executed). Not fixed upstream: ICUTokenizerFactory.java has no BOM handling on upstream main a95c754ee003, branch_10x 1309534296e or branch_10_6 2763db11b0a, and lucene/analysis/icu is unchanged between a9779ef3c193 and a95c754ee003 (local fetch of 2026-10-26, read 2026-10-27). Not affected: 4.0.0 and older (no rulefiles feature). All runs on Linux aarch64 with JDK 25</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that disputed it (the adjudication ruled it real), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, completed, read-only; the prior-report record verdict new): two scripted prior-report searches (44 GitHub issue and PR, 6 commit, 6 downstream, 36 mailing-list over dev@, java-user@, issues@ and commits@, and 9 JIRA-archive queries, plus 8 ingested web queries; 201 and 648 distinct hits, 0 high), 27 manual GitHub searches on apache/lucene, apache/solr, Elasticsearch and OpenSearch, the changed files of all 410 open apache/lucene PRs (only #16911, the branch_10x decommission, touches ICUTokenizerFactory.java), 8 SOLR and LUCENE and 5 ICU JIRA queries, 25 list queries (solr-user@, users@solr, dev@solr, dev@lucene, java-user@), 10 web queries and the git history; the independent reproduction's and the intended-behaviour check's own searches agree. No report of a BOM in an ICU rule file, of the misleading 'Error 66052', or of a script losing its tokens because of it. Related, not this bug: SOLR-1865 (BOM skip in the line loader that became WordlistLoader.getLines, typed Improvement) and #6568 / LUCENE-5505 (hunspell BOM, typed Bug, listed under Bug fixes), precedents at other fix sites; ICU-21907 (open), where ICU maintainers say genbrk 'detects and honors a BOM' and that the RuleBasedBreakIterator API takes a string, placing BOM handling in the file reader; ICU-2003 (Won't Fix, duplicate of ICU-1997, 2002), an ICU-side request that rule parsers ignore format characters such as a leftover BOM; SOLR-4123 (origin of the code, no encoding discussion); #7747 / LUCENE-6689 (open, names rulefiles, unrelated WordDelimiterFilter problem); #12937 and SOLR-9295 (BOM hygiene of Lucene's own source tree, not user files). Two downstream projects carry their own copies of parseRules with the same pattern and no BOM report. Not fixed upstream (main a95c754ee003, branch_10x, branch_10_6, read). Not filed</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26) through gradle in a scratch worktree: a new 3-test class with the 5 upstream <code>TestICUTokenizerFactory</code> tests, assertions on and off (stock: 3 of 8 fail; with the recommended fix: 0), the fix with all of <code>:lucene:analysis:icu:test</code> (17 classes, 161 tests, 10 skipped, 0 failures) and <code>:lucene:analysis:icu:check -x test</code>; the worktree was removed afterwards. A public-API probe on the stock main jars and with the patched classes. The hunt's repros on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 9.12.3, 10.0.0 and 10.5.2, and its version-independent check on 4.0.0 (no such feature), 4.1.0, 4.10.4, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main; OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizerFactory.java:49-52 (rule files &#x27;compiled by the ICU RuleBasedBreakIterator&#x27;, link to the syntax page), :54-66 (rulefiles format), :86-95 (rulefiles parsing), :108-135 (inform), :137-151 (parseRules: UTF-8 decoding reader, &#x27;#&#x27; lines dropped, no BOM skip)</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizer.java:208-213 (segments with rule status 0 are skipped); DefaultICUTokenizerConfig.java:82-84, :147 (the default configuration loads precompiled .brk files)</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/WordlistLoader.java:302-304 (&#x27;skip initial bom marker&#x27; in getLines)</code></li><li><code>SECURITY.md (&#x27;Other out-of-scope reports&#x27;: configuration values are trusted as given; &#x27;In-scope reports&#x27;)</code></li><li><code>a Lucene clone origin/main a95c754ee00, origin/branch_10x 1309534296e, origin/branch_10_6 2763db11b0a: ICUTokenizerFactory.java has no FEFF or BOM handling; git diff a9779ef3c193 origin/main -- lucene/analysis/icu is empty (read 2026-10-27)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizerFactory.java:86-95, :108-135, :137-151 (main a9779ef3c193)</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizer.java:209-213 (status-0 segments skipped)</code></li><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/DefaultICUTokenizerConfig.java:81-84, :147 (default path: precompiled .brk)</code></li><li><code>javap -constants on ICU4J 78.3 com.ibm.icu.text.RBBIRuleBuilder: U_BRK_RULE_SYNTAX = 66052, U_BRK_UNDEFINED_VARIABLE = 66058 [exec]</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizerFactory.java:49-66 (javadoc, schema example)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/icu/src/java/org/apache/lucene/analysis/icu/segmentation/ICUTokenizerFactory.java:49-52, :137-151</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/WordlistLoader.java:302-304</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/hunspell/Dictionary.java:246, :351-352</code></li><li><code>lucene/CHANGES.txt:12543-12555 (4.8.0 Bug fixes, LUCENE-5505)</code></li><li><code>lucene/analysis/icu/src/tools/java/org/apache/lucene/analysis/icu/RBBIRuleCompiler.java:46-60</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/analysis/WordlistLoader.java:302-304</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:14654-14656 (4.1.0, SOLR-4123 credits)</code></li><li><code>a Lucene clone: git diff a9779ef3c193 origin/main (c5ab3e57b9b, 2026-10-28) -- lucene/analysis/icu is empty; no FEFF or BOM in ICUTokenizerFactory.java there [read]</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestICUTokenizerFactoryRuleFileBom.java (new test class, 3 tests): <a href='../repro/LFV-719/TestICUTokenizerFactoryRuleFileBom.java'><code>repro/LFV-719/TestICUTokenizerFactoryRuleFileBom.java</code></a> (104 lines)</li><li>The recommended fix (fix-option-A.diff): <a href='../repro/LFV-719/fix-option-A.diff'><code>repro/LFV-719/fix-option-A.diff</code></a> (16 lines)</li><li>The finder&#x27;s JUnit (TestICUTokenizerFactoryRuleFileBom.java, inline rules): <a href='../repro/LFV-719/3-TestICUTokenizerFactoryRuleFileBom.java'><code>repro/LFV-719/3-TestICUTokenizerFactoryRuleFileBom.java</code></a> (82 lines)</li><li>The independent reproducer&#x27;s JUnit (TestIcuRuleFileBom.java, raw bytes): <a href='../repro/LFV-719/TestIcuRuleFileBom.java'><code>repro/LFV-719/TestIcuRuleFileBom.java</code></a> (169 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><ul class='paths'><li><a href='../assets/LFV-719/bug.png'><code>assets/LFV-719/bug.png</code></a> (522 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -2,6 +2,8 @@
 
 Bug LFV-770 · Area: core / search value sources (DoubleValuesSource, LongValuesSource adapters) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-770.html](../../bugs/LFV-770.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You turn a double source into a long source with DoubleValuesSource#toSortableLo
 
 ## Expected vs actual
 
-- Expected: You expect the sortable-long encoding, which keeps the order of the doubles; instead rewrite returns the plain toLongValuesSource adapter (its toString changes from sortableLong(...) to long(...)), so 0.75, 0.25 and -0.5 all become 0, 2.5 becomes 2 and NaN becomes 0, and a sort over the values {0.75, 0.25, -0.5, 2.5} comes back in docID order with keys 0, 0, 0, 2.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: After `rewrite`, 0.75 still gives 4604930618986332160, and the sort returns docs 2, 1, 0, 3.
+- Actual: The rewritten source prints `long(double(price))` and gives 0, 0, 0, 2; the sort returns docs 0, 1, 2, 3 with keys 0, 0, 0, 2.
 
 ## Files
 
@@ -41,6 +43,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSortableLongDoubleValuesSourceRewrite.java](TestSortableLongDoubleValuesSourceRewrite.java)
+- [TestSortableLongSortOracle.java](TestSortableLongSortOracle.java)
+- [TestSortableLongRewrite.java](TestSortableLongRewrite.java)
 
 ## Feedback
 

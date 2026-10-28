@@ -2,6 +2,8 @@
 
 Bug LFV-735 · Area: spatial3d / geom path outside distance (GeoStandardPath segment endpoints; Geo3DDocValuesField.newOutsidePathSort) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-735.html](../../bugs/LFV-735.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a path with a width (GeoPathFactory.makeGeoPath, or the pathWidthMeter
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: You get the distance to the path's end point, i.e. the gap plus up to the half-width: on the unit sphere a point 0.001 rad beyond the end of a path of half-width 0.01 gets 0.011, a one-point path reports 0.011 where the same-size GeoCircle reports 0.001, the value jumps from 0 to about the half-width as a point crosses the end cap's edge, and on WGS84 the outside-path sort ranks a document 1 km beyond the end of a path of half-width 5 km (5992 m) after one 3 km beside it (3067 m).
+- Expected: The document 1 km past the end sorts first (about 1,000 m), the one-point path reports 0.001 like the circle, and 1e-6 rad outside the cap gives about 1e-6.
+- Actual: 5 of 5 fail: sort values 3,067 m (beside) before 5,992 m (past the end); one-point path 0.011 against the circle's 0.001; 0.010001 just outside the cap; 0.011 beyond the end.
 
 ## Files
 
@@ -42,6 +44,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeoPathOutsideDistanceEndCap.java](TestGeoPathOutsideDistanceEndCap.java)
+- [TestGeo3DPathOutsideDistanceEndCap.java](TestGeo3DPathOutsideDistanceEndCap.java)
 
 ## Feedback
 

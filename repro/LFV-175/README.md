@@ -2,6 +2,8 @@
 
 Bug LFV-175 · Area: index / stored fields (StoredFieldDataInput: DataInput-backed StoredField values, #14213) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-175.html](../../bugs/LFV-175.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You add new StoredField(name, new StoredFieldDataInput(new ByteArrayDataInput(by
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `getLength` is 8 and field `f` holds the 8-byte slice `05 06 07 08 09 0a 0b 0c`; the same slice of a 12-byte array is indexed and the writer stays open.
+- Actual: `getLength` is 12 and `f` holds 12 bytes, ending in `0d 0e 0f 10`; for the 12-byte array `addDocument` throws `ArrayIndexOutOfBoundsException` and the `IndexWriter` closes.
 
 ## Files
 
@@ -42,6 +44,15 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestStoredFieldDataInputPosition.java](TestStoredFieldDataInputPosition.java)
+- [TestStoredFieldDataInputSliceLength.java](TestStoredFieldDataInputSliceLength.java)
+- [TestStoredFieldDataInputOffsetSlice.java](TestStoredFieldDataInputOffsetSlice.java)
+- [TestStoredFieldDataInputLostDocsProbe.java](TestStoredFieldDataInputLostDocsProbe.java)
+- [TestStoredFieldDataInputExposureProbe.java](TestStoredFieldDataInputExposureProbe.java)
+- [StoredFieldDataInputPersistenceProbe.java](StoredFieldDataInputPersistenceProbe.java)
 
 ## Feedback
 

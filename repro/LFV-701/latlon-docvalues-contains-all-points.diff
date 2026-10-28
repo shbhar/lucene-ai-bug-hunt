@@ -1,0 +1,40 @@
+diff --git a/lucene/core/src/java/org/apache/lucene/document/LatLonDocValuesQuery.java b/lucene/core/src/java/org/apache/lucene/document/LatLonDocValuesQuery.java
+index 65fc6b664d1..477187bf6c6 100644
+--- a/lucene/core/src/java/org/apache/lucene/document/LatLonDocValuesQuery.java
++++ b/lucene/core/src/java/org/apache/lucene/document/LatLonDocValuesQuery.java
+@@ -246,24 +246,29 @@ class LatLonDocValuesQuery extends Query {
+     for (int i = 0; i < geometries.length; i++) {
+       component2Ds.add(LatLonGeometry.create(geometries[i]));
+     }
++    // A document matches only if it contains every query geometry, like the conjunction of one
++    // CONTAINS clause per geometry that LatLonPoint#newGeometryQuery builds.
++    final boolean[] contained = new boolean[component2Ds.size()];
+     return new TwoPhaseIterator(values) {
+       @Override
+       public boolean matches() throws IOException {
+-        Component2D.WithinRelation answer = Component2D.WithinRelation.DISJOINT;
++        Arrays.fill(contained, false);
++        int numContained = 0;
+         for (int i = 0, count = values.docValueCount(); i < count; ++i) {
+           final long value = values.nextValue();
+           final double lat = GeoEncodingUtils.decodeLatitude((int) (value >>> 32));
+           final double lon = GeoEncodingUtils.decodeLongitude((int) (value & 0xFFFFFFFF));
+-          for (Component2D component2D : component2Ds) {
+-            Component2D.WithinRelation relation = component2D.withinPoint(lon, lat);
++          for (int c = 0; c < contained.length; c++) {
++            Component2D.WithinRelation relation = component2Ds.get(c).withinPoint(lon, lat);
+             if (relation == Component2D.WithinRelation.NOTWITHIN) {
+               return false;
+-            } else if (relation != Component2D.WithinRelation.DISJOINT) {
+-              answer = relation;
++            } else if (relation == Component2D.WithinRelation.CANDIDATE && contained[c] == false) {
++              contained[c] = true;
++              numContained++;
+             }
+           }
+         }
+-        return answer == Component2D.WithinRelation.CANDIDATE;
++        return numContained == contained.length;
+       }
+ 
+       @Override

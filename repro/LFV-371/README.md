@@ -2,6 +2,8 @@
 
 Bug LFV-371 · Area: spatial-extras / prefix trees (S2PrefixTree and S2PrefixTreeCell under RecursivePrefixTreeStrategy; Contains through ContainsPrefixTreeQuery) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-371.html](../../bugs/LFV-371.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a document with point P through RecursivePrefixTreeStrategy over S2Pre
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `Intersects` and `Contains` both find the document indexed at `Point(10, 0)`: 1 and 1.
+- Actual: `Intersects` finds 1, `Contains` finds 0: `expected:<1> but was:<0>` at the `Contains` assertion.
 
 ## Files
 
@@ -46,6 +48,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestS2PointOnCellEdgeContains.java](TestS2PointOnCellEdgeContains.java)
+- [TestV1S2EdgePointContains.java](TestV1S2EdgePointContains.java)
+- [TestS2EdgePointPredicatesProbe.java](TestS2EdgePointPredicatesProbe.java)
+- [TestS2GridLinesProbe.java](TestS2GridLinesProbe.java)
 
 ## Feedback
 

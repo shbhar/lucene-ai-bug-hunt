@@ -2,6 +2,8 @@
 
 Bug LFV-706 · Area: suggest / FST completion suggester (FSTCompletionLookup build/load exactMatchFirst wiring) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-706.html](../../bugs/LFV-706.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build an FSTCompletionLookup(dir, "fst", 10, false) from star (weight 1), st
 
 ## Expected vs actual
 
-- Expected: You expect [star wars/6, start/3, star/0], because the constructor javadoc says that with exactMatchFirst=false exact matches 'appear in the order of discretized weight and alphabetical within the bucket'.
-- Actual: You get [star/0, star wars/6, start/3], with no error, after build and equally after store and load: both paths create the internal by-weight FSTCompletion with its exact-first default, and the flag reaches only the alphabetical completion, where it changes nothing.
+- Expected: `lookup("star", true, 3)` = `[star wars/6, start/3, star/0]` after `build` and after `load`.
+- Actual: `[star/0, star wars/6, start/3]` both times, with no error; the pre-built-completion control returns the expected order.
 
 ## Files
 
@@ -43,6 +45,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestFSTCompletionLookupExactMatchFirst.java](TestFSTCompletionLookupExactMatchFirst.java)
+- [fix-with-test.diff](fix-with-test.diff)
+- [TestFSTCompletionLookupExactMatchFirstFalse.java](TestFSTCompletionLookupExactMatchFirstFalse.java)
+- [TestFSTCompletionLookupExactMatchFlag.java](TestFSTCompletionLookupExactMatchFlag.java)
 
 ## Feedback
 

@@ -6,7 +6,7 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Bugs found
 
-- MoreLikeThis keeps the lowest-scoring selected terms when the query reaches the boolean clause limit, so the truncated query silently drops the most interesting terms (regression since 4.10.0) (bug LFV-571; [repro](../../repro/LFV-571/))
+- MoreLikeThis keeps the lowest-scoring selected terms when the query reaches the boolean clause limit, so the truncated query silently drops the most interesting terms (regression since 4.10.0) (bug LFV-571; [repro](../../repro/LFV-571/), [bug page](../../bugs/LFV-571.html))
 - MoreLikeThis with setBoost(true) divides every term's score by the lowest selected score, so a selected term that scores 0 (a TFIDFSimilarity whose idf is 0, such as the textbook log(N/df) for a term in every document) makes like throw 'boost must be a positive float, got NaN' (8.0 and later) or build NaN and Infinity boosts (4.10 to 7.x) (bug LFV-559; [repro](../../repro/LFV-559/))
 - MoreLikeThis with maxQueryTerms = 0 throws NullPointerException from like(...), retrieveInterestingTerms(...) and the rewrite of MoreLikeThisQuery or the XML parser's LikeThisQuery, instead of returning a query with no terms (regression since 4.10.0) (bug LFV-553; [repro](../../repro/LFV-553/))
 

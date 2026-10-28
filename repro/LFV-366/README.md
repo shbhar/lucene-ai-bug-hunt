@@ -2,6 +2,8 @@
 
 Bug LFV-366 · Area: document / shape doc values (ShapeDocValues centroid; LatLonShapeDocValuesField and XYShapeDocValuesField getCentroid) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-366.html](../../bugs/LFV-366.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a doc-values shape with LatLonShape.createDocValueField or XYShape.cre
 
 ## Expected vs actual
 
-- Expected: You expect getCentroid, documented as 'the centroid location for the geometry', to be a point of the shape, inside the bounding box that the same object returns.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: Every centroid lies inside its own bounding box: lat 39.99999996, lon -70.00000002 for the repeated-point line, the same point as the `Field` factory gives.
+- Actual: 6 of 8 tests fail with centroid `Point(0.0,0.0)` (or `XYPoint(0.0,0.0)`), outside boxes such as `lat=39.9999999627471 TO 39.9999999627471 lon=-70.00000001862645 TO -60.00000002793968`; the 2 controls pass.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestShapeDocValuesZeroMeasureCentroid.java](TestShapeDocValuesZeroMeasureCentroid.java)
+- [TestZeroMeasureShapeCentroid.java](TestZeroMeasureShapeCentroid.java)
+- [TestShapeDocValuesDegenerateCentroid.java](TestShapeDocValuesDegenerateCentroid.java)
+- [TestShapeDvCentroidIntentProbe.java](TestShapeDvCentroidIntentProbe.java)
 
 ## Feedback
 

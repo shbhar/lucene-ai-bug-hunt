@@ -2,6 +2,8 @@
 
 Bug LFV-614 · Area: spatial3d / geom bounding boxes (GeoDegenerateLatitudeZone, which GeoBBoxFactory.makeGeoBBox returns for a box with equal top and bottom latitude spanning all longitudes), reached through Geo3DPoint.newBoxQuery / newShapeQuery and the spatial-extras Geo3D spatial context (Geo3dShape.relate, RecursivePrefixTreeStrategy, CompositeSpatialStrategy) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-614.html](../../bugs/LFV-614.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a geo3d box whose top and bottom latitude are equal and which spans al
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: The WGS84 line contains its own center and (0.5, 1.0); the sphere line does not CONTAIN the rectangle below it; the line query matches none of the six points.
+- Actual: The WGS84 line rejects its own center; `getRelationship` is CONTAINS; the query matches all six points at latitudes 10 to 40; every control passes.
 
 ## Files
 
@@ -47,6 +49,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeoZeroHeightFullLongitudeBox.java](TestGeoZeroHeightFullLongitudeBox.java)
+- [TestGeo3dZeroHeightLineRptQuery.java](TestGeo3dZeroHeightLineRptQuery.java)
+- [TestGeo3DZeroHeightLatitudeZone.java](TestGeo3DZeroHeightLatitudeZone.java)
+- [TestZeroHeightFullLongitudeBox.java](TestZeroHeightFullLongitudeBox.java)
 
 ## Feedback
 

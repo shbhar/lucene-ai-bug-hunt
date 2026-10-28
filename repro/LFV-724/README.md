@@ -2,6 +2,8 @@
 
 Bug LFV-724 · Area: analysis / hunspell (Hunspell.spell compound checking, COMPOUNDWORDMAX) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-724.html](../../bugs/LFV-724.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a Hunspell dictionary with 'COMPOUNDFLAG C', 'COMPOUNDMIN 1', 'COMPOUND
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Lucene returns true, with and without -ea; COMPOUNDWORDMAX 0, which the parser clamps to 1, behaves the same, while with COMPOUNDWORDMAX 2 Lucene correctly accepts foobar and rejects foobarfoo.
+- Expected: At `COMPOUNDWORDMAX 1` and `0`, `spell("foobar")` is `false` in both flag styles, as in C Hunspell; the limit-2 control passes.
+- Actual: 3 of 4 tests fail: `spell("foobar")` is `true` at 1, at 0 and with COMPOUNDBEGIN/END; only the control passes.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestCompoundWordMax.java](TestCompoundWordMax.java)
+- [TestCompoundWordMaxOne.java](TestCompoundWordMaxOne.java)
+- [TestCompoundWordMaxLimit.java](TestCompoundWordMaxLimit.java)
 
 ## Feedback
 

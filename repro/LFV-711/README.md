@@ -2,6 +2,8 @@
 
 Bug LFV-711 · Area: geo / shape queries (Polygon2D.withinTriangle; LatLonShape and XYShape CONTAINS with a query polygon that has holes) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-711.html](../../bugs/LFV-711.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index polygons with LatLonShape or XYShape and ask which of them CONTAIN a q
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: CONTAINS returns docs 1 and 2 (`[1, 2]`), the same docs the point query at (5,5) returns.
+- Actual: CONTAINS returns `[0, 1, 2]`: doc 0, whose own hole removes (5,5), is reported as containing the query, for XYShape and LatLonShape alike.
 
 ## Files
 
@@ -46,6 +48,15 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestContainsQueryPolygonHoles.java](TestContainsQueryPolygonHoles.java)
+- [TestPolygon2DWithinHoles.java](TestPolygon2DWithinHoles.java)
+- [ContainsHolesReachProbe.java](ContainsHolesReachProbe.java)
+- [WithinHoleBoundaryProbe.java](WithinHoleBoundaryProbe.java)
+- [ContainsFixLimitsProbe.java](ContainsFixLimitsProbe.java)
+- [TestContainsHoledQueryBand.java](TestContainsHoledQueryBand.java)
 
 ## Feedback
 

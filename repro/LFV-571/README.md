@@ -2,6 +2,8 @@
 
 Bug LFV-571 · Area: queries / MoreLikeThis query construction (MoreLikeThis.createQuery truncation at IndexSearcher.getMaxClauseCount) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-571.html](../../bugs/LFV-571.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You let MoreLikeThis select more terms than the global boolean clause limit, for
 
 ## Expected vs actual
 
-- Expected: You expect the query, which createQuery deliberately truncates to the clause limit instead of failing, to keep the 1024 most interesting (highest tf*idf) of the selected terms, as it did up to 4.9.1.
-- Actual: createQuery pops its queue lowest score first and stops at the first TooManyClauses, so the query holds the 1024 lowest-scoring selected terms and none of the best ones (in the repro, 0 of the 76 top words survive).
+- Expected: All 76 best words in the 1024-clause query (as with `maxQueryTerms` 1024), and `{a, b, c}` under the limit of 3.
+- Actual: 0 of the 76 best words, through `MoreLikeThis` and `MoreLikeThisQuery`, and `{d, e, f}`; the controls pass.
 
 ## Files
 
@@ -52,6 +54,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMoreLikeThisClauseLimit.java](TestMoreLikeThisClauseLimit.java)
+- [TestMoreLikeThisClauseLimitKeepsBestTerms.java](TestMoreLikeThisClauseLimitKeepsBestTerms.java)
+- [TestMltClauseLimitV1.java](TestMltClauseLimitV1.java)
+- [TestMltClauseLimitReachability.java](TestMltClauseLimitReachability.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/queries-mlt-commonterms-reference/](../../models/queries-mlt-commonterms-reference/)
 

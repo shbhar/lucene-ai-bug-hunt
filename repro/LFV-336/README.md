@@ -2,6 +2,8 @@
 
 Bug LFV-336 · Area: core / search: LateInteractionFloatValuesSource (late-interaction multi-vectors) and the query cache · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-336.html](../../bugs/LFV-336.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You score documents against a query multi-vector with LateInteractionFloatValues
 
 ## Expected vs actual
 
-- Expected: You expect the reopened searcher to stop matching that document, because a source that reads doc values must report itself not cacheable once those doc values have been updated (SegmentCacheable).
-- Actual: isCacheable always returns true, the segment keeps its core cache key, and the cache keeps serving the pre-update result (5 hits instead of 4 in the repro) until the entry is evicted or the segment is merged away.
+- Expected: After the in-place update and reopen the cached count is 4, as uncached, and `isCacheable` is false for the updated segment.
+- Actual: The cached count is 5 (doc 0 still matches its old multi-vector) while the uncached count is 4, and `isCacheable` returns true.
 
 ## Files
 
@@ -48,6 +50,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestLateInteractionValuesSourceQueryCache.java](TestLateInteractionValuesSourceQueryCache.java)
+- [ZeroConfigLateInteraction.java](ZeroConfigLateInteraction.java)
+- [TestLateInteractionRangeQueryCaching.java](TestLateInteractionRangeQueryCaching.java)
+- [TestLateInteractionValuesSourceCaching.java](TestLateInteractionValuesSourceCaching.java)
+- [TestLateInteractionSourceCacheability.java](TestLateInteractionSourceCacheability.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/query-cache-correctness/](../../models/query-cache-correctness/)
 

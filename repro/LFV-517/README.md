@@ -2,6 +2,8 @@
 
 Bug LFV-517 · Area: analysis-common / ConcatenateGraphFilter and ConcatenateGraphFilterFactory (custom tokenSeparator) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-517.html](../../bugs/LFV-517.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You join tokens with ConcatenateGraphFilter (or the concatenateGraph factory) an
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The filter passes the custom separator to an escaper written for its internal one-byte label U+001F, so every occurrence of an ASCII separator inside a token is doubled ('e--mail', 'e--mail-x', and 'new york' for a keyword token with a space separator).
+- Expected: `e-mail` stays `e-mail`, `e-mail x` joins to `e-mail-x`, and U+2013 and U+00B7 are written as their UTF-8 bytes (`e2 80 93`, `c2 b7`).
+- Actual: `e--mail` and `e--mail-x`; U+2013 becomes the byte `13` and U+00B7 a lone `b7` (with assertions on: `AssertionError`): 5 tests, 4 failed.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestConcatenateGraphFilterCustomSeparator.java](TestConcatenateGraphFilterCustomSeparator.java)
+- [TestConcatenateGraphCustomSeparator.java](TestConcatenateGraphCustomSeparator.java)
+- [TestConcatGraphSeparatorV1.java](TestConcatGraphSeparatorV1.java)
 
 ## Feedback
 

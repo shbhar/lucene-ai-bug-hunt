@@ -2,6 +2,8 @@
 
 Bug LFV-595 · Area: highlighter / matchhighlight: MatchHighlighter multi-query highlighting (DocHit field values on top of MatchRegionRetriever's per-query stored-field loading) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-595.html](../../bugs/LFV-595.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You pass several queries to MatchHighlighter.highlight(topDocs, q1, q2), for exa
 
 ## Expected vs actual
 
-- Expected: You expect both fields to be highlighted, exactly as highlight(topDocs, title:foo OR body:bar) returns them: {title=[&gt;foo&lt;], body=[&gt;bar&lt;]}.
-- Actual: You get only {title=[&gt;foo&lt;]} (only {body=[&gt;bar&lt;]} with the queries swapped), with no error, because each document keeps only the stored fields that the first query's retriever loaded; 9.x returned both fields.
+- Expected: `highlight(topDocs, title:foo, body:bar)` returns doc 0 `{body=[>bar<], title=[>foo<]}` and doc 1 `{body=[>bar<]}`, as the combined query does.
+- Actual: It returns doc 0 `{title=[>foo<]}` and doc 1 `{}`; with the queries swapped, doc 0 `{body=[>bar<]}` and doc 1 `{body=[>bar<]}`.
 
 ## Files
 
@@ -44,6 +46,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMatchHighlighterMultiQueryFields.java](TestMatchHighlighterMultiQueryFields.java)
+- [2-TestMatchHighlighterMultiQueryFields.java](2-TestMatchHighlighterMultiQueryFields.java)
+- [TestMultiQueryCrossFieldHighlights.java](TestMultiQueryCrossFieldHighlights.java)
+- [TestMultiQueryCrossFieldControls.java](TestMultiQueryCrossFieldControls.java)
 
 ## Feedback
 

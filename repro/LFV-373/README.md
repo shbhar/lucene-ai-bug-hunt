@@ -2,6 +2,8 @@
 
 Bug LFV-373 · Area: analysis / hunspell (Hunspell.spell compound checking) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-373.html](../../bugs/LFV-373.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a Hunspell dictionary with CHECKCOMPOUNDTRIPLE, which hunspell(5) defin
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Lucene rejects bareeel but accepts operabareeel, barebareeel and foobareeel (opera, bare or foo + bare|eel), and with the public Swedish dictionary (sv_SE) it accepts sommarmusikradiooomskuren while it rejects musikradiooomskuren.
+- Expected: `spell("operabareeel")` and `spell("barebareeel")` return false, like `spell("bareeel")`.
+- Actual: `spell("operabareeel")` returns true: `testSecondBoundary` fails and the first-join control passes (1 of 2 fails, assertions on and off).
 
 ## Files
 
@@ -43,6 +45,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestCheckCompoundTripleLaterBoundary.java](TestCheckCompoundTripleLaterBoundary.java)
+- [TestTripleLetterLaterCompoundBoundary.java](TestTripleLetterLaterCompoundBoundary.java)
+- [test-fixture.diff](test-fixture.diff)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/hunspell/](../../models/hunspell/)
 

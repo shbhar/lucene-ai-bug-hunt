@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SubmissionReport writes scores of 1000 or more with a grouping comma (&quot;1,200.5000&quot;) into the TREC run file that QueryDriver documents as the submission file for trec_eval, so trec_eval reads such a score as 1.0 and ranks those hits wrongly (LFV-937)</title><style>
+:root{--fg:#1d2329;--dim:#5a6570;--line:#d8dee4;--bg:#fff;--soft:#f5f7f9;--link:#0b5cad}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);
+font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:980px;margin:0 auto;padding:24px 18px 64px}a{color:var(--link)}
+h1{font-size:1.55rem;line-height:1.25;margin:.4em 0 .3em}h2{font-size:1.2rem;margin:1.6em 0 .5em}
+.dim{color:var(--dim)}.small{font-size:.9rem}.facts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:.4em 0 1em}
+.note{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+pre{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px;overflow:auto;font-size:.85rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+table{border-collapse:collapse;width:100%;font-size:.92rem}th,td{border-bottom:1px solid var(--line);
+padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft)}
+h1,h2,p,li,dd{overflow-wrap:break-word}
+.facts>span{min-width:0;overflow-wrap:anywhere}
+th,td.nw{white-space:nowrap;overflow-wrap:normal}
+.scroll{overflow-x:auto}
+@media (max-width:640px){main{padding:18px 12px 48px}.wide-only{display:none}}
+nav.crumbs{font-size:.9rem;margin-bottom:8px}
+</style></head><body><main><nav class="crumbs"><a href="../../index.html">AI-assisted bug hunt in Apache Lucene</a></nav><h1>SubmissionReport writes scores of 1000 or more with a grouping comma (&quot;1,200.5000&quot;) into the TREC run file that QueryDriver documents as the submission file for trec_eval, so trec_eval reads such a score as 1.0 and ranks those hits wrongly</h1>
+<p class="facts small"><span>Bug LFV-937</span><span>Area: benchmark / quality (utils.SubmissionReport, the TREC run-file writer used by QualityBenchmark and QueryDriver)</span><span>Priority: low</span><span>Impact: silent wrong results</span><span>Novelty: new</span></p>
+<p class="note small">AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.</p>
+<h2>What it shows</h2>
+<p>You evaluate search quality with lucene/benchmark&#x27;s SubmissionReport, for example through QueryDriver, whose usage text calls the output the &#x27;submission file for trec_eval&#x27;, and expect the score column of each TREC run line (qid Q0 docno rank score tag) to be a plain number. SubmissionReport formats scores with NumberFormat.getInstance(Locale.ROOT) and never turns grouping off, so a hit scoring 1200.5 is written as &#x27;1,200.5000&#x27;. trec_eval reads that column with C atof, which stops at the comma and returns 1.0, and then re-sorts the run by the parsed score, so a run [1200.5, 900.25] is evaluated as [900.25, 1.0], with the top hit moved down, and the reported metrics are silently wrong.</p>
+<h2>Expected vs actual</h2>
+<ul><li><b>Expected:</b> The test passes: it asserts the documented behaviour.</li><li><b>Actual:</b> While the bug is present the test fails; the failure message states expected against actual.</li></ul>
+<h2>Files</h2><ul>
+<li><a href="src/org/apache/lucene/benchmark/quality/utils/TestSubmissionReportScoreFormat.java"><code>src/org/apache/lucene/benchmark/quality/utils/TestSubmissionReportScoreFormat.java</code></a> <span class="dim">(JUnit test)</span></li>
+</ul><h2>Run it</h2><ul>
+<li>Tested on Lucene main a9779ef3c193 (2026-10-26): reproduced.</li>
+<li>How to read the outcome: a failing test is the bug reproducing (the failure message states expected against actual).</li>
+<li>Seeds: a rerun with the same seed replays the same random choices. Assertions off (-da -dsa -Dtests.asserts=false) is the production-like setting.</li>
+</ul><pre><code># Lucene checkout at the tested commit, built with: ./gradlew --no-daemon assemble   (JDK 25)
+LUCENE=/path/to/lucene; V=11.0.0-SNAPSHOT
+CP=$LUCENE/lucene/core/build/libs/lucene-core-$V.jar
+CP=$CP:$LUCENE/lucene/codecs/build/libs/lucene-codecs-$V.jar
+CP=$CP:$LUCENE/lucene/test-framework/build/libs/lucene-test-framework-$V.jar
+CP=$CP:$LUCENE/lucene/benchmark/build/libs/lucene-benchmark-$V.jar
+CP=$CP:randomizedtesting-runner-2.9.2.jar:junit-4.13.2.jar:hamcrest-3.0.jar   # test-framework dependencies (Maven Central)
+CP=$CP:junit-platform-console-standalone-6.1.3.jar   # JUnit Platform console launcher (Maven Central)
+
+javac -d classes -cp &quot;$CP&quot; $(find src -name &#x27;*.java&#x27;)
+
+# run 1: assertions on, seed DEADBEEF
+java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED -Dtests.seed=DEADBEEF \
+     -cp &quot;classes:$CP&quot; org.junit.platform.console.ConsoleLauncher \
+     execute --select-class org.apache.lucene.benchmark.quality.utils.TestSubmissionReportScoreFormat</code></pre>
+<p class="small">The module(s) benchmark also need their third-party runtime jars; <code>./gradlew -p lucene/&lt;module&gt; dependencies</code> lists them.</p>
+<p class="small dim">Gradle alternative: copy the test into the matching module's <code>src/test/</code> tree of the checkout and run <code>./gradlew -p lucene/&lt;module&gt; test --tests &lt;class&gt; -Ptests.seed=&lt;seed&gt;</code> (add <code>-Ptests.asserts=false</code> for a run without assertions).</p>
+<h2>Feedback</h2><p>Open an issue in <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">lucene-ai-bug-hunt</a>. Please do not open issues or pull requests in apache/lucene about this finding unless a Lucene committer agrees it should be filed.</p><p class="small dim" style="margin-top:3em">Snapshot of 2026-10-28. AI-assisted; not yet triaged by a human Lucene committer. Feedback: <a href="https://github.com/shbhar/lucene-ai-bug-hunt/issues">open an issue in lucene-ai-bug-hunt</a>.</p></main></body></html>

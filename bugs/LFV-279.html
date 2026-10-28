@@ -1,0 +1,849 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>SpanNotQuery with a negative post (or dist) drops every include span after the one that uses up a document&#x27;s exclude spans, because NO_MORE_POSITIONS - post overflows int</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-279 &middot; spannot-negative-post-overflow-after-exclude-exhausted</p><h1 id='top'>SpanNotQuery with a negative post (or dist) drops every include span after the one that uses up a document&#x27;s exclude spans, because NO_MORE_POSITIONS - post overflows int</h1><p class='tldr'><code class='nw'>SpanNotQuery</code> with a negative <code class='nw'>post</code> or <code class='nw'>dist</code> (documented as allowed overlap) drops every include span after the one that uses up a document's exclude spans: on "b a c", <code>spanNot(a, b, 0, -1)</code> returns 1 of its 2 spans, and nested in <code class='nw'>spanNear</code> the document is missed.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 305</span><span class='sub'>Since 7.2, the documented negative post of a SpanNotQuery drops spans and, once nested, documents.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.2.0 (LUCENE-8034, 2017)<span class='sub'>introduced 2017-11-22 &middot; about 8 years</span></dd></div><div><dt>Affected</dt><dd>7.2.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive differential check of span filters against the javadoc</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>SpanNotQuery</code> walks a document's include spans in order, with a cursor on its exclude spans. When the cursor runs past the last exclude span it stays on the document reading <code>NO_MORE_POSITIONS</code> (<code>Integer.MAX_VALUE</code>), and the next check, <code>excludeSpans.startPosition() - post &gt;= candidate.endPosition()</code>, overflows for any negative <code class='nw'>post</code>.</p><figure class='visual' id='spannot-negative-post-overflow-after-exclude-exhausted-short-visual'><div class='frame'><a class='still' href='../assets/LFV-279/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-279/bug.png' alt='Summary diagram. The example: tokens b, a, a, c at positions 0 to 3, a dark bar marking the exclude span b [0,1); new SpanNotQuery(a, b, 0, -1) on &quot;b a c&quot;; expected [1,2) and [2,3), what post = 0 returns; actual [1,2), with [2,3) dropped; spanNear([spanNot(a, b, 0, -1), c], 0, true): expected 1 hit, actual 0, the document is missed. Inside SpanNotQuery.java, the filter&#x27;s accept(): for a [1,2) the loop moves past b [0,1) and, with no more b, returns YES; excludeSpans stays at NO_MORE_POSITIONS = Integer.MAX_VALUE; for a [2,3) the loop does not run, line 210 computes 2147483647 - (-1), which wraps to -2147483648, and -2147483648 &gt;= 3 is false, so line 213 returns NO and [2,3) is dropped; with a long subtraction the value is 2147483648 &gt;= 3 and the span is kept. When it happens: a negative post (or dist) and a document with an exclude span before two or more include spans and none after them; not affected: ordinary post &gt;= 0 (only a post near Integer.MAX_VALUE reaches the same sentinel), the 2-argument constructor and Lucene&#x27;s bundled query parsers; top level: the same hits but fewer spans and matches and lower scores; nested in spanNear or spanPositionRange: documents missed; since 7.2.0 (LUCENE-8034).' width='1920' height='1080'></a></div><figcaption>The example "b a c" with the expected and actual spans and the nested hit count, the <code class='nw'>accept()</code> steps for both "a" candidates with the wrap at line 210, and when it happens. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index "b a c" (b at 0, a at 1 and 2, c at 3) and run <code>new SpanNotQuery(a, b, 0, -1)</code>: keep each "a" that no "b" overlaps, where the negative <code class='nw'>post</code> is documented to allow some overlap.</span></li><li><span>You expect both "a" spans, [1,2) and [2,3), exactly what <code>post = 0</code> returns: the only "b" is at 0 and touches neither "a".</span></li><li><span>Checking the first "a" moves the exclude cursor past the last "b", where it reads <code>NO_MORE_POSITIONS</code> = 2147483647. For the second "a" the code computes 2147483647 - (-1), which wraps to -2147483648; <code>-2147483648 &gt;= 3</code> is false, so that "a" is rejected.</span></li><li><span>You get only [1,2). Nested as <code>spanNear([spanNot(a, b, 0, -1), c], 0, true)</code> ("a" right before "c"), the document no longer matches: 0 hits instead of 1.</span></li><li><span><code>new SpanNotQuery(a, b, -1)</code> (dist) fails the same way, and adding another "b" at the end ("b a c b") brings the dropped span back.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Java code that builds <code class='nw'>SpanNotQuery</code> with a negative <code class='nw'>post</code> or <code class='nw'>dist</code>, whenever a document has an exclude match before two or more include matches and none after. With ordinary negative values a top-level query keeps its hits but loses spans and score; nested in <code class='nw'>spanNear</code> or <code>spanPositionRange</code> it loses documents. Lucene's parsers pass 0.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>750 words</span></summary><div class='body'><p><code>SpanNotQuery(include, exclude, pre, post)</code> keeps the include spans that no exclude span overlaps within <code class='nw'>pre</code> tokens before or <code class='nw'>post</code> tokens after, and its javadoc says negative values "allow a certain amount of overlap to occur". Read as a window, a negative <code class='nw'>post</code> can only keep more spans than <code>post = 0</code>. In fact it keeps fewer: once checking one include span has moved the exclude cursor past the document's last exclude span, the cursor reads <code>NO_MORE_POSITIONS</code> (<code>Integer.MAX_VALUE</code>), and for every later include span <code>SpanNotQuery.java:210</code> computes <code>excludeSpans.startPosition() - post</code>, which wraps to a negative <code class='nw'>int</code> for any <code>post &lt; 0</code>. On "b a c", <code>spanNot(a, b, 0, -1)</code> returns <code class='nw'>[1,2)</code> instead of <code>[1,2), [2,3)</code>, and <code>spanNear([spanNot(a, b, 0, -1), c], 0, true)</code> no longer matches. With ordinary negative values a top-level <code class='nw'>SpanNotQuery</code> keeps its document set but loses spans and score; nested in a positional query it loses documents. The line came from LUCENE-8034 (7.2.0), which fixed the opposite overflow for a huge positive <code class='nw'>post</code>; every release from 7.2.0 to 10.5.2 and main is affected. Lucene's query parsers always pass 0 and cannot reach it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Span</strong>: a match of a span query inside one document, written <code class='nw'>[start,end)</code> in token positions. In "b a c" the term "a" has the spans <code class='nw'>[1,2)</code> and <code class='nw'>[2,3)</code>.</li><li><strong><code>SpanNotQuery(include, exclude, pre, post)</code></strong>: keeps the include spans that no exclude span overlaps within <code class='nw'>pre</code> tokens before or <code class='nw'>post</code> tokens after. A negative <code class='nw'>post</code> (or <code class='nw'>dist</code>, which sets both) allows that much overlap (<code>SpanNotQuery.java:51-66</code>), so, read as a window, it can only keep more.</li><li><strong><code>NO_MORE_POSITIONS</code></strong>: <code>Integer.MAX_VALUE</code> (<code class='nw'>Spans.java:32</code>). After the last span of the current document, a <code class='nw'>Spans</code> iterator's <code class='nw'>startPosition()</code> and <code class='nw'>endPosition()</code> return it (<code class='nw'>Spans.java:34-51</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><p><code>SpanNotWeight#getSpans</code> wraps the include spans in a <code class='nw'>FilterSpans</code> whose <code>accept(candidate)</code> runs once per include span, in position order (<code>SpanNotQuery.java:166-216</code> on main <code class='nw'>a9779ef3c193</code>):</p><ol><li>It catches the exclude cursor up to the candidate's document and, if the cursor has not yet started in this document, moves it to its first span (<code class='nw'>:175-200</code>).</li><li>It skips exclude spans that end before the candidate starts (<code class='nw'>:202-207</code>). If that runs out of exclude spans, it accepts the candidate: <code>return AcceptStatus.YES; // no more exclude at current doc.</code> (<code class='nw'>:205</code>). The cursor stays on the document, now reading <code>NO_MORE_POSITIONS</code>.</li><li>Otherwise it checks the next exclude span's start: <code>if (excludeSpans.startPosition() - post &gt;= candidate.endPosition()) return YES; else return NO;</code> (<code class='nw'>:210-214</code>).</li><li>For the next include span of the same document, step 2 does nothing (<code>2147483647 &lt;= candidate.startPosition() - pre</code> is false for any ordinary <code class='nw'>pre</code>) and step 3 computes <code>2147483647 - post</code>. With <code>post = 0</code> that is 2147483647 and the span is kept; with <code>post = -1</code> it is 2^31, which wraps to -2147483648, and <code>-2147483648 &gt;= 3</code> is false: rejected. Every negative <code class='nw'>post</code> wraps, because indexed positions are at most <code>Integer.MAX_VALUE - 128</code> (<code>IndexWriter.java:211</code>).</li><li><code class='nw'>FilterSpans</code> then asks for the next include span (<code>FilterSpans.java:83-96</code>), which is rejected the same way: every later include span of the document is gone. The next document starts fresh.</li></ol><p>The wrap can only reject, never accept, and the include span that used up the exclude spans is itself accepted, so with ordinary negative values a top-level <code class='nw'>SpanNotQuery</code> keeps its document set. The trigger is a negative <code class='nw'>post</code>: in a bounded enumeration with <code class='nw'>pre</code> and <code class='nw'>post</code> in -2..2, a negative <code class='nw'>pre</code> with <code>post &gt;= 0</code> gave 0 mismatches. Windows of about 2^31 tokens hit related corners: <code>post = Integer.MAX_VALUE</code> compares against the sentinel without wrapping and drops the same span, and <code>post = Integer.MIN_VALUE</code> also wraps on real positions, where even a top-level document is lost.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>On "b a c": <code>spanNot(a, b, 0, 0)</code> gives <code>[1,2), [2,3)</code>; <code>spanNot(a, b, 0, -1)</code> and <code>new SpanNotQuery(a, b, -1)</code> give <code class='nw'>[1,2)</code>; <code>spanNear([spanNot(a, b, 0, -1), c], 0, true)</code> counts 0 instead of 1. On "b a c b" the same query gives both spans. On "x y y y y y", <code>spanNot(y, x, 0, post)</code> keeps 1 of 5 "y" for post -1, -2 and -3 and all 5 for 0 and 1. A two-phase exclude (<code>spanNear([b, x], 0, true)</code>) is affected too. Every document over {a, b} of 1 to 5 tokens, pre and post in -2..2: 260 mismatches in 6,450 include-span checks, all with <code>post &lt; 0</code> after the exclude spans were used up.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>297 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Java code that calls the 4-argument constructor with <code>post &lt; 0</code> or the 3-argument constructor with <code>dist &lt; 0</code>, both documented as allowed overlap (<code>SpanNotQuery.java:51-66</code>); <code class='nw'>rewrite</code> keeps the values (<code class='nw'>:230</code>). Default codec, <code>IndexWriterConfig</code> and searcher (the executed <code class='nw'>main()</code> port) and randomized test codecs (the JUnits), assertions on or off, any index size.</li><li><strong>When.</strong> A document has an exclude match before two or more include matches and no exclude match after the include match that uses them up. Ordinary text does this.</li><li><strong>Top-level query</strong> (ordinary negative values). The same documents match, but spans, <code class='nw'>Matches</code> positions, span frequency and scores are wrong: in one probe 11 of 57 documents score lower with 57 = 57 hits; in another "b a c" scores 0.053059246 instead of 0.070576414 with 4 = 4 hits; <code class='nw'>Matches</code> reports 1 position instead of 2.</li><li><strong>Nested query.</strong> In <code class='nw'>spanNear</code> or <code>spanPositionRange</code>, whole documents stop matching (executed).</li><li><strong>Under a negation.</strong> A <code class='nw'>MUST_NOT</code> over <code>spanNear([spanNot(a, b, 0, -1), c], 0, true)</code> keeps "b a c" ([0, 1] instead of [1]); the same with <code>dist = -1</code>; <code>spanNot(a, spanNot(a, b, 0, -1))</code> returns [0] instead of [] (executed on main, 10.5.2 and 9.12.3; all pass with the fix).</li><li><strong>Highlighting.</strong> <code>WeightedSpanTermExtractor</code> iterates the same spans, so the span highlighter would mark fewer occurrences (read, not executed).</li><li><strong>Not reachable</strong> through Lucene's query parsers: the XML <code class='nw'>SpanNotBuilder</code> and <code>ComplexPhraseQueryParser</code> use the 2-argument constructor (<code>SpanNotBuilder.java:45</code>, <code>ComplexPhraseQueryParser.java:359, 417</code>).</li><li><strong>Cost.</strong> Deterministic, per document; no hang or resource blow-up was observed: the filter stays linear and emits fewer spans (one "b" then 50,000 "a": 1 span, milliseconds).</li><li><strong>Why the tests miss it.</strong> No deterministic upstream negative-window test has an include span after the exclude spans are used up (the randomized <code>TestSpanSearchEquivalence</code> uses the 2-argument constructor).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A public-API JUnit for <code class='nw'>lucene/queries</code>: one document "b a c", the <code>post = 0</code> controls, then <code>post = -1</code>, <code>dist = -1</code> and the nested <code class='nw'>spanNear</code>, all reported in one failure message. It fails on main, 10.5.2 and 9.12.3, with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestSpanNotNegativePost.java (queries, 1 test with controls)</span><span class='meta'>106 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.spans;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * SpanNotQuery documents a negative post (or dist) as &quot;allow a certain amount of overlap&quot;, so it
+ * must keep every include span that post = 0 keeps.
+ */
+public class TestSpanNotNegativePost extends LuceneTestCase {
+
+  private static SpanQuery t(String text) {
+    return new SpanTermQuery(new Term(&quot;f&quot;, text));
+  }
+
+  private static SpanQuery notB(int pre, int post) {
+    return new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), pre, post);
+  }
+
+  private static SpanQuery nearC(SpanQuery first) {
+    return new SpanNearQuery(new SpanQuery[] {first, t(&quot;c&quot;)}, 0, true);
+  }
+
+  /** The spans of {@code q} in the index&#x27;s only document, as &quot;[start,end)&quot;. */
+  private static List&lt;String&gt; spans(IndexSearcher searcher, SpanQuery q) throws IOException {
+    SpanQuery rewritten = (SpanQuery) searcher.rewrite(q);
+    SpanWeight w = rewritten.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
+    Spans spans =
+        w.getSpans(searcher.getIndexReader().leaves().get(0), SpanWeight.Postings.POSITIONS);
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    if (spans != null &amp;&amp; spans.nextDoc() == 0) {
+      while (spans.nextStartPosition() != Spans.NO_MORE_POSITIONS) {
+        out.add(&quot;[&quot; + spans.startPosition() + &quot;,&quot; + spans.endPosition() + &quot;)&quot;);
+      }
+    }
+    return out;
+  }
+
+  public void testIncludeSpansAfterLastExclude() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc = new IndexWriterConfig(new MockAnalyzer(random()));
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        Document doc = new Document();
+        // positions: b=0, a=1, a=2, c=3
+        doc.add(new TextField(&quot;f&quot;, &quot;b a a c&quot;, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = newSearcher(reader);
+        // &quot;b&quot; at 0 overlaps neither &quot;a&quot;, so every window keeps both &quot;a&quot; spans
+        List&lt;String&gt; post0 = spans(searcher, notB(0, 0));
+        List&lt;String&gt; postMinus1 = spans(searcher, notB(0, -1));
+        List&lt;String&gt; distMinus1 = spans(searcher, new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), -1));
+        // nested: &quot;a c&quot; at positions 2..3
+        int near0 = searcher.count(nearC(notB(0, 0)));
+        int nearMinus1 = searcher.count(nearC(notB(0, -1)));
+        String observed =
+            &quot;spans: post 0 &quot;
+                + post0
+                + &quot;, post -1 &quot;
+                + postMinus1
+                + &quot;, dist -1 &quot;
+                + distMinus1
+                + &quot;; spanNear([spanNot(a, b), c]) count: post 0 &quot;
+                + near0
+                + &quot;, post -1 &quot;
+                + nearMinus1;
+        assertEquals(observed, List.of(&quot;[1,2)&quot;, &quot;[2,3)&quot;), post0); // control
+        assertEquals(1, near0); // control
+        assertEquals(observed, post0, postMinus1);
+        assertEquals(observed, post0, distMinus1);
+        assertEquals(observed, 1, nearMinus1);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:queries:test --tests org.apache.lucene.queries.spans.TestSpanNotNegativePost -Ptests.seed=DEADBEEF
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Both spans [1,2) and [2,3) for post -1 and dist -1, as for post 0, and 1 hit for the nested spanNear.</dd></div><div class='got'><dt>Observed</dt><dd>Only [1,2) for post -1 and dist -1, and 0 hits for the nested spanNear.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-279/'>repro/LFV-279/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (405 lines) · 2,352 words</span></summary><div class='body'><p><code>TestSpanNotNegativePost</code> (package <code>org.apache.lucene.queries.spans</code>, public API only, formatted by <code>./gradlew tidy</code>; compiles on 9.1 and later). Default <code>IndexWriterConfig</code> with <code class='nw'>MockAnalyzer</code> under <code class='nw'>LuceneTestCase</code>'s randomized codec and directory. It computes every value first, then asserts the controls and the three negative-window cases, so the failure message shows all five observations.</p><p>The hunt's tests are attached too: the finder's original test (same document), the independent reproducer's test with a bounded enumeration against a javadoc reference, and the devil's advocate's probes (the extra exclude, <code class='nw'>dist</code>, a two-phase exclude, top-level scores).</p><div class="hd hd-3"><h3 id='code-2-h'>TestSpanNotNegativePostV1.java (independent reproducer: nested query and a bounded enumeration)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Document "stop go go end", <code>spanNot(go, stop, 0, -1)</code>: spans <code class='nw'>[[1,2)]</code> instead of <code>[[1,2), [2,3)]</code>, nested <code class='nw'>spanNear</code> count 0 instead of 1, and every document over {a, b} of 1 to 5 tokens with pre and post in -2..2: 260 mismatches in 6,450 checks. Fails 3 of 3 on main, 10.5.2 and 9.12.3; passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestSpanNotNegativePostV1.java (independent reproducer: nested query and a bounded enumeration)</span><span class='meta'>228 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.spans;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check of SpanNotQuery with a negative {@code post}. Public API only.
+ *
+ * &lt;p&gt;Constructor javadoc: matches spans from include &quot;which have no overlap with spans from exclude
+ * within pre tokens before or post tokens of include. Inversely, negative values for pre and/or
+ * post allow a certain amount of overlap to occur.&quot; A negative post can therefore only relax the
+ * exclusion: every span accepted with post = 0 must also be accepted with post &amp;lt; 0.
+ */
+public class TestSpanNotNegativePostV1 extends LuceneTestCase {
+  private static final String F = &quot;body&quot;;
+
+  private Directory dir;
+  private IndexReader reader;
+  private IndexSearcher searcher;
+
+  @Override
+  public void tearDown() throws Exception {
+    if (reader != null) {
+      reader.close();
+    }
+    if (dir != null) {
+      dir.close();
+    }
+    super.tearDown();
+  }
+
+  private void index(String... docs) throws IOException {
+    dir = newDirectory();
+    try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+      for (String d : docs) {
+        Document doc = new Document();
+        doc.add(new TextField(F, d, Field.Store.YES));
+        w.addDocument(doc);
+      }
+    }
+    reader = DirectoryReader.open(dir);
+    searcher = new IndexSearcher(reader);
+  }
+
+  private static SpanQuery term(String t) {
+    return new SpanTermQuery(new Term(F, t));
+  }
+
+  /** All spans of q, keyed by the stored text of the document they occur in. */
+  private Map&lt;String, List&lt;String&gt;&gt; spansByText(SpanQuery q) throws IOException {
+    SpanQuery rq = (SpanQuery) searcher.rewrite(q);
+    SpanWeight w = rq.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
+    Map&lt;String, List&lt;String&gt;&gt; out = new TreeMap&lt;&gt;();
+    for (LeafReaderContext ctx : reader.leaves()) {
+      Spans s = w.getSpans(ctx, SpanWeight.Postings.POSITIONS);
+      if (s == null) {
+        continue;
+      }
+      while (s.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        String text = ctx.reader().storedFields().document(s.docID()).get(F);
+        List&lt;String&gt; l = out.computeIfAbsent(text, k -&gt; new ArrayList&lt;&gt;());
+        while (s.nextStartPosition() != Spans.NO_MORE_POSITIONS) {
+          l.add(&quot;[&quot; + s.startPosition() + &quot;,&quot; + s.endPosition() + &quot;)&quot;);
+        }
+      }
+    }
+    return out;
+  }
+
+  /** Doc &quot;stop go go end&quot;: both &quot;go&quot; spans have no overlap with &quot;stop&quot; (position 0). */
+  public void testSpansWithNegativePost() throws IOException {
+    index(&quot;stop go go end&quot;);
+    List&lt;String&gt; both = Arrays.asList(&quot;[1,2)&quot;, &quot;[2,3)&quot;);
+    // control: post = 0 keeps both &quot;go&quot; spans
+    assertEquals(both, spansByText(new SpanNotQuery(term(&quot;go&quot;), term(&quot;stop&quot;), 0, 0)).get(&quot;stop go go end&quot;));
+    for (int post : new int[] {-1, -2, -3}) {
+      assertEquals(
+          &quot;pre = 0, post = &quot; + post,
+          both,
+          spansByText(new SpanNotQuery(term(&quot;go&quot;), term(&quot;stop&quot;), 0, post)).get(&quot;stop go go end&quot;));
+    }
+    // the dist constructor (pre = post = -1)
+    assertEquals(
+        &quot;dist = -1&quot;, both, spansByText(new SpanNotQuery(term(&quot;go&quot;), term(&quot;stop&quot;), -1)).get(&quot;stop go go end&quot;));
+  }
+
+  /** Document-level effect when the SpanNotQuery is nested in another positional query. */
+  public void testDocumentLevelNested() throws IOException {
+    index(&quot;stop go go end&quot;);
+    for (int post : new int[] {0, -1}) {
+      SpanQuery not = new SpanNotQuery(term(&quot;go&quot;), term(&quot;stop&quot;), 0, post);
+      SpanQuery near = new SpanNearQuery(new SpanQuery[] {not, term(&quot;end&quot;)}, 0, true);
+      assertEquals(&quot;spanNear([spanNot(go, stop, 0, &quot; + post + &quot;), end], 0, true)&quot;, 1, searcher.count(near));
+      SpanQuery range = new SpanPositionRangeQuery(not, 2, 3);
+      assertEquals(&quot;spanPosRange(spanNot(go, stop, 0, &quot; + post + &quot;), 2, 3)&quot;, 1, searcher.count(range));
+    }
+  }
+
+  /**
+   * Bounded enumeration: every document over {a, b} of 1..5 tokens, include/exclude one of the two
+   * terms, pre and post in -2..2, compared against the reference reading of the javadoc: an include
+   * span s is removed iff some exclude span e satisfies e.end &amp;gt; s.start - pre and e.start &amp;lt;
+   * s.end + post (e meets the window [s.start - pre, s.end + post)).
+   */
+  public void testSmallEnumerationAgainstReference() throws IOException {
+    List&lt;String&gt; docs = new ArrayList&lt;&gt;();
+    for (int len = 1; len &lt;= 5; len++) {
+      for (int mask = 0; mask &lt; (1 &lt;&lt; len); mask++) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i &lt; len; i++) {
+          if (i &gt; 0) {
+            sb.append(&#x27; &#x27;);
+          }
+          sb.append(((mask &gt;&gt; i) &amp; 1) == 0 ? &quot;a&quot; : &quot;b&quot;);
+        }
+        docs.add(sb.toString());
+      }
+    }
+    index(docs.toArray(new String[0]));
+
+    int checks = 0;
+    int mismatches = 0;
+    int mismatchesPostNonNegative = 0;
+    int mismatchesNotAfterExhaustion = 0;
+    List&lt;String&gt; examples = new ArrayList&lt;&gt;();
+    String[][] pairs = {{&quot;a&quot;, &quot;b&quot;}, {&quot;b&quot;, &quot;a&quot;}};
+    for (String[] p : pairs) {
+      for (int pre = -2; pre &lt;= 2; pre++) {
+        for (int post = -2; post &lt;= 2; post++) {
+          Map&lt;String, List&lt;String&gt;&gt; actual =
+              spansByText(new SpanNotQuery(term(p[0]), term(p[1]), pre, post));
+          for (String d : docs) {
+            List&lt;String&gt; tokens = Arrays.asList(d.split(&quot; &quot;));
+            List&lt;String&gt; expected = new ArrayList&lt;&gt;();
+            int prevIncludeStart = -1;
+            for (int s = 0; s &lt; tokens.size(); s++) {
+              if (tokens.get(s).equals(p[0]) == false) {
+                continue;
+              }
+              boolean removed = false;
+              boolean excludeExhaustedByEarlierInclude = prevIncludeStart &gt;= 0;
+              for (int e = 0; e &lt; tokens.size(); e++) {
+                if (tokens.get(e).equals(p[1]) == false) {
+                  continue;
+                }
+                if (e + 1 &gt; s - pre &amp;&amp; e &lt; s + 1 + post) {
+                  removed = true;
+                }
+                if (prevIncludeStart &lt; 0 || e + 1 &gt; prevIncludeStart - pre) {
+                  excludeExhaustedByEarlierInclude = false;
+                }
+              }
+              String span = &quot;[&quot; + s + &quot;,&quot; + (s + 1) + &quot;)&quot;;
+              if (removed == false) {
+                expected.add(span);
+              }
+              List&lt;String&gt; act = actual.getOrDefault(d, List.of());
+              checks++;
+              if (act.contains(span) != (removed == false)) {
+                mismatches++;
+                if (post &gt;= 0) {
+                  mismatchesPostNonNegative++;
+                }
+                if (excludeExhaustedByEarlierInclude == false) {
+                  mismatchesNotAfterExhaustion++;
+                }
+                if (examples.size() &lt; 5) {
+                  examples.add(
+                      &quot;doc &#x27;&quot; + d + &quot;&#x27; spanNot(&quot; + p[0] + &quot;, &quot; + p[1] + &quot;, &quot; + pre + &quot;, &quot; + post
+                          + &quot;) span &quot; + span + &quot;: expected &quot; + (removed ? &quot;removed&quot; : &quot;kept&quot;)
+                          + &quot;, actual &quot; + (act.contains(span) ? &quot;kept&quot; : &quot;removed&quot;));
+                }
+              }
+              prevIncludeStart = s;
+            }
+          }
+        }
+      }
+    }
+    assertEquals(
+        &quot;checks=&quot;
+            + checks
+            + &quot; mismatches=&quot;
+            + mismatches
+            + &quot; (with post&gt;=0: &quot;
+            + mismatchesPostNonNegative
+            + &quot;, not after exclude exhausted by an earlier include span: &quot;
+            + mismatchesNotAfterExhaustion
+            + &quot;) examples=&quot;
+            + examples,
+        0,
+        mismatches);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestSpanNotNegPostV3Probes.java (devil&#x27;s advocate probes)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Four probes, all failing on main: the extra exclude after both includes restores the span, <code>dist = -1</code>, a two-phase exclude, and a top-level score of 0.053059246 instead of 0.070576414 with equal hit counts.</p><figure class='code'><figcaption><span class='fname'>TestSpanNotNegPostV3Probes.java (devil&#x27;s advocate probes)</span><span class='meta'>111 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>package org.apache.lucene.queries.spans;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Probes for the intended-behaviour question. Each probe prints what it sees and asserts the
+ * documented semantics (negative post only allows MORE overlap, so it can never drop a span that
+ * post = 0 keeps; adding an exclude span far away can never add include spans).
+ */
+public class TestSpanNotNegPostV3Probes extends LuceneTestCase {
+
+  static SpanTermQuery t(String s) {
+    return new SpanTermQuery(new Term(&quot;f&quot;, s));
+  }
+
+  static List&lt;String&gt; spans(IndexSearcher searcher, SpanQuery q, int doc) throws Exception {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    SpanWeight w =
+        ((SpanQuery) searcher.rewrite(q)).createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
+    Spans spans = w.getSpans(searcher.getIndexReader().leaves().get(0), SpanWeight.Postings.POSITIONS);
+    if (spans == null || spans.advance(doc) != doc) return out;
+    while (spans.nextStartPosition() != Spans.NO_MORE_POSITIONS) {
+      out.add(&quot;[&quot; + spans.startPosition() + &quot;,&quot; + spans.endPosition() + &quot;)&quot;);
+    }
+    return out;
+  }
+
+  private Directory dir;
+  private IndexReader reader;
+  private IndexSearcher searcher;
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    dir = newDirectory();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new MockAnalyzer(random())).setMergePolicy(newLogMergePolicy()))) {
+      for (String text : new String[] {&quot;b a a c&quot;, &quot;b a a c b&quot;, &quot;b x a a c&quot;, &quot;b x a a c b x&quot;}) {
+        Document doc = new Document();
+        doc.add(new TextField(&quot;f&quot;, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+    reader = DirectoryReader.open(dir);
+    searcher = new IndexSearcher(reader);
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    reader.close();
+    dir.close();
+    super.tearDown();
+  }
+
+  // doc 1 = doc 0 plus an extra exclude &#x27;b&#x27; AFTER both &#x27;a&#x27;s; that extra exclude restores the dropped span
+  public void testFarExcludeAddsIncludeSpans() throws Exception {
+    SpanQuery q = new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), 0, -1);
+    List&lt;String&gt; d0 = spans(searcher, q, 0);
+    List&lt;String&gt; d1 = spans(searcher, q, 1);
+    System.out.println(&quot;PROBE far-exclude: &#x27;b a a c&#x27; -&gt; &quot; + d0 + &quot; ; &#x27;b a a c b&#x27; -&gt; &quot; + d1);
+    assertEquals(&quot;adding an exclude span can only remove include spans&quot;, d1, d0);
+  }
+
+  // the 3-arg constructor (dist) is also affected
+  public void testDistConstructor() throws Exception {
+    List&lt;String&gt; p0 = spans(searcher, new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), 0), 0);
+    List&lt;String&gt; pm1 = spans(searcher, new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), -1), 0);
+    System.out.println(&quot;PROBE dist: dist=0 -&gt; &quot; + p0 + &quot; ; dist=-1 -&gt; &quot; + pm1);
+    assertEquals(p0, pm1);
+  }
+
+  // two-phase exclude (SpanNear) path is also affected
+  public void testTwoPhaseExclude() throws Exception {
+    SpanQuery ex = new SpanNearQuery(new SpanQuery[] {t(&quot;b&quot;), t(&quot;x&quot;)}, 0, true);
+    List&lt;String&gt; p0 = spans(searcher, new SpanNotQuery(t(&quot;a&quot;), ex, 0, 0), 2);
+    List&lt;String&gt; pm1 = spans(searcher, new SpanNotQuery(t(&quot;a&quot;), ex, 0, -1), 2);
+    System.out.println(&quot;PROBE two-phase exclude &#x27;b x a a c&#x27;: post=0 -&gt; &quot; + p0 + &quot; ; post=-1 -&gt; &quot; + pm1);
+    assertEquals(p0, pm1);
+  }
+
+  // top-level: the document still matches (first include is accepted when exclude exhausts), but
+  // the span frequency, hence the score, drops
+  public void testTopLevelScore() throws Exception {
+    SpanQuery q0 = new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), 0, 0);
+    SpanQuery qm1 = new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), 0, -1);
+    TopDocs td0 = searcher.search(q0, 10);
+    TopDocs tdm1 = searcher.search(qm1, 10);
+    System.out.println(&quot;PROBE top-level: post=0 hits=&quot; + td0.totalHits + &quot; ; post=-1 hits=&quot; + tdm1.totalHits);
+    float s0 = Float.NaN, sm1 = Float.NaN;
+    for (var sd : td0.scoreDocs) if (sd.doc == 0) s0 = sd.score;
+    for (var sd : tdm1.scoreDocs) if (sd.doc == 0) sm1 = sd.score;
+    System.out.println(&quot;PROBE top-level score doc0 &#x27;b a a c&#x27;: post=0 &quot; + s0 + &quot; ; post=-1 &quot; + sm1);
+    assertEquals(td0.totalHits.value(), tdm1.totalHits.value());
+    assertEquals(&quot;score of doc 0 should not depend on post when no overlap exists&quot;, s0, sm1, 0f);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestSpanNotNegativePost.java (the finder&#x27;s original test)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>The same document, with <code class='nw'>post</code> 0 and -1 and the nested <code class='nw'>spanNear</code> (no <code class='nw'>dist</code> case), asserting <code>post = -1</code> first. Fails on main, 10.5.2, 10.0.0 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestSpanNotNegativePost.java (the finder&#x27;s original test)</span><span class='meta'>66 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>package org.apache.lucene.queries.spans;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * SpanNotQuery(include, exclude, pre, post): &quot;negative values for pre and/or post allow a certain amount of overlap to
+ * occur&quot;. Once the exclude spans are exhausted in a document, accept() evaluates
+ * excludeSpans.startPosition() - post with startPosition() == NO_MORE_POSITIONS (Integer.MAX_VALUE); for post &lt; 0
+ * this overflows to a negative number, so every later include span of that document is rejected.
+ */
+public class TestSpanNotNegativePost extends LuceneTestCase {
+
+  static SpanTermQuery t(String s) {
+    return new SpanTermQuery(new Term(&quot;f&quot;, s));
+  }
+
+  static List&lt;String&gt; spans(IndexSearcher searcher, SpanQuery q) throws Exception {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    SpanWeight w = ((SpanQuery) searcher.rewrite(q)).createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1f);
+    Spans spans = w.getSpans(searcher.getIndexReader().leaves().get(0), SpanWeight.Postings.POSITIONS);
+    if (spans == null || spans.nextDoc() != 0) return out;
+    while (spans.nextStartPosition() != Spans.NO_MORE_POSITIONS) {
+      out.add(&quot;[&quot; + spans.startPosition() + &quot;,&quot; + spans.endPosition() + &quot;)&quot;);
+    }
+    return out;
+  }
+
+  public void testIncludeSpansAfterLastExclude() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new MockAnalyzer(random())))) {
+        Document doc = new Document();
+        doc.add(new TextField(&quot;f&quot;, &quot;b a a c&quot;, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = newSearcher(reader);
+        // &quot;b&quot; at 0 is before both &quot;a&quot;s; neither &quot;a&quot; overlaps it, with or without the allowed overlap
+        assertEquals(List.of(&quot;[1,2)&quot;, &quot;[2,3)&quot;), spans(searcher, new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), 0, 0)));
+        assertEquals(
+            &quot;post = -1&quot;, List.of(&quot;[1,2)&quot;, &quot;[2,3)&quot;), spans(searcher, new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), 0, -1)));
+
+        // the dropped span changes matching once the SpanNotQuery is nested: &quot;a c&quot; at 2..3
+        SpanQuery near0 =
+            new SpanNearQuery(new SpanQuery[] {new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), 0, 0), t(&quot;c&quot;)}, 0, true);
+        SpanQuery nearNeg =
+            new SpanNearQuery(new SpanQuery[] {new SpanNotQuery(t(&quot;a&quot;), t(&quot;b&quot;), 0, -1), t(&quot;c&quot;)}, 0, true);
+        assertEquals(1, searcher.count(near0));
+        assertEquals(nearNeg.toString(), 1, searcher.count(nearNeg));
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle, clean worktree): affected; through a classpath runner, main (-ea, -da), 10.5.2 and 9.12.3: affected; a main() port: 7.2.0 to 10.5.2 affected, 6.4.0 to 7.1.0 not</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE    # apache/lucene at a9779ef3c193 (main; 9.x and 10.x the same)
+cp $REPRO/TestSpanNotNegativePost.java lucene/queries/src/test/org/apache/lucene/queries/spans/
+./gradlew :lucene:queries:test --tests org.apache.lucene.queries.spans.TestSpanNotNegativePost -Ptests.seed=DEADBEEF
+# production-like: add -Ptests.asserts=false (same failure)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF, -Ptests.asserts=true (=false: the same failure and message)
+TestSpanNotNegativePost &gt; testIncludeSpansAfterLastExclude FAILED
+    java.lang.AssertionError: spans: post 0 [[1,2), [2,3)], post -1 [[1,2)], dist -1 [[1,2)]; spanNear([spanNot(a, b), c]) count: post 0 1, post -1 0 expected:&lt;[[1,2), [2,3)]&gt; but was:&lt;[[1,2)]&gt;
+1 test completed, 1 failed
+
+# classpath runner, seed DEADBEEF: 1 run, 1 failed with the same message on main (-ea, -da), 10.5.2 and 9.12.3; with either fix option shadowed: 1 run, 0 failed</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Read as a window, as LUCENE-7431's tests do, the javadoc's allowed overlap means <code>post = -1</code> keeps every span <code>post = 0</code> keeps.</li><li>An extra "b" after both "a"s ("b a c b") brings the dropped span back.</li><li>Until 7.1.0 the check was an addition that handles negative <code class='nw'>post</code>; LUCENE-8034 (7.2.0) rewrote it for a huge positive <code class='nw'>post</code>.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>252 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>SpanNotQuery.java:51-56</code> (3-argument): "matching spans from <code class='nw'>include</code> which have no overlap with spans from <code class='nw'>exclude</code> within <code class='nw'>dist</code> tokens of <code class='nw'>include</code>. Inversely, a negative <code class='nw'>dist</code> value may be used to specify a certain amount of allowable overlap." <code class='nw'>:61-66</code> (4-argument): "... within <code class='nw'>pre</code> tokens before or <code class='nw'>post</code> tokens of <code class='nw'>include</code>. Inversely, negative values for <code class='nw'>pre</code> and/or <code class='nw'>post</code> allow a certain amount of overlap to occur."</li><li><strong>A deliberate feature.</strong> <code>lucene/CHANGES.txt:8710-8712</code> (6.4.0): "LUCENE-7431: Allow a certain amount of overlap to be specified between the include and exclude arguments of SpanNotQuery via negative pre and/or post arguments." That change removed the earlier clamping of negative values to 0.</li><li><strong>Lucene's own tests use it.</strong> <code>TestBasics#testSpanNotWindowNegPost</code> (<code>TestBasics.java:331-352</code>) asserts that <code>post = -1</code> keeps the 16 hits that <code>testSpanWithMultipleNotSingle</code> (<code class='nw'>:244</code>) asserts for <code>post = 0</code>, and that <code>post = -2</code> adds two more; <code>testSpanNotWindowNegPre</code> (<code class='nw'>:354-375</code>) does the same for <code class='nw'>pre</code> (-2 keeps the 16, -3 adds the two).</li><li><strong>History.</strong> Until 7.1.0 the check was <code>candidate.endPosition() + post &lt;= excludeSpans.startPosition()</code>, correct for any <code>post &lt;= 0</code>; 7.1.0 returns both spans (executed). LUCENE-8034 (#9082) turned it into the subtraction only to fix an overflow for a huge positive <code class='nw'>post</code>; its discussion never mentions negative <code class='nw'>post</code>, and its test uses <code>pre = post = Integer.MAX_VALUE</code> (<code>TestBasics.java:232</code>).</li><li><strong>Order dependence.</strong> The same include span is kept or dropped depending on whether an earlier include span used up the exclude spans, and an extra exclude match after it restores it.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>188 words</span></summary><div class='body'><p>The strongest works-as-designed case, from the intended-behaviour verifier, a reviewer from another model family (OpenAI GPT-5.6) and the adjudication: <code>testSpanNotWindowNegPost</code> carries the comment "test handling of invalid window &lt; 0" (<code>TestBasics.java:332</code>), so negative windows might be invalid input; <code class='nw'>SpanNotWeight</code> is <code class='nw'>@lucene.internal</code> (<code>SpanNotQuery.java:125</code>); no javadoc says what happens after the exclude spans run out; and no bundled parser can produce the trigger.</p><p>Why it fails: the comment predates LUCENE-7431, when the test was <code>testSpanNotWindowNeg</code> and the constructor clamped negative values to 0; LUCENE-7431 renamed the test and made it assert that negative windows widen the hits, but kept the comment. The constructors are public and documented; only the weight is internal. Under the window reading that LUCENE-7431's tests assert, the javadoc is monotone (a more negative <code class='nw'>post</code> never removes spans), and <code class='nw'>Spans</code> documents the sentinel that <code class='nw'>accept</code> itself reads. A documented input that only Java callers can pass is still a legitimate trigger. Every verifier and the adjudication rejected the intended argument; the cross-model reviews rated it weak. Open issue #16820 proposes deprecating span queries, which could argue for won't-fix but not for intended behaviour.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Accept once the exclude spans are used up, and compare in long</strong></p><p class='short'>Accept the candidate as soon as the document's exclude spans are used up (<code>excludeSpans.startPosition() == NO_MORE_POSITIONS</code>) and compare line 210 in <code class='nw'>long</code>: +5/-1 lines in <code>SpanNotQuery.java</code>. The repro, a 24-case window probe and all <code class='nw'>lucene/queries</code> and <code>lucene/highlighter</code> tests pass. The hunt's one-line <code class='nw'>long</code> cast fixes the repro too but misses <code>post = Integer.MAX_VALUE</code>.</p><pre class='snippet' tabindex='0'><code>           if (excludeSpans.startPosition() == -1) { // init exclude start position if needed
+             excludeSpans.nextStartPosition();
+           }
+ 
++          if (excludeSpans.startPosition() == NO_MORE_POSITIONS) {
++            return AcceptStatus.YES; // an earlier candidate used up the exclude spans of this doc
++          }
++
+           while (excludeSpans.endPosition() &lt;= candidate.startPosition() - pre) {
+@@
+-          if (excludeSpans.startPosition() - post &gt;= candidate.endPosition()) {
++          if ((long) excludeSpans.startPosition() - post &gt;= candidate.endPosition()) {</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 643 words</span></summary><div class='body'><p>Two options were applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF), with the compact repro and a 24-case window probe that compares <code>spanNot(a, b, pre, post)</code> with the javadoc rule on "b a c", "a b" and "b a c b" (stock main: 7 mismatches); the third option was not run. A diff with the recommended fix and the repro as a new test is attached (<code>fix-with-test.diff</code>).</p><div class="hd hd-3"><h3 id='fix-sentinel-and-long'>Accept once the exclude spans are used up, and compare in long <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-sentinel-and-long" target="_self" aria-label="Link to this section" aria-describedby="fix-sentinel-and-long"><span aria-hidden="true">#</span></a></div><p>In <code class='nw'>accept</code>, right after the exclude cursor is initialised (<code>SpanNotQuery.java:198-200</code>), return YES when <code>excludeSpans.startPosition() == NO_MORE_POSITIONS</code>: an earlier candidate used up the exclude spans of this document, so nothing can exclude this one. Also make line 210 overflow-safe with a <code class='nw'>long</code> subtraction. +5/-1 lines.</p><pre class='snippet' tabindex='0'><code>           if (excludeSpans.startPosition() == -1) { // init exclude start position if needed
+             excludeSpans.nextStartPosition();
+           }
+ 
++          if (excludeSpans.startPosition() == NO_MORE_POSITIONS) {
++            return AcceptStatus.YES; // an earlier candidate used up the exclude spans of this doc
++          }
++
+           while (excludeSpans.endPosition() &lt;= candidate.startPosition() - pre) {
+@@
+-          if (excludeSpans.startPosition() - post &gt;= candidate.endPosition()) {
++          if ((long) excludeSpans.startPosition() - post &gt;= candidate.endPosition()) {</code></pre><p class='k'>Trade-offs</p><ul><li>One int comparison for each include candidate that gets past the document check at <code class='nw'>:194-196</code>, whether it is then accepted or rejected; no benchmark run.</li><li>The check makes the result independent of <code class='nw'>post</code> once the exclude spans of the document are used up, including <code>post = Integer.MAX_VALUE</code>; the <code class='nw'>long</code> comparison keeps LUCENE-8034's protection for a huge positive <code class='nw'>post</code> and also covers a huge negative <code class='nw'>post</code> on real positions.</li><li>Not covered and not examined: the loop condition at <code class='nw'>:202</code> still computes <code>candidate.startPosition() - pre</code> in <code class='nw'>int</code>, so an extreme negative <code class='nw'>pre</code> (about -2^31) is not made safe.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock main <code class='nw'>a9779ef3c193</code>: the repro fails through gradle with assertions on and off.</li><li>With the fix: the repro and the window probe pass with assertions on and off (24 of 24 cases).</li><li>With the fix, all of <code class='nw'>lucene/queries</code> passes (53 classes, 514 tests, 5 skipped), including the 22 upstream span classes (232 tests; <code class='nw'>TestBasics</code> 29 of 29 with <code>testSpanNotNoOverflowOnLargeSpans</code> and <code>testSpanNotWindowNegPost</code>), and all of <code>lucene/highlighter</code> (34 classes, 722 tests); <code class='nw'>ecjLint</code> and <code>checkGoogleJavaFormat</code> pass for queries.</li><li>Through the classpath runner the repro passes with the fix shadowed, and the probe passes 24 of 24 with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</li><li>Not run: the full Lucene test suite; no benchmark.</li></ul><div class="hd hd-3"><h3 id='fix-long-only'>Only compare in long (one line, the hunt's fix) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-long-only" target="_self" aria-label="Link to this section" aria-describedby="fix-long-only"><span aria-hidden="true">#</span></a></div><p><code>if ((long) excludeSpans.startPosition() - post &gt;= candidate.endPosition())</code> at <code>SpanNotQuery.java:210</code>.</p><pre class='snippet' tabindex='0'><code>-          if (excludeSpans.startPosition() - post &gt;= candidate.endPosition()) {
++          if ((long) excludeSpans.startPosition() - post &gt;= candidate.endPosition()) {</code></pre><p class='k'>Trade-offs</p><p>It still compares against the sentinel as if it were a real position, so <code>post = Integer.MAX_VALUE</code> with <code>pre = 0</code> still drops the later span once the exclude spans are used up (1 of the probe's 24 cases). That needs a window of 2^31 - 1 tokens.</p><p class='k'>What the checks validated</p><ul><li>This doc, gradle at <code class='nw'>a9779ef3c193</code>: the repro passes; the window probe fails 1 of 24 cases (<code>post = Integer.MAX_VALUE</code>, <code>pre = 0</code> on "b a c": <code class='nw'>[1,2)</code> instead of both).</li><li>The hunt (classpath runner, main <code class='nw'>ea57360912ed</code>): the finder's, the independent reproducer's (0 of 6,450 enumeration mismatches) and the intended-lens reviewer's tests and the negated-shape probe pass, as do 156 upstream span tests in 9 classes, including <code>testSpanNotNoOverflowOnLargeSpans</code> and <code>testSpanNotWindowNegPost</code> (that run also shadowed six interval fixes from the same hunt unit; its one failure in 273 tests is the interval test <code>TestDisjunctionRewrites#testNotContainedBy</code>, which asserts a rewrite form one of those fixes changes).</li></ul><div class="hd hd-3"><h3 id='fix-addition-long'>Restore the pre-7.2 addition form in long (not run)</h3><a class="hlink" href="#fix-addition-long" target="_self" aria-label="Link to this section" aria-describedby="fix-addition-long"><span aria-hidden="true">#</span></a></div><p><code>(long) candidate.endPosition() + post &lt;= excludeSpans.startPosition()</code>.</p><p class='k'>Trade-offs</p><p>Equivalent to the one-line <code class='nw'>long</code> option, with the same sentinel corner.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream, the Elasticsearch and OpenSearch <code class='nw'>span_not</code> builders clamp negative <code class='nw'>pre</code> and <code class='nw'>post</code> to 0 (read in their source, not run), so only an application's own Java code can build the trigger; one that nests such a query under <code class='nw'>MUST_NOT</code> removes fewer documents than the rule says (executed probe).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Bounded-exhaustive translation validation on the stock jars: every document of up to 3 positions over {a, b, c}, with <code class='nw'>pre</code> and <code class='nw'>post</code> in -1..1 over 30 child queries, against an exact reference built from the children's own spans and the javadoc. 636 of 510,300 SpanNot checks failed, all with <code>post = -1</code>; reading line 210 then gave the cause.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>168 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation on the stock jar</strong> (semi-formal tier), in a hunt unit on span and interval queries.</p><ul><li>The harness evaluates the span filters of the real main jars on every document of up to 3 positions over {a, b, c}, with <code class='nw'>SpanNotQuery</code> <code class='nw'>pre</code> and <code class='nw'>post</code> in -1..1 over 30 child queries, and compares each result with an exact reference built from the children's actual Lucene spans and the javadoc semantics.</li><li>The SpanNot relation failed in 636 of 510,300 checks, all with <code>post = -1</code>, and in 0 of 12,425,400 checks with the unit's fix sketches shadowed onto the jar (larger scopes, run on separate build machines).</li><li>The root cause was then read from <code>SpanNotQuery.java:210</code> and reduced to a public-API JUnit. No model checker, SMT solver or prover was involved.</li><li>Found 2026-10-26 on main <code class='nw'>ea57360912ed</code>; then checked by an independent reproducer, reviews by a model from another family (OpenAI GPT-5.6), an intended-behaviour devil's advocate, an adjudication, a history and prior-report follow-up, and a credibility audit.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-26) in about 140 recorded queries over GitHub, JIRA, the mailing lists, Elasticsearch, OpenSearch, Solr, Stack Overflow and the web, plus the changed files of all 413 open PRs. Closest: #9082 (LUCENE-8034), the 2017 fix of the opposite overflow, which introduced this one.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: no report by anyone, none by the owner. If #9082's title ("SpanNotWeight returns wrong results due to integer overflow") is read as covering every overflow in that comparison, the overlap is partial; its report, fix and discussion are about a huge positive <code class='nw'>post</code> only. Keyword search cannot prove absence; GitHub search does not index review threads or diffs, and private channels cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; Elasticsearch, OpenSearch, Solr; dev@, java-user@, issues@, commits@; the JIRA archive; the web</th><td class='when'>2026-10-26</td><td>the hunt's prior-report tool in two passes: 55 queries (16 GitHub issue/PR, 3 commit, 2 downstream, 20 mailing-list, 4 JIRA-archive, 10 web), then 24 list and JIRA queries</td><td>no report; 18 hits read, none the same bug</td></tr><tr><th scope='row'>GitHub REST and GraphQL search across apache/lucene, the old lucene-solr and solr repositories, Elasticsearch and OpenSearch</th><td class='when'>2026-10-26</td><td>18 REST and 15 GraphQL queries, including code fragments ("startPosition() - post", "excludeSpans", "NO_MORE_POSITIONS" overflow) and the issue keys</td><td>only the related items below</td></tr><tr><th scope='row'>JIRA REST; solr-user@, Solr users@ and dev@, general@; Stack Overflow</th><td class='when'>2026-10-26</td><td>6 JIRA queries (LUCENE-8034, LUCENE-7431, LUCENE-7931, LUCENE-9426 and LUCENE-7580 read in full); list and Stack Overflow searches for SpanNotQuery, spanNot and span_not</td><td>no report</td></tr><tr><th scope='row'>open PRs and upstream history</th><td class='when'>2026-10-26</td><td>the changed files of all 413 open apache/lucene PRs; the history of SpanNotQuery.java on main, branch_10x and branch_10_6</td><td>no open PR touches SpanNotQuery.java; last upstream change 2022-10-19, line 210 unchanged</td></tr><tr><th scope='row'>related items (read)</th><td class='when'>2026-10-26</td><td>the threads and comments</td><td>#9082 (LUCENE-8034, introduced it while fixing a huge positive post); #8484 (LUCENE-7431, made negative pre/post a feature); elastic/elasticsearch#27134 (2017, the old positive overflow); #16820 (open, proposes deprecating span queries; context only)</td></tr><tr><th scope='row'>the finder's run</th><td class='when'>2026-10-26</td><td>22 JIRA-archive and mailing-list queries</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-8034 (<code class='nw'>726ee05240a</code>, 2017-11-22, first release 7.2.0), which turned the correct addition into the subtraction. Executed: 6.4.0 to 7.1.0 pass; 7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main fail. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code>726ee05240a65badf6c3499dd1e29daf490a3e48</code> on master, "LUCENE-8034: use subtraction instead of addition to sidestep int overflow in SpanNotQuery" (a patch attached to the JIRA issue, now #9082, committed by Mike McCandless on 2017-11-22; CHANGES: "(Hari Menon via Mike McCandless)"), backported to branch_7x the same day as <code class='nw'>6b328dcd4f9</code>. It replaced <code>candidate.endPosition() + post &lt;= excludeSpans.startPosition()</code>, which is correct for any <code>post &lt;= 0</code>, with <code>excludeSpans.startPosition() - post &gt;= candidate.endPosition()</code>, to fix an overflow for a huge positive <code class='nw'>post</code>.</p><p><strong>Precondition, not the cause:</strong> LUCENE-7431 (<code class='nw'>750da7c5f7a</code> on master, <code class='nw'>55ed23168f6</code> on branch_6x, 2016-11-08, first in 6.4.0 and 7.0.0) removed the clamping of negative <code class='nw'>pre</code>/<code class='nw'>post</code> to 0 and documented them as allowed overlap; the addition form was still correct then. The spans moved to the queries module in 9.0.0 without touching the line; <code>SpanNotQuery.java</code> last changed upstream on 2022-10-19 (<code class='nw'>6cde41c9fd8c</code>), and the line is unchanged on main, branch_10x and branch_10_6. A source scan finds the subtraction in every release tag from 7.2.0 to 10.5.2 (the history clone has no 8.x tags after 8.8.1, so 8.9.0 to 8.11.4 were not scanned; 8.11.4 was executed).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the compact JUnit fails through gradle, assertions on and off, and through the classpath runner with -ea and -da</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's, the independent reproducer's, the devil's advocate's and the negated-shape probe's tests fail, -ea and -da</td></tr><tr><th scope='row'>9.12.3, 10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's JUnit and the main() port fail; the compact JUnit fails on 9.12.3 and 10.5.2</td></tr><tr><th scope='row'>7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> 7.2.0 first</span></td><td>the main() port: <code>spanNot(a, b, 0, -1)</code> = [1,2) only, nested count 0 (post 0 controls: both spans, 1)</td></tr><tr><th scope='row'>6.4.0, 6.6.6, 7.0.0, 7.1.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> addition form</span></td><td>the main() port passes: both spans, nested count 1 (the 6.x line never got LUCENE-8034)</td></tr><tr><th scope='row'>6.3.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> negative values clamped</span></td><td>passes vacuously: negative post was clamped to 0 before LUCENE-7431</td></tr><tr><th scope='row'>fix (scratch worktree at <code class='nw'>a9779ef3c193</code>)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>recommended fix: the repro and the 24-case probe pass, assertions on and off; all <code class='nw'>lucene/queries</code> (514 tests) and <code>lucene/highlighter</code> (722 tests) tests pass; the one-line <code class='nw'>long</code> fix passes the repro and misses 1 probe case</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and an intended-behaviour devil's advocate reproduced it with their own tests; a reviewer from another model family (OpenAI GPT-5.6) rated it real with a weak intended argument; an adjudication re-ran it with a new seed; this doc's gradle runs reproduce it on <code class='nw'>a9779ef3c193</code> and validate the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>489 words</span></summary><div class='body'><p>Every executing check wrote or re-ran its own JUnit on stock main; every <code>post = 0</code> control passed, and every fix check of the repros passed (the one-line <code class='nw'>long</code> fix misses 1 of the 24 window-probe cases).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>The translation-validation harness, then a public-API JUnit: fails 1 of 1 on main (-ea, -da), 10.5.2 and 9.12.3; passes with the <code class='nw'>long</code> fix.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, reading only)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not_real, low (procedural)</span></td><td>The reviewer could not run code, and its protocol then forces not_real; its own notes say the static evidence strongly favours a real defect, the root cause agrees and the intended argument is weak. A separate run re-ran the repro: fails.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Own test on "stop go go end": fails 3 of 3 on main (-ea, -da), 10.5.2 and 9.12.3; enumeration: 260 of 6,450 include-span checks mismatch; pre-9.0 variant fails on 7.2.0 and 8.11.4, passes on 7.1.0; top-level hits 57 = 57 but 11 documents score lower; passes with the fix.</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6, the cross-model review)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium; intended argument weak</span></td><td>Reading only; the stage's own sweep on "x y y y y y" keeps 1 of 5 spans for post -1, -2 and -3 and all 5 for 0 and 1; fails on main (-ea, -da) and 10.5.2, passes with the fix.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Traced the "invalid window &lt; 0" comment to before LUCENE-7431; 4 of 4 probes fail on main: the extra exclude restores the span, <code>dist = -1</code>, a two-phase exclude, and a lower top-level score with equal hits.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's test with seed 1DE5EED5 (3 of 3 fail, -ea and -da; 3 of 3 pass with the fix) and the finder's repro (fails); asked the filing to state the reach exactly and keep the claim to negative post and dist.</td></tr><tr><th scope='row'>Follow-up (history, prior reports, negated shapes)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new; history as predicted</span></td><td>19 history runs as predicted (7.1.0 passes, 7.2.0 and later fail, the fix passes); about 140 recorded prior-report queries; a probe of negated shapes (a <code class='nw'>MUST_NOT</code> rule over the nested query removes fewer documents; all pass with the fix); fresh-seed re-runs reproduce. The strict security re-evaluation of 2026-10-27 found it out of scope of SECURITY.md (security: none).</td></tr><tr><th scope='row'>main refresh to a9779ef3c193</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>4 of 4 replays (the finder's and the independent reproduction's tests, -ea and -da) fail exactly as recorded on <code class='nw'>ea57360912ed</code>.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces; fix validated</span></td><td>The compact JUnit fails on stock main through gradle (assertions on and off) and through the classpath runner on main, 10.5.2 and 9.12.3. With the recommended fix it passes, as do a 24-case window probe, all of <code class='nw'>lucene/queries</code> and <code>lucene/highlighter</code>, lint and format; the one-line <code class='nw'>long</code> fix passes the repro and misses 1 probe case.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-279/bug.png' download='spannot-negative-post-overflow-after-exclude-exhausted-bug.png' target='_self'>PNG</a> <span class='n'>468 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,355 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-279, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>SpanNotQuery with a negative post (or dist) drops every include span that follows the last exclude span in a document, because NO_MORE_POSITIONS - post overflows int</dd></div><div><dt>Area</dt><dd>queries / span queries (SpanNotQuery: the exclusion filter in SpanNotWeight#getSpans)</dd></div><div><dt>Priority</dt><dd>Medium, rank 305: Since 7.2, the documented negative post of a SpanNotQuery drops spans and, once nested, documents.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that build a SpanNotQuery in Java with the documented negative post (4-argument constructor) or negative dist (3-argument constructor) get too few spans in every document that has an exclude span before two or more include spans and none after them, with the default codec, IndexWriterConfig and searcher, -ea and -da, at any index size, in every release from 7.2.0 through 10.5.2 and on main: a top-level SpanNotQuery still matches the same documents (the include span that uses up the exclude spans is kept) but reports fewer spans and Matches positions and lower scores (the independent reproduction probe: 11 of 57 documents score lower), and once it is nested in a positional parent such as spanNear or spanPositionRange whole documents stop matching (or, under a MUST_NOT or as the exclude side of another SpanNotQuery, wrongly match); Lucene's bundled query parsers always pass pre = post = 0 and cannot reach it.</dd></div><div><dt>Summary</dt><dd>You index the text 'b a c' and run new SpanNotQuery(a, b, 0, -1), whose javadoc says it keeps the 'a' spans that do not overlap a 'b' and that a negative post only allows some overlap; since 'b' at position 0 overlaps neither 'a', you expect both spans [1,2) and [2,3), exactly as with post = 0. Instead you get only [1,2): once the first 'a' has used up the document's exclude spans, the exclude iterator sits at NO_MORE_POSITIONS (Integer.MAX_VALUE) and SpanNotQuery.java:210 computes Integer.MAX_VALUE - post, which wraps to a negative int for any post &lt; 0, so every later 'a' in the document is rejected. Nested as spanNear([spanNot(a, b, 0, -1), c], 0, true), the document no longer matches at all (count 0 instead of 1).</dd></div><div><dt>Introduced</dt><dd>726ee05240a65badf6c3499dd1e29daf490a3e48 (master) and its branch_7x backport 6b328dcd4f90f4b61961b1d3a16629b4ae0c3ece, 'LUCENE-8034: use subtraction instead of addition to sidestep int overflow in SpanNotQuery' (issue migrated as apache/lucene#9082; a patch attached to the JIRA issue by JIRA user hshankar, committed by mikemccand; no GitHub PR) [read: git blame and git log -L of SpanNotQuery.java:210 in the full-history clone, no later commit changed the line; exec: 7.1.0 passes, 7.2.0 fails]. It replaced 'candidate.endPosition() + post &lt;= excludeSpans.startPosition()', which is correct for any post &lt;= 0, with 'excludeSpans.startPosition() - post &gt;= candidate.endPosition()', to avoid overflow for a huge positive post. Precondition, not the introducing commit: LUCENE-7431 (750da7c5f7af on master, 55ed23168f6 on branch_6x, 2016-11-08, first released in 6.4.0 and 7.0.0) removed the clamping of negative pre/post to 0 and documented negative values as allowed overlap, which made the trigger legal. A regression since 7.2.0 (2017-11-22)</dd></div><div><dt>First affected version</dt><dd>7.2.0 [exec] (7.1.0, 7.0.0, 6.6.6 and 6.4.0 pass [exec]; the 6.x line never received LUCENE-8034; before LUCENE-7431 the constructor clamped negative pre/post to 0, so the trigger did not exist: 6.3.0 passes vacuously [exec])</dd></div><div><dt>Affected versions</dt><dd>every release from 7.2.0 through 10.5.2 (7.2.0, 7.2.1, 7.3.0-7.7.3, 8.0.0-8.11.4, 9.0.0-9.12.3, 10.0.0-10.5.2), main ea57360912ed, and the unreleased branch_10x and branch_10_6 (head 2763db11b0a) [read: SpanNotQuery.java line 210 unchanged there, read-only GitHub GETs 2026-10-26]; not fixed upstream. [exec] the finder's JUnit fails on 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da on main); a version-neutral main() port with the same document and queries fails on 7.2.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main and passes on 6.4.0, 6.6.6, 7.0.0 and 7.1.0 (6.3.0 passes vacuously: negative post clamped); the independent reproduction's own JUnit fails on main (-ea, -da), 10.5.2 and 9.12.3, and its pre-9.0 variant fails on 7.2.0 and 8.11.4 and passes on 7.1.0. [read] a scan of every release tag 4.0.0-10.5.2 in the history clone finds the subtraction form in every tag from 7.2.0 to 10.5.2 (8.9.0-8.11.3 are not tagged there; 8.11.4 was executed). History runs used JDK 25, seed DEADBEEF, -ea</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, the prior-report record, read-only: the scripted prior-report search in two passes, 55 queries over apache/lucene issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the LUCENE JIRA archive and the web, then 24 list and JIRA queries; 18 manual GitHub REST and 15 GraphQL searches of apache/lucene and the Elasticsearch, OpenSearch and Solr repositories; 6 JIRA REST queries; the solr-user@, Solr users@ and dev@ and general@ lists; Stack Overflow; the changed files of all 413 open apache/lucene PRs; the upstream commit history of SpanNotQuery.java on main, branch_10x and branch_10_6; plus the finder's earlier 22 JIRA and list queries; 18 hits classified, none the same bug); not fixed upstream (SpanNotQuery.java last changed upstream in 6cde41c9fd8c, 2022-10-19, line 210 unchanged on main, branch_10x and branch_10_6; no open PR touches SpanNotQuery.java). Closest items, not reports: #9082 (LUCENE-8034, fixed 7.2), the change that introduced this bug while fixing the opposite overflow (candidate.endPosition() + post for a huge positive post; its 10 JIRA comments never mention negative post); #8484 (LUCENE-7431, fixed 6.4), which made negative pre/post a documented feature; elastic/elasticsearch#27134 (closed 2017-10-30, docs), a downstream report of the old positive-post overflow</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26): the compact JUnit through gradle in a clean worktree, stock and with the recommended fix, assertions on and off; with the fix also a 24-case window probe and the whole <code class='nw'>lucene/queries</code> and <code>lucene/highlighter</code> test suites (2026-10-28). Through the hunt's classpath runner: the compact JUnit on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>, each fix option shadowed), 10.5.2 and 9.12.3. Hunt runs on main <code class='nw'>ea57360912ed</code> (same <code>SpanNotQuery.java</code>), a version-neutral <code class='nw'>main()</code> port on releases 6.3.0 to 10.5.2, and the main refresh to <code class='nw'>a9779ef3c193</code>, which reproduces with identical messages.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/spans/SpanNotQuery.java:51-56 (at ea57360912ed) (3-argument constructor javadoc: &#x27;a negative dist value may be used to specify a certain amount of allowable overlap&#x27;), :61-66 (4-argument constructor javadoc: &#x27;negative values for pre and/or post allow a certain amount of overlap to occur&#x27;), :173-215 (FilterSpans#accept), :175-196 (exclude caught up to the candidate&#x27;s document), :202-206 (exhausted exclude returns YES once), :210 (&#x27;excludeSpans.startPosition() - post &gt;= candidate.endPosition()&#x27;), :230 (rewrite copies pre and post)</code></li><li><code>lucene/queries/src/java/org/apache/lucene/queries/spans/Spans.java:32 (at ea57360912ed) (NO_MORE_POSITIONS = Integer.MAX_VALUE), :36-51 (startPosition/endPosition return NO_MORE_POSITIONS after the last position)</code></li><li><code>lucene/queries/src/java/org/apache/lucene/queries/spans/FilterSpans.java:83-94 (at ea57360912ed) (NO advances the include iterator)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:211 (at ea57360912ed) (MAX_POSITION = Integer.MAX_VALUE - 128)</code></li><li><code>lucene/queries/src/test/org/apache/lucene/queries/spans/TestBasics.java:232 (at ea57360912ed) (testSpanNotNoOverflowOnLargeSpans), :331-347 (testSpanNotWindowNegPost: comment &#x27;test handling of invalid window &lt; 0&#x27;, asserts post -1 and -2 hit sets)</code></li><li><code>lucene/CHANGES.txt:8694-8696 (at ea57360912ed) (LUCENE-7431: &#x27;Allow a certain amount of overlap to be specified between the include and exclude arguments of SpanNotQuery via negative pre and/or post arguments&#x27;)</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/xml/builders/SpanNotBuilder.java:45 (at ea57360912ed) and lucene/queryparser/src/java/org/apache/lucene/queryparser/complexPhrase/ComplexPhraseQueryParser.java:359, :417 (2-argument constructor only)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/spans/SpanNotQuery.java:51-66, 150-217 (accept 173-215: 175-200, 202-207, 205, 210-214)</code></li><li><code>lucene/queries/src/java/org/apache/lucene/queries/spans/Spans.java:32, 34-51; FilterSpans.java:83-96</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:211</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/spans/SpanNotQuery.java:51-66, 230</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/xml/builders/SpanNotBuilder.java:45; complexPhrase/ComplexPhraseQueryParser.java:359, 417</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/spans/SpanNotQuery.java:51-66, 125</code></li><li><code>lucene/CHANGES.txt:7780-7781, 8710-8712</code></li><li><code>lucene/queries/src/test/org/apache/lucene/queries/spans/TestBasics.java:232, 244, 331-352, 354-375</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/spans/SpanNotQuery.java:198-214</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestSpanNotNegativePost.java (queries, 1 test with controls): <a href='../repro/LFV-279/TestSpanNotNegativePost.java'><code>repro/LFV-279/TestSpanNotNegativePost.java</code></a> (106 lines)</li><li>TestSpanNotNegativePostV1.java (independent reproducer: nested query and a bounded enumeration): <a href='../repro/LFV-279/TestSpanNotNegativePostV1.java'><code>repro/LFV-279/TestSpanNotNegativePostV1.java</code></a> (228 lines)</li><li>TestSpanNotNegPostV3Probes.java (devil&#x27;s advocate probes): <a href='../repro/LFV-279/TestSpanNotNegPostV3Probes.java'><code>repro/LFV-279/TestSpanNotNegPostV3Probes.java</code></a> (111 lines)</li><li>TestSpanNotNegativePost.java (the finder&#x27;s original test): <a href='../repro/LFV-279/4-TestSpanNotNegativePost.java'><code>repro/LFV-279/4-TestSpanNotNegativePost.java</code></a> (66 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from a probe run on main <code class='nw'>a9779ef3c193</code> (stock and with the <code class='nw'>long</code> fix); the values on screen come from the code and that probe. The fix line on the diagram is the <code class='nw'>long</code> comparison, which both fix options contain.</p><ul class='paths'><li><a href='../assets/LFV-279/bug.png'><code>assets/LFV-279/bug.png</code></a> (468 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

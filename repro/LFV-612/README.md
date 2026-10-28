@@ -2,16 +2,18 @@
 
 Bug LFV-612 · Area: spatial-extras / prefix-tree strategies (NumberRangePrefixTreeStrategy over DateRangePrefixTree or a custom NumberRangePrefixTree; the pointsOnly TermQuery shortcut in RecursivePrefixTreeStrategy.makeGridShapeIntersectsQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-612.html](../../bugs/LFV-612.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You index full-precision dates such as 2014-10-23T21:22:33.159 with a NumberRangePrefixTreeStrategy over DateRangePrefixTree on which you called setPointsOnly(true), and search makeQuery(new SpatialArgs(SpatialOperation.Intersects, tree.parseShape("2014-10"))). You expect the documents from October 2014, because each point lies inside that month, IsWithin with the same shape and the same query with pointsOnly=false find them, and the LUCENE-7845 CHANGES entry describes this pointsOnly TermQuery shortcut as an optimization for 'a simple date interval (e.g. 1 month)'. Instead RecursivePrefixTreeStrategy.makeGridShapeIntersectsQuery builds a TermQuery on the month's token plus the leaf byte, a term a pointsOnly index never contains (each point stores every coarser level only as a non-leaf prefix term), so the query matches nothing; the same happens for a year, day, hour, minute or second and for a range that normalizes to one unit.
+You index full-precision dates such as 2014-10-23T21:22:33.159 with a NumberRangePrefixTreeStrategy over DateRangePrefixTree on which you called setPointsOnly(true), and search makeQuery(new SpatialArgs(SpatialOperation.Intersects, tree.parseShape("2014-10"))). You expect the documents from October 2014, because each point lies inside that month, IsWithin with the same shape and the same query with pointsOnly=false find them, and the LUCENE-7845 CHANGES entry describes this pointsOnly TermQuery shortcut as an optimization for 'a simple date interval (e.g. 1 month)'. Instead RecursivePrefixTreeStrategy.makeGridShapeIntersectsQuery builds a TermQuery on the month's token plus the leaf byte, a term that pointsOnly indexing at full precision, the normal path, never writes (each point stores every coarser level only as a non-leaf prefix term), so the query matches nothing; the same happens for a year, day, hour, minute or second and for a range that normalizes to one unit.
 
 ## Expected vs actual
 
-- Expected: You expect the documents from October 2014, because each point lies inside that month, IsWithin with the same shape and the same query with pointsOnly=false find them, and the LUCENE-7845 CHANGES entry describes this pointsOnly TermQuery shortcut as an optimization for 'a simple date interval (e.g. 1 month)'.
-- Actual: RecursivePrefixTreeStrategy.makeGridShapeIntersectsQuery builds a TermQuery on the month's token plus the leaf byte, a term a pointsOnly index never contains (each point stores every coarser level only as a non-leaf prefix term), so the query matches nothing; the same happens for a year, day, hour, minute or second and for a range that normalizes to one unit.
+- Expected: All five `Intersects` queries (`2014`, `2014-10`, `[2014-10-01 TO 2014-10-31]`, `2014-10-23`, `2014-10-23T21:22:33`) find the one document, as `IsWithin` does.
+- Actual: `IsWithin` = 1 but `Intersects` = 0 for all five; with `pointsOnly=false` both are 1.
 
 ## Files
 
@@ -45,6 +47,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestNumberRangePointsOnlyUnitIntersects.java](TestNumberRangePointsOnlyUnitIntersects.java)
+- [TestPointsOnlyDateUnitIntersects.java](TestPointsOnlyDateUnitIntersects.java)
+- [NrPointsOnlyUnitIntersectsHistory.java](NrPointsOnlyUnitIntersectsHistory.java)
+- [fix.diff](fix.diff)
 
 ## Feedback
 

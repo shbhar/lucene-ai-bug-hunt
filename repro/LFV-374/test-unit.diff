@@ -1,0 +1,30 @@
+diff --git a/lucene/analysis/common/src/test/org/apache/lucene/analysis/hunspell/TestAffixCondition.java b/lucene/analysis/common/src/test/org/apache/lucene/analysis/hunspell/TestAffixCondition.java
+index 301c19e9111..5cb08a6aeee 100644
+--- a/lucene/analysis/common/src/test/org/apache/lucene/analysis/hunspell/TestAffixCondition.java
++++ b/lucene/analysis/common/src/test/org/apache/lucene/analysis/hunspell/TestAffixCondition.java
+@@ -17,6 +17,7 @@
+ package org.apache.lucene.analysis.hunspell;
+ 
+ import static org.apache.lucene.analysis.hunspell.AffixCondition.ALWAYS_FALSE;
++import static org.apache.lucene.analysis.hunspell.AffixCondition.ALWAYS_TRUE;
+ import static org.apache.lucene.analysis.hunspell.AffixCondition.ALWAYS_TRUE_KEY;
+ import static org.apache.lucene.analysis.hunspell.AffixKind.PREFIX;
+ import static org.apache.lucene.analysis.hunspell.AffixKind.SUFFIX;
+@@ -63,6 +64,17 @@ public class TestAffixCondition extends LuceneTestCase {
+     assertTrue(AffixCondition.compile(SUFFIX, "oj", "o[ioj", "").acceptsStem("whatever"));
+   }
+ 
++  public void testConditionShorterThanStrip() {
++    // the condition lies inside the strip: a suffix condition is checked at the strip's end and a
++    // prefix condition at its start, as for the literal conditions in testUniqueKey
++    assertEquals(ALWAYS_TRUE, AffixCondition.compile(SUFFIX, "abc", "[c]", ""));
++    assertEquals(ALWAYS_TRUE, AffixCondition.compile(SUFFIX, "abc", ".c", ""));
++    assertEquals(ALWAYS_FALSE, AffixCondition.compile(SUFFIX, "abc", "[a]", ""));
++    assertEquals(ALWAYS_TRUE, AffixCondition.compile(PREFIX, "abc", "[a]", ""));
++    assertEquals(ALWAYS_TRUE, AffixCondition.compile(PREFIX, "abc", "a.", ""));
++    assertEquals(ALWAYS_FALSE, AffixCondition.compile(PREFIX, "abc", "[c]", ""));
++  }
++
+   public void testImpossibleCondition() {
+     assertEquals(ALWAYS_FALSE, AffixCondition.compile(SUFFIX, "a", "b", ""));
+   }

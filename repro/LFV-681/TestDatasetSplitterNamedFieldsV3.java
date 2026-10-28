@@ -35,7 +35,7 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.BytesRef;
 
 /**
- * V3 check: DatasetSplitter.split with explicit fieldNames vs fieldNames == null, on documents with
+ * Check: DatasetSplitter.split with explicit fieldNames vs fieldNames == null, on documents with
  * a multi-valued stored text field ("tags"). Public API only. All documents go to the training
  * index (ratios 0/0), so the three output indexes do not matter here.
  */

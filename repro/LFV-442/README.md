@@ -2,6 +2,8 @@
 
 Bug LFV-442 · Area: index / TieredMergePolicy merge selection (doFindMerges candidate loop; setMaxMergedSegmentMB validation) · Priority: low · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-442.html](../../bugs/LFV-442.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You configure the default TieredMergePolicy with setMaxMergedSegmentMB(0), which
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The candidate loop in doFindMerges requires 'bytesThisMerge &lt; maxMergedSegmentBytes', which is 0 &lt; 0 before the first segment is added, so no segment is ever admitted and the candidate list stays empty. 'assert candidate.size &gt; 0' then fails with -ea, and candidate.get(0) throws IndexOutOfBoundsException ('Index 0 out of bounds for length 0') with -da, out of the writer call.
+- Expected: `commit` and `forceMergeDeletes` succeed and leave 6 and 8 live documents (or the setter rejects 0).
+- Actual: Both throw: `AssertionError` at `TieredMergePolicy.java:578` with assertions on, `IndexOutOfBoundsException: Index 0 out of bounds for length 0` at `:580` with them off.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestTieredMergePolicyZeroMaxMergedSegment.java](TestTieredMergePolicyZeroMaxMergedSegment.java)
+- [TestTMPZeroMaxMergedV1.java](TestTMPZeroMaxMergedV1.java)
+- [TestTMPZeroMaxMergedControlV1.java](TestTMPZeroMaxMergedControlV1.java)
 
 ## Feedback
 

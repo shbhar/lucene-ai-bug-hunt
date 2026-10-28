@@ -2,6 +2,8 @@
 
 Bug LFV-675 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dRectangleShape.reset), read by BBoxStrategy's value sources (BBoxValueSource: makeShapeValueSource, makeOverlapRatioValueSource) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-675.html](../../bugs/LFV-675.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You use the Geo3d spatial context (Geo3dSpatialContextFactory) with BBoxStrategy
 
 ## Expected vs actual
 
-- Expected: You expect reset to replace the whole rectangle (the spatial4j Rectangle.reset javadoc: 'Resets the state of this shape given the arguments'; spatial4j's own RectangleImpl.reset assigns all four bounds), so getMinX..getMaxY return 10, 20, 30, 40, the shape values return each document's indexed box, and a document box equal to the query scores 1.0, as it does with the default SpatialContext.GEO.
-- Actual: Geo3dRectangleShape.reset rebuilds only the wrapped GeoBBox and clears the center and bounding-box caches, never assigning the four fields that getMinX..getMaxY, getWidth, getHeight and getCrossesDateLine read: the rectangle equals rect(10, 20, 30, 40) but reports its previous bounds, BBoxValueSource (which creates one rect(0, 0, 0, 0) per segment and resets it for each document) reports (0, 0, 0, 0) for every document, and the self-overlap score is 0.0.
+- Expected: Each Geo3d leg answers like the spatial4j leg: bounds 10, 20, 30, 40 after the reset; shape values P and Q as indexed; scores 1.0 and 0.25.
+- Actual: 3 of 3 tests fail in the Geo3d leg: bounds still -50, -40, -30, -20; both shape values (0, 0, 0, 0); both scores 0.0; no exception.
 
 ## Files
 
@@ -45,6 +47,14 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeo3dRectangleResetBounds.java](TestGeo3dRectangleResetBounds.java)
+- [TestGeo3dRectangleReset.java](TestGeo3dRectangleReset.java)
+- [TestGeo3dRectResetVerify.java](TestGeo3dRectResetVerify.java)
+- [TestGeo3dBridgeRectangleResetBisect.java](TestGeo3dBridgeRectangleResetBisect.java)
+- [FixOrderProbe.java](FixOrderProbe.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-247 · Area: spatial3d / Geo3DDocValuesField distance sorts (Geo3DPointDistanceComparator, Geo3DPointOutsideDistanceComparator; GeoStandardCircle membership test on the decoded doc value) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-247.html](../../bugs/LFV-247.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You store locations with Geo3DDocValuesField on the default WGS84 model and sort
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: About half of the documents inside the 1 km radius, even ones 10 m from the centre, get +Infinity and sort last as if they had no location, some documents 2-3 km away get finite distances and sort ahead of them, and inside documents get outside distances of up to 988 m, while LatLonDocValuesField's distance sort orders the same points correctly.
+- Expected: The 36 documents at 500 m sort first, each about 500 m away; with `newOutsideDistanceSort` each gets 0.0.
+- Actual: Only 19 sort before every 3 km document; 17 get +Infinity and sort after 14 documents 3 km away with finite distances (22 of the first 36 hits are 500 m documents); the outside sort gives the same 17 up to 722 m.
 
 ## Files
 
@@ -43,6 +45,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeo3DDocValuesSmallRadiusSort.java](TestGeo3DDocValuesSmallRadiusSort.java)
+- [TestGeo3DDocValuesSortSmallCircle.java](TestGeo3DDocValuesSortSmallCircle.java)
+- [TestGeo3DDistanceSortSmallRadius.java](TestGeo3DDistanceSortSmallRadius.java)
+- [Geo3DSortHistoryMain.java](Geo3DSortHistoryMain.java)
 
 ## Feedback
 

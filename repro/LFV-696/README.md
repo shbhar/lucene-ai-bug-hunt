@@ -2,6 +2,8 @@
 
 Bug LFV-696 · Area: analysis/stempel / egothor stemmer trie reductions (Trie.reduce with Lift and Gener; the shared PolishAnalyzer.getDefaultTable table) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-696.html](../../bugs/LFV-696.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You call reduce(new Gener) or reduce(new Lift(..)) on a stempel Trie, for exampl
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Lift.optimize and Gener.optimize take the input's own row list and rewrite its cells in place (Lift moves commands up a level and clears references, Gener drops infrequent commands and references) before copying them into the result, so the input answers differently afterwards: after PolishAnalyzer.getDefaultTable.reduce(new Gener) every new PolishAnalyzer stems 'książkami rzekami pracowali' to [książk, rzekami, pracowali] instead of [książek, rzekść, pracować], and a one-key trie {aa -&gt; Da} reduced with Lift(false) starts to answer getLastOnPath('a') = Da instead of nothing.
+- Expected: A new `PolishAnalyzer` still gives [książek, rzekść, pracować], and the input trie {aa -&gt; Da} still answers nothing for 'a'.
+- Actual: It gives [książk, rzekami, pracowali], and the input answers `Da` for 'a': 2 of 2 tests fail, with assertions on and off.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestReduceKeepsInput.java](TestReduceKeepsInput.java)
+- [TestReduceLeavesInputUnchanged.java](TestReduceLeavesInputUnchanged.java)
+- [ReduceKeepsInputHistoryMain.java](ReduceKeepsInputHistoryMain.java)
 
 ## Feedback
 

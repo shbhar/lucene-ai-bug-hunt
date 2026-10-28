@@ -2,6 +2,8 @@
 
 Bug LFV-320 · Area: facet / range drill-down queries (LongRange and DoubleRange ValueSourceQuery and MultiValueSourceQuery) and the query cache · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-320.html](../../bugs/LFV-320.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a range filter or drill-down with LongRange or DoubleRange#getQuery(fa
 
 ## Expected vs actual
 
-- Expected: You expect the reopened searcher to use the new value, because a query that depends on updated doc values must report itself not cacheable (SegmentCacheable), and the fast-match query alone does.
-- Actual: The range query's Weight#isCacheable asks only the value source, the segment keeps its core cache key, and the cache keeps serving the pre-update result (5 hits instead of 4 in the repro) until the segment is merged away or the entry is evicted.
+- Expected: After doc 0 sells out and the reader is reopened, every range query counts 4, through the cache as without it, and the range Weight reports itself not cacheable.
+- Actual: Through the cache each of the five range queries still counts 5 (doc 0 included), and the range Weight reports cacheable.
 
 ## Files
 
@@ -54,6 +56,15 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestRangeQueryFastMatchCacheability.java](TestRangeQueryFastMatchCacheability.java)
+- [MigrateDefaultCacheRangeFastMatch.java](MigrateDefaultCacheRangeFastMatch.java)
+- [ZeroConfigRangeFastMatch.java](ZeroConfigRangeFastMatch.java)
+- [TestRangeQueryFastMatchCaching.java](TestRangeQueryFastMatchCaching.java)
+- [TestRangeGetQueryCacheV1.java](TestRangeGetQueryCacheV1.java)
+- [TestRangeFastMatchSecurityProbe.java](TestRangeFastMatchSecurityProbe.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/query-cache-correctness/](../../models/query-cache-correctness/)
 

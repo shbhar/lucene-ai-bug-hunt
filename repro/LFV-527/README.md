@@ -2,6 +2,8 @@
 
 Bug LFV-527 · Area: facet / SortedSetDocValues faceting (AbstractSortedSetDocValueFacetCounts#prepareChildIteration, shared by SortedSetDocValuesFacetCounts and ConcurrentSortedSetDocValuesFacetCounts) · Priority: medium · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-527.html](../../bugs/LFV-527.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You declare a facet dimension as hierarchical (FacetsConfig.setHierarchical("cat
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Both throw NullPointerException: Cannot read field "dimStartOrd" because "dimTree" is null (getTopChildren when the query has hits, always with the count-all constructor and the concurrent class; getAllChildren always).
+- Expected: Every root request for `category` returns null, like the absent flat dimension `publisher`.
+- Actual: `NullPointerException: Cannot read field "dimStartOrd" because "dimTree" is null` at `AbstractSortedSetDocValueFacetCounts.java:257`; 4 of 5 tests fail, the control passes.
 
 ## Files
 
@@ -44,6 +46,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSsdvHierarchicalDimNotIndexed.java](TestSsdvHierarchicalDimNotIndexed.java)
+- [TestUnseenHierarchicalSsdvDim.java](TestUnseenHierarchicalSsdvDim.java)
+- [TestSsdvHierarchicalUnseenDimHistory.java](TestSsdvHierarchicalUnseenDimHistory.java)
 
 ## Feedback
 

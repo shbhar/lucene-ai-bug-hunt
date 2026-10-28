@@ -38,7 +38,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
 /**
- * V3 (intended-behaviour) probe. Questions: (1) is the FieldDoc value really meters, i.e. is the
+ * Intended-behaviour probe. Questions: (1) is the FieldDoc value really meters, i.e. is the
  * cursor a user passes back in meters? (2) does feeding every returned hit back as the searchAfter
  * cursor give the rest of the sorted list, as for the core LatLon twin? (3) which unit does
  * compareTop actually expect (only a hand-converted cursor in planet units pages correctly)?

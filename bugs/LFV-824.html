@@ -1,0 +1,735 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>The classic Highlighter throws IllegalStateException for FieldExistsQuery when it highlights from term vectors</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-824 &middot; highlighter-termvector-fieldexistsquery-illegalstate</p><h1 id='top'>The classic Highlighter throws IllegalStateException for FieldExistsQuery when it highlights from term vectors</h1><p class='tldr'>Since 10.5.0 the classic <code class='nw'>Highlighter</code> throws <code>IllegalStateException</code> instead of highlighting when the query contains a <code class='nw'>FieldExistsQuery</code>, or a full-range numeric query that rewrites to one, and the token stream comes from term vectors with positions and offsets. 10.4.0 highlights the same hit; restoring a skip that 10.5.0 removed fixes it.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 274</span><span class='sub'>A released 10.5.0 regression where the classic Highlighter throws on every hit when term vectors are the source and the query contains an ordinary FieldExistsQuery or an open-ended range; the failure is loud and limited to the legacy term-vector path.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>crash</span></dd></div><div><dt>Since</dt><dd>10.5.0 (#15678, Feb 2026)<span class='sub'>introduced 2026-02-09</span></dd></div><div><dt>Affected</dt><dd>10.5.0 to 10.5.2, branch_10_6 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading and a probe, then a query-type matrix</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The classic Highlighter rewrites parts of your query against a tiny index of the one document it highlights. Since 10.5.0 that breaks for exists clauses when the tiny index is built from term vectors.</p><figure class='visual' id='highlighter-termvector-fieldexistsquery-illegalstate-short-visual'><div class='frame'><a class='still' href='../assets/LFV-824/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-824/bug.png' alt='Diagram of the example: one document with body stored with term vectors, price as numeric doc values and size as a LongField; the query +body:fox #FieldExistsQuery(price) finds it; inside getBestFragment the clause body:fox gives the term fox, the exists clause is rewritten on the internal index built from term vectors, whose fieldInfo(&quot;price&quot;) is shadowed_field with no norms and no doc values, so FieldExistsQuery throws IllegalStateException; expected the quick brown &lt;B&gt;fox&lt;/B&gt;, as on 10.4.0 and with re-analysed text.' width='1920' height='1080'></a></div><figcaption>The one-document example, step by step: the exists clause is rewritten on the tiny index built from term vectors, which answers for <code class='nw'>price</code> with <code class='nw'>shadowed_field</code> (no norms, no doc values), so <code class='nw'>getBestFragment</code> throws instead of returning the highlight. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index one document: <code class='nw'>body</code> = "the quick brown fox", stored with term vectors (positions and offsets), plus a doc-values field <code class='nw'>price</code> = 3. The query <code>+body:fox #FieldExistsQuery(price)</code> finds it: 1 hit.</span></li><li><span>You highlight the hit from its term vectors (<code>TokenSources.getTermVectorTokenStreamOrNull</code>) with <code>new Highlighter(new QueryScorer(query, "body"))</code>. You expect <code>the quick brown &lt;B&gt;fox&lt;/B&gt;</code>, which 10.4.0 returns.</span></li><li><span>To find the words to mark, the highlighter rewrites each clause it has no special case for against a tiny one-field index built from the term vectors. Since 10.5.0 it no longer skips the exists clause, and that index describes every field, <code class='nw'>price</code> included, as its own field <code class='nw'>shadowed_field</code>: no norms, no doc values.</span></li><li><span>So <code class='nw'>FieldExistsQuery</code> rejects the field and <code class='nw'>getBestFragment</code> throws <code>IllegalStateException</code> ("... field 'shadowed_field' exists and indexes neither of these data structures"). Every hit fails, and so does the full-range <code>LongField.newRangeQuery("size", Long.MIN_VALUE, Long.MAX_VALUE)</code>, which rewrites to the same query.</span></li><li><span>Re-analysing the text instead of reading term vectors still works: there the tiny index's field has norms, so the exists clause becomes match-all and is ignored.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications on 10.5.0 or later that highlight with the classic <code class='nw'>Highlighter</code> and <code class='nw'>QueryScorer</code> from term vectors with positions and offsets, when the highlighted query has an exists clause or a full-range numeric query on any field. Every hit fails. Search results, re-analysed text, offsets-only term vectors and the other highlighters are not affected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>584 words</span></summary><div class='body'><p>The classic <code class='nw'>Highlighter</code> with a <code class='nw'>QueryScorer</code> finds the words to mark by rewriting the query's clauses against a tiny one-field index of the document being highlighted. When the token stream comes from term vectors with positions and offsets, that index is a <code>TermVectorLeafReader</code>, whose only field (<code class='nw'>shadowed_field</code>) has no norms, doc values or vectors, and since #15678 (10.5.0) its <code class='nw'>getFieldInfos()</code> returns that field for every name. #15678 also removed the <code class='nw'>FieldExistsQuery</code> skip that #12088 (9.5.0) had added. So a <code class='nw'>FieldExistsQuery</code> on any field, or a query that rewrites to one such as <code>LongField.newRangeQuery(f, Long.MIN_VALUE, Long.MAX_VALUE)</code>, reaches <code>FieldExistsQuery.rewrite</code>, which throws <code>IllegalStateException</code> naming <code class='nw'>shadowed_field</code>. The highlight call fails for every hit; 10.4.0 returns <code>the quick brown &lt;B&gt;fox&lt;/B&gt;</code>. Search results, re-analysed text and offsets-only term vectors are not affected. Restoring the skip fixes it and passes all 732 tests of the highlighter module with the repro tests added.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Classic Highlighter</strong>: <code>org.apache.lucene.search.highlight.Highlighter</code> with a <code class='nw'>QueryScorer</code>. The scorer asks <code>WeightedSpanTermExtractor</code> which terms of the query occur in the token stream of the text.</li><li><strong>Token stream from term vectors</strong>: instead of re-analysing the stored text, <code class='nw'>TokenSources</code> can rebuild the tokens from the document's term vectors (<code>getTermVectorTokenStreamOrNull</code>, or <code>getTokenStream(field, tvFields, text, analyzer, max)</code>, which prefers term vectors when they have offsets). This is the usual speed-up for this highlighter.</li><li><strong>Internal reader</strong>: for queries it has no special case for (apart from spatial queries and multi-term queries it does not expand), the extractor calls <code>query.rewrite(...)</code> on a one-document reader made from the token stream, then extracts terms from the result. With term vectors that have positions and offsets the reader is a <code>TermVectorLeafReader</code>; otherwise the text is indexed into a <code class='nw'>MemoryIndex</code>. A <code>DelegatingLeafReader</code> wraps it and answers every field name with its one field, <code class='nw'>shadowed_field</code>.</li><li><strong><code class='nw'>FieldExistsQuery</code></strong>: matches documents that have a value in a field, using norms, doc values or vectors. Its <code class='nw'>rewrite</code> throws <code>IllegalStateException</code> for a field that exists but indexes none of them.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-what-happens-main-a9779ef3c193'>What happens (main <code class='nw'>a9779ef3c193</code>)</h3><a class="hlink" href="#what-the-bug-is-what-happens-main-a9779ef3c193" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-happens-main-a9779ef3c193"><span aria-hidden="true">#</span></a></div><pre><code>// WeightedSpanTermExtractor.extract
+} else if (query instanceof MatchAllDocsQuery) {            // :236
+  // nothing
+                                                          // 9.5.0-10.4.0 had here:
+                                                          //   } else if (query instanceof FieldExistsQuery) { // nothing
+} else if (query instanceof FunctionScoreQuery) {           // :238
+  ...
+} else {
+  final IndexReader reader = getLeafContext().reader();     // :247  the internal one-field reader
+  rewritten = query.rewrite(new IndexSearcher(reader));     // :254  FieldExistsQuery.rewrite runs here
+
+// getLeafContext(), :397-399: term vectors with positions AND offsets
+internalReader = new TermVectorLeafReader(DelegatingLeafReader.FIELD_NAME, termVectorTerms);
+
+// DelegatingLeafReader.getFieldInfos(), :442-451 (since #15678): every name gets the one FieldInfo
+public FieldInfo fieldInfo(String fieldName) { return super.fieldInfo(DelegatingLeafReader.FIELD_NAME); }
+
+// TermVectorLeafReader.java:93-112: omitNorms = true, DocValuesType.NONE, vector dimension 0
+// FieldExistsQuery.java:156: no norms, no vectors, no doc values -&gt;
+throw new IllegalStateException(buildErrorMsg(fieldInfo));</code></pre><ol><li>A <code class='nw'>BooleanQuery</code> is walked clause by clause (prohibited clauses skipped), so MUST, FILTER and SHOULD clauses all reach <code class='nw'>extract</code>.</li><li><code class='nw'>body:fox</code> gives the term <code class='nw'>fox</code>. <code>FieldExistsQuery(price)</code> has no branch since 10.5.0, so it is rewritten on the internal reader.</li><li>Asked for <code class='nw'>price</code>, the internal reader answers with <code class='nw'>shadowed_field</code>, which on the term-vector path has no norms, doc values or vectors. The real <code class='nw'>price</code> has numeric doc values.</li><li><code>FieldExistsQuery.rewrite</code> throws; the exception leaves <code>Highlighter.getBestFragment</code>.</li><li>On the <code class='nw'>MemoryIndex</code> path the same <code class='nw'>FieldInfo</code> has norms, <code class='nw'>docCount</code> 1 equals <code class='nw'>maxDoc</code> 1, and the rewrite gives <code>MatchAllDocsQuery</code>, which the extractor ignores (traced).</li></ol><p>The full-range <code class='nw'>LongField</code> query gets there one step later: <code>IndexSortSortedNumericDocValuesRangeQuery</code> rewrites <code>[Long.MIN_VALUE, Long.MAX_VALUE]</code> to <code>new FieldExistsQuery(field)</code> (<code>IndexSortSortedNumericDocValuesRangeQuery.java:131-133</code>), which is extracted again (<code class='nw'>:259</code>).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>425 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Users of the classic <code class='nw'>Highlighter</code> with a <code class='nw'>QueryScorer</code> who take token streams from term vectors with positions and offsets: <code>TokenSources.getTermVectorTokenStreamOrNull</code>, or <code>TokenSources.getTokenStream(field, tvFields, text, analyzer, max)</code> when the field has such vectors. Neither method is deprecated; <code class='nw'>TokenSources</code> recommends positions on the term vector, and the package javadoc presents term vectors as the faster way to highlight.</li><li><strong>Trigger.</strong> Any clause of the highlighted query that is, or rewrites to, a <code class='nw'>FieldExistsQuery</code>, on any field: exists filters on doc-values, norms, vector, keyword or numeric fields and on the highlighted field itself; full-range numeric and unbounded sorted or sorted-set doc-values ranges, and the full-range <code class='nw'>LongField</code> range; an <code>IndexOrDocValuesQuery</code> whose index side is an exists query (the extractor reads only that side); the same under ConstantScore, Boost, FunctionScore, DisjunctionMax or nested Boolean queries. MUST_NOT clauses are skipped by the extractor and do not trigger it.</li><li><strong>Scale.</strong> The finder's matrix ran 7 document shapes x 3 text queries x about 130 query atoms x 5 occurrences (13,884 searchable queries) and highlighted every hit in 26 modes: 533,104 checks on main. 36 atoms throw this exception, all in the three <code class='nw'>QueryScorer</code> term-vector modes and none in the UnifiedHighlighter or FastVectorHighlighter modes. (The matrix also records other, unrelated exceptions in some modes; they are not part of this report.) #16582 (10.6) makes ranges that cover every value of a field rewrite to <code class='nw'>FieldExistsQuery</code> on the real index, but not on the highlighter's internal reader, which has no doc-values skipper: executed on main, such ranges still highlight from term vectors, and only the full <code class='nw'>Long.MIN_VALUE</code>..<code class='nw'>Long.MAX_VALUE</code> range throws, as on 10.5.2.</li><li><strong>Effect.</strong> One unchecked <code>IllegalStateException</code> per highlight call, so the request gets no highlights or an error. One document is enough, and no special settings are needed: it fails with the test framework's randomized directory and config (the repro) and with a plain <code>IndexWriterConfig</code>, the default codec and a plain <code class='nw'>IndexSearcher</code> (the diagram probe); assertions on and off. Nothing is written and search results are correct.</li><li><strong>Opt-in.</strong> Term vectors with positions and offsets are an index-time choice, and the classic Highlighter is the older highlighter (#16820, an open proposal, would deprecate it in 11.0; nothing is deprecated yet). No matching public report was found in the four months since 10.5.0.</li><li><strong>Workaround.</strong> Highlight with a query that has no exists or full-range clauses, or override the protected <code>QueryScorer.newTermExtractor</code> to return a <code>WeightedSpanTermExtractor</code> whose protected <code>isQueryUnsupported</code> also returns true for <code class='nw'>FieldExistsQuery</code>. Both give <code>the quick brown &lt;B&gt;fox&lt;/B&gt;</code> on main from a package outside Lucene, with assertions on and off.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A 3-test JUnit for <code>lucene/highlighter</code> on the public API (plus the test framework's <code class='nw'>LuceneTestCase</code> and <code class='nw'>MockAnalyzer</code>): one document, the test framework's randomized directory and config. Two tests fail on 10.5.0 and later with assertions on and off; the re-analysed control passes.</p><figure class='code'><figcaption><span class='fname'>TestHighlightFieldExistsTermVectors.java (highlighter, 3 tests)</span><span class='meta'>113 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.highlight;
+
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Highlighting a hit of {@code +body:fox #FieldExistsQuery(price)} with the classic Highlighter
+ * over the term-vector token stream of the hit throws IllegalStateException, while the same query
+ * over a re-analysed token stream highlights &quot;fox&quot;. GITHUB#12088 made the extractor skip
+ * FieldExistsQuery (&quot;Don&#x27;t throw UOE when highlighting FieldExistsQuery&quot;).
+ */
+public class TestHighlightFieldExistsTermVectors extends LuceneTestCase {
+
+  private static final String TEXT = &quot;the quick brown fox&quot;;
+
+  private static Query query() {
+    return query(new FieldExistsQuery(&quot;price&quot;));
+  }
+
+  private static Query query(Query filter) {
+    return new BooleanQuery.Builder()
+        .add(new TermQuery(new Term(&quot;body&quot;, &quot;fox&quot;)), Occur.MUST)
+        .add(filter, Occur.FILTER)
+        .build();
+  }
+
+  private static Directory index() throws Exception {
+    Directory dir = newDirectory();
+    FieldType tv = new FieldType(TextField.TYPE_STORED);
+    tv.setStoreTermVectors(true);
+    tv.setStoreTermVectorPositions(true);
+    tv.setStoreTermVectorOffsets(true);
+    tv.freeze();
+    try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+      Document d = new Document();
+      d.add(new Field(&quot;body&quot;, TEXT, tv));
+      d.add(new NumericDocValuesField(&quot;price&quot;, 3));
+      d.add(new LongField(&quot;size&quot;, 7, Field.Store.NO));
+      w.addDocument(d);
+    }
+    return dir;
+  }
+
+  /** Fails on 10.5.0 and later: IllegalStateException from FieldExistsQuery.rewrite. */
+  public void testTermVectorTokenStream() throws Exception {
+    assertHighlightsFromTermVectors(query());
+  }
+
+  /**
+   * Same failure for an open-ended range on a LongField (size:[* TO *]): it rewrites to
+   * FieldExistsQuery before the extractor sees it.
+   */
+  public void testTermVectorTokenStreamOpenEndedLongRange() throws Exception {
+    assertHighlightsFromTermVectors(
+        query(LongField.newRangeQuery(&quot;size&quot;, Long.MIN_VALUE, Long.MAX_VALUE)));
+  }
+
+  private static void assertHighlightsFromTermVectors(Query q) throws Exception {
+    try (Directory dir = index();
+        DirectoryReader reader = DirectoryReader.open(dir)) {
+      TopDocs td = new IndexSearcher(reader).search(q, 10);
+      assertEquals(1, td.scoreDocs.length); // the document matches the query
+      int doc = td.scoreDocs[0].doc;
+      TokenStream ts =
+          TokenSources.getTermVectorTokenStreamOrNull(&quot;body&quot;, reader.termVectors().get(doc), -1);
+      assertNotNull(ts);
+      Highlighter highlighter = new Highlighter(new QueryScorer(q, &quot;body&quot;));
+      assertEquals(&quot;the quick brown &lt;B&gt;fox&lt;/B&gt;&quot;, highlighter.getBestFragment(ts, TEXT));
+    }
+  }
+
+  /** Control: the same query and document over a re-analysed token stream (passes). */
+  public void testReanalysedTokenStream() throws Exception {
+    Query q = query();
+    TokenStream ts = new MockAnalyzer(random()).tokenStream(&quot;body&quot;, TEXT);
+    Highlighter highlighter = new Highlighter(new QueryScorer(q, &quot;body&quot;));
+    assertEquals(&quot;the quick brown &lt;B&gt;fox&lt;/B&gt;&quot;, highlighter.getBestFragment(ts, TEXT));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp TestHighlightFieldExistsTermVectors.java $LUCENE/lucene/highlighter/src/test/org/apache/lucene/search/highlight/
+cd $LUCENE
+./gradlew :lucene:highlighter:test --tests org.apache.lucene.search.highlight.TestHighlightFieldExistsTermVectors -Ptests.seed=DEADBEEF
+# assertions off (production-like): add -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>getBestFragment</code> returns <code>the quick brown &lt;B&gt;fox&lt;/B&gt;</code>, as on 10.4.0 and on main over re-analysed text.</dd></div><div class='got'><dt>Observed</dt><dd><code>IllegalStateException: FieldExistsQuery requires that the field indexes doc values, norms or vectors, but field 'shadowed_field' exists and indexes neither of these data structures</code>; 2 of 3 tests fail.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-824/'>repro/LFV-824/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (235 lines) · 1,344 words</span></summary><div class='body'><p><code>TestHighlightFieldExistsTermVectors</code> (package <code>org.apache.lucene.search.highlight</code>, public API only). One document: <code class='nw'>body</code> stored with term vectors with positions and offsets, <code class='nw'>price</code> as a <code>NumericDocValuesField</code>, <code class='nw'>size</code> as a <code class='nw'>LongField</code>. Each test first asserts that the query finds the document, then highlights it from its term vectors.</p><ul><li><code>testTermVectorTokenStream</code>: <code>+body:fox #FieldExistsQuery(price)</code>; fails.</li><li><code>testTermVectorTokenStreamOpenEndedLongRange</code>: the full-range <code>LongField.newRangeQuery("size", Long.MIN_VALUE, Long.MAX_VALUE)</code> as the filter; fails (the method name says open-ended).</li><li><code>testReanalysedTokenStream</code>: the first query over re-analysed text; passes (control).</li></ul><p>Two more tests are attached: the independent reproducer's (exists on a doc-values field, exists on the highlighted field, the full-range <code class='nw'>LongField</code> range, two controls; 3 of 5 fail) and a variant test (exists on the highlighted field as a MUST clause, <code class='nw'>QueryScorer</code> without a field, <code>TokenSources.getTokenStream</code>, offsets-only control; 1 of 2 fails). All three pass with the recommended fix.</p><div class="hd hd-3"><h3 id='code-2-h'>TestFieldExistsTermVectorHighlight.java (independent reproducer, 5 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>In its own package <code class='nw'>verify.v1</code>; it also runs in <code>org.apache.lucene.search.highlight</code> after changing only the package line. 3 of 5 fail on main; both controls pass.</p><figure class='code'><figcaption><span class='fname'>TestFieldExistsTermVectorHighlight.java (independent reproducer, 5 tests)</span><span class='meta'>146 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package verify.v1;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Fields;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.QueryScorer;
+import org.apache.lucene.search.highlight.TokenSources;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check (public API only, own package): the classic Highlighter, fed a token stream
+ * built from term vectors with positions and offsets, should highlight the matching term of a
+ * query that also contains a FieldExistsQuery (or a query that rewrites to one), as it does for a
+ * re-analysed token stream.
+ */
+public class TestFieldExistsTermVectorHighlight extends LuceneTestCase {
+
+  private static final String TEXT = &quot;the quick brown fox&quot;;
+  private static final String EXPECTED = &quot;the quick brown &lt;B&gt;fox&lt;/B&gt;&quot;;
+
+  private Directory dir;
+  private DirectoryReader reader;
+  private Analyzer analyzer;
+  private int docId;
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    analyzer = new MockAnalyzer(random(), MockTokenizer.WHITESPACE, true);
+    dir = newDirectory();
+    FieldType tvType = new FieldType(TextField.TYPE_STORED);
+    tvType.setStoreTermVectors(true);
+    tvType.setStoreTermVectorPositions(true);
+    tvType.setStoreTermVectorOffsets(true);
+    tvType.freeze();
+    try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(analyzer))) {
+      Document doc = new Document();
+      doc.add(new Field(&quot;body&quot;, TEXT, tvType));
+      doc.add(new NumericDocValuesField(&quot;dv&quot;, 7L));
+      doc.add(new LongField(&quot;num&quot;, 42L, Field.Store.NO));
+      w.addDocument(doc);
+    }
+    reader = DirectoryReader.open(dir);
+    docId = new IndexSearcher(reader).search(new TermQuery(new Term(&quot;body&quot;, &quot;fox&quot;)), 1).scoreDocs[0]
+        .doc;
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    reader.close();
+    dir.close();
+    analyzer.close();
+    super.tearDown();
+  }
+
+  private static Query foxAnd(Query filter) {
+    return new BooleanQuery.Builder()
+        .add(new TermQuery(new Term(&quot;body&quot;, &quot;fox&quot;)), BooleanClause.Occur.MUST)
+        .add(filter, BooleanClause.Occur.FILTER)
+        .build();
+  }
+
+  private TokenStream termVectorStream() throws Exception {
+    Fields tv = reader.termVectors().get(docId);
+    TokenStream ts = TokenSources.getTermVectorTokenStreamOrNull(&quot;body&quot;, tv, -1);
+    assertNotNull(&quot;term vectors with offsets expected&quot;, ts);
+    return ts;
+  }
+
+  private void assertHighlights(Query query, TokenStream ts) throws Exception {
+    // precondition: the document matches the query on the real index
+    assertEquals(1, new IndexSearcher(reader).count(query));
+    Highlighter highlighter = new Highlighter(new QueryScorer(query, &quot;body&quot;));
+    String fragment;
+    try {
+      fragment = highlighter.getBestFragment(ts, TEXT);
+    } catch (RuntimeException e) {
+      throw new AssertionError(&quot;highlighting threw for query &quot; + query + &quot;: &quot; + e, e);
+    }
+    assertEquals(EXPECTED, fragment);
+  }
+
+  /** Bug claim: FieldExistsQuery on a doc-values field, term-vector token stream. */
+  public void testTermVectorStreamFieldExistsOnDocValuesField() throws Exception {
+    assertHighlights(foxAnd(new FieldExistsQuery(&quot;dv&quot;)), termVectorStream());
+  }
+
+  /** Bug claim: FieldExistsQuery on the highlighted field itself (it has norms). */
+  public void testTermVectorStreamFieldExistsOnHighlightedField() throws Exception {
+    assertHighlights(foxAnd(new FieldExistsQuery(&quot;body&quot;)), termVectorStream());
+  }
+
+  /** Bug claim: an open-ended long range, which rewrites to a FieldExistsQuery. */
+  public void testTermVectorStreamOpenEndedLongRange() throws Exception {
+    assertHighlights(
+        foxAnd(LongField.newRangeQuery(&quot;num&quot;, Long.MIN_VALUE, Long.MAX_VALUE)),
+        termVectorStream());
+  }
+
+  /** Control: same FieldExistsQuery query, re-analysed token stream. */
+  public void testControlReanalysedStreamFieldExists() throws Exception {
+    assertHighlights(
+        foxAnd(new FieldExistsQuery(&quot;dv&quot;)), analyzer.tokenStream(&quot;body&quot;, TEXT));
+  }
+
+  /** Control: term-vector token stream, query without FieldExistsQuery. */
+  public void testControlTermVectorStreamPlainTerm() throws Exception {
+    assertHighlights(new TermQuery(new Term(&quot;body&quot;, &quot;fox&quot;)), termVectorStream());
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>D=$LUCENE/lucene/highlighter/src/test/org/apache/lucene/search/highlight
+sed &#x27;s/^package verify\.v1;/package org.apache.lucene.search.highlight;/&#x27; TestFieldExistsTermVectorHighlight.java &gt; $D/TestFieldExistsTermVectorHighlight.java
+cd $LUCENE
+./gradlew :lucene:highlighter:test --tests org.apache.lucene.search.highlight.TestFieldExistsTermVectorHighlight -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestFieldExistsTermVectorVariants.java (variant test, 2 tests)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Exists on the highlighted field as a MUST clause through <code>TokenSources.getTokenStream</code>; 1 of 2 fails, the offsets-only control passes.</p><figure class='code'><figcaption><span class='fname'>TestFieldExistsTermVectorVariants.java (variant test, 2 tests)</span><span class='meta'>89 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.highlight;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Fields;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Variants: the FieldExistsQuery targets the highlighted field itself (which indexes norms), the
+ * clause is MUST, the token stream comes from the non-deprecated TokenSources.getTokenStream
+ * convenience (term vectors first, analysis as fallback), and QueryScorer has no field restriction.
+ */
+public class TestFieldExistsTermVectorVariants extends LuceneTestCase {
+
+  private static final String TEXT = &quot;the quick brown fox&quot;;
+
+  private static String highlight(boolean positions) throws Exception {
+    Analyzer analyzer = new MockAnalyzer(random());
+    try (Directory dir = newDirectory()) {
+      FieldType tv = new FieldType(TextField.TYPE_STORED);
+      tv.setStoreTermVectors(true);
+      tv.setStoreTermVectorPositions(positions);
+      tv.setStoreTermVectorOffsets(true);
+      tv.freeze();
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(analyzer))) {
+        Document d = new Document();
+        d.add(new Field(&quot;body&quot;, TEXT, tv));
+        w.addDocument(d);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        Query q =
+            new BooleanQuery.Builder()
+                .add(new TermQuery(new Term(&quot;body&quot;, &quot;fox&quot;)), Occur.MUST)
+                .add(new FieldExistsQuery(&quot;body&quot;), Occur.MUST)
+                .build();
+        TopDocs td = new IndexSearcher(reader).search(q, 10);
+        assertEquals(1, td.scoreDocs.length);
+        int doc = td.scoreDocs[0].doc;
+        Fields tvFields = reader.termVectors().get(doc);
+        String text = reader.storedFields().document(doc).get(&quot;body&quot;);
+        TokenStream ts = TokenSources.getTokenStream(&quot;body&quot;, tvFields, text, analyzer, -1);
+        Highlighter highlighter = new Highlighter(new QueryScorer(q));
+        return highlighter.getBestFragment(ts, text);
+      }
+    }
+  }
+
+  /** Term vectors with positions and offsets: the TermVectorLeafReader path. */
+  public void testTermVectorsWithPositionsAndOffsets() throws Exception {
+    assertEquals(&quot;the quick brown &lt;B&gt;fox&lt;/B&gt;&quot;, highlight(true));
+  }
+
+  /** Control: offsets without positions, so the extractor re-indexes into a MemoryIndex. */
+  public void testTermVectorsWithOffsetsOnly() throws Exception {
+    assertEquals(&quot;the quick brown &lt;B&gt;fox&lt;/B&gt;&quot;, highlight(false));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>cp TestFieldExistsTermVectorVariants.java $LUCENE/lucene/highlighter/src/test/org/apache/lucene/search/highlight/
+cd $LUCENE
+./gradlew :lucene:highlighter:test --tests org.apache.lucene.search.highlight.TestFieldExistsTermVectorVariants -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT), 10.5.0, 10.5.1, 10.5.2 and branch_10_6 4ae946e5a9b (10.6.0-SNAPSHOT jars built from that checkout): fail; 9.12.3, 10.3.2, 10.4.0: pass (9.5.0: the 9.x-API port of the test passes)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp TestHighlightFieldExistsTermVectors.java $LUCENE/lucene/highlighter/src/test/org/apache/lucene/search/highlight/
+cd $LUCENE
+./gradlew :lucene:highlighter:test --tests org.apache.lucene.search.highlight.TestHighlightFieldExistsTermVectors -Ptests.seed=DEADBEEF
+# assertions off (production-like): add -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, assertions on, seed DEADBEEF (the same 2 of 3 with -Ptests.asserts=false); abridged and reordered: gradle prints the range failure first, with module prefixes, SeedInfo and test frames
+TestHighlightFieldExistsTermVectors &gt; testTermVectorTokenStream FAILED
+    java.lang.IllegalStateException: FieldExistsQuery requires that the field indexes doc values, norms or vectors, but field &#x27;shadowed_field&#x27; exists and indexes neither of these data structures
+        at org.apache.lucene.search.FieldExistsQuery.rewrite(FieldExistsQuery.java:156)
+        at org.apache.lucene.search.highlight.WeightedSpanTermExtractor.extract(WeightedSpanTermExtractor.java:254)
+        at org.apache.lucene.search.highlight.WeightedSpanTermExtractor.extract(WeightedSpanTermExtractor.java:136)
+        at org.apache.lucene.search.highlight.WeightedSpanTermExtractor.getWeightedSpanTerms(WeightedSpanTermExtractor.java:520)
+        at org.apache.lucene.search.highlight.QueryScorer.initExtractor(QueryScorer.java:209)
+        at org.apache.lucene.search.highlight.QueryScorer.init(QueryScorer.java:178)
+        at org.apache.lucene.search.highlight.Highlighter.getBestTextFragments(Highlighter.java:175)
+        at org.apache.lucene.search.highlight.Highlighter.getBestFragments(Highlighter.java:140)
+        at org.apache.lucene.search.highlight.Highlighter.getBestFragment(Highlighter.java:98)
+
+TestHighlightFieldExistsTermVectors &gt; testTermVectorTokenStreamOpenEndedLongRange FAILED
+    java.lang.IllegalStateException: (same message)
+        at org.apache.lucene.search.FieldExistsQuery.rewrite(FieldExistsQuery.java:156)
+        at org.apache.lucene.search.highlight.WeightedSpanTermExtractor.extract(WeightedSpanTermExtractor.java:254)
+        at org.apache.lucene.search.highlight.WeightedSpanTermExtractor.extract(WeightedSpanTermExtractor.java:259)
+        at org.apache.lucene.search.highlight.WeightedSpanTermExtractor.extract(WeightedSpanTermExtractor.java:136)
+        ...
+
+testReanalysedTokenStream: passed   (from the gradle test results)
+
+# with the attached two tests: 10 tests, 6 failed (assertions on and off); every control passes
+# 10.5.0 / 10.5.2: the same exception at FieldExistsQuery.java:155 &lt;- WeightedSpanTermExtractor.java:255</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>#12088 (9.5.0) made the highlighter skip <code class='nw'>FieldExistsQuery</code> to "avoid throwing an exception"; #15678 promises such rewrites "will not throw exceptions during highlighting".</li><li>#15678 removed the skip, apparently expecting a clean rewrite; that holds only on the <code class='nw'>MemoryIndex</code> path its tests use.</li><li>The real <code class='nw'>price</code> has doc values; the error names an internal field, and 10.4.0 highlights the same hit.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>309 words</span></summary><div class='body'><ul><li><strong>#12088 (9.5.0)</strong>, commit <code class='nw'>fc7b937affe</code> "Don't throw UOE when highlighting FieldExistsQuery": "This commit makes WeightedSpanTermExtractor aware of FieldExistsQuery, so that it can just ignore it and avoid throwing an exception." Its test <code>TestHighlighter.testFieldExistsQuery</code> still exists.</li><li><strong>#15678 (10.5.0)</strong>, commit <code class='nw'>a8b3d1a9481d</code>: "This commit adds a more useful implementation, meaning that queries calling getFieldInfos() during rewrite will not throw exceptions during highlighting." Its PR body: the new <code class='nw'>FieldInfos</code> "ensures that any current or future query types that rely on index schema metadata during rewrite can be handled gracefully by the highlighter". The issue it fixed, #15668, asked to end the "whack-a-mole" of query optimizations that break the highlighter.</li><li><strong>Why the removal slipped through</strong> (our reading; the thread does not discuss term vectors). On #15678 the reviewer asked "maybe let's remove the special-casing for FieldExistsQuery as well?" and the author did. #15678's two tests and <code>testFieldExistsQuery</code> take the <code class='nw'>MemoryIndex</code> path, where the internal field has norms: <code>testSortedNumericDocValuesRangeQuery</code> and <code>testFieldExistsQuery</code> use a <code>CannedTokenStream</code>, and <code>TestHighlightCustomQuery.testHighlightQueryRequiringMetadata</code> re-analyses the text with a <code class='nw'>MockAnalyzer</code>. No upstream test highlights a <code class='nw'>FieldExistsQuery</code> from term vectors.</li><li><strong>Correct usage.</strong> Public, non-deprecated APIs only; the document matches the query on the real index; the error names <code class='nw'>shadowed_field</code>, a field the user never created; it fires even for an exists clause on the highlighted field, which has norms.</li><li><strong>The class javadoc</strong> leaves queries it does not support to subclasses: they may override <code class='nw'>extract</code> and <code>extractUnknownQuery</code> "to support additional, by default unsupported queries", and the default <code>extractUnknownQuery</code>, reached when a rewrite returns the query unchanged, does nothing. It does not promise that a rewrite cannot throw, so it is weaker support than the two commit messages.</li><li><strong>Stability markers, both ways.</strong> <code class='nw'>Highlighter</code>, <code class='nw'>QueryScorer</code>, <code>WeightedSpanTermExtractor</code> and the two <code class='nw'>TokenSources</code> methods are public and not deprecated; <code>TermVectorLeafReader</code> and the <code class='nw'>FieldInfo</code> constructor are <code>@lucene.experimental</code>, and <code>TokenStreamFromTermVector</code> is <code class='nw'>@lucene.internal</code>.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>176 words</span></summary><div class='body'><p>Strongest case (a reviewer from another model family, OpenAI GPT-5.6, and an intended-behaviour checker): the classic Highlighter is a lexical term extractor that never promised to handle every query; <code class='nw'>FieldExistsQuery</code> has no terms to highlight, and its exception is a deliberate fail-fast for a field without norms, doc values or vectors; the term-vector reader is a deliberately partial <code>@lucene.experimental</code> view; #15678 removed the special case on purpose; the #12088 CHANGES line names only <code>UnsupportedOperationException</code>; and #16820 proposes deprecating the classic Highlighter.</p><p>Why it fails: the fail-fast fires on the highlighter's own description of the schema, not on the caller's field (the real <code class='nw'>price</code> has doc values); both commit messages state a no-exception intent for exactly this kind of rewrite; the removal was justified only for the path its tests covered; 10.4.0 behaves differently with the same code and query; and a proposed deprecation is not a decision. Both reviewers rated the argument weak. When filing, base the contract on the two commit messages, the #12088 test and the 10.4.0-to-10.5.0 change, not on the CHANGES line.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A. Restore the FieldExistsQuery skip in WeightedSpanTermExtractor.extract (recommended)</strong></p><p class='short'>Restore the skip that 10.5.0 removed: <code>else if (query instanceof FieldExistsQuery) { // nothing }</code> in <code>WeightedSpanTermExtractor.extract</code> (+4 lines with the import and a comment). The repro tests and all 722 other highlighter-module tests pass, with assertions on and off; it restores 10.4.0's handling of <code class='nw'>FieldExistsQuery</code>.</p><pre class='snippet' tabindex='0'><code>+import org.apache.lucene.search.FieldExistsQuery;
+ ...
+     } else if (query instanceof MatchAllDocsQuery) {
+       // nothing
++    } else if (query instanceof FieldExistsQuery) {
++      // nothing: it has no terms to highlight, and its rewrite reads FieldInfos that the internal
++      // reader cannot report faithfully (term vectors have no norms or doc values)
+     } else if (query instanceof FunctionScoreQuery) {</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 644 words</span></summary><div class='body'><p>Fix A was built and run in a scratch worktree at <code class='nw'>a9779ef3c193</code> with the whole <code>:lucene:highlighter:test</code> task and the format and lint tasks; fix B with the same tests (assertions on). Fix C was run by the independent reproducer; the PR #16816 change was run as a shadow class; the workarounds were run on main from a package outside Lucene.</p><div class="hd hd-3"><h3 id='fix-restore-skip'>A. Restore the FieldExistsQuery skip in WeightedSpanTermExtractor.extract (recommended) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-restore-skip" target="_self" aria-label="Link to this section" aria-describedby="fix-restore-skip"><span aria-hidden="true">#</span></a></div><p>Put back the branch #12088 added and #15678 removed, right after the <code>MatchAllDocsQuery</code> branch.</p><pre class='snippet' tabindex='0'><code>+import org.apache.lucene.search.FieldExistsQuery;
+ ...
+     } else if (query instanceof MatchAllDocsQuery) {
+       // nothing
++    } else if (query instanceof FieldExistsQuery) {
++      // nothing: it has no terms to highlight, and its rewrite reads FieldInfos that the internal
++      // reader cannot report faithfully (term vectors have no norms or doc values)
+     } else if (query instanceof FunctionScoreQuery) {</code></pre><p class='k'>Trade-offs</p><ul><li>Restores 10.4.0's handling of <code class='nw'>FieldExistsQuery</code> (main keeps #15678's working <code class='nw'>getFieldInfos()</code>); one <code class='nw'>instanceof</code> check per extracted query (not benchmarked).</li><li>Narrow: other rewrites can still read the misleading <code class='nw'>FieldInfo</code>. In the matrix it fixes 32 of the 36 throwing atoms; the other 4 are kNN queries with a filter or seed whose own rewrite runs a search on the internal reader, a related problem with a different fix that is better filed and cross-linked separately.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle on <code class='nw'>a9779ef3c193</code>, seed DEADBEEF: the 3 + 5 + 2 repro tests pass, and <code>:lucene:highlighter:test</code> passes with assertions on and off: 37 classes, 732 tests, 0 failures (722 upstream tests, e.g. <code class='nw'>TestHighlighter</code> 59, <code class='nw'>TestTokenSources</code> 8, <code>TestUnifiedHighlighterTermVec</code> 6).</li><li><code>checkGoogleJavaFormat</code>, <code>forbiddenApisMain</code> and <code class='nw'>ecjLintMain</code> pass.</li><li>Earlier, with the standalone runner: the finder's, the independent reproducer's and the second reviewer's tests pass, and 81 upstream classic-highlighter tests.</li></ul><div class="hd hd-3"><h3 id='fix-tv-reader-norms'>B. Let TermVectorLeafReader report norms <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-tv-reader-norms" target="_self" aria-label="Link to this section" aria-describedby="fix-tv-reader-norms"><span aria-hidden="true">#</span></a></div><p>Pass <code>omitNorms = false</code> in <code>TermVectorLeafReader</code>'s <code class='nw'>FieldInfo</code>; <code>FieldExistsQuery.rewrite</code> then takes its norms branch and no longer throws.</p><p class='k'>Trade-offs</p><ul><li>The reader then claims norms while <code class='nw'>getNormValues</code> still returns <code class='nw'>null</code>.</li><li><code>TermVectorLeafReader</code> is a public <code>@lucene.experimental</code> class, also used by the UnifiedHighlighter's term-vector strategy.</li><li>The exists clause is still evaluated on the shadowed field, not the named one.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle on <code class='nw'>a9779ef3c193</code>, assertions on: all 732 tests pass. Not run with assertions off.</li></ul><div class="hd hd-3"><h3 id='fix-null-for-other-fields'>C. Report a FieldInfo only for the highlighted field (partial)</h3><a class="hlink" href="#fix-null-for-other-fields" target="_self" aria-label="Link to this section" aria-describedby="fix-null-for-other-fields"><span aria-hidden="true">#</span></a></div><p><code>DelegatingLeafReader.getFieldInfos().fieldInfo(name)</code> returns <code class='nw'>null</code> for fields other than the highlighted one (the fix sketch of the related search-executing-rewrite report).</p><p class='k'>Trade-offs</p><p>Leaves <code class='nw'>FieldExistsQuery</code> on the highlighted field itself failing: run by the independent reproducer on main, 1 of 5 still fails. Useful only together with A.</p><div class="hd hd-3"><h3 id='fix-pr-16816'>Not a fix: open PR #16816 changes FieldExistsQuery.rewrite</h3><a class="hlink" href="#fix-pr-16816" target="_self" aria-label="Link to this section" aria-describedby="fix-pr-16816"><span aria-hidden="true">#</span></a></div><p>#16816 ("Rewrite special case AutomatonQueries", open; labelled Stale by the stale bot on 2026-10-28, last human activity 2026-10-13, merge conflicts) makes <code>FieldExistsQuery.rewrite</code> accept fields that index only terms.</p><p class='k'>Trade-offs</p><p>With its <code>FieldExistsQuery.java</code> as a shadow class the repro passes 3 of 3, so merging it would hide this bug on main by accident; 10.5.x and 10.6.x stay affected. Mention it in the issue.</p><div class="hd hd-3"><h3 id='fix-workaround'>Not a fix: user-side workarounds <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p>Until a fix ships: highlight with a query that has no exists or full-range clauses, or override the protected <code>QueryScorer.newTermExtractor</code> to return a <code>WeightedSpanTermExtractor</code> whose protected <code>isQueryUnsupported</code> also returns true for <code class='nw'>FieldExistsQuery</code>.</p><pre class='snippet' tabindex='0'><code>new QueryScorer(query, &quot;body&quot;) {
+  @Override
+  protected WeightedSpanTermExtractor newTermExtractor(String defaultField) {
+    return new WeightedSpanTermExtractor(defaultField) {
+      @Override
+      protected boolean isQueryUnsupported(Class&lt;? extends Query&gt; clazz) {
+        return clazz == FieldExistsQuery.class || super.isQueryUnsupported(clazz);
+      }
+    };
+  }
+}</code></pre><p class='k'>Trade-offs</p><p>Application code only; it does not fix Lucene, and every application on the term-vector path needs it.</p><p class='k'>What the checks validated</p><ul><li>Main <code class='nw'>a9779ef3c193</code>, a test in a package outside Lucene, assertions on and off: both workarounds give <code>the quick brown &lt;B&gt;fox&lt;/B&gt;</code> for the exists filter (and the extractor override for the full-range <code class='nw'>LongField</code> filter); a stock <code class='nw'>QueryScorer</code> throws in the same test. 4 of 4 pass.</li></ul></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>By code reading only, Solr's original highlighter gets term-vector token streams through the same <code class='nw'>TokenSources</code> method; Solr is still on Lucene 10.4.0, so it is not affected yet.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code reading, not a formal method: reading #15678's internal-reader change, a planning step wrote a small probe (term-vector highlighting plus an exists filter) that threw on main, and bisected it to 10.5.0. A hunt reduced it to a public-API JUnit and widened it with a 533,104-check matrix of query types and highlighter modes.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>180 words</span></summary><div class='body'><ul><li><strong>First signal (non-formal).</strong> The hunt's planning analysis read the <code>DelegatingLeafReader</code> remap that #15678 added, prompted by downstream reports of its predecessor <code>UnsupportedOperationException</code>, and wrote a small probe: a term-vector field plus a <code class='nw'>FieldExistsQuery</code> filter. It threw on main and was bisected to 10.5.0 by release.</li><li><strong>Reduction.</strong> A hunt unit on the classic and fast-vector highlighters turned it into the public-API JUnit of the repro and ran it on main and the release jars.</li><li><strong>Widening (bounded-exhaustive checking of the stock jars).</strong> A trigger model enumerated 11 token-stream cells (term-vector flag combinations, non-empty and empty text, the analysis path with and without caching and payloads) and checked "highlighting throws iff the internal reader is a TermVectorLeafReader" within them (holds, 0 violations). A matrix ran 7 document shapes x 3 text queries x about 130 query atoms x 5 occurrences and highlighted every hit in 26 modes: 533,104 checks on main (455,052, with a smaller atom set, on 10.5.2 and 10.4.0), grouped by throwing frame: 36 atoms throw this exception on main, only in the classic Highlighter's term-vector modes; 10.4.0 has none.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No report of this exact regression found (220 logged queries over GitHub, the Lucene and Solr lists, JIRA and the web, 2026-10-28). Nearest: #15678 (introduced it), #15668 and #12088 (the older exception), #7450 (the internal reader's missing <code class='nw'>getFieldInfos</code>, open since 2015) and open PR #16816.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Novelty: known, by partial overlap with #7450 (LUCENE-6390). Every related report is about the older <code>UnsupportedOperationException</code>, which #15678 fixed; this regression is a side effect of that fix. #7450 (LUCENE-6390) is the long-open umbrella for the incomplete internal reader; it predates <code class='nw'>FieldExistsQuery</code> and does not describe this exception, but someone else wrote there that "none of the query stack can use FieldInfos without breaking highlighting". The follow-up, the adjudication and the audit rated the bug new; the independent reproducer and the intended-behaviour checker left #7450 to the novelty decision; the cross-model fact check of this doc argues "known" under the hunt rule that partial overlap counts as known. Cite #7450 either way; the owner decides.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub apache/lucene issues, PRs and commits</th><td class='when'>2026-10-28</td><td>two scripted prior-report searches (class and method names; symptoms, the error text, the query types that rewrite to FieldExistsQuery) and 18 own searches, including <code class='nw'>shadowed_field</code></td><td>no report; nearest #15678, #15668, #12088, #7450</td></tr><tr><th scope='row'>Open and recent PRs</th><td class='when'>2026-10-28</td><td>the changed files of all 411 open apache/lucene PRs and the 15 closed since 2026-10-23; re-checked for PRs created since 2026-10-26</td><td>#16816 is the only open PR touching FieldExistsQuery.rewrite (would mask the bug on main); none restores the skip</td></tr><tr><th scope='row'>Downstream (apache/solr, Elasticsearch, OpenSearch)</th><td class='when'>2026-10-28</td><td>12 own GitHub searches and the scripted prior-report search downstream legs; 3 searches across all of GitHub</td><td>only the older UnsupportedOperationException family (elastic/elasticsearch#92919, #99700, opensearch-project/OpenSearch#20496)</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-28</td><td>48 searches over Lucene dev@, java-user@, issues@ and Solr lists; 9 JIRA queries</td><td>only the #15668/#15678 notification mails; SOLR-18175 has the same message at query time, without highlighting</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-28</td><td>7 searches</td><td>only the older exception</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #15678 (<code class='nw'>a8b3d1a9481d</code> on main, backport <code class='nw'>7ddd1898b389</code>, 2026-02-09), which removed the skip #12088 added in 9.5.0. First affected 10.5.0, last clean 10.4.0; a one-file bisect confirms it both ways. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #15678 "Fix Highlighter crash by implementing getFieldInfos in DelegatingLeafReader" (author sjs004, merged by romseygeek; fixes #15668): main <code class='nw'>a8b3d1a9481d</code>, branch_10x <code class='nw'>7ddd1898b389</code>, author date 2026-02-09. It removed the <code class='nw'>FieldExistsQuery</code> branch and made <code class='nw'>getFieldInfos()</code> answer every name with the shadowed <code class='nw'>FieldInfo</code>.</p><p><strong>Older ingredients, harmless before:</strong> the norms-free <code class='nw'>FieldInfo</code> of <code>TermVectorLeafReader</code> (LUCENE-6034, 5.0.0) and the exception branch of <code>FieldExistsQuery.rewrite</code> (LUCENE-10436, 9.2.0).</p><p><strong>Not fixed upstream:</strong> main <code class='nw'>20ced71c1e6e</code> and branch_10_6 <code class='nw'>4ae946e5a9b9</code> still lack the skip (2026-10-28).</p><p>9.1.0 and older have no <code class='nw'>FieldExistsQuery</code> (the 9.x test does not compile on 9.1.0; older releases read).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>2 of 3 fail (gradle and runner, assertions on and off)</td></tr><tr><th scope='row'>branch_10_6 <code class='nw'>4ae946e5a9b</code> (10.6.0-SNAPSHOT; 10.6.0 is not released)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>2 of 3 fail (jars built from a checkout of that commit)</td></tr><tr><th scope='row'>10.5.0, 10.5.1, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>2 of 3 fail</td></tr><tr><th scope='row'>10.4.0 + the #15678 file</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>2 of 3 fail</td></tr><tr><th scope='row'>10.5.0 with the pre-#15678 file</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> bisect</span></td><td>3 of 3 pass</td></tr><tr><th scope='row'>9.5.0, 9.12.3, 10.3.2, 10.4.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>3 of 3 pass (9.5.0: the same test on the 9.x API, 2 of 2); the releases in between read</td></tr><tr><th scope='row'>9.2.0, 9.4.2</th><td><span class='v warn'><span aria-hidden='true'>&#9650;</span> older bug</span></td><td>UnsupportedOperationException on every path, control included (fixed by #12088 in 9.5.0)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder, an independent reproducer, reviews by OpenAI GPT-5.6 and an intended-behaviour checker each ran their own tests: all said real. An adjudication re-ran with a new seed and confirmed; a later audit kept it; this doc's gradle runs reproduced it and validated the fix; three checks of the doc itself found wording errors, all resolved.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>499 words</span></summary><div class='body'><p>Every check executed code on main, except the cross-model fact check of the doc, which read files only. The doc's fact checks found no error in the bug, its mechanism or its versions; their findings are resolved.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>JUnit 2 of 3 fail on main (-ea, -da), 10.5.0-10.5.2 and the branch_10_6 snapshot; pass on 10.4.0, 10.3.2, 9.12.3 and with the skip restored; trigger model and matrix.</td></tr><tr><th scope='row'>refute review (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Own JUnit fails on main with -ea and -da over 3 seeds; control passes; 10.4.0 passes, 10.5.2 fails; the fix passes. Intended argument weak.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 5-test JUnit: 3 of 5 fail on main (-ea, -da; 15 of 25 over 5 iterations), 10.5.2 and 10.5.0; 0 of 5 on 10.4.0, 9.12.3 and with the fix. Found the highlighted-field case.</td></tr><tr><th scope='row'>works-as-designed review (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Built the strongest 'lexical extractor' case and rated it weak; own JUnit fails 1 of 2 on main and passes with the fix.</td></tr><tr><th scope='row'>intended-behaviour checker</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>The CHANGES line, the deliberate removal, the fail-fast and the deprecation proposal all fail as defences; own variant fails on main and 10.5.2, passes on 10.4.0.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the reproducer's JUnit with seed 1A2B3C4D: 3 of 5 fail with -ea and -da; both controls pass. Not a duplicate.</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's JUnit (2 of 3 fail), re-read the chain and the history. Its note that #16816 is active was wrong: the 2026-10-28 update is the stale bot (corrected by the fact check).</td></tr><tr><th scope='row'>doc step (gradle)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Stock main: 6 of 10 repro tests fail with -ea and -da. Fix A: 732 of 732 module tests pass with -ea and -da, lint clean. Fix B: 732 pass with -ea.</td></tr><tr><th scope='row'>Fact check of this doc (independent)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; 4 text errors, fixed</span></td><td>Ran section 7's gradle command verbatim (2 of 3 fail, assertions on and off), the two attached tests (4 of 7 fail), fix A on the whole module (732 pass), the harness on main, 10.3.2, 10.4.0 and 10.5.0-10.5.2, a public-API check and its own 12-test probe. Errors: #16816 is stale, not live; #16582 adds no trigger on the internal reader (executed); the matrix product; the source of #15678's test streams. All fixed.</td></tr><tr><th scope='row'>Fact check of this doc (OpenAI GPT-5.6, read-only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> core finding holds; wording corrected</span></td><td>A reading-only review: 9 errors (1 high, 6 medium, 2 low), 8 overclaims and 4 missing caveats, none against the bug itself; intended-behaviour case moderate, but still a regression. Its high item, novelty "known" by partial overlap with #7450, is left to the registry and the owner; the rest were fixed or answered.</td></tr><tr><th scope='row'>Diagram check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> </span></td><td>Every value, line number, stack frame and code excerpt matched; it ran its own probe showing that <code class='nw'>body:fox</code> gives the weighted term <code class='nw'>fox</code> from the query, not from a lookup in the internal index.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-824/bug.png' download='highlighter-termvector-fieldexistsquery-illegalstate-bug.png' target='_self'>PNG</a> <span class='n'>478 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,305 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-824, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Classic Highlighter throws IllegalStateException for any query that contains a FieldExistsQuery (or a query that rewrites to one, such as an open-ended LongField range) when the token stream comes from term vectors with positions and offsets (regression in 10.5.0 from GITHUB#15678)</dd></div><div><dt>Area</dt><dd>highlighter / classic Highlighter (QueryScorer, WeightedSpanTermExtractor term-vector path)</dd></div><div><dt>Priority</dt><dd>Medium, rank 274: A released 10.5.0 regression where the classic Highlighter throws on every hit when term vectors are the source and the query contains an ordinary FieldExistsQuery or an open-ended range; the failure is loud and limited to the legacy term-vector path.</dd></div><div><dt>Impact class</dt><dd>crash</dd></div><div><dt>Impact note</dt><dd>Applications that highlight with the classic Highlighter and a QueryScorer from term vectors stored with positions and offsets (TokenSources.getTermVectorTokenStreamOrNull, or TokenSources.getTokenStream when the field has such vectors) get an IllegalStateException instead of highlights for every hit on 10.5.0-10.5.2, branch_10_6 (10.6.0) and main whenever the highlighted query contains a FieldExistsQuery on any field (in a MUST, FILTER, SHOULD or nested clause; MUST_NOT clauses are skipped) or a query that rewrites to one (LongField.newRangeQuery(f, Long.MIN_VALUE, Long.MAX_VALUE), full-range or open-ended doc-values slow ranges, IndexOrDocValuesQuery with a FieldExistsQuery side, and FieldExistsQuery under ConstantScore, Boost, FunctionScore or DisjunctionMax); default IndexWriterConfig, codec and searcher, -ea and -da, one document suffices; re-analysed token streams and offsets-only term vectors are not affected, search results are correct, and nothing is written to the index.</dd></div><div><dt>Summary</dt><dd>You store a text field with term vectors (positions and offsets), search with a query such as +body:fox plus a FieldExistsQuery filter on another field, and highlight the hit with the classic Highlighter from its term vectors; you expect 'the quick brown &lt;B&gt;fox&lt;/B&gt;', which 10.4.0 and earlier return. Since 10.5.0 the call throws IllegalStateException 'FieldExistsQuery requires that the field indexes doc values, norms or vectors, but field 'shadowed_field' exists and indexes neither of these data structures', naming an internal field the user never created. The highlighter rewrites the query against its own one-field reader built from the term vectors, whose field info has no norms or doc values, and since GITHUB#15678 it no longer skips FieldExistsQuery as GITHUB#12088 had made it do.</dd></div><div><dt>Introduced</dt><dd>a8b3d1a9481d97c74c2fc06b15d5983288078e3b on main and 7ddd1898b3891c6cc8cf1a2edc513ab1ae3bfbac on branch_10x (GITHUB#15678 'Fix Highlighter crash by implementing getFieldInfos in DelegatingLeafReader', author Simranjeet Singh (GitHub sjs004), merged by romseygeek, fixing #15668): it made DelegatingLeafReader.getFieldInfos answer every field name with the shadowed field's FieldInfo and, on a reviewer's suggestion ('maybe let's remove the special-casing for FieldExistsQuery as well?'), removed the 'query instanceof FieldExistsQuery -&gt; nothing' branch that GITHUB#12088 (fc7b937affe, 9.5.0) had added [exec: shadowing only the #15678 version of WeightedSpanTermExtractor.java onto 10.4.0 makes the repro fail 2 of 3; shadowing the pre-#15678 version onto 10.5.0 makes it pass 3 of 3]. Older ingredients, harmless before: TermVectorLeafReader's FieldInfo without norms, doc values or vectors (LUCENE-6034, 978aac31848, 5.0.0) and FieldExistsQuery.rewrite's IllegalStateException branch (LUCENE-10436, 91e29405d8e, 9.2.0) [read] (2026-02-09 (author date 2026-02-09T16:57:13Z on both commits; committed to main at 16:57:13Z and to branch_10x at 17:10:50Z))</dd></div><div><dt>First affected version</dt><dd>10.5.0 [exec] (tagged 2026-06-25, the first release containing 7ddd1898b38; its CHANGES lists GITHUB#15668 under Bug Fixes); last unaffected 10.4.0 [exec] (cut from branch_10_4, which lacks the backport); the 9.x line never received #15678 (9.12.3 passes [exec])</dd></div><div><dt>Affected versions</dt><dd>10.5.0, 10.5.1 and 10.5.2 [exec: the finder's JUnit fails 2 of 3, the control passes]; branch_10_6 head 4ae946e5a9b (10.6.0-SNAPSHOT jars, SHA-1-checked) [exec: fails 2 of 3], so 10.6.0 would ship it unless it is fixed; main a9779ef3c193 [exec, -ea and -da]; upstream main 20ced71c1e6e, branch_10x 657014b3c579 and branch_10_5 e85bb7b2c86d [read: skip absent, getFieldInfos unchanged]. Not affected: 9.5.0-10.4.0 [exec on 9.5.0, 9.12.3, 10.3.2 and 10.4.0; read for the rest]. 9.2.0-9.4.2 fail differently, with the older UnsupportedOperationException on every token-stream path, the re-analysed control included (the GITHUB#12088 bug, fixed in 9.5.0) [exec on 9.2.0 and 9.4.2]; 9.1.0 and older have no FieldExistsQuery [exec: compile error]. Not fixed upstream.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>#7450 (LUCENE-6390, open since 2015; related design issue covering this failure class). Earlier: none found (2026-10-28, the prior-report record, verdict new: 220 logged queries and reads: two scripted prior-report searches over apache/lucene issues, PRs and commits, Solr, Elasticsearch and OpenSearch, the dev@, java-user@, issues@ and commits@ lists and the JIRA archive; 33 manual GitHub searches; 48 list searches; 9 JIRA queries; 7 web searches; the changed files of all 411 open apache/lucene PRs and of the 15 PRs closed since 2026-10-23; 18 items read in full; plus the finder's, the independent reproduction's, the intended-behaviour check's and the adjudication's searches). Re-checked 2026-10-28: no PR created since 2026-10-26 (#16907-#16926) touches lucene/highlighter or FieldExistsQuery; the newest commit on WeightedSpanTermExtractor.java is dbf0d1426f13 (#16056, author date 2026-05-14). Nearest items, none of them this bug: #15678 (the introducing PR; its tests use a CannedTokenStream, the MemoryIndex path), #15668 (the UnsupportedOperationException it fixed), #12088 (added the skip that #15678 removed), #7450 (LUCENE-6390, open since 2015: the internal reader did not implement getFieldInfos), open PR #16816 (stale; its FieldExistsQuery.rewrite change would hide the FieldExistsQuery form on main by accident, executed as a shadow class: 3 of 3 pass), #16582 (in 10.6.0; makes full-range sorted-numeric doc-values ranges rewrite to FieldExistsQuery, so more triggers). Not fixed upstream: main 20ced71c1e6e and branch_10_6 4ae946e5a9b9 still lack the skip. Not filed.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (gradle in a scratch worktree, assertions on and off; and the standalone JUnit runner with several seeds); the release jars 9.1.0, 9.2.0, 9.4.2, 9.5.0, 9.12.3, 10.3.2, 10.4.0, 10.5.0, 10.5.1 and 10.5.2 and 10.6.0-SNAPSHOT jars built from branch_10_6 <code class='nw'>4ae946e5a9b</code>; a one-file shadow bisect of #15678 in both directions; fixes A and B on <code class='nw'>a9779ef3c193</code> with the whole <code>:lucene:highlighter:test</code> task. JDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/WeightedSpanTermExtractor.java:236-263 (at a9779ef3c193) (extract: MatchAllDocsQuery and FunctionScoreQuery branches, no FieldExistsQuery branch; unknown queries rewritten with new IndexSearcher(getLeafContext().reader())), :388-400 (getLeafContext: a TokenStreamFromTermVector whose Terms have positions and offsets gets a TermVectorLeafReader), :442-451 (DelegatingLeafReader.getFieldInfos: fieldInfo(any name) returns the shadowed field&#x27;s FieldInfo)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/TermVectorLeafReader.java:93-112 (at a9779ef3c193) (FieldInfo with omitNorms=true, DocValuesType.NONE, vector dimension 0)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/FieldExistsQuery.java:125-157 (at a9779ef3c193) (rewrite: norms, then vectors, then doc values, else throw new IllegalStateException(buildErrorMsg))</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/WeightedSpanTermExtractor.java:129-138 (at a9779ef3c193) (BooleanQuery clauses), :236-262 (extract branches and rewrite), :389-430 (getLeafContext), :434-451 (DelegatingLeafReader, FIELD_NAME, getFieldInfos)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/TermVectorLeafReader.java:93-113 (at a9779ef3c193) (FieldInfo: omitNorms true, DocValuesType.NONE, vector dimension 0)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfo.java:78-96 (at a9779ef3c193) (constructor argument order)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/FieldExistsQuery.java:116-157 (at a9779ef3c193) (rewrite, throw at :156), :290-293 (message)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSortSortedNumericDocValuesRangeQuery.java:130-133 (at a9779ef3c193)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/TokenSources.java:40-92 (at a9779ef3c193) (getTokenStream, getTermVectorTokenStreamOrNull)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/TokenSources.java:29-92 (at a9779ef3c193) (class javadoc; getTokenStream prefers term vectors; positions recommended)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/package-info.java:29-82 (at a9779ef3c193) (term-vector example; &#x27;Faster highlighting using Term vector support&#x27;)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/WeightedSpanTermExtractor.java:133-138 (at a9779ef3c193) (prohibited clauses skipped)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/WeightedSpanTermExtractor.java:165-169 (at a9779ef3c193) (IndexOrDocValuesQuery: only the index side is extracted)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/test/org/apache/lucene/search/highlight/TestHighlighter.java:1445-1454, (at a9779ef3c193) 2230-2245 (CannedTokenStream tests)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/WeightedSpanTermExtractor.java:72-100 (at a9779ef3c193) (class javadoc), :260-261 (reached when the rewrite returns the query), :278-282 (extractUnknownQuery no-op)</code></li><li><code>lucene/CHANGES.txt:1163-1164 (at a9779ef3c193) (GITHUB#15668 in 10.5.0), :3847-3848 (GITHUB#12088)</code></li><li><code>lucene/highlighter/src/test/org/apache/lucene/search/highlight/custom/TestHighlightCustomQuery.java:100-140 (at a9779ef3c193) (testHighlightQueryRequiringMetadata, highlightField re-analyses with MockAnalyzer)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/TermVectorLeafReader.java:54 (at a9779ef3c193) (@lucene.experimental), TokenStreamFromTermVector.java:50 (@lucene.internal); lucene/core/src/java/org/apache/lucene/index/FieldInfo.java:73-78 (@lucene.experimental constructor)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/TermVectorLeafReader.java:50-56 (at a9779ef3c193) (@lucene.experimental), :155-157 (getNormValues returns null)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/TermVectorOffsetStrategy.java (at a9779ef3c193) (uses TermVectorLeafReader)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone: git tag --contains 7ddd1898b389 = releases/lucene/10.5.0, 10.5.1, 10.5.2; 10.4.0 lacks it</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestHighlightFieldExistsTermVectors.java (highlighter, 3 tests): <a href='../repro/LFV-824/TestHighlightFieldExistsTermVectors.java'><code>repro/LFV-824/TestHighlightFieldExistsTermVectors.java</code></a> (113 lines)</li><li>TestFieldExistsTermVectorHighlight.java (independent reproducer, 5 tests): <a href='../repro/LFV-824/TestFieldExistsTermVectorHighlight.java'><code>repro/LFV-824/TestFieldExistsTermVectorHighlight.java</code></a> (146 lines)</li><li>TestFieldExistsTermVectorVariants.java (variant test, 2 tests): <a href='../repro/LFV-824/TestFieldExistsTermVectorVariants.java'><code>repro/LFV-824/TestFieldExistsTermVectorVariants.java</code></a> (89 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the repro's example, made in parallel with this doc from a traced run on main.</p><ul class='paths'><li><a href='../assets/LFV-824/bug.png'><code>assets/LFV-824/bug.png</code></a> (478 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

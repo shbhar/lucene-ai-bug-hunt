@@ -1,6 +1,6 @@
 # MemoryIndex returns term vectors for fields whose FieldInfo says storeTermVector=false (a regression of LUCENE-6402 since 6.5.0), so its reader fails CheckIndex and IndexWriter.addIndexes(SlowCodecReaderWrapper.wrap(reader)) writes a segment that CheckIndex rejects
 
-Bug LFV-788 · Area: memory / MemoryIndex reader FieldInfos vs term vectors (consequence in index / addIndexes(CodecReader...) term-vector merge) · Priority: low · Impact: data corruption · Novelty: known upstream
+Bug LFV-788 · Area: memory / MemoryIndex reader FieldInfos vs term vectors (consequence in index / addIndexes(CodecReader...) term-vector merge) · Priority: low · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

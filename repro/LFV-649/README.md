@@ -2,6 +2,8 @@
 
 Bug LFV-649 · Area: analysis-common / minhash (MinHashFilter.FixedSizeTreeSet bottom-k set; MinHashFilterFactory 'minHash') · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-649.html](../../bugs/LFV-649.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyse 'b a a' with MinHashFilter(hashCount 1, bucketCount 1, hashSetSize 2
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: FixedSizeTreeSet.add removes the full set's largest value (pollLast) before TreeSet.add finds that the repeated value is already there, so 'b a a' gives one value; a later new token, however large its hash, then fills the free slot ('c a c b' keeps the hashes of c and b, not the true lowest two, c and a), and the same tokens in another order ('c a b c') give yet another signature.
+- Expected: "b a a" keeps [a, b] like "b a"; "c a c b" and "c a b c" keep [c, a]; the text read twice keeps the same 100 values.
+- Actual: "b a a" keeps [a]; "c a c b" keeps [c, b] and "c a b c" keeps [c]; the text read twice keeps 99 values.
 
 ## Files
 
@@ -47,6 +49,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMinHashRepeatedTokens.java](TestMinHashRepeatedTokens.java)
+- [TestMinHashFilterRepeatedToken.java](TestMinHashFilterRepeatedToken.java)
+- [TestMinHashRepeatedInput.java](TestMinHashRepeatedInput.java)
+- [MinHashRepeatedTokenMain.java](MinHashRepeatedTokenMain.java)
 
 ## Feedback
 

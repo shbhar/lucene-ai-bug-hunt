@@ -2,6 +2,8 @@
 
 Bug LFV-764 · Area: geo / XYShape point queries (Component2D.pointInTriangle; ShapeField.encodeTriangle orientation for XY) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-764.html](../../bugs/LFV-764.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index the clockwise triangle (0,1) (1,2) (3,3) as an XYPolygon with XYShape.
 
 ## Expected vs actual
 
-- Expected: You expect every corner to match the polygon (INTERSECTS) and none to be DISJOINT from it, as happens for the same triangle moved by (8,8) and for every point of its edges.
-- Actual: The INTERSECTS query at (1,2) finds nothing and the DISJOINT query at (1,2) returns the document: ShapeField.encodeTriangle checks the winding on the sortable-int encodings of the floats, which are ordered like the floats but not evenly spaced, so the stored triangle decodes clockwise, and Component2D.pointInTriangle reports the second vertex of a clockwise triangle as outside.
+- Expected: INTERSECTS finds the polygon at all three corners, `[1, 1, 1]`, and DISJOINT at none, `[0, 0, 0]`, as for the same triangle moved by (8, 8).
+- Actual: INTERSECTS `[1, 0, 1]` and DISJOINT `[0, 1, 0]`: the corner (1,2) misses its own polygon; the hexagon gives `[1, 1, 1, 0, 1, 1]`.
 
 ## Files
 
@@ -41,6 +43,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestXYShapePointAtPolygonVertex.java](TestXYShapePointAtPolygonVertex.java)
+- [TestXYShapeVertexPointQueryV1.java](TestXYShapeVertexPointQueryV1.java)
+- [PredicateDiff.java](PredicateDiff.java)
+- [TestXYShapeVertexWorkaroundProbe.java](TestXYShapeVertexWorkaroundProbe.java)
 
 ## Feedback
 

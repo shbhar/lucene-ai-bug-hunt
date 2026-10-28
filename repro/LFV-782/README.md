@@ -2,6 +2,8 @@
 
 Bug LFV-782 · Area: spatial3d / geom polar rectangles outside distance (GeoNorthRectangle, GeoSouthRectangle) and the Geo3DDocValuesField outside-box sort · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-782.html](../../bugs/LFV-782.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You sort documents by their outside distance from a lat/lon box that reaches the
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: GeoNorthRectangle.outsideDistance never considers the pole, where both side edges of the box end, and returns the distance to a far corner (39.88 degrees on the sphere; 4,434,716 m against 2,779,879 m in the WGS84 sort), so the nearer document sorts last; GeoSouthRectangle has the mirror bug at the South Pole.
+- Expected: (80, 180) sorts right after the pole document, with at most about 1,112 km (10 degrees); on the unit sphere its outside distance is 10 degrees.
+- Actual: (80, 180) sorts last with 4,434,715.59 m against 2,779,878.83 m for (35, 0); on the unit sphere its outside distance is 39.882280145867114 degrees; the 89.9999 control passes.
 
 ## Files
 
@@ -42,6 +44,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeo3DPolarRectangleOutsideDistance.java](TestGeo3DPolarRectangleOutsideDistance.java)
+- [TestPolarBoxOutsideDistanceV1.java](TestPolarBoxOutsideDistanceV1.java)
 
 ## Feedback
 

@@ -1,0 +1,1034 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>The same OR passed twice to Intervals.unordered or ordered skips the disjunction rewrite, so maxgaps and phrase miss real matches</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-809 &middot; repeating-intervals-disjunction-not-rewritten</p><h1 id='top'>The same OR passed twice to Intervals.unordered or ordered skips the disjunction rewrite, so maxgaps and phrase miss real matches</h1><p class='tldr'>Pass the same <code>Intervals.or(...)</code> twice to <code class='nw'>unordered</code> or <code class='nw'>ordered</code> under <code class='nw'>maxgaps</code> or <code class='nw'>phrase</code>, and Lucene merges the copies into one repeat that the documented disjunction rewrite skips. Matches needing the longer alternative vanish: <code>maxgaps(0, unordered(X, X))</code> with X = <code>or(b, "c b")</code> finds nothing in <code>c b c b</code>.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 230</span><span class='sub'>Silent missed interval matches since 8.5.0 with the same profile as LFV-306, and it heads the new RepeatingIntervalsSource siblings because it is also reachable through analyzedText when a repeated word has a multi-word synonym.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>8.5.0 (LUCENE-9099, 2020)<span class='sub'>introduced 2020-02-06 &middot; about 6 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>8.5.0 to 10.5.2 (6 releases run), branch_10_6 and main; 8.4.1 not affected</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>modelling with a reference semantics, confirmed by bounded-exhaustive translation validation</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Interval queries match runs of positions; <code>maxgaps(n, ...)</code> keeps matches with at most n positions between their pieces. A disjunction drops any of its matches that contains another one, so Lucene rewrites an <code class='nw'>or</code> under <code class='nw'>maxgaps</code> or <code class='nw'>phrase</code> into one branch per combination of alternatives. Equal arguments of <code class='nw'>ordered</code>/<code class='nw'>unordered</code> are merged into a repeat that skips this rewrite.</p><figure class='visual' id='repeating-intervals-disjunction-not-rewritten-short-visual'><div class='frame'><a class='still' href='../assets/LFV-809/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-809/bug.png' alt='Summary card. Title: passing the same Intervals.or twice to unordered hides it from the maxgaps rewrite. Panel 1, the example: the document c b c b at positions 0 to 3, the query Intervals.maxgaps(0, Intervals.unordered(x, x)) with x = or(b, phrase(c, b)); expected 1 hit, the or pulled up, gaps 0 for [1,3]; actual 0 hits, not pulled up, gaps 1 because the repeat sees b + b. Panel 2, inside Lucene: equal x, x become one RepeatingIntervalsSource(x, 2); its pullUpDisjunctions() returns singleton(this); so maxgaps keeps the repeat whole; in x, c b contains a b, so x gives [1,1] and [3,3]; the repeat [1,3] has gaps 3 - 2 = 1 and maxgaps(0) drops it; control: phrase(x, x) is pulled up and matches [1,3]. Panel 3, when it happens: the same or with an alternative longer than one position given twice to unordered, or twice in a row to ordered, under maxgaps or phrase, also via the query parser; not affected: a repeated or of single words and arguments that are not equal; plain query text too, through analyzedText with the synonym york to new york; silently fewer hits, and inside notContaining or a MUST_NOT clause the miss becomes extra hits; fix: 15 lines plus dropping the ordered deduplication pass the repro and module tests, and it needs design review. Footnote: executed on main a9779ef3c193 with assertions on and off; earlier runs: 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 fail, 8.4.1 passes.' width='1920' height='1080'></a></div><figcaption>The one-document example <code>c b c b</code>: expected 1 hit with 0 gaps, actual 0 hits because the repeat sees only b and b; the four steps inside Lucene that keep the <code class='nw'>or</code> closed; and when it happens. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index one document, <code>c b c b</code> (positions 0 to 3). Take X = <code>or(b, phrase(c, b))</code>, one alternative one word long and one two words long, and search <code>maxgaps(0, unordered(X, X))</code>: two occurrences of X with no gap.</span></li><li><span>You expect 1 hit: b at 1 is followed by <code>c b</code> at 2-3, two separate occurrences of X with nothing in between. Lucene documents that an <code class='nw'>or</code> under <code class='nw'>maxgaps</code> or <code class='nw'>phrase</code> is rewritten so that a longer alternative is not lost.</span></li><li><span>You get 0 hits, with assertions on or off. Make the second X equivalent but not equal (add a word that occurs nowhere) and its <code class='nw'>ordered</code> form is rewritten and matches positions 1-3 with 0 gaps.</span></li><li><span>Why: the two equal arguments are merged into one repeat, which hides its <code class='nw'>or</code> from the rewrite. Inside X each <code>c b</code> contains a b and is dropped, so the repeat sees only b at 1 and b at 3: 1 gap, and <code class='nw'>maxgaps(0)</code> rejects it.</span></li><li><span>Plain text reaches it: <code>analyzedText("york york")</code> (unordered, max gaps 0) with a synonym york =&gt; "new york" misses <code>new york new york</code>, and so does the query string <code>fn:maxgaps(0 fn:unordered(fn:or(b "c b") fn:or(b "c b")))</code>. It has shipped since 8.5.0 (six releases from 8.5.0 to 10.5.2 run, all affected).</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Users of interval queries (the Java API, the query parser's <code class='nw'>fn:</code> functions, or <code class='nw'>analyzedText</code> with a multi-word synonym) that pass the same <code class='nw'>or</code> with a multi-word alternative twice to <code class='nw'>unordered</code>, or twice in a row to <code class='nw'>ordered</code>, under <code class='nw'>maxgaps</code> or <code class='nw'>phrase</code>. Default settings, no error: matches just disappear. Repeated single words are unaffected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>644 words</span></summary><div class='body'><p><code class='nw'>Intervals.or</code> promises that a disjunction under a gap-sensitive parent (<code class='nw'>maxgaps</code>, <code class='nw'>phrase</code>) is rewritten into one branch per combination of alternatives, because a disjunction drops any of its intervals that contains another one and a longer alternative would otherwise vanish (LUCENE-8477). <code>Intervals.ordered</code> and <code>Intervals.unordered</code> merge equal arguments into one <code>RepeatingIntervalsSource</code> (LUCENE-9099), and that source's <code>pullUpDisjunctions()</code> returns only itself, so the rewrite never reaches an <code class='nw'>or</code> passed twice. With X = <code>or(b, phrase(c, b))</code>, <code>maxgaps(0, unordered(X, X))</code> and <code>maxgaps(0, ordered(X, X))</code> miss <code>c b c b</code>, <code>phrase(a, ordered(X, X))</code> misses <code>a c b c b</code>, <code>maxgaps(1, unordered(X, X))</code> misses <code>b x c b</code>, <code>Intervals.analyzedText("york york", ...)</code> (unordered, max gaps 0) with a synonym york =&gt; "new york" misses <code>new york new york</code>, and the flexible query parser's <code>fn:maxgaps(0 fn:unordered(fn:or(b "c b") fn:or(b "c b")))</code> returns nothing; an equivalent but unequal second argument, or <code>phrase(X, X)</code>, is rewritten and matches. It has shipped in every release since 8.5.0 (2020) and is not fixed upstream. A 15-line change that lets a whole repeat also expose its alternatives as <code class='nw'>ordered</code> sequences, applied together with the LFV-807 fix (drop the <code class='nw'>ordered</code> deduplication), fixes every whole-call case run and passes the repro and the <code class='nw'>queries</code>, <code class='nw'>queryparser</code> and <code class='nw'>highlighter</code> test suites. On its own the change can add a false hit (executed), so the pair needs design review before it is proposed; a repeat inside a longer <code class='nw'>unordered</code> still misses and needs a design decision. The <code class='nw'>ordered</code> and <code class='nw'>phrase</code> cases are also fixed by dropping the <code class='nw'>ordered</code> deduplication (the sibling bug LFV-807); the <code class='nw'>unordered</code> and <code class='nw'>analyzedText</code> cases are unique to this bug.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Interval and gaps.</strong> An interval is a run of positions [start, end]. <code class='nw'>gaps()</code> counts the positions between an interval's immediate pieces, not inside them (<code>IntervalIterator.java:62-71</code>). <code>Intervals.maxgaps(n, source)</code> keeps an interval when <code>gaps() &lt;= n</code> (<code>FilteredIntervalsSource.java:47-50</code>).</li><li><strong>Minimization.</strong> A disjunction's iterator skips any interval that contains the current one (<code>DisjunctionIntervalsSource.java:222-247</code>). So in <code>or(b, phrase(c, b))</code> on <code>c b</code>, the interval of <code>c b</code> [0, 1] contains b [1, 1] and is dropped.</li><li><strong>The disjunction rewrite (LUCENE-8477).</strong> Because minimization can drop a longer alternative that a gap filter needs, gap-sensitive sources rewrite their sub-sources so that disjunctions are pulled up: <code>maxgaps(0, ordered(X, Y))</code> becomes an <code class='nw'>or</code> of <code>maxgaps(0, ordered(x_i, y_j))</code> over the alternatives (<code>Intervals.java:47-54</code>, <code class='nw'>:118-122</code>; <code>FilteredIntervalsSource.java:31-36</code>; <code>Disjunctions.java:33-62</code>). Each source exposes its alternatives through <code>pullUpDisjunctions()</code>.</li><li><strong>The repeat (LUCENE-9099).</strong> <code class='nw'>ordered</code> merges runs of consecutive equal arguments, <code class='nw'>unordered</code> all equal arguments, into one <code>RepeatingIntervalsSource</code>, so that <code>unordered(a, a)</code> needs two different <code class='nw'>a</code>s (<code>OrderedIntervalsSource.java:40-57</code>, <code>UnorderedIntervalsSource.java:44-57</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>RepeatingIntervalsSource.pullUpDisjunctions()</code> returns <code>Collections.singleton(this)</code> (<code>RepeatingIntervalsSource.java:98-101</code>). The rewrite sees one piece and leaves the <code class='nw'>or</code> inside the repeat.</li><li>Inside the repeat, X is minimized: its long alternative is dropped wherever it contains the short one.</li><li>The repeat takes consecutive intervals of the minimized X, so it can only pair short alternatives that are further apart; the gap filter then rejects them.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-example-step-by-step'>The example, step by step</h3><a class="hlink" href="#what-the-bug-is-the-example-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-example-step-by-step"><span aria-hidden="true">#</span></a></div><p><code>c b c b</code> (positions 0-3), X = <code>or(b, phrase(c, b))</code>. X's intervals are b [1, 1], <code>c b</code> [0, 1], b [3, 3], <code>c b</code> [2, 3]; minimization keeps [1, 1] and [3, 3]. The repeat pairs them into [1, 3] with width 1 + 1 = 2, so 1 gap, and <code class='nw'>maxgaps(0)</code> drops it. The valid pair b [1, 1] + <code>c b</code> [2, 3] (width 3, 0 gaps) was never produced. With an unequal second argument, <code>ordered(X, X2)</code> is rewritten into four branches, one of them <code>maxgaps(0, ordered(b, phrase(c, b)))</code>, which matches [1, 3] with 0 gaps.</p><p>Not affected: repeats of single words or of an <code class='nw'>or</code> of single words (one piece after the split, <code>Disjunctions.java:76-95</code>), and <code>phrase(X, X)</code>, which does not merge equal arguments and is rewritten.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>393 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Users of the intervals API (<code class='nw'>lucene/queries</code>, opt-in; the package "contains experimental classes"), of the flexible query parser's interval functions (the <code class='nw'>fn:</code> syntax exists since 9.1.0), and of <code>Intervals.analyzedText</code> with a query analyzer that gives a repeated word a multi-word alternative containing it. The query must pass the same disjunction twice or more to <code class='nw'>unordered</code> (in any positions) or to <code class='nw'>ordered</code> as neighbouring arguments (<code class='nw'>ordered</code> merges only runs of equal neighbours, so <code>ordered(X, d, X)</code> is not affected), under <code class='nw'>maxgaps</code> or <code class='nw'>phrase</code>, and the document's only valid match must use a longer alternative. Downstream servers that expose interval queries were not run.</li><li><strong>Shapes that reach it (all executed).</strong> <code>maxgaps(0, unordered(X, X))</code> and <code>maxgaps(0, ordered(X, X))</code> on <code>c b c b</code>; <code>phrase(a, ordered(X, X))</code> on <code>a c b c b</code>; <code>maxgaps(1, unordered(X, X))</code> on <code>b x c b</code>; <code>maxgaps(0, ordered(X, X, d))</code> and <code>maxgaps(0, unordered(X, X, d))</code> on <code>c b c b d</code>; three copies; <code>analyzedText("york york", ...)</code> with a <code>SynonymGraphFilter</code> rule york =&gt; "new york" (keep original): unordered with max gaps 0 misses <code>new york new york</code>, and with max gaps 1 ordered and unordered miss <code>new york x new york</code> (ordered with max gaps 0 takes the phrase path and matches); and the query string <code>fn:maxgaps(0 fn:unordered(fn:or(b "c b") fn:or(b "c b")))</code>.</li><li><strong>What goes wrong.</strong> In the executed probes a positive query only lost hits: the repeated default <code class='nw'>or</code> behaves like the documented opt-out <code>or(false, ...)</code>, which "can miss valid hits due to minimization". A negation of such a query (<code class='nw'>MUST_NOT</code>, <code class='nw'>notContaining</code>) keeps documents it should drop (executed).</li><li><strong>Silent, default settings.</strong> No exception. A plain program with <code class='nw'>StandardAnalyzer</code>, the default <code>IndexWriterConfig</code> and codec, a <code>ByteBuffersDirectory</code> and a plain <code class='nw'>IndexSearcher</code> misses the document; the JUnit runs with the test framework's randomized codec, similarity and locale miss it too, with assertions on and off. Every run indexed one ordinary document (no crafted index); only one-document indexes were run, and the cause is in how the query is built, not in the index.</li><li><strong>How likely.</strong> Rare: the same multi-position <code class='nw'>or</code> twice under a gap filter, plus a document whose only gap-free match mixes the alternatives. No report was found although the code has shipped since 8.5.0 (2020). For such a query and document the miss happens every time.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code class='nw'>lucene/queries</code>, public API only: one tiny document per check, five tests. Four fail on main with assertions on and off; the fifth holds the controls and passes, and all five pass with fix A, alone or with the LFV-807 fix.</p><figure class='code'><figcaption><span class='fname'>TestRepeatedOrRewrite.java (lucene/queries, public API)</span><span class='meta'>122 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.intervals;
+
+import static org.apache.lucene.queries.intervals.Intervals.maxgaps;
+import static org.apache.lucene.queries.intervals.Intervals.or;
+import static org.apache.lucene.queries.intervals.Intervals.ordered;
+import static org.apache.lucene.queries.intervals.Intervals.phrase;
+import static org.apache.lucene.queries.intervals.Intervals.term;
+import static org.apache.lucene.queries.intervals.Intervals.unordered;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.CannedTokenStream;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.Token;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * The same disjunction passed twice to ordered() or unordered() under a gap-sensitive parent
+ * (maxgaps, phrase). X = or(b, &quot;c b&quot;) has a one-position and a two-position alternative. In &quot;c b c
+ * b&quot; (positions 0 to 3), b at 1 and &quot;c b&quot; at [2, 3] are two distinct, non-overlapping occurrences
+ * of X with no position between them, so a gap-free match exists.
+ */
+public class TestRepeatedOrRewrite extends LuceneTestCase {
+
+  private static final String FIELD = &quot;f&quot;;
+
+  private static IntervalsSource x() {
+    return or(term(&quot;b&quot;), phrase(&quot;c&quot;, &quot;b&quot;));
+  }
+
+  /** The same alternatives plus one that occurs in no document: equivalent, but not equal. */
+  private static IntervalsSource xPlusAbsent() {
+    return or(term(&quot;b&quot;), phrase(&quot;c&quot;, &quot;b&quot;), term(&quot;zzz&quot;));
+  }
+
+  private static void assertHits(int expected, IntervalsSource source, String text)
+      throws IOException {
+    assertEquals(source + &quot; on &#x27;&quot; + text + &quot;&#x27;&quot;, expected, count(source, text));
+  }
+
+  private static int count(IntervalsSource source, String text) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+        Document doc = new Document();
+        doc.add(new TextField(FIELD, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        return new IndexSearcher(reader).count(new IntervalQuery(FIELD, source));
+      }
+    }
+  }
+
+  public void testMaxGapsUnorderedSameOrTwice() throws IOException {
+    assertHits(1, maxgaps(0, unordered(x(), x())), &quot;c b c b&quot;);
+  }
+
+  public void testMaxGapsOrderedSameOrTwice() throws IOException {
+    assertHits(1, maxgaps(0, ordered(x(), x())), &quot;c b c b&quot;);
+  }
+
+  public void testPhraseOverOrderedSameOrTwice() throws IOException {
+    // &quot;a&quot; at 0 is followed by &quot;c b&quot; [1, 2] and &quot;c b&quot; [3, 4]
+    assertHits(1, phrase(term(&quot;a&quot;), ordered(x(), x())), &quot;a c b c b&quot;);
+  }
+
+  public void testAnalyzedTextRepeatedWordWithMultiWordSynonym() throws IOException {
+    // the query text &quot;york york&quot;, each word with the synonym path &quot;new york&quot; (the token graph a
+    // synonym filter emits for york =&gt; new york when it keeps the original)
+    CannedTokenStream ts =
+        new CannedTokenStream(
+            new Token(&quot;york&quot;, 1, 0, 4, 2),
+            new Token(&quot;new&quot;, 0, 0, 4),
+            new Token(&quot;york&quot;, 1, 0, 4),
+            new Token(&quot;york&quot;, 1, 5, 9, 2),
+            new Token(&quot;new&quot;, 0, 5, 9),
+            new Token(&quot;york&quot;, 1, 5, 9));
+    IntervalsSource source = Intervals.analyzedText(ts, 0, false);
+    IntervalsSource y = or(term(&quot;york&quot;), phrase(&quot;new&quot;, &quot;york&quot;));
+    assertEquals(maxgaps(0, unordered(y, y)), source);
+    assertHits(1, source, &quot;new york new york&quot;);
+  }
+
+  public void testControls() throws IOException {
+    // with an equivalent but unequal second source, the documented rewrite runs and matches
+    assertHits(1, maxgaps(0, ordered(x(), xPlusAbsent())), &quot;c b c b&quot;);
+    assertHits(1, phrase(term(&quot;a&quot;), ordered(x(), xPlusAbsent())), &quot;a c b c b&quot;);
+    // ... and it needs two non-overlapping occurrences with no position between them
+    assertHits(0, maxgaps(0, ordered(x(), xPlusAbsent())), &quot;c b&quot;);
+    assertHits(0, maxgaps(0, ordered(x(), xPlusAbsent())), &quot;b x b&quot;);
+    // the repeated queries are not dead: two adjacent b&#x27;s match
+    assertHits(1, maxgaps(0, unordered(x(), x())), &quot;b b&quot;);
+    assertHits(1, maxgaps(0, ordered(x(), x())), &quot;b b&quot;);
+    // one occurrence of X is not two, and a gap filter must not add hits
+    assertHits(0, unordered(x(), x()), &quot;c b&quot;);
+    assertHits(0, maxgaps(0, unordered(x(), x())), &quot;c b&quot;);
+    assertHits(0, maxgaps(0, ordered(x(), x())), &quot;c b&quot;);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestRepeatedOrRewrite.java $LUCENE/lucene/queries/src/test/org/apache/lucene/queries/intervals/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:queries:test --tests TestRepeatedOrRewrite -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=0D15C0DE)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>1 hit for each of the four bug queries, for example <code>maxgaps(0, unordered(X, X))</code> on <code>c b c b</code>.</dd></div><div class='got'><dt>Observed</dt><dd>0 hits for all four, with assertions on and off; the controls pass.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-809/'>repro/LFV-809/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>5 more files (567 lines) · 3,565 words</span></summary><div class='body'><p>Each check indexes one document with the test framework's whitespace <code class='nw'>MockAnalyzer</code> and counts hits with <code>IndexSearcher#count</code>. X = <code>or(b, phrase(c, b))</code>.</p><div class="tbl"><table><thead><tr><th>test</th><th>query</th><th>document</th><th>expected / on main</th></tr></thead><tbody><tr><td>unordered, maxgaps 0</td><td><code>maxgaps(0, unordered(X, X))</code></td><td><code>c b c b</code></td><td>1 / 0</td></tr><tr><td>ordered, maxgaps 0</td><td><code>maxgaps(0, ordered(X, X))</code></td><td><code>c b c b</code></td><td>1 / 0</td></tr><tr><td>phrase</td><td><code>phrase(a, ordered(X, X))</code></td><td><code>a c b c b</code></td><td>1 / 0</td></tr><tr><td>analyzedText</td><td>the token graph of <code>york york</code> with york =&gt; "new york", unordered, max gaps 0 (asserted to equal <code>maxgaps(0, unordered(Y, Y))</code>)</td><td><code>new york new york</code></td><td>1 / 0</td></tr><tr><td>controls (9 assertions)</td><td><code>ordered(X, X + zzz)</code> under maxgaps/phrase: 1 on the documents above, 0 on <code>c b</code> and <code>b x b</code>; the repeated queries match <code>b b</code>; <code>unordered(X, X)</code> and both <code>maxgaps(0, ...)</code> forms give 0 on <code>c b</code></td><td></td><td>all pass</td></tr></tbody></table></div><p>The last three controls also guard a fix: a gap filter must never add hits. The documents and assertions are fixed; the seed picks the test framework's random codec and directory. The class passes <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLint</code> and <code class='nw'>forbiddenApis</code>. The <code class='nw'>analyzedText</code> test feeds the same token graph (positions and position lengths) that a <code>SynonymGraphFilter</code> emits for york =&gt; "new york" with the original kept; the filter emits <code class='nw'>new</code> first and then the original <code class='nw'>york</code>, while the test lists the original first, and both build the same source; the same case with the real filter is the intended-behaviour check's probe below (it needs <code class='nw'>analysis-common</code>, which the <code class='nw'>lucene/queries</code> tests do not depend on).</p><p>The other files: the finder's original 3-test JUnit, the independent reproducer's 8-test JUnit, the devil's advocate's real-synonym probe and the scope probe behind the fix table.</p><div class="hd hd-3"><h3 id='code-2-h'>TestRepeatedDisjunctionRewrite.java (the finder&#x27;s original 3-test repro)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>The unordered, ordered and phrase cases, each after a control with an equivalent but unequal second argument (the unordered control is weak: unequal unordered arguments may share a position, so it also matches a lone b). Fails 3 of 3 on main (assertions on and off), branch_10_6, 10.5.2, 10.0.0, 9.12.3, 9.0.0, 8.11.4 and 8.5.0; passes on 8.4.1 and with fix A.</p><figure class='code'><figcaption><span class='fname'>TestRepeatedDisjunctionRewrite.java (the finder&#x27;s original 3-test repro)</span><span class='meta'>83 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.intervals;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Intervals.or(...) &quot;automatically rewrites if wrapped by an interval source that is sensitive to
+ * internal gaps&quot;, but not when the disjunction is passed twice to unordered/ordered: the two equal
+ * sub-sources are merged into one repeated source that the rewrite does not look into, so
+ * maxgaps(0, unordered(X, X)) with X = or(b, phrase(c, b)) misses &#x27;c b c b&#x27;, while the same query
+ * whose second X carries an extra, absent alternative matches. Public API only.
+ */
+public class TestRepeatedDisjunctionRewrite extends LuceneTestCase {
+
+  private static final String FIELD = &quot;f&quot;;
+  private static final IntervalsSource ABSENT = Intervals.term(&quot;zzz&quot;); // in no document
+
+  private static int count(IntervalsSource source, String text) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+        Document doc = new Document();
+        doc.add(new TextField(FIELD, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        return new IndexSearcher(reader).count(new IntervalQuery(FIELD, source));
+      }
+    }
+  }
+
+  private static IntervalsSource x() {
+    return Intervals.or(Intervals.term(&quot;b&quot;), Intervals.phrase(&quot;c&quot;, &quot;b&quot;));
+  }
+
+  private static IntervalsSource xWithAbsent() {
+    return Intervals.or(Intervals.term(&quot;b&quot;), Intervals.phrase(&quot;c&quot;, &quot;b&quot;), ABSENT);
+  }
+
+  public void testUnorderedRepeatedDisjunctionUnderMaxGaps() throws IOException {
+    // &#x27;c b c b&#x27;: b at 1 and the phrase &quot;c b&quot; at [2,3] are adjacent, so there is a no-gap match
+    assertEquals(1, count(Intervals.maxgaps(0, Intervals.unordered(x(), xWithAbsent())), &quot;c b c b&quot;));
+    // on main: 0
+    assertEquals(1, count(Intervals.maxgaps(0, Intervals.unordered(x(), x())), &quot;c b c b&quot;));
+  }
+
+  public void testOrderedRepeatedDisjunctionUnderMaxGaps() throws IOException {
+    assertEquals(1, count(Intervals.maxgaps(0, Intervals.ordered(x(), xWithAbsent())), &quot;c b c b&quot;));
+    // on main: 0
+    assertEquals(1, count(Intervals.maxgaps(0, Intervals.ordered(x(), x())), &quot;c b c b&quot;));
+  }
+
+  public void testOrderedRepeatedDisjunctionUnderPhrase() throws IOException {
+    IntervalsSource a = Intervals.term(&quot;a&quot;);
+    assertEquals(1, count(Intervals.phrase(a, Intervals.ordered(x(), xWithAbsent())), &quot;a c b c b&quot;));
+    // on main: 0
+    assertEquals(1, count(Intervals.phrase(a, Intervals.ordered(x(), x())), &quot;a c b c b&quot;));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestRepeatedOrUnderGapSensitiveParent.java (independent reproducer)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only, with interval dumps. 4 bug tests fail and 4 controls pass on main, 10.5.2, 9.12.3, 8.11.4 and 8.5.0; passes on 8.4.1. With fix A only <code>testScopeRunOfEqualSourcesInsideLargerOrdered</code> (<code>ordered(X, X, d)</code>) still fails.</p><figure class='code'><figcaption><span class='fname'>TestRepeatedOrUnderGapSensitiveParent.java (independent reproducer)</span><span class='meta'>184 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.intervals;
+
+import static org.apache.lucene.queries.intervals.Intervals.maxgaps;
+import static org.apache.lucene.queries.intervals.Intervals.or;
+import static org.apache.lucene.queries.intervals.Intervals.ordered;
+import static org.apache.lucene.queries.intervals.Intervals.phrase;
+import static org.apache.lucene.queries.intervals.Intervals.term;
+import static org.apache.lucene.queries.intervals.Intervals.unordered;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check of the claim: when the same Intervals.or(...) source is passed twice to
+ * Intervals.ordered/unordered, the gap-sensitive disjunction rewrite promised by the
+ * Intervals.or javadoc (&quot;Automatically rewrites if wrapped by an interval source that is
+ * sensitive to internal gaps&quot;) does not happen, so a valid gap-free match is missed.
+ *
+ * &lt;p&gt;Uses only public API (Intervals factories, IntervalQuery, IntervalsSource#intervals).
+ */
+public class TestRepeatedOrUnderGapSensitiveParent extends LuceneTestCase {
+
+  private static final String F = &quot;f&quot;;
+
+  /** X = or(b, &quot;c b&quot;): one single-position and one two-position alternative. */
+  private static IntervalsSource x() {
+    return or(term(&quot;b&quot;), phrase(&quot;c&quot;, &quot;b&quot;));
+  }
+
+  /** The same alternatives plus one that never occurs in the test documents. */
+  private static IntervalsSource xWithAbsentAlternative() {
+    return or(term(&quot;b&quot;), phrase(&quot;c&quot;, &quot;b&quot;), term(&quot;zzz&quot;));
+  }
+
+  private int hits(IntervalsSource source, String text) throws IOException {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig(new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false));
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        Document doc = new Document();
+        doc.add(new TextField(F, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        int count = s.count(new IntervalQuery(F, source));
+        System.out.println(
+            &quot;  text=&#x27;&quot; + text + &quot;&#x27; source=&quot; + source + &quot; hits=&quot; + count + &quot; &quot; + dump(r, source));
+        return count;
+      }
+    }
+  }
+
+  /** Lists [start,end](gaps) of every interval the source returns in each matching doc. */
+  private static String dump(DirectoryReader r, IntervalsSource source) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (LeafReaderContext ctx : r.leaves()) {
+      IntervalIterator it = source.intervals(F, ctx);
+      if (it == null) {
+        continue;
+      }
+      while (it.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        while (it.nextInterval() != IntervalIterator.NO_MORE_INTERVALS) {
+          out.add(&quot;[&quot; + it.start() + &quot;,&quot; + it.end() + &quot;](gaps=&quot; + it.gaps() + &quot;)&quot;);
+        }
+      }
+    }
+    return &quot;intervals=&quot; + out;
+  }
+
+  // ---- The claim: these three fail on the code under test ----
+
+  /**
+   * &#x27;c b c b&#x27;: b at 1 and the phrase &#x27;c b&#x27; at [2,3] are two distinct, non-overlapping occurrences
+   * of X with no position between them, so unordered(X, X) has a gap-free match [1,3].
+   */
+  public void testMaxGapsZeroUnorderedSameOrTwice() throws IOException {
+    assertEquals(1, hits(maxgaps(0, unordered(x(), x())), &quot;c b c b&quot;));
+  }
+
+  /** Same document: b at 1 is followed by the phrase &#x27;c b&#x27; at [2,3] with no gap. */
+  public void testMaxGapsZeroOrderedSameOrTwice() throws IOException {
+    assertEquals(1, hits(maxgaps(0, ordered(x(), x())), &quot;c b c b&quot;));
+  }
+
+  /**
+   * &#x27;a c b c b&#x27;: &#x27;a&#x27; at 0 is immediately followed by &#x27;c b&#x27; [1,2] and &#x27;c b&#x27; [3,4], i.e. by an
+   * ordered(X, X) interval [1,4] that the phrase rewrite of LUCENE-8477 is meant to expose.
+   */
+  public void testPhraseThenOrderedSameOrTwice() throws IOException {
+    assertEquals(1, hits(phrase(term(&quot;a&quot;), ordered(x(), x())), &quot;a c b c b&quot;));
+  }
+
+  /**
+   * Scope probe: a run of two equal X inside a larger ordered(...) (X, X, d) on &#x27;c b c b d&#x27;: b
+   * [1], &#x27;c b&#x27; [2,3] and d [4] follow each other with no gap.
+   */
+  public void testScopeRunOfEqualSourcesInsideLargerOrdered() throws IOException {
+    assertEquals(1, hits(maxgaps(0, ordered(x(), xWithAbsentAlternative(), term(&quot;d&quot;))), &quot;c b c b d&quot;));
+    assertEquals(1, hits(maxgaps(0, ordered(x(), x(), term(&quot;d&quot;))), &quot;c b c b d&quot;));
+  }
+
+  // ---- Controls (expected to pass on the code under test) ----
+
+  /**
+   * Control 1: an equivalent second source (one extra alternative that never occurs) keeps the
+   * two sources unequal, the rewrite runs, and the same documents match.
+   */
+  public void testControlsEquivalentButUnequalSecondSource() throws IOException {
+    assertEquals(1, hits(maxgaps(0, ordered(x(), xWithAbsentAlternative())), &quot;c b c b&quot;));
+    assertEquals(1, hits(phrase(term(&quot;a&quot;), ordered(x(), xWithAbsentAlternative())), &quot;a c b c b&quot;));
+    assertEquals(1, hits(maxgaps(0, unordered(x(), xWithAbsentAlternative())), &quot;c b c b&quot;));
+  }
+
+  /**
+   * Control 2: ordered(X, X&#x27;) does not overmatch: it needs two non-overlapping X occurrences
+   * (so the ordered control above is a clean oracle, not an artifact of overlap).
+   */
+  public void testControlsOrderedUnequalDoesNotOvermatch() throws IOException {
+    assertEquals(0, hits(ordered(x(), xWithAbsentAlternative()), &quot;b&quot;));
+    assertEquals(0, hits(ordered(x(), xWithAbsentAlternative()), &quot;c b&quot;));
+    assertEquals(0, hits(maxgaps(0, ordered(x(), xWithAbsentAlternative())), &quot;b x b&quot;));
+  }
+
+  /**
+   * Control 3: the hand-expanded form of what the documented rewrite produces for ordered(X, X)
+   * (every combination of X&#x27;s alternatives, each wrapped by the gap-sensitive parent) matches.
+   */
+  public void testControlsHandExpandedRewrite() throws IOException {
+    IntervalsSource b = term(&quot;b&quot;);
+    IntervalsSource cb = phrase(&quot;c&quot;, &quot;b&quot;);
+    IntervalsSource expandedMaxGaps =
+        or(
+            maxgaps(0, ordered(b, b)),
+            maxgaps(0, ordered(b, cb)),
+            maxgaps(0, ordered(cb, b)),
+            maxgaps(0, ordered(cb, cb)));
+    assertEquals(1, hits(expandedMaxGaps, &quot;c b c b&quot;));
+    IntervalsSource expandedPhrase =
+        or(
+            phrase(term(&quot;a&quot;), ordered(b, b)),
+            phrase(term(&quot;a&quot;), ordered(b, cb)),
+            phrase(term(&quot;a&quot;), ordered(cb, b)),
+            phrase(term(&quot;a&quot;), ordered(cb, cb)));
+    assertEquals(1, hits(expandedPhrase, &quot;a c b c b&quot;));
+  }
+
+  /** Control 4: the failing queries are not dead: they match when the gap-free pair is two b&#x27;s. */
+  public void testControlsRepeatedOrStillMatchesSimpleCase() throws IOException {
+    assertEquals(1, hits(maxgaps(0, ordered(x(), x())), &quot;b b&quot;));
+    assertEquals(1, hits(maxgaps(0, unordered(x(), x())), &quot;b b&quot;));
+    assertEquals(0, hits(maxgaps(0, ordered(x(), x())), &quot;b x b&quot;));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestAnalyzedTextReach.java (real SynonymGraphFilter probe, needs analysis-common)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Prints the hit counts of <code>analyzedText("york york", ...)</code> with a stock <code>SynonymGraphFilter</code> rule york =&gt; "new york". On main A1, A2 and A4 give 0 hits; with fix A all give 1.</p><figure class='code'><figcaption><span class='fname'>TestAnalyzedTextReach.java (real SynonymGraphFilter probe, needs analysis-common)</span><span class='meta'>89 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.intervals;
+
+import java.io.IOException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.WhitespaceTokenizer;
+import org.apache.lucene.analysis.synonym.SynonymGraphFilter;
+import org.apache.lucene.analysis.synonym.SynonymMap;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.CharsRef;
+import org.apache.lucene.util.CharsRefBuilder;
+
+/** Reach probe: Intervals.analyzedText with a multi-word synonym; prints hit counts; always passes. */
+public class TestAnalyzedTextReach extends LuceneTestCase {
+
+  private static final String FIELD = &quot;f&quot;;
+
+  private static int count(IntervalsSource source, String text) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+        Document doc = new Document();
+        doc.add(new TextField(FIELD, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        return new IndexSearcher(reader).count(new IntervalQuery(FIELD, source));
+      }
+    }
+  }
+
+  private static Analyzer synonymAnalyzer() throws IOException {
+    SynonymMap.Builder b = new SynonymMap.Builder(true);
+    CharsRefBuilder multi = new CharsRefBuilder();
+    SynonymMap.Builder.join(new String[] {&quot;new&quot;, &quot;york&quot;}, multi);
+    b.add(new CharsRef(&quot;york&quot;), multi.get(), true); // york -&gt; &quot;new york&quot;, keep original
+    SynonymMap map = b.build();
+    return new Analyzer() {
+      @Override
+      protected TokenStreamComponents createComponents(String fieldName) {
+        Tokenizer t = new WhitespaceTokenizer();
+        TokenStream ts = new SynonymGraphFilter(t, map, true);
+        return new TokenStreamComponents(t, ts);
+      }
+    };
+  }
+
+  private static void p(String label, IntervalsSource s, String doc) throws IOException {
+    System.out.println(&quot;PROBE\t&quot; + label + &quot;\tdoc=&#x27;&quot; + doc + &quot;&#x27;\thits=&quot; + count(s, doc) + &quot;\tsrc=&quot; + s);
+  }
+
+  public void testReach() throws IOException {
+    Analyzer a = synonymAnalyzer();
+    String doc = &quot;new york x new york&quot;;
+    // york@1 then the phrase &#x27;new york&#x27; at [3,4]: one gap (position 2)
+    p(&quot;A1 analyzedText(&#x27;york york&#x27;, maxGaps=1, ordered)&quot;, Intervals.analyzedText(&quot;york york&quot;, a, FIELD, 1, true), doc);
+    p(&quot;A2 analyzedText(&#x27;york york&#x27;, maxGaps=1, unordered)&quot;, Intervals.analyzedText(&quot;york york&quot;, a, FIELD, 1, false), doc);
+    p(&quot;A3 analyzedText(&#x27;york york&#x27;, maxGaps=0, ordered) [phrase path]&quot;, Intervals.analyzedText(&quot;york york&quot;, a, FIELD, 0, true), &quot;new york new york&quot;);
+    p(&quot;A4 analyzedText(&#x27;york york&#x27;, maxGaps=0, unordered)&quot;, Intervals.analyzedText(&quot;york york&quot;, a, FIELD, 0, false), &quot;new york new york&quot;);
+    IntervalsSource y = Intervals.or(Intervals.term(&quot;york&quot;), Intervals.phrase(&quot;new&quot;, &quot;york&quot;));
+    p(&quot;A5 manual maxgaps(1, ordered(york, or(york,&#x27;new york&#x27;)))&quot;, Intervals.maxgaps(1, Intervals.ordered(Intervals.term(&quot;york&quot;), y)), doc);
+    a.close();
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>TestRepeatedOrScope.java (scope probe behind the fix table)</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>Prints one line per case (runs inside longer sources, three copies, overlapping alternatives, over-match guards, the workaround); always passes.</p><figure class='code'><figcaption><span class='fname'>TestRepeatedOrScope.java (scope probe behind the fix table)</span><span class='meta'>104 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.intervals;
+
+import static org.apache.lucene.queries.intervals.Intervals.maxgaps;
+import static org.apache.lucene.queries.intervals.Intervals.or;
+import static org.apache.lucene.queries.intervals.Intervals.ordered;
+import static org.apache.lucene.queries.intervals.Intervals.phrase;
+import static org.apache.lucene.queries.intervals.Intervals.term;
+import static org.apache.lucene.queries.intervals.Intervals.unordered;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Scope probe, prints one line per case and always passes: a run of the same disjunction inside a
+ * longer ordered/unordered, larger repeats, alternatives that overlap, and the over-match guards.
+ * X = or(b, &quot;c b&quot;).
+ */
+public class TestRepeatedOrScope extends LuceneTestCase {
+
+  private static final String FIELD = &quot;f&quot;;
+
+  private static IntervalsSource x() {
+    return or(term(&quot;b&quot;), phrase(&quot;c&quot;, &quot;b&quot;));
+  }
+
+  private static int count(IntervalsSource source, String text) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+        Document doc = new Document();
+        doc.add(new TextField(FIELD, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        return new IndexSearcher(reader).count(new IntervalQuery(FIELD, source));
+      }
+    }
+  }
+
+  private static void p(String label, IntervalsSource s, String doc, int expected)
+      throws IOException {
+    int hits = count(s, doc);
+    System.out.println(
+        &quot;SCOPE\t&quot;
+            + label
+            + &quot;\tdoc=&#x27;&quot;
+            + doc
+            + &quot;&#x27;\texpected=&quot;
+            + expected
+            + &quot;\thits=&quot;
+            + hits
+            + &quot;\t&quot;
+            + (hits == expected ? &quot;ok&quot; : &quot;WRONG&quot;));
+  }
+
+  public void testScope() throws IOException {
+    IntervalsSource d = term(&quot;d&quot;);
+    // a run of the same disjunction inside a longer ordered / unordered
+    p(&quot;S1 maxgaps0 ordered(X,X,d)&quot;, maxgaps(0, ordered(x(), x(), d)), &quot;c b c b d&quot;, 1);
+    p(&quot;S2 maxgaps0 unordered(X,X,d)&quot;, maxgaps(0, unordered(x(), x(), d)), &quot;c b c b d&quot;, 1);
+    p(&quot;S3 maxgaps0 unordered(X,X,d) no gap-free pair&quot;, maxgaps(0, unordered(x(), x(), d)), &quot;b x c b d&quot;, 0);
+    // three copies
+    p(&quot;S4 maxgaps0 unordered(X,X,X)&quot;, maxgaps(0, unordered(x(), x(), x())), &quot;b c b c b&quot;, 1);
+    p(&quot;S5 maxgaps0 unordered(X,X,X) two occurrences&quot;, maxgaps(0, unordered(x(), x(), x())), &quot;c b c b&quot;, 0);
+    // alternatives that overlap each other: or(&quot;a b&quot;, &quot;b c&quot;) twice on &#x27;a b c&#x27;; whether such copies
+    // may share a position is a design question, the expected value is what main returns today
+    IntervalsSource o = or(phrase(&quot;a&quot;, &quot;b&quot;), phrase(&quot;b&quot;, &quot;c&quot;));
+    p(&quot;S6 unchanged: unordered(O,O), copies share b&quot;, unordered(o, o), &quot;a b c&quot;, 1);
+    p(&quot;S7 unchanged: maxgaps3 unordered(O,O), copies share b&quot;, maxgaps(3, unordered(o, o)), &quot;a b c&quot;, 1);
+    // over-match guards
+    p(&quot;S8 maxgaps0 unordered(X,X) one occurrence&quot;, maxgaps(0, unordered(x(), x())), &quot;c b&quot;, 0);
+    p(&quot;S9 maxgaps0 ordered(X,X) one occurrence&quot;, maxgaps(0, ordered(x(), x())), &quot;c b&quot;, 0);
+    p(&quot;S10 maxgaps0 unordered(X,X) with a gap&quot;, maxgaps(0, unordered(x(), x())), &quot;b x c b&quot;, 0);
+    p(&quot;S11 maxgaps1 unordered(X,X) with a gap&quot;, maxgaps(1, unordered(x(), x())), &quot;b x c b&quot;, 1);
+    // the workaround: ordered with an equivalent but unequal second source
+    IntervalsSource xz = or(term(&quot;b&quot;), phrase(&quot;c&quot;, &quot;b&quot;), term(&quot;zzz&quot;));
+    p(&quot;S12 workaround maxgaps0 ordered(X,X+zzz)&quot;, maxgaps(0, ordered(x(), xz)), &quot;c b c b&quot;, 1);
+    p(&quot;S13 workaround maxgaps0 ordered(X,X+zzz)&quot;, maxgaps(0, ordered(x(), xz)), &quot;c b&quot;, 0);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-6-h'>TestRepeatedOrFixOvermatch.java (over-match probe for fix A)</h3><a class="hlink" href="#code-6-h" target="_self" aria-label="Link to this section" aria-describedby="code-6-h"><span aria-hidden="true">#</span></a></div><p>Prints one line per case and always passes. With W = <code>or(b, unordered(a, b))</code>, <code>phrase(z, ordered(W, W))</code> on <code>z a b a</code> must give 0 (no two disjoint occurrences of W). Stock main gives 0, fix A alone 1, fix A with the LFV-807 fix 0, with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestRepeatedOrFixOvermatch.java (over-match probe for fix A)</span><span class='meta'>107 lines</span><button type='button' class='copy' data-copy='code-6' data-status='code-6-st'>Copy</button><span class='copy-st' id='code-6-st' role='status' aria-live='polite'></span></figcaption><pre id='code-6' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.intervals;
+
+import static org.apache.lucene.queries.intervals.Intervals.maxgaps;
+import static org.apache.lucene.queries.intervals.Intervals.or;
+import static org.apache.lucene.queries.intervals.Intervals.ordered;
+import static org.apache.lucene.queries.intervals.Intervals.phrase;
+import static org.apache.lucene.queries.intervals.Intervals.term;
+import static org.apache.lucene.queries.intervals.Intervals.unordered;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Over-match probe for fix A, prints one line per case and always passes. W = or(b, unordered(a,
+ * b)): an alternative whose own intervals can overlap each other. On &#x27;a b a&#x27; W has the intervals
+ * b [1,1], unordered(a, b) [0,1] and [1,2]; minimization keeps only b [1,1], and no two
+ * occurrences of W are disjoint, so a query that needs two occurrences of W must not match.
+ */
+public class TestRepeatedOrFixOvermatch extends LuceneTestCase {
+
+  private static final String FIELD = &quot;f&quot;;
+
+  private static IntervalsSource w() {
+    return or(term(&quot;b&quot;), unordered(term(&quot;a&quot;), term(&quot;b&quot;)));
+  }
+
+  private static IntervalsSource wz() {
+    return or(term(&quot;b&quot;), unordered(term(&quot;a&quot;), term(&quot;b&quot;)), term(&quot;zzz&quot;));
+  }
+
+  private static IntervalsSource p() {
+    return unordered(term(&quot;a&quot;), term(&quot;b&quot;));
+  }
+
+  private static int count(IntervalsSource source, String text) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+        Document doc = new Document();
+        doc.add(new TextField(FIELD, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        return new IndexSearcher(reader).count(new IntervalQuery(FIELD, source));
+      }
+    }
+  }
+
+  private static void line(String label, IntervalsSource s, String doc, int expected)
+      throws IOException {
+    int hits = count(s, doc);
+    System.out.println(
+        &quot;OVER\t&quot;
+            + label
+            + &quot;\tdoc=&#x27;&quot;
+            + doc
+            + &quot;&#x27;\tsource=&quot;
+            + s
+            + &quot;\texpected=&quot;
+            + expected
+            + &quot;\thits=&quot;
+            + hits
+            + &quot;\t&quot;
+            + (hits == expected ? &quot;ok&quot; : &quot;WRONG&quot;));
+  }
+
+  public void testOvermatch() throws IOException {
+    // the counterexample from the cross-model fact check: phrase(z, ordered(W, W)) on &#x27;z a b a&#x27;
+    line(&quot;O1 ordered(W,W) unfiltered&quot;, ordered(w(), w()), &quot;z a b a&quot;, 0);
+    line(&quot;O2 phrase(z, ordered(W,W))&quot;, phrase(term(&quot;z&quot;), ordered(w(), w())), &quot;z a b a&quot;, 0);
+    line(&quot;O3 control phrase(z, ordered(W,W+zzz))&quot;, phrase(term(&quot;z&quot;), ordered(w(), wz())), &quot;z a b a&quot;, 0);
+    // the same pair under maxgaps, ordered and unordered
+    line(&quot;O4 unordered(W,W) unfiltered&quot;, unordered(w(), w()), &quot;a b a&quot;, 0);
+    line(&quot;O5 maxgaps0 unordered(W,W)&quot;, maxgaps(0, unordered(w(), w())), &quot;a b a&quot;, 0);
+    line(&quot;O6 maxgaps0 ordered(W,W)&quot;, maxgaps(0, ordered(w(), w())), &quot;a b a&quot;, 0);
+    line(&quot;O7 control maxgaps0 ordered(W,W+zzz)&quot;, maxgaps(0, ordered(w(), wz())), &quot;a b a&quot;, 0);
+    // the regrouped pair on its own: ordered(P, P), P = unordered(a, b) (LFV-807&#x27;s over-match)
+    line(&quot;O8 ordered(P,P)&quot;, ordered(p(), p()), &quot;a b a&quot;, 0);
+    // the bug&#x27;s own example still matches
+    IntervalsSource x = or(term(&quot;b&quot;), phrase(&quot;c&quot;, &quot;b&quot;));
+    line(&quot;O9 maxgaps0 unordered(X,X)&quot;, maxgaps(0, unordered(x, or(term(&quot;b&quot;), phrase(&quot;c&quot;, &quot;b&quot;)))), &quot;c b c b&quot;, 1);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); the finder&#x27;s test also on the 8.4.1, 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 release jars and branch_10_6 4ae946e5a9b</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (a pure-Java code path)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestRepeatedOrRewrite.java $LUCENE/lucene/queries/src/test/org/apache/lucene/queries/intervals/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:queries:test --tests TestRepeatedOrRewrite -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestRepeatedOrRewrite &gt; testPhraseOverOrderedSameOrTwice FAILED
+    java.lang.AssertionError: BLOCK(a,ORDERED(or(BLOCK(c,b),b),or(BLOCK(c,b),b))) on &#x27;a c b c b&#x27; expected:&lt;1&gt; but was:&lt;0&gt;
+TestRepeatedOrRewrite &gt; testAnalyzedTextRepeatedWordWithMultiWordSynonym FAILED
+    java.lang.AssertionError: MAXGAPS/0(UNORDERED(or(BLOCK(new,york),york),or(BLOCK(new,york),york))) on &#x27;new york new york&#x27; expected:&lt;1&gt; but was:&lt;0&gt;
+TestRepeatedOrRewrite &gt; testMaxGapsUnorderedSameOrTwice FAILED
+    java.lang.AssertionError: MAXGAPS/0(UNORDERED(or(BLOCK(c,b),b),or(BLOCK(c,b),b))) on &#x27;c b c b&#x27; expected:&lt;1&gt; but was:&lt;0&gt;
+TestRepeatedOrRewrite &gt; testMaxGapsOrderedSameOrTwice FAILED
+    java.lang.AssertionError: MAXGAPS/0(ORDERED(or(BLOCK(c,b),b),or(BLOCK(c,b),b))) on &#x27;c b c b&#x27; expected:&lt;1&gt; but was:&lt;0&gt;
+5 tests completed, 4 failed
+
+# the same 4 failures with -Ptests.asserts=false (seed 0D15C0DE) and through the standalone runner;
+# with fix A, and with fix A + the LFV-807 fix: 5 of 5 pass</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The <code class='nw'>Intervals</code> javadoc promises the rewrite by default; only <code>or(false, ...)</code> may "miss valid hits due to minimization".</li><li>An equivalent but unequal second argument, or <code>phrase(X, X)</code>, is rewritten and matches: hidden object equality decides.</li><li>The repeat came with a 2020 fix for repeated terms that never mentions the rewrite; maintainers call the rewrite "the key for correctness".</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>354 words</span></summary><div class='body'><ul><li><strong>The default promises the rewrite.</strong> Class javadoc: "by default, sources that are sensitive to internal gaps (e.g. <code class='nw'>PHRASE</code> and <code class='nw'>MAXGAPS</code>) will rewrite their sub-sources so that disjunctions of different lengths are pulled up ... to ensure that documents containing "b c" are matched"; the opt-out is for when "you care more about speed than about accuracy" (<code>Intervals.java:47-54</code>). <code class='nw'>Intervals.or</code>: "Automatically rewrites if wrapped by an interval source that is sensitive to internal gaps" (<code class='nw'>:118-122</code>). Only <code>or(false, ...)</code> "can miss valid hits due to minimization" (<code class='nw'>:127-135</code>).</li><li><strong>CHANGES calls the miss a bug.</strong> LUCENE-8477: "Interval disjunctions could miss valid hits if some of the clauses of the disjunction are minimized away. We now rewrite intervals if a source contains a disjunction and the internal gaps matter for matching" (<code>lucene/CHANGES.txt:6502-6506</code>). No javadoc, CHANGES entry or test exempts equal arguments.</li><li><strong>Equal objects decide.</strong> <code>ordered(X, X2)</code> with X2 = X plus an alternative that never occurs is rewritten and matches; <code>phrase(X, X)</code> matches; the hand-expanded rewrite matches. Users cannot see the deduplication.</li><li><strong>A side effect, not a decision.</strong> <code>RepeatingIntervalsSource</code> and its <code class='nw'>singleton(this)</code> came with LUCENE-9099 (2020), a fix for repeated terms. Its commit message (also its PR body; one approving review, no inline comments) mentions disjunctions only for a separate fix to <code>DisjunctionIntervalIterator#matches()</code>, and its one repeated-<code class='nw'>or</code> test, <code>testMaxGapsWithOnlyRepeats</code> (<code>maxgaps(1, ordered(or(pease, hot), or(pease, hot)))</code>), uses single-term alternatives, where the rewrite has nothing to do. None of them mentions the LUCENE-8477 rewrite or a disjunction whose alternatives have different lengths. Before it, 8.4.1 rewrote and matched the two-argument <code class='nw'>ordered</code> and <code class='nw'>phrase</code> cases.</li><li><strong>Maintainers on the rewrite</strong> (LUCENE-9204, #10244): "Intervals automatically rewrite disjunctions (and have done since LUCENE-8477) so that queries behave as your or I would expect them to"; and "there's nothing else to compare with since it's the key for correctness ... If it's not correct, it's a bug, not a feature".</li><li><strong>Nothing pins the current behaviour.</strong> Upstream repeat tests use single terms or an <code class='nw'>or</code> of single terms; all 117 upstream intervals tests pass with fix A, and with A together with the LFV-807 fix.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>202 words</span></summary><div class='body'><p>The strongest case for "works as designed" (built or weighed by the cross-model reviews, the intended-behaviour check and the adjudication; the cross-model reviews rated it moderate): intervals use minimal-interval semantics (the class javadoc cites the Vigna paper); during LUCENE-8477 a reviewer warned that "we can find other pathological cases due to minimum interval semantics" and suggested documenting rather than rewriting; the rewrite was never total (<code class='nw'>atLeast</code> is also opaque); the query parser docs say "the algorithm is not required to return or highlight all matching interval alternatives"; and keeping the repeat closed avoids a k^n expansion.</p><p>Why it fails: the merged design rewrites by default, and later maintainer statements treat a miss as a bug; the parser note is about which intervals of a matching document are reported, while here the document is not matched at all; unequal arguments and <code>phrase(X, X)</code> are already expanded, bounded by the clause limit; and the answer should not depend on whether two equivalent arguments are equal objects. The unordered half has a real design question (may the copies share positions?), which shapes the fix, not whether <code>c b c b</code> should match: its witness pair does not overlap. <strong>Verdict: a defect</strong> (adjudication: confirmed, high).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A whole repeat also exposes its ordered sequences, applied together with the LFV-807 fix (candidate, needs design review)</strong></p><p class='short'>Candidate, needs design review: in <code>RepeatingIntervalsSource.pullUpDisjunctions</code>, let a whole repeat also return every <code class='nw'>ordered</code> sequence of its copies' alternatives (15 lines), together with the LFV-807 fix. The pair passes the repro, an over-match probe and the <code class='nw'>queries</code>, <code class='nw'>queryparser</code> and <code class='nw'>highlighter</code> tests. Alone, the 15-line change can add a false hit. A repeat inside a longer <code class='nw'>unordered</code> stays open.</p><pre class='snippet' tabindex='0'><code>  public Collection&lt;IntervalsSource&gt; pullUpDisjunctions() {
+    if (name != null) { // a whole ordered() or unordered() of equal sub-sources
+      List&lt;IntervalsSource&gt; sequences =
+          Disjunctions.pullUp(Collections.nCopies(childCount, in), OrderedIntervalsSource::build);
+      if (sequences.size() &gt; 1) {
+        List&lt;IntervalsSource&gt; pulledUp = new ArrayList&lt;&gt;(sequences.size() + 1);
+        pulledUp.add(this); // keep every match the repeat has today
+        pulledUp.addAll(sequences);
+        return pulledUp;
+      }
+    }
+    return Collections.singleton(this);
+  }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 1,444 words</span></summary><div class='body'><p>The candidate change makes a whole <code>ordered(X, X)</code> / <code>unordered(X, X)</code> behave like its unequal twin under a gap-sensitive parent: the parent sees the repeat itself plus every sequence of the copies' alternatives built as <code class='nw'>ordered</code>. The copies stand for distinct occurrences, so, as long as each sequence is a real <code class='nw'>ordered</code> (whose sub-intervals never overlap), these sequences are exactly "n occurrences without overlap", the construction <code>Intervals.unorderedNoOverlaps</code> uses. That condition needs the LFV-807 fix: without it, <code class='nw'>ordered</code> folds a sequence of two equal alternatives back into a repeat whose copies may overlap. With W = <code>or(b, unordered(a, b))</code>, <code>phrase(z, ordered(W, W))</code> then matches <code>z a b a</code>, although no two occurrences of W there are disjoint (stock 0, the change alone 1, the change with the LFV-807 fix 0; executed with assertions on and off). With both fixes, keeping the repeat itself keeps every match it has today, and the added sequences should only add documents that the unfiltered query also matches (reasoning, checked on the cases below). These runs cover the listed examples and the existing test suites, not the general semantics.</p><div class="tbl"><table><thead><tr><th>case</th><th>document</th><th>expected</th><th>main</th><th>A</th><th>finder sketch</th><th>LFV-807 fix</th><th>A + LFV-807</th></tr></thead><tbody><tr><td><code>maxgaps(0, ordered(X, X, d))</code></td><td><code>c b c b d</code></td><td>1</td><td>0</td><td>0</td><td>0</td><td>1</td><td>1</td></tr><tr><td><code>maxgaps(0, unordered(X, X, d))</code></td><td><code>c b c b d</code></td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td><code>maxgaps(0, unordered(X, X, d))</code></td><td><code>b x c b d</code></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td><code>maxgaps(0, unordered(X, X, X))</code></td><td><code>b c b c b</code></td><td>1</td><td>0</td><td>0 (1 with LFV-306)</td><td>1</td><td>0</td><td>1</td></tr><tr><td><code>maxgaps(0, unordered(X, X, X))</code></td><td><code>c b c b</code></td><td>0</td><td>0</td><td>0</td><td><strong>1</strong></td><td>0</td><td>0</td></tr><tr><td><code>maxgaps(0, unordered(X, X))</code></td><td><code>c b</code></td><td>0</td><td>0</td><td>0</td><td><strong>1</strong></td><td>0</td><td>0</td></tr><tr><td><code>maxgaps(0, unordered(X, X))</code></td><td><code>b x c b</code></td><td>0</td><td>0</td><td>0</td><td><strong>1</strong></td><td>0</td><td>0</td></tr><tr><td><code>maxgaps(1, unordered(X, X))</code></td><td><code>b x c b</code></td><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>1</td></tr><tr><td>workaround <code>maxgaps(0, ordered(X, X + zzz))</code></td><td><code>c b c b</code></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td><td>1</td></tr><tr><td><code>phrase(z, ordered(W, W))</code>, W = <code>or(b, unordered(a, b))</code></td><td><code>z a b a</code></td><td>0</td><td>0</td><td><strong>1</strong></td><td><strong>1</strong></td><td>0</td><td>0</td></tr></tbody></table></div><p>With A alone the three-copy case stays 0 because the sequence <code>ordered(b, c b, c b)</code> regroups the two <code>c b</code> into a repeat whose width has the LFV-306 sign error; with LFV-306's one-line fix also applied it gives 1. Two copies of <code>or("a b", "b c")</code> on <code>a b c</code>, which share the b, give the same as main under every fix. The <code>phrase(z, ordered(W, W))</code> row is the over-match of A alone described above. With A + LFV-807 every row gives the expected value except <code>unordered(X, X, d)</code>.</p><p><strong>Not covered by any fix tried:</strong> a run of copies inside a longer <code class='nw'>unordered</code>, such as <code>unordered(X, X, d)</code>. Expanding it needs "the copies must not overlap each other but may overlap d": rebuilding the copies with <code class='nw'>unordered</code> over-matches, and nesting an <code class='nw'>ordered</code> of the copies hides that <code class='nw'>ordered</code>'s inner gaps from the parent, which would match <code>b x c b d</code>. No existing operator expresses this; it is the design question to raise upstream.</p><p><strong>Workaround until a fix ships:</strong> make the second argument unequal with an alternative that never occurs and use <code class='nw'>ordered</code>: <code>maxgaps(0, ordered(X, or(b, "c b", zzz)))</code> matches <code>c b c b</code> and not <code>c b</code> or <code>b x b</code>. Not with <code class='nw'>unordered</code>: unequal unordered arguments may share a position, so that form also matches a lone b.</p><div class="hd hd-3"><h3 id='fix-expose-sequences'>A whole repeat also exposes its ordered sequences, applied together with the LFV-807 fix (candidate, needs design review) <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-expose-sequences" target="_self" aria-label="Link to this section" aria-describedby="fix-expose-sequences"><span aria-hidden="true">#</span></a></div><p>In <code>RepeatingIntervalsSource.pullUpDisjunctions()</code>, for a repeat that is a whole <code class='nw'>ordered</code>/<code class='nw'>unordered</code> call (<code>name != null</code>), return the repeat plus <code>Disjunctions.pullUp(nCopies(childCount, in), OrderedIntervalsSource::build)</code> when that yields more than one sequence (+15 lines in one method, comment included; abridged below). Apply it together with option B (the LFV-807 fix); alone it can over-match (trade-offs). Under <code class='nw'>maxgaps</code> each returned source gets its own filter; under <code class='nw'>phrase</code> the pieces of extent 1 (the repeat itself and, without B, the folded <code>ordered(b, b)</code>) are grouped into one <code class='nw'>or</code> first. An <code class='nw'>or</code> of single words still splits into one piece, so the tested single-word case builds exactly as before. The diff's comment ("ordered sub-intervals never overlap", "only adds matches") holds only with B.</p><p><strong>What was run</strong> (the listed examples and the existing suites; not a proof of the general semantics):</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: stock + the new test, 4 of 5 fail with assertions on and off.</li><li>+ A: <code class='nw'>lucene/queries</code> 52 suites, 517 tests (122 in the intervals package, 5 of them new), 0 failures with assertions on and off (5 and 6 skipped); <code>lucene/queryparser</code> 30 suites, 533 tests, and <code>lucene/highlighter</code> 34 suites, 722 tests, 0 failures (assertions on); <code>:lucene:queries:check -x test</code> (checkGoogleJavaFormat, ecjLint, forbiddenApis) passes.</li><li>+ A + B: the same three suites, 0 failures (<code class='nw'>lucene/queries</code> with assertions on and off); <code>:lucene:queries:check</code> was not re-run for the pair. Standalone runner: the new test 5 of 5 and the over-match probe as expected on every line, with assertions on and off.</li><li>Standalone runner, A alone: the new test 5 of 5 (on and off), the finder's 3 of 3 (on and off), the reproducer's 7 of 8 (only the longer-<code class='nw'>ordered</code> scope test fails), the real-synonym probe all 1, and the <code class='nw'>fn:</code> query string matches with <code class='nw'>Weight#matches</code> agreeing. The multi-case query-parser probe it comes from still reports 5 failing lines, all from other bugs (they fail on stock too).</li></ul><pre class='snippet' tabindex='0'><code>  public Collection&lt;IntervalsSource&gt; pullUpDisjunctions() {
+    if (name != null) { // a whole ordered() or unordered() of equal sub-sources
+      List&lt;IntervalsSource&gt; sequences =
+          Disjunctions.pullUp(Collections.nCopies(childCount, in), OrderedIntervalsSource::build);
+      if (sequences.size() &gt; 1) {
+        List&lt;IntervalsSource&gt; pulledUp = new ArrayList&lt;&gt;(sequences.size() + 1);
+        pulledUp.add(this); // keep every match the repeat has today
+        pulledUp.addAll(sequences);
+        return pulledUp;
+      }
+    }
+    return Collections.singleton(this);
+  }</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Over-match without B (executed).</strong> <code>OrderedIntervalsSource.build</code> folds a sequence of equal alternatives back into a repeat, and that repeat lets its copies overlap (LFV-807). With W = <code>or(b, unordered(a, b))</code>, <code>phrase(z, ordered(W, W))</code> on <code>z a b a</code> gives 1 with A alone, 0 on stock and 0 with A + B; the unequal control gives 0. Found by the cross-model fact check from the source, then run with assertions on and off.</li><li><strong>Open: <code class='nw'>name</code> and <code class='nw'>equals</code>.</strong> A lets <code class='nw'>name</code> decide what <code>pullUpDisjunctions()</code> returns, but <code>RepeatingIntervalsSource.equals</code> and <code class='nw'>hashCode</code> ignore <code class='nw'>name</code>, so a named whole-call repeat and an otherwise equal unnamed repeat inside a longer <code class='nw'>ordered</code>/<code class='nw'>unordered</code> compare equal but rewrite differently. Resolve before proposing (read, not executed).</li><li><strong>Cost</strong>, like the documented rewrite of unequal arguments: k^n + 1 branches for n copies of k pieces, with the clause limit applied at query construction. An <code class='nw'>or</code> of 32 two-word phrases passed twice builds 1,025 branches; 33 throw <code>IllegalArgumentException: Too many disjunctions to expand</code>, where today the repeated form builds unexpanded and the unequal form already throws from 32. So a query that builds today can be rejected; capping or falling back is the owner's call.</li><li>Does not cover a run inside a longer <code class='nw'>ordered</code> (fixed by LFV-807's change) or a longer <code class='nw'>unordered</code> (open design question).</li><li>Scores and <code class='nw'>Weight#matches</code> see the extra branches only where they add intervals; no benchmark was run.</li><li>A CHANGES.txt entry under Bug Fixes is the owner's call.</li></ul><div class="hd hd-3"><h3 id='fix-drop-ordered-dedup'>Drop the deduplication in ordered (the LFV-807 fix): partial alone, apply it with A</h3><a class="hlink" href="#fix-drop-ordered-dedup" target="_self" aria-label="Link to this section" aria-describedby="fix-drop-ordered-dedup"><span aria-hidden="true">#</span></a></div><p>The ordered iterator already keeps sub-intervals from overlapping, so equal <code class='nw'>ordered</code> arguments need no repeat. Fixes the <code class='nw'>ordered</code> and <code class='nw'>phrase</code> cases, <code>ordered(X, X, d)</code> and LFV-807.</p><p class='k'>Trade-offs</p><p>Alone it does nothing for <code class='nw'>unordered</code>, which keeps the repeat so that <code>unordered(a, a)</code> does not match one <code class='nw'>a</code>: with it the unordered and <code class='nw'>analyzedText</code> tests still fail (executed). Together with A it also removes A's over-match, because A's sequences are then real <code class='nw'>ordered</code> sources (executed).</p><div class="hd hd-3"><h3 id='fix-rebuild-with-owner'>Rebuild each combination with the owning factory (the finder's sketch), not recommended</h3><a class="hlink" href="#fix-rebuild-with-owner" target="_self" aria-label="Link to this section" aria-describedby="fix-rebuild-with-owner"><span aria-hidden="true">#</span></a></div><p>Distribute the alternatives over the copies and rebuild with <code class='nw'>unordered</code> for an unordered repeat.</p><p class='k'>Trade-offs</p><p>Passes the three headline cases but adds false hits under the filter: <code>maxgaps(0, unordered(X, X))</code> matches <code>c b</code> and <code>b x c b</code>, and three copies match <code>c b c b</code>, none of which the unfiltered query matches (executed). Rebuilt <code class='nw'>unordered</code> lets <code>c b</code> pair with the b inside it. It also gives 1 for <code>phrase(z, ordered(W, W))</code> on <code>z a b a</code> and for <code>maxgaps(0, unordered(W, W))</code> on <code>a b a</code> (executed).</p><div class="hd hd-3"><h3 id='fix-document'>Document the limitation</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>Say in the <code class='nw'>Intervals.or</code> and <code class='nw'>ordered</code>/<code class='nw'>unordered</code> javadocs that equal arguments are not rewritten.</p><p class='k'>Trade-offs</p><p>Keeps silent misses for <code class='nw'>analyzedText</code> and query-parser users, who cannot see or control the deduplication.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream relevance: an exclusion built from such a query (a <code class='nw'>MUST_NOT</code> clause or <code class='nw'>notContaining</code>) silently keeps the documents it should drop.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>While modelling how an <code class='nw'>or</code> is distributed under gap filters, with an independently written reference semantics, the finder saw that a repeated disjunction is never distributed. A bounded-exhaustive comparison (about 1.1 million checks over every short document of a three-symbol alphabet) traced the last remaining mismatches to this spot, and a one-document test reproduced it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>202 words</span></summary><div class='body'><p><strong>Method: modelling with a reference semantics, then bounded-exhaustive translation validation on the stock main jars</strong> (the hunt's "semi-formal" tier).</p><ul><li>A hunt unit on interval repeats and disjunction pull-ups wrote a reference semantics for interval queries from the javadoc (<code class='nw'>IvRef290</code>). While modelling an earlier lead (how <code class='nw'>or</code> is distributed under gap-sensitive parents, with repeat groups taken from the user's arguments), the finder noticed that a repeated disjunction is never distributed and confirmed it with a direct probe.</li><li>Its harness (<code class='nw'>IvTV290</code>) ran the stock interval iterators against the reference on every non-empty document of 1 to 4 positions over a three-symbol alphabet (120 documents), for 6,856 expressions of depth up to 3 over term, ordered, unordered, or, phrase, maxgaps(0|1) and atLeast(2 of 3) with repeated arguments: 1,100,295 checks and 23,917 failures on stock main. With switchable shadow fixes for known bugs and for the unit's other candidates, applied one by one (1,100,515 to 1,100,533 checks per configuration), the failures fell to 17,058, 13,789, 13,469, 3,596 and 1,098, and the last 1,098 went to 0 only with this fix site.</li><li>The finder reduced it to a one-document public-API JUnit; independent AI tools then reproduced, reviewed and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): four tool runs of about 51 queries each over GitHub issues, PRs and commits, the mailing lists, the JIRA archive, downstream repositories and the web, plus manual searches and the changed files of all 409 open PRs.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>No issue, PR, review comment, JIRA ticket, list thread or downstream report describes a repeated disjunction skipping the gap-sensitive rewrite. <code>RepeatingIntervalsSource.pullUpDisjunctions</code> still returns <code class='nw'>singleton(this)</code> on upstream main and branch_10_6, and no open PR touches the fix site.</p><p><strong>Closest, not this bug:</strong> #10141 / lucene-solr#1097 (LUCENE-9099, the introducing change; single-position repeats only: terms and an <code class='nw'>or</code> of single terms); #9523 / lucene-solr#620 (LUCENE-8477, the rewrite and its contract, before repeats existed); #10244 (LUCENE-9204, maintainers on the rewrite); #11177 (LUCENE-10140: a remark that REPEATING "cannot produce all the possible spans between sub-intervals", about highlight positions of a proposed rewrite, not disjunctions or missed documents); #13819 (flattening), #16899 (merged 2026-10-26, multi-term over-expansion) and #16851 (open, iterator refactor). OpenSearch#3321 and elastic/elasticsearch#137950 report the rewrite expanding too much, the opposite symptom.</p><p>Limits: GitHub search does not index review comments (the lucene-solr #620 and #1097 reviews were read through the API); several web queries were throttled; private reports cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits: apache/lucene, the archived apache/lucene-solr, Elasticsearch, OpenSearch, Solr</th><td class='when'>2026-10-27</td><td>a scripted prior-report search, four runs (identifiers; trigger and symptom; generic): 16 issue/PR, 3 commit and 2 downstream queries each; 54 manual GraphQL queries</td><td>only the design issues #10141, #9523, #10244 and their PRs name RepeatingIntervalsSource or pullUpDisjunctions</td></tr><tr><th scope='row'>dev@, java-user@, issues@, commits@ lists; Solr lists; JIRA archive; web</th><td class='when'>2026-10-27</td><td>20 list and 4 JIRA queries per tool run; 30 extra list and 7 extra JIRA queries; 12 completed web queries (3 throttled)</td><td>notification mirrors of the design issues and unrelated threads only</td></tr><tr><th scope='row'>Open PRs and upstream code</th><td class='when'>2026-10-27</td><td>changed files of all 409 open apache/lucene PRs; titles of the 34 PRs updated since 2026-10-25, the 19 items created since 2026-10-25 and the 14 issues updated since 2026-10-26; the fix site on upstream main and branch_10_6</td><td>no open PR touches the fix site; the method is unchanged since 7c1ba1aebee</td></tr><tr><th scope='row'>Verifier passes</th><td class='when'>2026-10-27</td><td>The independent reproduction, the cross-model review, the intended-behaviour check and the adjudication, read-only GitHub, list and web searches</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-9099 (<code class='nw'>aa916bac3c3</code> on branch_8x, <code class='nw'>7c1ba1aebee</code> on master, 2020-02-06), first released in 8.5.0. The finder's test fails on every version run from 8.5.0 to 10.5.2, on branch_10_6 and on main, and passes on 8.4.1.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>9 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-9099 "Correctly handle repeats in ORDERED and UNORDERED intervals" (@romseygeek; apache/lucene-solr#1097, the JIRA issue is now apache/lucene#10141; one approving review): <code class='nw'>aa916bac3c3</code> on branch_8x, the commit first released, and <code class='nw'>7c1ba1aebee</code> on master, both 2020-02-06. It added the deduplication and <code>RepeatingIntervalsSource</code> with <code>pullUpDisjunctions()</code> returning <code class='nw'>singleton(this)</code>; <code>git log -L</code> of the method lists only this commit.</p><p><strong>Regression, with a caveat:</strong> the two-argument <code class='nw'>ordered</code> and <code class='nw'>phrase</code> cases were right in 8.4.1. The <code class='nw'>unordered</code> case and a run inside a longer <code class='nw'>ordered</code> matched in 8.4.1 only because the two copies could share a position, which also matched a lone b (the over-match LUCENE-9099 fixed). So the unordered case was introduced with LUCENE-9099 rather than "worked in 8.4.1".</p><p>Caveats: every run used JDK 25.0.3; 8.x and 9.0.0 ran the test with two test-framework imports moved to the old packages; the 8.8.2-8.11.4 tags are not in the local history clone (8.11.4 was executed).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test: 4 of 5 fail (gradle and the standalone runner, assertions on and off); the finder's 3 of 3</td></tr><tr><th scope='row'>branch_10_6 <code class='nw'>4ae946e5a9b</code> (10.6.0, unreleased)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test 3 of 3 fail, assertions on and off</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>3 of 3 fail, assertions on and off; the reproducer's 4 bug tests fail</td></tr><tr><th scope='row'>10.0.0, 9.12.3, 9.0.0, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>3 of 3 fail</td></tr><tr><th scope='row'>8.5.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first</span></td><td>3 of 3 fail; the reproducer's 4 bug tests fail</td></tr><tr><th scope='row'><code class='nw'>aa916bac3c3</code> vs parent <code class='nw'>3246b260586</code> (on the 8.5.0 jars)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bisect</span></td><td>the introducing commit fails 3 of 3; its parent passes 3 of 3</td></tr><tr><th scope='row'>8.4.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> before</span></td><td>3 of 3 pass (the unordered case only through the over-match LUCENE-9099 fixed)</td></tr><tr><th scope='row'>main + fix A</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro passes; queries 517, queryparser 533 and highlighter 722 tests, 0 failures; but A alone over-matches <code>phrase(z, ordered(W, W))</code> on <code>z a b a</code> (executed)</td></tr><tr><th scope='row'>main + fix A + the LFV-807 fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro passes (on and off); queries 517 (on and off), queryparser 533 and highlighter 722 tests, 0 failures; the over-match probe as expected</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and reviews from another model family agree on the cause; the reproducer and the devil's advocate reproduced it with their own tests, and the adjudication confirmed it (high). This doc's brief added a 5-test repro and tested a fix (with the LFV-807 fix) on three modules; fact checks followed.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>460 words</span></summary><div class='body'><p>Every verifier (the finder, the independent reproduction, the cross-model review's own JUnits, the intended-behaviour check, the adjudication and the registry re-run) ran its repro with assertions on and off. The cross-model reviews (an independent reviewer from another model family, OpenAI GPT-5.6) ran read-only and could not run Java; one review's driver re-ran the finder's JUnit (3 of 3 fail, assertions off). No cross-model review that executes code was done.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Modelling with a reference semantics, then the bounded-exhaustive harness (about 1.1 million checks per configuration; with the unit's other fixes 1,098 failures remain, and 0 only with this fix site); the 3-test public-API JUnit fails 3 of 3 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> procedural not_real (low)</span></td><td>Read-only, could not run Java, so its rubric required not_real; root cause agrees, inputs in contract, intended case moderate; its notes say the static evidence strongly favours a real defect.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 8-test JUnit: the 4 bug tests fail and 4 controls pass on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2, 9.12.3, 8.11.4 and 8.5.0; passes on 8.4.1; found the longer-<code class='nw'>ordered</code> scope and that the unordered absent-alternative control is weak.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>Read-only review, intended case moderate and rejected; its stage's own JUnits fail on main (two seeds, <code class='nw'>-ea</code>, <code class='nw'>-da</code>) and 10.5.2, and still fail with the LFV-306 fix, so the bug is independent of it.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the minimal-interval / <code class='nw'>atLeast</code> / k^n case and rejected it; found the <code class='nw'>analyzedText</code> synonym reach; the repro fails on main with <code class='nw'>-da</code>.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Fresh seed: 3 of 3 fail with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; with the LFV-807 fix applied only the unordered test still fails, so a distinct root cause.</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>Seeds 0D15C0DE and A4D17E55: 3 of 3 fail on <code class='nw'>a9779ef3c193</code> with assertions on and off; an independent audit probe confirms the ordered, unordered and analyzedText misses.</td></tr><tr><th scope='row'>this doc's brief</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix A + B tested</span></td><td>New 5-test repro (4 of 5 fail, gradle and standalone, on and off); fix A, and A with the LFV-807 fix, tested with the queries, queryparser and highlighter tests; scope table across five fix configurations; over-match probe.</td></tr><tr><th scope='row'>fact checks of the brief</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> bug real as described; wording fixed</span></td><td>A fact check re-ran the documented gradle command (4 of 5 fail, on and off) and the fix; a read-only review by an independent reviewer from another model family (OpenAI GPT-5.6) found from the source that fix A alone can over-match, which was then executed. The corrections are listed in the hunt's record.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-809/bug.png' download='repeating-intervals-disjunction-not-rewritten-bug.png' target='_self'>PNG</a> <span class='n'>462 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,413 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-809, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Intervals.unordered/ordered given the same disjunction twice merge it into one repeated source that the gap-sensitive disjunction rewrite does not look into (RepeatingIntervalsSource.pullUpDisjunctions returns itself), so maxgaps(0, unordered(X, X)) with X = or(b, phrase(c, b)) misses 'c b c b', and maxgaps or phrase over ordered(X, X) miss the same way</dd></div><div><dt>Area</dt><dd>queries / intervals (gap-sensitive disjunction rewrite of LUCENE-8477 vs repeated equal sub-sources: RepeatingIntervalsSource.pullUpDisjunctions, Ordered/UnorderedIntervalsSource.deduplicate)</dd></div><div><dt>Priority</dt><dd>Medium, rank 230: Silent missed interval matches since 8.5.0 with the same profile as LFV-306, and it heads the new RepeatingIntervalsSource siblings because it is also reachable through analyzedText when a repeated word has a multi-word synonym.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Anyone whose interval query passes the same disjunction, with an alternative longer than one position (a phrase, or a multi-word synonym that Intervals.analyzedText turns into or(BLOCK(new, york), york)), twice to Intervals.unordered or Intervals.ordered under a gap-sensitive parent (maxgaps, phrase, analyzedText with maxGaps), through the Java factories, StandardQueryParser fn: strings or analyzedText, with default writer, codec, analyzer and searcher settings, at any index size, with -ea and -da, in every release from 8.5.0 to 10.5.2 and on main and branch_10_6, silently misses documents that have a valid gap-free match; repeated disjunctions of single terms (the case upstream tests) are not affected, and nothing is written to the index.</dd></div><div><dt>Summary</dt><dd>You build an interval query that uses the same OR twice, for example maxgaps(0, unordered(X, X)) with X = or(b, phrase(c, b)), and expect what the Intervals.or javadoc promises ('Automatically rewrites if wrapped by an interval source that is sensitive to internal gaps'), so that 'c b c b' matches through b at position 1 followed by the phrase 'c b' at positions 2-3, which do not overlap and leave no gap. Instead, because the two arguments are equal, Lucene merges them into one RepeatingIntervalsSource whose pullUpDisjunctions() returns only itself, so the rewrite never runs, the longer 'c b' alternative is minimized away inside X, and the query returns no hits. maxgaps(0, ordered(X, X)) and phrase(a, ordered(X, X)) miss in the same way, and so does Intervals.analyzedText for the query text 'york york' with a synonym york -&gt; 'new york' (unordered, maxGaps 0) on the document 'new york new york'.</dd></div><div><dt>Introduced</dt><dd>7c1ba1aebeea540b67ae304deee60162baee2e12 (master, released from 9.0.0) and its branch_8x backport aa916bac3c3369a461afa06e384e070657c32973 (the first released form, in 8.5.0), both 2020-02-06: 'LUCENE-9099: Correctly handle repeats in ORDERED and UNORDERED intervals' (apache/lucene-solr#1097 by romseygeek, one approving review by jimczi; the JIRA issue is now apache/lucene#10141). It added Ordered/UnorderedIntervalsSource.deduplicate, which folds equal sub-sources into RepeatingIntervalsSource, and RepeatingIntervalsSource.pullUpDisjunctions returning Collections.singleton(this) [read: git log -L of pullUpDisjunctions (only 7c1ba1aebee), git blame on main] [exec: the intervals package at the backport's parent 3246b260586, shadowed on the 8.5.0 jars, passes 3 of 3; the package at aa916bac3c3 fails 3 of 3] (2020-02-06 (7c1ba1aebee and the branch_8x backport aa916bac3c3))</dd></div><div><dt>First affected version</dt><dd>8.5.0 [exec] (8.4.1, the last release before LUCENE-9099, passes [exec]; the commit-level A/B on the 8.5.0 jars pins it to aa916bac3c3 [exec]). For the unordered shape and a run of equal sources inside a longer ordered, 8.4.1 returned the hit only through the pre-LUCENE-9099 over-match (the two copies shared one position, which also matched a lone 'b'), so those shapes were never right; the two-argument ordered and phrase shapes are a clean regression</dd></div><div><dt>Affected versions</dt><dd>every release from 8.5.0 through 10.5.2 [exec: the finder JUnit fails 3 of 3 on 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 (-ea and -da on 10.5.2; 8.x and 9.0.0 with the two test-framework imports moved to the old packages); the history probe misses on 8.5.0, 9.0.0, 10.5.2 and main; the independent reproduction's own JUnit fails on 8.5.0, 8.11.4, 9.12.3 and 10.5.2] [read: no intervals change between them touches the fix site]; branch_10_6 head 4ae946e5a9b [exec, -ea and -da: fails 3 of 3], so 10.6.0 will ship it unless fixed; main a9779ef3c193 [exec, -ea and -da]; upstream main 20ced71c1e6 [read: the 4 newer commits touch no intervals file]. Not affected: 8.4.1 [exec]. Reachable from query text through StandardQueryParser fn: functions (fn:maxgaps, fn:unordered, fn:or) on main [exec]; the fn: syntax arrived in 9.1.0 (LUCENE-10223) [read, sibling follow-up]; before that, through the Java Intervals API only</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (follow-up prior-report record verdict new, searched 2026-10-27 plus the finder's scripted prior-report search and its web leg, read-only): four scripted prior-report searches (identifiers, trigger and symptom, generic; about 51 queries each over apache/lucene issues and PRs, commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web), manual GitHub searches over apache/lucene and apache/lucene-solr, a changed-file scan of all 409 open apache/lucene PRs, the 34 PRs updated since 2026-10-25, the intervals commit history on main and branch_10_6, 30 extra mailing-list queries over six Lucene and Solr lists, extra JIRA-archive queries, downstream GitHub queries (Elasticsearch, OpenSearch, Solr) and 12 completed web queries (3 attempts throttled). Nearest items, none the same bug: #10141 / LUCENE-9099 and lucene-solr#1097 (introduced RepeatingIntervalsSource; single-term repeats only; no word on disjunctions or the rewrite), #9523 / LUCENE-8477 and lucene-solr#620 (the rewrite and its contract; before repeats existed), #10244 / LUCENE-9204 (maintainers on the rewrite as needed for correctness), #11177 / LUCENE-10140 (repeat sub-positions for highlighting; a proposed rewrite never implemented; another fix site), #13819 (flattening), #16899 (merged 2026-10-26, TooManyClauses on multi-term over-expansion) and #16851 (open, PriorityQueue refactor in the iterators). Not fixed upstream: RepeatingIntervalsSource.pullUpDisjunctions still returns singleton(this) on upstream main 20ced71c1e6 and branch_10_6 head 4ae946e5a9b, and no open PR touches the fix site. re-check (2026-10-27, read-only GitHub API): the 65 apache/lucene issues and PRs updated since 2026-10-25 were listed by title and none concerns intervals except the merged #16899 (unrelated); 'RepeatingIntervalsSource' still finds only #10141, and a PR search for 'pullUpDisjunctions' finds none; one web query at this step was throttled. The owner (shbhar) has filed nothing</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27 and 2026-10-28) through gradle in a scratch worktree and through the standalone JUnit runner, with assertions on and off. The finder's test also ran on the 8.4.1, 8.5.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 release jars, on the branch_10_6 head <code class='nw'>4ae946e5a9b</code>, and on the 8.5.0 jars with the intervals package of the introducing commit <code class='nw'>aa916bac3c3</code> and of its parent <code class='nw'>3246b260586</code>. Fix A, and fix A together with the LFV-807 fix, were each run in a scratch worktree: the new test, the whole <code class='nw'>lucene/queries</code> module with assertions on and off, and the <code>lucene/queryparser</code> and <code>lucene/highlighter</code> modules with assertions on; <code>:lucene:queries:check -x test</code> was run for A.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/RepeatingIntervalsSource.java:98-101 (pullUpDisjunctions returns Collections.singleton(this)); UnorderedIntervalsSource.java:44-57 and OrderedIntervalsSource.java:40-56 (deduplicate folds equal sub-sources into RepeatingIntervalsSource.build); FilteredIntervalsSource.java:31-36 (maxGaps maps over in.pullUpDisjunctions()); Disjunctions.java:43-45 (expansion capped at IndexSearcher.getMaxClauseCount); Intervals.java:47-54 (class javadoc: gap-sensitive sources rewrite disjunctions of different lengths by default; or(boolean, ...) for speed over accuracy), :118-122 (or: &#x27;Automatically rewrites if wrapped by an interval source that is sensitive to internal gaps&#x27;), :127-135 (or(false, ...) &#x27;can miss valid hits due to minimization&#x27;); all files except Intervals.java are identical at Lucene main ea57360912ed: </code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/RepeatingIntervalsSource.java:98-101; (at a9779ef3c193) OrderedIntervalsSource.java:40-57, :77-80; UnorderedIntervalsSource.java:44-57, :77-80</code></li><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/FilteredIntervalsSource.java:31-36, (at a9779ef3c193) :47-50; BlockIntervalsSource.java:30-35; Disjunctions.java:33-62, :76-95; DisjunctionIntervalsSource.java:222-247; IntervalIterator.java:62-71; Intervals.java:47-54, :118-135</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/package-info.java:21; (at a9779ef3c193) Intervals.java:127-135</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/Intervals.java:47-54, (at a9779ef3c193) :118-135; MinimumShouldMatchIntervalsSource.java:117-120</code></li><li><code>lucene/CHANGES.txt:6502-6506; (at a9779ef3c193) lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/nodes/intervalfn/package-info.java:347-349</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/OrderedIntervalsSource.java:140-153; (at a9779ef3c193) Intervals.java:445-447; IntervalIterator.java:62-71</code></li><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/RepeatingIntervalsSource.java:93-96, (at a9779ef3c193) :103-113; OrderedIntervalsSource.java:29-55; Disjunctions.java:79-94</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestRepeatedOrRewrite.java (lucene/queries, public API): <a href='../repro/LFV-809/TestRepeatedOrRewrite.java'><code>repro/LFV-809/TestRepeatedOrRewrite.java</code></a> (122 lines)</li><li>TestRepeatedDisjunctionRewrite.java (the finder&#x27;s original 3-test repro): <a href='../repro/LFV-809/TestRepeatedDisjunctionRewrite.java'><code>repro/LFV-809/TestRepeatedDisjunctionRewrite.java</code></a> (83 lines)</li><li>TestRepeatedOrUnderGapSensitiveParent.java (independent reproducer): <a href='../repro/LFV-809/TestRepeatedOrUnderGapSensitiveParent.java'><code>repro/LFV-809/TestRepeatedOrUnderGapSensitiveParent.java</code></a> (184 lines)</li><li>TestAnalyzedTextReach.java (real SynonymGraphFilter probe, needs analysis-common): <a href='../repro/LFV-809/TestAnalyzedTextReach.java'><code>repro/LFV-809/TestAnalyzedTextReach.java</code></a> (89 lines)</li><li>TestRepeatedOrScope.java (scope probe behind the fix table): <a href='../repro/LFV-809/TestRepeatedOrScope.java'><code>repro/LFV-809/TestRepeatedOrScope.java</code></a> (104 lines)</li><li>TestRepeatedOrFixOvermatch.java (over-match probe for fix A): <a href='../repro/LFV-809/TestRepeatedOrFixOvermatch.java'><code>repro/LFV-809/TestRepeatedOrFixOvermatch.java</code></a> (107 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the repro's first case, made in parallel with this doc from the executed repro on main <code class='nw'>a9779ef3c193</code> and the code; the PNG is the final summary card. The alt text describes the intended content.</p><ul class='paths'><li><a href='../assets/LFV-809/bug.png'><code>assets/LFV-809/bug.png</code></a> (462 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

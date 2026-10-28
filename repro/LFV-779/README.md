@@ -2,6 +2,8 @@
 
 Bug LFV-779 · Area: index / index sorting at merge time (IndexSorter.IntSorter merge keys, MultiSorter) -> search / TopFieldCollector index-sort early termination · Priority: medium · Impact: data corruption · Novelty: new
 
+Bug page: [../../bugs/LFV-779.html](../../bugs/LFV-779.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You configure an index sort on SortField("s", SortField.Type.INT), index documen
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: The merged segment is a, b, c (reverse: c, b, a), CheckIndex at level 2 is clean, and the top hit sorted by the index sort is a.
+- Actual: The merged segment is b, c, a (reverse: a, c, b), CheckIndex reports `docID=1 sorts after docID=2`, and the top hit is b.
 
 ## Files
 
@@ -51,6 +53,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestIndexSortIntOutOfRangeMerge.java](TestIndexSortIntOutOfRangeMerge.java)
+- [fix-with-test.diff](fix-with-test.diff)
+- [TestIntIndexSortMergeOrder.java](TestIntIndexSortMergeOrder.java)
+- [TestIntIndexSortOutOfRangeMerge.java](TestIntIndexSortOutOfRangeMerge.java)
 
 ## Feedback
 

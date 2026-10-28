@@ -2,6 +2,8 @@
 
 Bug LFV-605 · Area: analysis / kuromoji romanization (ToStringUtil.getRomanization; JapaneseReadingFormFilter romaji mode) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-605.html](../../bugs/LFV-605.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyze Japanese text with JapaneseTokenizer and JapaneseReadingFormFilter(u
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The 'ッ' case appends a consonant only for the カ, サ, タ and パ rows and appends nothing otherwise, so バッグ 'bag' becomes 'bagu', the same term as バグ 'bug', ベッド becomes 'bedo' and スタッフ becomes 'sutafu'.
+- Expected: バッグ → `baggu` (not バグ's `bagu`), ベッド → `beddo`, ビッグ → `biggu`: the ッ doubles the next consonant, as in キット → `kitto`.
+- Actual: 7 of 7 lose the ッ (バッグ → `bagu`, ベッド → `bedo`, ビッグ → `bigu`, キッズ → `kizu`,...), and the filter emits `bagu` for バッグ.
 
 ## Files
 
@@ -44,6 +46,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-kuromoji also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestRomajiSokuon.java](TestRomajiSokuon.java)
+- [TestRomajiSokuonBeforeVoicedConsonant.java](TestRomajiSokuonBeforeVoicedConsonant.java)
+- [TestSokuonDirect.java](TestSokuonDirect.java)
+- [TestSokuonFilter.java](TestSokuonFilter.java)
 
 ## Feedback
 

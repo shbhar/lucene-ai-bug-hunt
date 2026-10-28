@@ -2,6 +2,8 @@
 
 Bug LFV-459 · Area: analysis / kuromoji and nori Viterbi unknown-word length cap (JapaneseTokenizer and the 'japanese' factory; KoreanTokenizer, KoreanAnalyzer and the 'korean' factory) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-459.html](../../bugs/LFV-459.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyze a long run of text that kuromoji or nori treat as one unknown word, 
 
 ## Expected vs actual
 
-- Expected: You expect every term to consist of whole characters, as it does when that character sits one position earlier or later.
-- Actual: Both tokenizers stop the unknown word at exactly 1024 UTF-16 chars without checking for a surrogate pair, so when the character's first half is char 1023, term 0 ends in a lone high surrogate and term 1 starts with the lone low surrogate.
+- Expected: Every term is valid UTF-16, and in EXTENDED mode the emoji at char 1023 is a token [1023,1025), as it is at 1022 and 1024.
+- Actual: 4 of 4 tests fail: terms [0,1024) and [1024,1200) are invalid UTF-16 in every kuromoji mode and in the default `KoreanAnalyzer`, and the emoji at char 1023 is no token.
 
 ## Files
 
@@ -49,6 +51,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-kuromoji, analysis-nori also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestJapaneseUnknownWordCap.java](TestJapaneseUnknownWordCap.java)
+- [TestKoreanUnknownWordCap.java](TestKoreanUnknownWordCap.java)
+- [CapProbe.java](CapProbe.java)
 
 ## Feedback
 

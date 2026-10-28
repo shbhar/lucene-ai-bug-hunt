@@ -1,0 +1,870 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Geo3dRectangleShape.getCrossesDateLine() tests &quot;spans longitude 0&quot; instead of &quot;crosses the dateline&quot;, so PointVectorStrategy and BBoxStrategy return wrong hits</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-671 &middot; geo3drectangleshape-crossesdateline-sign-test</p><h1 id='top'>Geo3dRectangleShape.getCrossesDateLine() tests &quot;spans longitude 0&quot; instead of &quot;crosses the dateline&quot;, so PointVectorStrategy and BBoxStrategy return wrong hits</h1><p class='tldr'>In the opt-in Geo3d context, "crosses the dateline" is computed as "spans longitude 0", so <code>PointVectorStrategy</code> and <code class='nw'>BBoxStrategy</code> go wrong: a box from 170 to -170 finds 0 of 2 points inside it; a box from -10 to 10 matches points at longitude 100 and 175. Every release since 7.1.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 237</span><span class='sub'>PointVectorStrategy and BBoxStrategy silently return wrong hits for ordinary boxes that cross the dateline or span longitude 0, and BBoxStrategy writes a wrong flag that needs a reindex, but only in the opt-in Geo3d context with two little-used strategies.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.1.0 (2017), LUCENE-7951, which added the Geo3d spatial4j classes<span class='sub'>introduced 2017-09-20 &middot; about 9 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>every release from 7.1.0 to 10.5.2, and main: run on 7.1.0, 7.7.3, 8.0.0, 8.11.4, 9.12.3, 10.5.2 and main; the line is in all 63 local release tags in that range</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>a model of the spatial4j bridge and differential testing against spatial4j's own context</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>A box is stored as its west edge <code class='nw'>minX</code> and east edge <code class='nw'>maxX</code>; a box across the dateline has <code>minX &gt; maxX</code> (170 to -170), and the flag should say exactly that. Geo3d's flag is <code>maxX &gt; 0 &amp;&amp; minX &lt; 0</code>: false for 170..-170, true for -10..10. Both strategies choose their longitude ranges from the flag.</p><figure class='visual' id='geo3drectangleshape-crossesdateline-sign-test-short-visual'><div class='frame'><a class='still' href='../assets/LFV-671/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-671/bug.png' alt='Diagram of the bug: with the Geo3d spatial context the box 170..-170 across the dateline gets the flag false and the box -10..10 around longitude 0 gets true, so PointVectorStrategy finds none of the points A (175, 0) and B (-178, 1) inside the dateline box and matches all four points A, B, C (100, 0) and D (5, 0) for the box around longitude 0, and BBoxStrategy stores the wrong dateline flag for both indexed boxes.' width='1920' height='1080'></a></div><figcaption>Step by step: the dateline box and the box around longitude 0 on a longitude line, the flag each one gets, the longitude ranges <code>PointVectorStrategy</code> builds from it, and the <code class='nw'>xdl</code> flags <code class='nw'>BBoxStrategy</code> stores for the two indexed boxes. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You use the Geo3d spatial context (<code>Geo3dSpatialContextFactory</code>) with <code>PointVectorStrategy</code> and index four points: A (175, 0), B (-178, 1), C (100, 0) and D (5, 0).</span></li><li><span>You search the 20-degree box across the dateline, <code>rect(170, -170, -10, 10)</code>, and expect A and B. You get 0 hits: the query is the empty range <code>x:[170.0 TO -170.0]</code>. A 5-degree circle around (180, 0) also finds 0 instead of 2.</span></li><li><span>You search the box around longitude 0, <code>rect(-10, 10, -10, 10)</code>, and expect D only. You get all 4 points: the query becomes <code>x &lt;= 10 OR x &gt;= -10</code>, which is every longitude.</span></li><li><span>Why: <code>Geo3dRectangleShape.getCrossesDateLine()</code> returns <code>maxX &gt; 0 &amp;&amp; minX &lt; 0</code> ("spans longitude 0") instead of <code>minX &gt; maxX</code> ("crosses the dateline"), and both strategies pick their longitude ranges from it. <code class='nw'>BBoxStrategy</code> also writes it into the index (the <code class='nw'>xdl</code> term): the box 170..-170 is missed by the query 175..176 inside it, and the box -10..10 matches a query at 100..110.</span></li><li><span>No error; the default spatial4j context answers 2, 1 and 2 hits. Every release since 7.1.0 (2017) has it, and <code class='nw'>BBoxStrategy</code> indexes keep the wrong flag until they are reindexed.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that pair Geo3d shapes (the opt-in <code>Geo3dSpatialContextFactory</code>, or spatial3d shapes wrapped in <code class='nw'>Geo3dShape</code>) with <code>PointVectorStrategy</code> or <code class='nw'>BBoxStrategy</code>. There, every box that crosses the dateline or spans longitude 0 is affected, as a query or as an indexed document. <code>RecursivePrefixTreeStrategy</code> and the default spatial4j context are not affected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>851 words</span></summary><div class='body'><p>In the opt-in Geo3d spatial context (<code>Geo3dSpatialContextFactory</code>, <code>@lucene.experimental</code>), <code>Geo3dRectangleShape.getCrossesDateLine()</code> returns <code>getMaxX() &gt; 0 &amp;&amp; getMinX() &lt; 0</code> ("the box spans longitude 0") instead of <code>minX &gt; maxX</code> ("the box crosses the dateline"), the definition in spatial4j's own <code class='nw'>RectangleImpl</code>, which the same class's <code class='nw'>getWidth()</code> follows. <code>PointVectorStrategy</code> and <code class='nw'>BBoxStrategy</code> use the flag to decide whether <code class='nw'>minX..maxX</code> wraps, so they miss documents in dateline boxes and circles near longitude 180 and match far-away documents for boxes around longitude 0; <code class='nw'>BBoxStrategy</code> also writes the wrong flag into the index. No recorded run threw, and <code class='nw'>CheckIndex</code> found the probe indexes clean. It came in with LUCENE-7951 in 7.1.0 (2017) and is in every release since and on main; the one-line fix <code>return getMinX() &gt; getMaxX();</code> passes every JUnit repro and the module's tests.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Spatial context</strong>: spatial4j's <code class='nw'>SpatialContext</code> builds and relates shapes. <code>Geo3dSpatialContextFactory</code> (opt-in, <code>@lucene.experimental</code>) makes one whose shapes wrap spatial3d (Geo3d) shapes. Its rectangles are <code>Geo3dRectangleShape</code>, and every Geo3d shape's <code class='nw'>getBoundingBox()</code> is one too.</li><li><strong>Dateline box</strong>: a <code class='nw'>Rectangle</code> keeps its west edge in <code class='nw'>minX</code> and its east edge in <code class='nw'>maxX</code>. A box that crosses the -180/180 meridian has <code>minX &gt; maxX</code>: <code>rect(170, -170, ...)</code> is the 20 degrees from 170 eastwards to -170. <code>getCrossesDateLine()</code> says whether that is the case.</li><li><strong><code>PointVectorStrategy</code> and <code class='nw'>BBoxStrategy</code></strong>: two non-default <code>@lucene.experimental</code> strategies. One indexes a point as two numbers (x, y), the other a box as four numbers plus a dateline flag, and both search with numeric range queries. They need the flag to know whether <code class='nw'>minX..maxX</code> is one range or wraps around.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>Geo3dRectangleShape.getCrossesDateLine()</code> (<code>Geo3dRectangleShape.java:152-155</code>) returns <code>getMaxX() &gt; 0 &amp;&amp; getMinX() &lt; 0</code>: true when the box straddles longitude 0, false for a box across the dateline. spatial4j's <code class='nw'>RectangleImpl</code> returns <code>minX &gt; maxX</code>.</li><li>The same class's <code class='nw'>getWidth()</code> (<code class='nw'>:118-125</code>) does wrap: it adds 360 when <code>maxX - minX</code> is negative, so 170..-170 is 20 degrees wide. <code>Geo3dShapeFactory.rect</code> (<code>Geo3dShapeFactory.java:163-173</code>) keeps <code>minX &gt; maxX</code> for such a box, and <code>Geo3dShape.getBoundingBox()</code> (<code>Geo3dShape.java:107-118</code>) returns a <code>Geo3dRectangleShape</code> for every Geo3d shape.</li><li><code>PointVectorStrategy.makeWithin</code> (<code>PointVectorStrategy.java:209-222</code>) builds two longitude ranges, <code>x &lt;= maxX</code> OR <code>x &gt;= minX</code>, when the flag is true, and one range <code>minX &lt;= x &lt;= maxX</code> otherwise. A circle query uses the circle's bounding box the same way and adds a distance check (<code class='nw'>:195-198</code>).</li><li><code class='nw'>BBoxStrategy</code> writes the flag into the index as the <code class='nw'>xdl</code> term <code class='nw'>T</code> or <code class='nw'>F</code> (<code>BBoxStrategy.java:205-207</code>), and its query builders branch on the query's flag (<code class='nw'>:299</code>, <code class='nw'>:382</code>, <code class='nw'>:542</code>). A document with <code class='nw'>xdl=T</code> is read as the two pieces <code>[minX, 180]</code> and <code>[-180, maxX]</code>. Intersects is "not disjoint" (<code class='nw'>:473-496</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-what-it-does-to-queries'>What it does to queries</h3><a class="hlink" href="#what-the-bug-is-what-it-does-to-queries" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-it-does-to-queries"><span aria-hidden="true">#</span></a></div><ul><li><strong>Query box 170..-170</strong> (flag false): <code>PointVectorStrategy</code> searches <code>x:[170.0 TO -170.0]</code>, an empty range, and finds nothing. The same happens for a circle around (180, 0), whose bounding box is 175..-175.</li><li><strong>Query box -10..10</strong> (flag true): <code>PointVectorStrategy</code> searches <code>x &lt;= 10 OR x &gt;= -10</code>, every longitude, and matches every point in the latitude band.</li><li><strong>Indexed box 170..-170</strong>, stored with <code class='nw'>xdl=F</code>: read as the empty range 170..-170, so <code class='nw'>BBoxStrategy</code> misses it for a query inside it.</li><li><strong>Indexed box -10..10</strong>, stored with <code class='nw'>xdl=T</code>: read as <code>[-10, 180]</code> plus <code>[-180, 10]</code>, the whole longitude range, so it matches queries anywhere in its latitude band.</li><li>The flag is wrong for every box that crosses the dateline (<code>minX &gt; maxX</code>: 170..-170, but also 10..5 or 10..0, whose edges have the same sign), and for every other box whose west edge is below 0 and east edge above 0. Only boxes that do not cross the dateline and lie on one side of longitude 0 (an edge exactly at 0 included) get the right flag. The full-world box -180..180 changes too: true today, false with the fix (see the fix trade-offs).</li><li><code class='nw'>BBoxStrategy</code> also gets <code class='nw'>IsWithin</code>, <code class='nw'>Contains</code> and <code class='nw'>IsDisjointTo</code> wrong (security probe); <code class='nw'>IsEqualTo</code> compares the four numbers and does not read the flag (<code>BBoxStrategy.java:457-466</code>).</li><li>Other readers of the flag get the wrong value too: Lucene's <code>HeatmapFacetCounter</code> and <code>BBoxOverlapRatioValueSource</code>, and, in mixed use, spatial4j's own <code>GeoCircle.relateRectanglePhase2</code> and <code>JtsShapeFactory.getGeometryFrom</code>. No wrong result was shown through them (a 32-case heatmap probe showed none), and none is claimed.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-executed-on-main'>The numbers (executed on main)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-executed-on-main" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-executed-on-main"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>call or query, Geo3d context</th><th>expected</th><th>main</th><th>fix</th></tr></thead><tbody><tr><td>flag of <code>rect(170, -170, -10, 10)</code> / <code>rect(-10, 10, -10, 10)</code></td><td>true / false</td><td><strong>false / true</strong></td><td>true / false</td></tr><tr><td><code>PointVectorStrategy</code>, points A (175, 0), B (-178, 1), C (100, 0), D (5, 0): <code>Intersects(rect(170, -170, -10, 10))</code></td><td>A, B</td><td><strong>none</strong></td><td>A, B</td></tr><tr><td>the same points: <code>Intersects(rect(-10, 10, -10, 10))</code></td><td>D</td><td><strong>A, B, C, D</strong></td><td>D</td></tr><tr><td>the same points: <code>Intersects(circle(180, 0, 5))</code></td><td>A, B</td><td><strong>none</strong></td><td>A, B</td></tr><tr><td><code class='nw'>BBoxStrategy</code>, boxes E = 170..-170 and W = -10..10 (latitude -10..10): <code>Intersects(rect(175, 176, -1, 1))</code></td><td>E</td><td><strong>W</strong></td><td>E</td></tr><tr><td>the same boxes: <code>Intersects(rect(100, 110, -5, 5))</code></td><td>none</td><td><strong>W</strong></td><td>none</td></tr></tbody></table></div><p>The default spatial4j context (<code>SpatialContext.GEO</code>) gives the "expected" column on main. Assertions on and off give the same results.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>437 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Applications that pair Geo3d shapes with <code>PointVectorStrategy</code> or <code class='nw'>BBoxStrategy</code> (both <code>@lucene.experimental</code>):<ul><li>the Geo3d spatial context (<code>Geo3dSpatialContextFactory</code>, <code>@lucene.experimental</code>) with either strategy;</li><li>spatial3d shapes wrapped in the public <code class='nw'>Geo3dShape</code> constructor under the default <code>SpatialContext.GEO</code>, the 7.0.x usage pattern: from 7.1.0 on their bounding box is a <code>Geo3dRectangleShape</code>, so <code class='nw'>BBoxStrategy</code> indexes them with the wrong flag (follow-up bisection test).</li></ul></li><li><strong>Not affected.</strong> <code>RecursivePrefixTreeStrategy</code> (it does not read the flag), shapes from spatial4j's own factory, and Lucene's core geo types (<code class='nw'>LatLonPoint</code>, <code class='nw'>LatLonShape</code>, <code class='nw'>XYShape</code>, spatial3d's <code class='nw'>Geo3DPoint</code>).</li><li><strong>Ordinary data.</strong> Within the pairing it is deterministic: any box over the dateline (Fiji, the Bering Sea) or across longitude 0 (a box around London, over western Europe or West Africa), as a query or as an indexed document, WKT <code class='nw'>ENVELOPE</code> input included.</li><li><strong>Both directions.</strong> Missed documents (dateline boxes, circles near longitude 180) and extra documents (a box around longitude 0 matches everything in its latitude band: as a <code>PointVectorStrategy</code> query and as a <code class='nw'>BBoxStrategy</code> document).</li><li><strong>How common, on random data</strong> (security probe: 2,000 random boxes and points in 9 segments, 1,500 random query boxes): <code class='nw'>BBoxStrategy</code> Intersects was wrong on 1,474 of 1,500 queries and <code>PointVectorStrategy</code> Intersects on 857 of 1,500; every mismatch involved a box that spans longitude 0 or crosses the dateline. A second run with assertions off and a different seed gave similar counts (1,483 and 877); SPHERE and WGS84 gave identical counts. Half of the query boxes were chosen to span longitude 0 or cross the dateline, so the shares show the effect is frequent in this synthetic workload, not how often real data hits it.</li><li><strong>Cost side effect.</strong> A <code>PointVectorStrategy</code> circle of radius 1 at (0.3, 0.3) has a bounding box from -0.70 to 1.30 with the flag true, so its prefilter is the whole latitude band: on 100,000 points it distance-checks 20,118 candidates instead of 110 (about 5.5 ms instead of 0.2-0.3 ms on a loaded host). The answer stays right, and the cost stays below a legitimate world-sized circle (about 21 ms).</li><li><strong>Silent and persistent.</strong> No exception or hang in any recorded run, and <code class='nw'>CheckIndex</code> found the probe indexes clean; other filter clauses and deletions still apply. But <code class='nw'>BBoxStrategy</code> indexes the wrong <code class='nw'>xdl</code> flag, so existing indexes stay wrong after a fix until they are reindexed (in the probe <code class='nw'>xdl=T</code> was set on exactly the boxes that span longitude 0, and on no dateline box).</li><li><strong>How likely.</strong> Plausible rather than common: the pairing looks little used (no upstream test combines Geo3d with these strategies), and no public report was found for the nine years since 7.1.0.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One JUnit class for <code>lucene/spatial-extras</code>, public API only: six tests (the flag, three <code>PointVectorStrategy</code> queries, two <code class='nw'>BBoxStrategy</code> indexed boxes). Each runs the same scenario with the default spatial4j context first (control, passes) and then with the Geo3d context. All 6 fail on main and 10.5.2 (assertions on and off) and on 9.12.3 (on), and pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGeo3dRectangleDateLineFlag.java (lucene/spatial-extras, public API)</span><span class='meta'>138 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.spatial4j;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.SpatialStrategy;
+import org.apache.lucene.spatial.bbox.BBoxStrategy;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.vector.PointVectorStrategy;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
+
+/**
+ * Rectangle.getCrossesDateLine() of a Geo3d rectangle must follow the spatial4j Rectangle contract
+ * (true when the box crosses the -180/180 meridian, i.e. minX &amp;gt; maxX), because
+ * PointVectorStrategy and BBoxStrategy use it to decide whether minX..maxX wraps around. Every test
+ * runs the same scenario with the default spatial4j context first (control) and then with the Geo3d
+ * context.
+ */
+public class TestGeo3dRectangleDateLineFlag extends LuceneTestCase {
+
+  private static final SpatialContext SPATIAL4J = SpatialContext.GEO;
+  private static final SpatialContext GEO3D = new Geo3dSpatialContextFactory().newSpatialContext();
+  private static final SpatialContext[] CONTEXTS = {SPATIAL4J, GEO3D};
+
+  private static String name(SpatialContext ctx) {
+    return ctx == SPATIAL4J ? &quot;spatial4j context&quot; : &quot;Geo3d context&quot;;
+  }
+
+  /** 170..-170 is a 20-degree box across the dateline; -10..10 is a box around longitude 0. */
+  public void testFlag() {
+    for (SpatialContext ctx : CONTEXTS) {
+      Rectangle dateline = ctx.getShapeFactory().rect(170, -170, -10, 10);
+      Rectangle primeMeridian = ctx.getShapeFactory().rect(-10, 10, -10, 10);
+      assertEquals(name(ctx) + &quot;: width of 170..-170&quot;, 20, dateline.getWidth(), 1e-9);
+      assertTrue(name(ctx) + &quot;: 170..-170 crosses the dateline&quot;, dateline.getCrossesDateLine());
+      assertFalse(
+          name(ctx) + &quot;: -10..10 does not cross the dateline&quot;, primeMeridian.getCrossesDateLine());
+    }
+  }
+
+  /** PointVectorStrategy: a point at longitude 175 lies inside the box 170..-170. */
+  public void testPointVectorDatelineBox() throws Exception {
+    for (SpatialContext ctx : CONTEXTS) {
+      Shape point = ctx.getShapeFactory().pointXY(175, 0);
+      Rectangle query = ctx.getShapeFactory().rect(170, -170, -10, 10);
+      assertTrue(name(ctx) + &quot;: relate&quot;, query.relate(point).intersects());
+      assertEquals(name(ctx) + &quot;: hits&quot;, 1, count(pointVector(ctx), point, query));
+    }
+  }
+
+  /** PointVectorStrategy: a point at longitude 100 lies outside the box -10..10. */
+  public void testPointVectorPrimeMeridianBox() throws Exception {
+    for (SpatialContext ctx : CONTEXTS) {
+      Shape point = ctx.getShapeFactory().pointXY(100, 0);
+      Rectangle query = ctx.getShapeFactory().rect(-10, 10, -10, 10);
+      assertFalse(name(ctx) + &quot;: relate&quot;, query.relate(point).intersects());
+      assertEquals(name(ctx) + &quot;: hits&quot;, 0, count(pointVector(ctx), point, query));
+    }
+  }
+
+  /** PointVectorStrategy: a 5-degree circle around (180, 0) contains the point (-178, 1). */
+  public void testPointVectorDatelineCircle() throws Exception {
+    for (SpatialContext ctx : CONTEXTS) {
+      Shape point = ctx.getShapeFactory().pointXY(-178, 1);
+      Shape query = ctx.getShapeFactory().circle(180, 0, 5);
+      assertTrue(name(ctx) + &quot;: relate&quot;, query.relate(point).intersects());
+      assertEquals(name(ctx) + &quot;: hits&quot;, 1, count(pointVector(ctx), point, query));
+    }
+  }
+
+  /** BBoxStrategy: an indexed box 170..-170 intersects the query box 175..176. */
+  public void testBBoxIndexedDatelineBox() throws Exception {
+    for (SpatialContext ctx : CONTEXTS) {
+      Rectangle doc = ctx.getShapeFactory().rect(170, -170, -10, 10);
+      Rectangle query = ctx.getShapeFactory().rect(175, 176, -1, 1);
+      assertTrue(name(ctx) + &quot;: relate&quot;, doc.relate(query).intersects());
+      assertEquals(name(ctx) + &quot;: hits&quot;, 1, count(bbox(ctx), doc, query));
+    }
+  }
+
+  /** BBoxStrategy: an indexed box -10..10 does not intersect the query box 100..110. */
+  public void testBBoxIndexedPrimeMeridianBox() throws Exception {
+    for (SpatialContext ctx : CONTEXTS) {
+      Rectangle doc = ctx.getShapeFactory().rect(-10, 10, -10, 10);
+      Rectangle query = ctx.getShapeFactory().rect(100, 110, -5, 5);
+      assertFalse(name(ctx) + &quot;: relate&quot;, doc.relate(query).intersects());
+      assertEquals(name(ctx) + &quot;: hits&quot;, 0, count(bbox(ctx), doc, query));
+    }
+  }
+
+  private static SpatialStrategy pointVector(SpatialContext ctx) {
+    return PointVectorStrategy.newInstance(ctx, &quot;pv&quot;);
+  }
+
+  private static SpatialStrategy bbox(SpatialContext ctx) {
+    return BBoxStrategy.newInstance(ctx, &quot;bbox&quot;);
+  }
+
+  /** Indexes one shape and counts the documents that Intersects(query) matches. */
+  private static int count(SpatialStrategy strategy, Shape indexed, Shape query) throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field f : strategy.createIndexableFields(indexed)) {
+          doc.add(f);
+        }
+        w.addDocument(doc);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        return s.count(strategy.makeQuery(new SpatialArgs(SpatialOperation.Intersects, query)));
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestGeo3dRectangleDateLineFlag.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestGeo3dRectangleDateLineFlag -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (same 6 failures)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Each Geo3d leg answers like the spatial4j leg: the flag true for 170..-170, 1 hit for each point or box inside a query, 0 hits for each far one.</dd></div><div class='got'><dt>Observed</dt><dd>6 of 6 tests fail in the Geo3d leg: the flag false for 170..-170, 0 hits for the three inside cases, 1 hit for the two far ones; no exception.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-671/'>repro/LFV-671/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (383 lines) · 2,417 words</span></summary><div class='body'><p><code class='nw'>testFlag</code> checks the width and the flag of <code>rect(170, -170, -10, 10)</code> and <code>rect(-10, 10, -10, 10)</code>. <code>testPointVectorDatelineBox</code>, <code>testPointVectorPrimeMeridianBox</code> and <code>testPointVectorDatelineCircle</code> index one point each, (175, 0), (100, 0) and (-178, 1), and count <code class='nw'>Intersects</code> of the dateline box, the box around longitude 0 and <code>circle(180, 0, 5)</code>. <code>testBBoxIndexedDatelineBox</code> and <code>testBBoxIndexedPrimeMeridianBox</code> index the box 170..-170 or -10..10 and count <code>Intersects(rect(175, 176, -1, 1))</code> or <code>Intersects(rect(100, 110, -5, 5))</code>. Every test first checks the shapes' own <code class='nw'>relate()</code>, so a failure is the strategy disagreeing with the geometry. The inputs are fixed; the failures do not depend on the seed. The file is the version after the module's <code class='nw'>tidy</code> task.</p><p>The other files: the finder's original five tests (Geo3d only); an independent reproducer's five tests with other coordinates; and the version-portable history test, which wraps spatial3d shapes in <code class='nw'>Geo3dShape</code> under the default <code>SpatialContext.GEO</code> and compiles from 7.0.0 to main (7.x and 8.x need only the older <code class='nw'>LuceneTestCase</code> import).</p><div class="hd hd-3"><h3 id='code-2-h'>TestGeo3dRectangleCrossesDateLine.java (the finder&#x27;s 5 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails 5 of 5 on 7.1.0, 7.7.3, 8.0.0, 8.11.4, 9.12.3, 10.5.2 and main (assertions on and off on main); does not compile on 7.0.1, where the Geo3d spatial context does not exist yet.</p><figure class='code'><figcaption><span class='fname'>TestGeo3dRectangleCrossesDateLine.java (the finder&#x27;s 5 tests)</span><span class='meta'>107 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.spatial4j;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.SpatialStrategy;
+import org.apache.lucene.spatial.bbox.BBoxStrategy;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.vector.PointVectorStrategy;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
+
+/**
+ * Geo3dRectangleShape.getCrossesDateLine() tests &quot;minX &lt; 0 &lt; maxX&quot; (a box that spans the prime
+ * meridian) instead of &quot;minX &gt; maxX&quot; (a box that spans the dateline), so strategies that branch on
+ * it treat dateline boxes as empty longitude ranges and prime-meridian boxes as two half-worlds.
+ */
+public class TestGeo3dRectangleCrossesDateLine extends LuceneTestCase {
+
+  private static final SpatialContext GEO3D = new Geo3dSpatialContextFactory().newSpatialContext();
+
+  /** The Rectangle contract, as implemented by spatial4j&#x27;s own RectangleImpl: minX &gt; maxX. */
+  public void testFlagMatchesRectangleContract() {
+    Rectangle dateline = GEO3D.getShapeFactory().rect(170, -170, -10, 10);
+    Rectangle primeMeridian = GEO3D.getShapeFactory().rect(-10, 10, -10, 10);
+    assertEquals(
+        &quot;spatial4j reference&quot;,
+        true,
+        SpatialContext.GEO.getShapeFactory().rect(170, -170, -10, 10).getCrossesDateLine());
+    assertTrue(&quot;box 170..-170 crosses the dateline&quot;, dateline.getCrossesDateLine());
+    assertFalse(&quot;box -10..10 does not cross the dateline&quot;, primeMeridian.getCrossesDateLine());
+  }
+
+  private static int count(SpatialStrategy strategy, Shape indexed, Shape query) throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field f : strategy.createIndexableFields(indexed)) {
+          doc.add(f);
+        }
+        w.addDocument(doc);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        return s.count(strategy.makeQuery(new SpatialArgs(SpatialOperation.Intersects, query)));
+      }
+    }
+  }
+
+  /** A point at longitude 175 is inside the box 170..-170 (it spans the dateline). */
+  public void testPointVectorStrategyDatelineBox() throws Exception {
+    PointVectorStrategy strategy = PointVectorStrategy.newInstance(GEO3D, &quot;pv&quot;);
+    Shape point = GEO3D.getShapeFactory().pointXY(175, 0);
+    Rectangle query = GEO3D.getShapeFactory().rect(170, -170, -10, 10);
+    assertEquals(&quot;Geo3d relation of the query and the point&quot;, true, query.relate(point).intersects());
+    assertEquals(&quot;PointVectorStrategy Intersects hits&quot;, 1, count(strategy, point, query));
+  }
+
+  /** A circle around (180, 0): its bounding box spans the dateline. */
+  public void testPointVectorStrategyDatelineCircle() throws Exception {
+    PointVectorStrategy strategy = PointVectorStrategy.newInstance(GEO3D, &quot;pv&quot;);
+    Shape point = GEO3D.getShapeFactory().pointXY(-178, 1);
+    Shape query = GEO3D.getShapeFactory().circle(180, 0, 5);
+    assertEquals(&quot;Geo3d relation of the query and the point&quot;, true, query.relate(point).intersects());
+    assertEquals(&quot;PointVectorStrategy Intersects hits&quot;, 1, count(strategy, point, query));
+  }
+
+  /** BBoxStrategy indexes the flag: a box spanning the dateline is missed by a box inside it. */
+  public void testBBoxStrategyDatelineBoxMissed() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(GEO3D, &quot;bbox&quot;);
+    Rectangle datelineDoc = GEO3D.getShapeFactory().rect(170, -170, -10, 10);
+    Rectangle insideIt = GEO3D.getShapeFactory().rect(175, 176, -1, 1);
+    assertEquals(&quot;Geo3d relation&quot;, true, datelineDoc.relate(insideIt).intersects());
+    assertEquals(&quot;175..176 lies inside 170..-170&quot;, 1, count(strategy, datelineDoc, insideIt));
+  }
+
+  /** ... and a box spanning the prime meridian matches a box on the other side of the planet. */
+  public void testBBoxStrategyPrimeMeridianBoxFalseMatch() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(GEO3D, &quot;bbox&quot;);
+    Rectangle primeMeridianDoc = GEO3D.getShapeFactory().rect(-10, 10, -10, 10);
+    Rectangle farAway = GEO3D.getShapeFactory().rect(100, 110, -5, 5);
+    assertEquals(&quot;Geo3d relation&quot;, false, primeMeridianDoc.relate(farAway).intersects());
+    assertEquals(&quot;100..110 is far from -10..10&quot;, 0, count(strategy, primeMeridianDoc, farAway));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cp $REPRO/TestGeo3dRectangleCrossesDateLine.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestGeo3dRectangleCrossesDateLine
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestGeo3dDatelineFlag.java (independent reproducer, other coordinates)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Dateline box 160..-160, box -20..30 around longitude 0, <code>circle(180, 0, 3)</code>; each test runs the spatial4j context first. Fails 5 of 5 on main (assertions on and off), 10.5.2 and 9.12.3; passes 5 of 5 with the fix.</p><figure class='code'><figcaption><span class='fname'>TestGeo3dDatelineFlag.java (independent reproducer, other coordinates)</span><span class='meta'>154 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.spatial.bbox.BBoxStrategy;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.spatial4j.Geo3dSpatialContextFactory;
+import org.apache.lucene.spatial.vector.PointVectorStrategy;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Circle;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.SpatialRelation;
+
+/**
+ * Rectangle.getCrossesDateLine() of the Geo3d spatial context, checked against the spatial4j
+ * Rectangle contract and against the default spatial4j geo context (control). Public API only.
+ */
+public class TestGeo3dDatelineFlag extends LuceneTestCase {
+
+  private static SpatialContext geo3d() {
+    return new Geo3dSpatialContextFactory().newSpatialContext();
+  }
+
+  private static final SpatialContext S4J = SpatialContext.GEO;
+
+  /** Flag on a box 160..-160 (left edge 160, right edge -160) and on a box -20..30. */
+  public void testFlagAgainstContract() {
+    for (SpatialContext ctx : new SpatialContext[] {S4J, geo3d()}) {
+      String name = ctx == S4J ? &quot;spatial4j&quot; : &quot;geo3d&quot;;
+      Rectangle dl = ctx.getShapeFactory().rect(160, -160, -5, 5);
+      // the shape itself treats 160..-160 as a 40 degree box across the dateline
+      assertEquals(name + &quot; width&quot;, 40.0, dl.getWidth(), 1e-9);
+      assertTrue(
+          name + &quot; contains lon 170&quot;,
+          dl.relate(ctx.getShapeFactory().pointXY(170, 0)).intersects());
+      assertFalse(
+          name + &quot; does not contain lon 0&quot;,
+          dl.relate(ctx.getShapeFactory().pointXY(0, 0)).intersects());
+      assertTrue(name + &quot;: 160..-160 must cross the dateline&quot;, dl.getCrossesDateLine());
+
+      Rectangle pm = ctx.getShapeFactory().rect(-20, 30, -5, 5);
+      assertEquals(name + &quot; width&quot;, 50.0, pm.getWidth(), 1e-9);
+      assertFalse(name + &quot;: -20..30 must not cross the dateline&quot;, pm.getCrossesDateLine());
+    }
+  }
+
+  private static int count(
+      SpatialContext ctx, SpatialStrategy strat, Shape[] docs, SpatialOperation op, Shape q)
+      throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (Shape s : docs) {
+          Document d = new Document();
+          for (Field f : strat.createIndexableFields(s)) {
+            d.add(f);
+          }
+          w.addDocument(d);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        Query query = strat.makeQuery(new SpatialArgs(op, q));
+        return new IndexSearcher(r).count(query);
+      }
+    }
+  }
+
+  /** PointVectorStrategy, rectangle query across the dateline. */
+  public void testPointVectorRectAcrossDateline() throws Exception {
+    for (SpatialContext ctx : new SpatialContext[] {S4J, geo3d()}) {
+      String name = ctx == S4J ? &quot;spatial4j&quot; : &quot;geo3d&quot;;
+      PointVectorStrategy strat = PointVectorStrategy.newInstance(ctx, &quot;pt&quot;);
+      Shape[] docs = {
+        ctx.getShapeFactory().pointXY(179, 1),
+        ctx.getShapeFactory().pointXY(-179, -1),
+        ctx.getShapeFactory().pointXY(0, 0)
+      };
+      Rectangle q = ctx.getShapeFactory().rect(160, -160, -5, 5);
+      assertEquals(name + &quot; PointVector Intersects 160..-160&quot;, 2, count(ctx, strat, docs,
+          SpatialOperation.Intersects, q));
+    }
+  }
+
+  /** PointVectorStrategy, circle query centred on the dateline. */
+  public void testPointVectorCircleOnDateline() throws Exception {
+    for (SpatialContext ctx : new SpatialContext[] {S4J, geo3d()}) {
+      String name = ctx == S4J ? &quot;spatial4j&quot; : &quot;geo3d&quot;;
+      PointVectorStrategy strat = PointVectorStrategy.newInstance(ctx, &quot;pt&quot;);
+      Shape[] docs = {
+        ctx.getShapeFactory().pointXY(179, 0), ctx.getShapeFactory().pointXY(-179, 0)
+      };
+      Circle c = ctx.getShapeFactory().circle(180, 0, 3);
+      // the circle itself contains both points
+      for (Shape p : docs) {
+        assertTrue(name + &quot; circle contains &quot; + p, c.relate(p).intersects());
+      }
+      assertEquals(name + &quot; PointVector Intersects circle(180,0,3)&quot;, 2, count(ctx, strat, docs,
+          SpatialOperation.Intersects, c));
+    }
+  }
+
+  /** BBoxStrategy: an indexed dateline box must be found by a query inside it. */
+  public void testBBoxIndexedDatelineBox() throws Exception {
+    for (SpatialContext ctx : new SpatialContext[] {S4J, geo3d()}) {
+      String name = ctx == S4J ? &quot;spatial4j&quot; : &quot;geo3d&quot;;
+      BBoxStrategy strat = BBoxStrategy.newInstance(ctx, &quot;bb&quot;);
+      Rectangle doc = ctx.getShapeFactory().rect(160, -160, -5, 5);
+      Rectangle q = ctx.getShapeFactory().rect(170, 172, -1, 1);
+      assertEquals(name + &quot; relate&quot;, SpatialRelation.CONTAINS, doc.relate(q));
+      assertEquals(name + &quot; BBox Intersects&quot;, 1, count(ctx, strat, new Shape[] {doc},
+          SpatialOperation.Intersects, q));
+    }
+  }
+
+  /** BBoxStrategy: an indexed box spanning lon 0 must not match a far-away query box. */
+  public void testBBoxIndexedPrimeMeridianBox() throws Exception {
+    for (SpatialContext ctx : new SpatialContext[] {S4J, geo3d()}) {
+      String name = ctx == S4J ? &quot;spatial4j&quot; : &quot;geo3d&quot;;
+      BBoxStrategy strat = BBoxStrategy.newInstance(ctx, &quot;bb&quot;);
+      Rectangle doc = ctx.getShapeFactory().rect(-20, 30, -5, 5);
+      Rectangle near = ctx.getShapeFactory().rect(0, 5, -1, 1);
+      Rectangle far = ctx.getShapeFactory().rect(90, 100, -1, 1);
+      assertEquals(name + &quot; relate far&quot;, SpatialRelation.DISJOINT, doc.relate(far));
+      assertEquals(name + &quot; BBox Intersects near&quot;, 1, count(ctx, strat, new Shape[] {doc},
+          SpatialOperation.Intersects, near));
+      assertEquals(name + &quot; BBox Intersects far&quot;, 0, count(ctx, strat, new Shape[] {doc},
+          SpatialOperation.Intersects, far));
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>cp $REPRO/TestGeo3dDatelineFlag.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestGeo3dDatelineFlag
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestGeo3dBoundingBoxDatelineFlagBisect.java (history test: Geo3dShape under SpatialContext.GEO)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Passes 5 of 5 on 7.0.0 and 7.0.1; fails 5 of 5 on 7.1.0, 7.7.3, 8.0.0, 8.11.4, 9.12.3, 10.5.2 and main; passes on main with the fix. For 7.x and 8.x only the <code class='nw'>LuceneTestCase</code> import differs (<code>org.apache.lucene.util</code>).</p><figure class='code'><figcaption><span class='fname'>TestGeo3dBoundingBoxDatelineFlagBisect.java (history test: Geo3dShape under SpatialContext.GEO)</span><span class='meta'>122 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.spatial4j;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.bbox.BBoxStrategy;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial3d.geom.GeoBBoxFactory;
+import org.apache.lucene.spatial3d.geom.GeoCircleFactory;
+import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
+
+/**
+ * Version-portable bisection test: the same source compiles against Lucene 7.0.x (before the
+ * Geo3d Spatial4j factory existed) and every later release. It wraps spatial3d shapes in the
+ * public Geo3dShape class under the default geo SpatialContext and checks the dateline flag of
+ * their bounding box, which BBoxStrategy indexes. Expected: a box from 170 to -170 crosses the
+ * dateline, a box from -10 to 10 does not (the Rectangle contract: minX &gt; maxX).
+ */
+public class TestGeo3dBoundingBoxDatelineFlagBisect extends LuceneTestCase {
+
+  private static final SpatialContext CTX = SpatialContext.GEO;
+  private static final double RAD = Math.PI / 180;
+
+  @SuppressWarnings({&quot;rawtypes&quot;, &quot;unchecked&quot;})
+  private static Shape geo3dBox(double minX, double maxX, double minY, double maxY) {
+    return new Geo3dShape(
+        GeoBBoxFactory.makeGeoBBox(
+            PlanetModel.SPHERE, maxY * RAD, minY * RAD, minX * RAD, maxX * RAD),
+        CTX);
+  }
+
+  @SuppressWarnings({&quot;rawtypes&quot;, &quot;unchecked&quot;})
+  private static Shape geo3dCircle(double lon, double lat, double radiusDeg) {
+    return new Geo3dShape(
+        GeoCircleFactory.makeGeoCircle(PlanetModel.SPHERE, lat * RAD, lon * RAD, radiusDeg * RAD),
+        CTX);
+  }
+
+  private static String describe(Rectangle r) {
+    return r.getClass().getSimpleName()
+        + &quot;[minX=&quot;
+        + r.getMinX()
+        + &quot;, maxX=&quot;
+        + r.getMaxX()
+        + &quot;, crossesDateLine=&quot;
+        + r.getCrossesDateLine()
+        + &quot;]&quot;;
+  }
+
+  public void testDatelineBoxBoundingBoxFlag() {
+    Rectangle bbox = geo3dBox(170, -170, -10, 10).getBoundingBox();
+    assertTrue(&quot;wrapped representation &quot; + describe(bbox), bbox.getMinX() &gt; bbox.getMaxX());
+    assertTrue(&quot;box 170..-170 crosses the dateline: &quot; + describe(bbox), bbox.getCrossesDateLine());
+  }
+
+  public void testPrimeMeridianBoxBoundingBoxFlag() {
+    Rectangle bbox = geo3dBox(-10, 10, -10, 10).getBoundingBox();
+    assertFalse(
+        &quot;box -10..10 does not cross the dateline: &quot; + describe(bbox), bbox.getCrossesDateLine());
+  }
+
+  public void testDatelineCircleBoundingBoxFlag() {
+    Rectangle bbox = geo3dCircle(180, 0, 5).getBoundingBox();
+    assertTrue(
+        &quot;bounding box of a circle around (180, 0) crosses the dateline: &quot; + describe(bbox),
+        bbox.getCrossesDateLine());
+  }
+
+  private static int count(BBoxStrategy strategy, Shape indexed, Shape query) throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        Document doc = new Document();
+        for (Field f : strategy.createIndexableFields(indexed)) {
+          doc.add(f);
+        }
+        w.addDocument(doc);
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        return s.count(strategy.makeQuery(new SpatialArgs(SpatialOperation.Intersects, query)));
+      }
+    }
+  }
+
+  public void testBBoxStrategyIndexedDatelineShape() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(CTX, &quot;bbox&quot;);
+    Shape doc = geo3dBox(170, -170, -10, 10);
+    Rectangle query = CTX.getShapeFactory().rect(175, 176, -1, 1);
+    assertEquals(&quot;175..176 lies inside 170..-170&quot;, 1, count(strategy, doc, query));
+  }
+
+  public void testBBoxStrategyIndexedPrimeMeridianShape() throws Exception {
+    BBoxStrategy strategy = BBoxStrategy.newInstance(CTX, &quot;bbox&quot;);
+    Shape doc = geo3dBox(-10, 10, -10, 10);
+    Rectangle query = CTX.getShapeFactory().rect(100, 110, -5, 5);
+    assertEquals(&quot;100..110 is far from -10..10&quot;, 0, count(strategy, doc, query));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-4' data-status='command-4-st'>Copy</button><span class='copy-st' id='command-4-st' role='status' aria-live='polite'></span></figcaption><pre id='command-4' tabindex='0'><code>cp $REPRO/TestGeo3dBoundingBoxDatelineFlagBisect.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestGeo3dBoundingBoxDatelineFlagBisect
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle 9.8.1 wrapper and a standalone JUnit runner); 10.5.2 and 9.12.3 release jars (standalone)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestGeo3dRectangleDateLineFlag.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/spatial4j/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestGeo3dRectangleDateLineFlag -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, -Ptests.seed=DEADBEEF -Ptests.asserts=true (and =false: identical)
+TestGeo3dRectangleDateLineFlag &gt; testBBoxIndexedDatelineBox FAILED
+    java.lang.AssertionError: Geo3d context: hits expected:&lt;1&gt; but was:&lt;0&gt;
+TestGeo3dRectangleDateLineFlag &gt; testPointVectorDatelineCircle FAILED
+    java.lang.AssertionError: Geo3d context: hits expected:&lt;1&gt; but was:&lt;0&gt;
+TestGeo3dRectangleDateLineFlag &gt; testFlag FAILED
+    java.lang.AssertionError: Geo3d context: 170..-170 crosses the dateline
+TestGeo3dRectangleDateLineFlag &gt; testPointVectorPrimeMeridianBox FAILED
+    java.lang.AssertionError: Geo3d context: hits expected:&lt;0&gt; but was:&lt;1&gt;
+TestGeo3dRectangleDateLineFlag &gt; testPointVectorDatelineBox FAILED
+    java.lang.AssertionError: Geo3d context: hits expected:&lt;1&gt; but was:&lt;0&gt;
+TestGeo3dRectangleDateLineFlag &gt; testBBoxIndexedPrimeMeridianBox FAILED
+    java.lang.AssertionError: Geo3d context: hits expected:&lt;0&gt; but was:&lt;1&gt;
+6 tests completed, 6 failed
+
+# standalone runner: the same 6 messages on main (-ea, -da), 10.5.2 (-ea, -da) and 9.12.3 (-ea)
+# with the fix: 6 run, 0 failed (gradle -da; standalone -ea and -da)
+
+# a plain main() probe, main a9779ef3c193 (identical with -ea and -da); spatial4j context in brackets
+geo3d pv query rect(170,-170,-10,10) = ConstantScore(+pv__x:[170.0 TO -170.0] +pv__y:[-10.0 TO 10.0])
+geo3d pv query rect(-10,10,-10,10)   = ConstantScore((pv__x:[-Infinity TO 10.0] pv__x:[-10.0 TO Infinity] +pv__y:[-10.0 TO 10.0])~1)
+geo3d pv hits rect(170,-170,-10,10) [] count=0          [A,B] count=2
+geo3d pv hits rect(-10,10,-10,10) [A,B,C,D] count=4     [D] count=1
+geo3d pv hits circle(180,0,5) [] count=0                [A,B] count=2
+geo3d bbox xdl doc E=rect(170,-170,-10,10) = F          T
+geo3d bbox xdl doc W=rect(-10,10,-10,10) = T            F
+geo3d bbox hits rect(175,176,-1,1) [W] count=1          [E] count=1
+geo3d bbox hits rect(100,110,-5,5) [W] count=1          [] count=0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The class's own <code class='nw'>getWidth()</code> treats <code>minX &gt; maxX</code> as a wrap (170..-170 is 20 degrees wide), and spatial4j's <code class='nw'>RectangleImpl</code> defines the flag as <code>minX &gt; maxX</code>.</li><li>spatial4j's <code class='nw'>Rectangle</code> javadoc: a geo rectangle "may cross the international date line (-180 longitude) if getCrossesDateLine()".</li><li>In the introducing PR, <code class='nw'>getWidth()</code> started with the same wrong test and was corrected; the flag was not.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>238 words</span></summary><div class='body'><ul><li><strong>The class contradicts itself.</strong> <code class='nw'>getWidth()</code> treats <code>minX &gt; maxX</code> as a wrap, and Geo3d's own <code class='nw'>relate()</code> puts (175, 0) inside 170..-170 and (100, 0) outside -10..10, while the flag says the opposite (independent reproducer, this doc's test, the diagram probe).</li><li><strong>Contract.</strong> spatial4j 0.8 <code class='nw'>Rectangle</code> class javadoc: "In geospatial contexts, it may cross the international date line (-180 longitude) if getCrossesDateLine()"; <code class='nw'>getMinX()</code> and <code class='nw'>getMaxX()</code> are the left and right edges; the reference <code>RectangleImpl.getCrossesDateLine()</code> is <code>minX &gt; maxX</code>. Lucene's <code class='nw'>BBoxStrategy</code> javadoc: "a boolean to mark a dateline cross" (<code>BBoxStrategy.java:63</code>); the bbox package: "a flag to say if it crosses the dateline" (<code>package-info.java:21</code>). A box from -10 to 10 does not touch -180.</li><li><strong>History.</strong> In the PR commit that first added the class (lucene-solr#246, <code class='nw'>ea31e5ce0f</code>, 2017-09-07; the PR's first commit, <code class='nw'>3ba3dad6b7</code>, adds only <code class='nw'>Geo3dAreaShape</code>) <code class='nw'>getWidth()</code> and <code>getCrossesDateLine()</code> shared the same <code>minX &lt; 0 &amp;&amp; maxX &gt; 0</code> test; commit <code class='nw'>cfbac2fb00</code> (2017-09-12) rewrote <code class='nw'>getWidth()</code> to the wrap convention and left the flag unchanged. No review comment discusses it. Before 7.1.0, <code>Geo3dShape.getBoundingBox()</code> returned a spatial4j <code class='nw'>RectangleImpl</code> with the right flag; 7.0.0 and 7.0.1 pass the version-portable test.</li><li><strong>Tests.</strong> No upstream test calls <code>getCrossesDateLine()</code> on a Geo3d rectangle or pairs a Geo3d context with <code>PointVectorStrategy</code> or <code class='nw'>BBoxStrategy</code>; the Geo3d tests use RPT, <code>SerializedDVStrategy</code> (<code class='nw'>TestGeo3dRpt</code>) or <code class='nw'>relate()</code>, never these two strategies. No test, CHANGES or MIGRATE entry accepts the "spans longitude 0" meaning.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>162 words</span></summary><div class='body'><p>The strongest case for "intended" (an intended-behaviour checker): every class involved is <code>@lucene.experimental</code>; the <code class='nw'>Rectangle</code> method javadoc gives no formula ("Only meaningful for geospatial contexts."); the Geo3d bridge was built for prefix-tree strategies, so Geo3d with <code class='nw'>BBoxStrategy</code> or <code>PointVectorStrategy</code> may never have been a supported pairing; and the line has not changed since 2017 without anyone reporting it.</p><p>Why it fails: experimental status warns about API changes, not wrong answers; the class javadoc and Lucene's own <code class='nw'>BBoxStrategy</code> docs define the meaning, and the class's own <code class='nw'>getWidth()</code> follows it; neither strategy restricts its <code class='nw'>SpatialContext</code>, and in the PR the reviewer said the Geo3d rectangle "could be used for a variety of purposes, notably a query for a rectangular map area"; age is not intent, and the PR history shows the sibling method was corrected and this one missed. <strong>Verdict: not intended, a defect</strong> (the adjudication and independent checks; the cross-model reviewer rated the intended-behaviour argument weak under both of its lenses).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: use spatial4j's definition, minX &gt; maxX</strong></p><p class='short'>Return <code>getMinX() &gt; getMaxX()</code>, spatial4j's own definition: a one-line change in <code>Geo3dRectangleShape.getCrossesDateLine()</code>. The new test, every earlier repro and the whole spatial-extras module with its checks pass. <code class='nw'>BBoxStrategy</code> indexes built with the bug store the wrong flag and need a reindex.</p><pre class='snippet' tabindex='0'><code>  @Override
+  public boolean getCrossesDateLine() {
+    return getMinX() &gt; getMaxX();
+  }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 502 words</span></summary><div class='body'><p>One option was built and validated in a scratch worktree at <code class='nw'>a9779ef3c193</code> with gradle (JDK 25) and with the standalone runner against every repro (patched class shadowed). The other two were weighed and not built. Any fix needs a regression test (this doc's test is one) and a reindex note for <code class='nw'>BBoxStrategy</code> users.</p><div class="hd hd-3"><h3 id='fix-min-gt-max'>A: use spatial4j's definition, minX &gt; maxX <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-min-gt-max" target="_self" aria-label="Link to this section" aria-describedby="fix-min-gt-max"><span aria-hidden="true">#</span></a></div><p>Change line 154 of <code>Geo3dRectangleShape.java</code>. It is the definition of spatial4j's <code class='nw'>RectangleImpl</code> and the convention the class already uses in <code class='nw'>getWidth()</code> and its factory. It fixes the query side and the index side of both strategies, and every other caller of the flag gets the <code class='nw'>Rectangle</code> contract.</p><pre class='snippet' tabindex='0'><code>  @Override
+  public boolean getCrossesDateLine() {
+    return getMinX() &gt; getMaxX();
+  }</code></pre><p class='k'>Trade-offs</p><ul><li>Smallest change, at the defect; the same change as the finder's fix.</li><li>By code reading, the full-world box -180..180 (also the bounding box of any shape without a longitude bound) now reports <code class='nw'>false</code> instead of <code class='nw'>true</code>, the same as spatial4j's <code class='nw'>RectangleImpl</code>; the module's tests pass.</li><li>Documents indexed by <code class='nw'>BBoxStrategy</code> before the fix keep their old <code class='nw'>xdl</code> term (<code class='nw'>T</code> on boxes that span longitude 0, <code class='nw'>F</code> on dateline boxes) until reindexed: worth a CHANGES or MIGRATE line.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree at <code class='nw'>a9779ef3c193</code>, seed DEADBEEF, this doc's test added: it fails 6 of 6 on stock main (assertions on and off) and passes 6 of 6 with the fix.</li><li><code>./gradlew :lucene:spatial-extras:check</code> with the fix passes: 27 suites, 123 tests (the module's 117 plus the 6 new), 5 skipped, 0 failures, and the format, ecjLint and forbiddenApis checks. The suites include <code class='nw'>TestBBoxStrategy</code>, <code>TestPointVectorStrategy</code>, <code class='nw'>TestGeo3d</code>, <code class='nw'>TestGeo3dRpt</code>, both Geo3d RectRelation tests and <code>TestHeatmapFacetCounter</code>.</li><li><code class='nw'>TestBBoxStrategy</code>, <code>TestPointVectorStrategy</code> and <code class='nw'>TestGeo3d*</code> 10 times with a random root seed and assertions off: 430 tests, 0 failures.</li><li>Standalone, fix shadowed: this doc's test 6/6 (assertions on and off); earlier, by the hunt: the finder's 5/5, the independent reproducer's 5/5, the cross-model reviewer's 7/7 and 10/10, the devil's advocate's 8/8, the history test 5/5, the security probe with 0 wrong results (it exits 1 only on its own checks that the bug is still active, as expected with the fix), and the end-to-end differential with only 4 unrelated +-180 edge cases left.</li></ul><div class="hd hd-3"><h3 id='fix-strategy-side'>B: let the strategies test minX &gt; maxX themselves (not built)</h3><a class="hlink" href="#fix-strategy-side" target="_self" aria-label="Link to this section" aria-describedby="fix-strategy-side"><span aria-hidden="true">#</span></a></div><p><code>PointVectorStrategy.makeWithin</code> and <code class='nw'>BBoxStrategy</code> (index and query side) would stop calling <code>getCrossesDateLine()</code>.</p><p class='k'>Trade-offs</p><p>Touches five call sites in the two strategies (<code>PointVectorStrategy.java:212</code>; <code>BBoxStrategy.java:206</code>, <code class='nw'>:299</code>, <code class='nw'>:382</code>, <code class='nw'>:542</code>) and leaves the <code class='nw'>Rectangle</code> contract broken for every other caller (<code>HeatmapFacetCounter</code>, <code>BBoxOverlapRatioValueSource</code>, user code). Not recommended.</p><div class="hd hd-3"><h3 id='fix-rectangleimpl-bbox'>C: restore the 7.0 bounding box (not built)</h3><a class="hlink" href="#fix-rectangleimpl-bbox" target="_self" aria-label="Link to this section" aria-describedby="fix-rectangleimpl-bbox"><span aria-hidden="true">#</span></a></div><p>Let <code>Geo3dShape.getBoundingBox()</code> return a spatial4j <code class='nw'>RectangleImpl</code> again, as before 7.1.0.</p><p class='k'>Trade-offs</p><p>Not sufficient: <code>ctx.getShapeFactory().rect(...)</code> and WKT <code class='nw'>ENVELOPE</code> still build a <code>Geo3dRectangleShape</code> with the wrong flag, so dateline query boxes stay broken. The 7.0 bounding box was also buffered by 0.05 degrees (<code>ROUNDOFF_ADJUSTMENT</code> in 7.0.1's <code class='nw'>Geo3dShape</code>), which C would have to decide on.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that use a Geo3d-context <code class='nw'>BBoxStrategy</code> or <code>PointVectorStrategy</code> clause as a geographic allow or deny rule (Solr's reference guide lists the Geo3D context for <code class='nw'>BBoxField</code>; not run) get wrong decisions at longitude 0 and the dateline, but the wrong matches never crossed other filter clauses or returned deleted documents in the executed probe.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Model-based differential testing of the spatial4j-to-spatial3d bridge (not formal verification). The line was first suspected while writing a model rule: a shape's bounding box, read through the <code class='nw'>Rectangle</code> contract, must contain the shape. A harness then found the flag disagreeing with <code>minX &gt; maxX</code> on 3,693 bounding boxes, and an end-to-end harness found wrong strategy hits.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>200 words</span></summary><div class='body'><p><strong>Method: model-based differential testing</strong> (non-formal; the finder tagged it semi-formal), in a hunt unit on the spatial4j bridge to spatial3d.</p><ul><li>While writing the bridge model's rule G2 (a Geo3d shape's bounding box, read through the <code class='nw'>Rectangle</code> contract, must enclose every sampled member of the shape), the finder suspected the flag from the code.</li><li>The harness <code class='nw'>Geo3dBridgeDiff</code> then checked 10,000 random and boundary shapes (dateline, poles, degenerate and near-hemisphere boxes, tiny circles; SPHERE and WGS84; seed 5EED220): <code>getCrossesDateLine()</code> disagreed with <code>minX &gt; maxX</code> on 3,693 bounding boxes, and 1,091 bounding boxes failed to enclose their own members when read through the flag.</li><li>End to end, <code>Geo3dStrategyDiff</code> (300 documents and 150 queries per planet model, the spatial4j context as the oracle): <code>PointVectorStrategy</code> missed hits on 42 of 300 queries; <code class='nw'>BBoxStrategy</code> Intersects missed hits on 265 of 300 and returned false hits on 220 of 300. With the one-line fix only 4 of its 900 <code class='nw'>BBoxStrategy</code> queries (all Within or Contains, with an edge at -180) still differed, an unrelated representation issue.</li><li>A public-API JUnit on the stock main jar confirmed it; the devil's advocate later added the <code>PointVectorStrategy</code> false positive for boxes around longitude 0, which the end-to-end harness had not counted.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): two runs of the prior-report tool (51 and 89 queries; the second run's saved report lists 308 distinct hits, all triaged), 28 manual GitHub searches, 3 code searches, 14 JIRA queries, the Lucene and Solr lists and the web. Closest: #9000 (LUCENE-7951), the change that introduced it, whose review never mentions the flag.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>None of the hits is this bug, and none is by the owner. The only earlier mention is the hunt's own LFV-611 side observation. Limits: keyword search only; private security reports and unindexed chat cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>the prior-report tool: GitHub issues, PRs and commits (apache/lucene), downstream repositories, the lists, JIRA and the web</th><td class='when'>2026-10-27</td><td>two runs: 51 and 89 queries, 6 web queries in each (identifiers such as Geo3dRectangleShape, getCrossesDateLine, Geo3dSpatialContextFactory, BBoxStrategy, PointVectorStrategy; symptoms such as Geo3d dateline, BBox dateline); the second run's saved report lists 308 distinct hits, 37 of them from the web (its run log, written before the web results were merged, counts 271); every hit created after 2017-09-01 triaged</td><td>no report; related: #9000, #9568, #9134, #9038, #6776, #5247</td></tr><tr><th scope='row'>GitHub, manual and code search</th><td class='when'>2026-10-27</td><td>28 phrasings across apache/lucene, apache/solr, locationtech/spatial4j, Elasticsearch and OpenSearch; 3 code searches</td><td>nothing matching; 33 vendored copies of the file, none with a corrected predicate</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>the 4 open <code class='nw'>module:spatial</code> PRs (#16847, #14996, #14599, #13948)</td><td>none touches the spatial4j, vector or bbox packages</td></tr><tr><th scope='row'>JIRA and mailing lists</th><td class='when'>2026-10-27</td><td>14 JQL queries (LUCENE, SOLR), 12 issues read; dev@ and java-user@ lucene, users@, dev@ and solr-user@ solr</td><td>SOLR-11382 (added the Geo3D alias, no dateline discussion); 2019 solr-user threads with other causes</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 7.1.0 by LUCENE-7951 (<code class='nw'>035523ba7a86</code> on main, <code class='nw'>85491401d54c</code> on branch_7x, 2017-09-20). In its PR, <code class='nw'>getWidth()</code> was first written with the same test and later corrected; the flag was not. 7.0.0 and 7.0.1 pass the history test; 7.1.0 to 10.5.2 and main fail. Never fixed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-7951 "Spatial4j implementations using Geo3d" (#9000): code from lucene-solr#246 by @iverase (closed without a GitHub merge), committed by @dsmiley on 2017-09-20 as <code class='nw'>035523ba7a86</code> on main (first released in 8.0.0) and the identical cherry-pick <code class='nw'>85491401d54c</code> on branch_7x, which shipped in 7.1.0. <code>git log -S</code> finds the line added only by these two commits (on main's history only <code class='nw'>035523ba7a86</code>; over all refs the other two hits, <code class='nw'>527c6f350c5</code> of 2018 and <code class='nw'>aad44bc6e36</code> of 2021, only move the file or delete the whole old branch_8x tree, and neither is in main's history); the only later commit touching the method on main is the LUCENE-9570 reformat <code class='nw'>2cbf261032d</code> (2021). All 63 release tags from 7.1.0 to 10.5.2 in the local clone carry the line; its 8.x tags stop at 8.8.1, so 8.8.2 and 8.9.0 to 8.11.x are inferred (8.11.4 was run from its release jar). Before 7.1.0, <code>Geo3dShape.getBoundingBox()</code> returned a spatial4j <code class='nw'>RectangleImpl</code>, so for users who wrapped spatial3d shapes in <code class='nw'>Geo3dShape</code> this is a regression. Upstream main, branch_10x and branch_10_6 still have the line.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 6 of 6, assertions on and off (gradle and standalone)</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 6 of 6; the finder's and the history test 5 of 5</td></tr><tr><th scope='row'>8.11.4, 8.0.0, 7.7.3, 7.1.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test and the history test fail 5 of 5</td></tr><tr><th scope='row'>7.0.1, 7.0.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the history test passes 5 of 5 (the bounding box is a spatial4j RectangleImpl); the Geo3d spatial context does not exist yet</td></tr><tr><th scope='row'>fix on main</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>every JUnit repro passes and the security probe finds no wrong result; the spatial-extras module with its checks passes</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>Reproduced by the finder, an independent reproducer, two executed reviews by another model family (OpenAI GPT-5.6), a devil's advocate, the adjudication, the follow-up and a credibility audit, each with its own runs. All rated it real; the devil's advocate added the false positives for boxes around longitude 0.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>259 words</span></summary><div class='body'><p>Each check ran its own tests on main <code class='nw'>a9779ef3c193</code> (the cross-model reviews on <code class='nw'>ea57360912ed</code>, whose spatial-extras and spatial3d code is the same).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Bridge model and end-to-end differential; a 5-test JUnit fails 5 of 5 with assertions on and off and passes with the fix.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test with other coordinates and spatial4j controls fails 5 of 5 on main, 10.5.2 and 9.12.3; the Geo3d shapes themselves behave as dateline shapes while the flag disagrees.</td></tr><tr><th scope='row'>refute review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Own tests: 7 run, 3 failures with assertions on and off; 4 controls pass; 7 of 7 pass with the fix.</td></tr><tr><th scope='row'>intended review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Intended-behaviour argument weak; own test: 10 run, 5 failures covering both flag directions; 10 of 10 pass with the fix.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Built the strongest intended case and showed why it fails; added the <code>PointVectorStrategy</code> false positive, the WKT path and the PR history (getWidth corrected, flag not).</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the finder's and the independent reproduction's tests (5 of 5 fail) and the independent reproduction's with the fix (5 of 5 pass); asked to scope the filing to Geo3d with these two strategies.</td></tr><tr><th scope='row'>Follow-up</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> regression in 7.1.0</span></td><td>Release boundary with a version-portable test; security probe; prior-report search.</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's test: 15 of 15 fail with assertions on and 15 of 15 off; the fix passes 5 of 5.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-671/bug.png' download='geo3drectangleshape-crossesdateline-sign-test-bug.png' target='_self'>PNG</a> <span class='n'>461 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,492 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-671, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Geo3dRectangleShape.getCrossesDateLine() tests whether a box spans longitude 0 instead of whether it crosses the dateline, so PointVectorStrategy and BBoxStrategy return wrong hits for Geo3d boxes and circles at the dateline or the prime meridian</dd></div><div><dt>Area</dt><dd>spatial-extras / spatial4j bridge to spatial3d (Geo3dRectangleShape.getCrossesDateLine), read by PointVectorStrategy and BBoxStrategy</dd></div><div><dt>Priority</dt><dd>Medium, rank 237: PointVectorStrategy and BBoxStrategy silently return wrong hits for ordinary boxes that cross the dateline or span longitude 0, and BBoxStrategy writes a wrong flag that needs a reindex, but only in the opt-in Geo3d context with two little-used strategies.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that use PointVectorStrategy or BBoxStrategy with the opt-in, @lucene.experimental Geo3d spatial context (Geo3dSpatialContextFactory; Solr exposes it as spatialContextFactory="Geo3D", read, not run), or with spatial3d shapes wrapped in Geo3dShape under the default geo context, get wrong hits with no error for every query or document box that crosses the dateline or spans longitude 0: PointVectorStrategy misses points in dateline boxes and in circles whose bounding box crosses the dateline, and matches points at any longitude within the latitude range of a box that spans longitude 0; BBoxStrategy stores the wrong xdl flag at index time, so indexed dateline boxes are missed and indexed boxes spanning longitude 0 match queries on the other side of the planet; it is deterministic with -ea and -da, needs no scale and is in every release since 7.1.0; RecursivePrefixTreeStrategy, the default spatial4j shapes and Lucene's core geo types are not affected, the index is not corrupted (CheckIndex clean), but BBoxStrategy indexes built with the bug keep the wrong flag until they are reindexed.</dd></div><div><dt>Summary</dt><dd>You use the Geo3d spatial context (Geo3dSpatialContextFactory) with PointVectorStrategy or BBoxStrategy and query or index a box that crosses the dateline, such as rect(170, -170, -10, 10), or one that spans longitude 0, such as rect(-10, 10, -10, 10). You expect getCrossesDateLine() to follow the spatial4j Rectangle contract (true exactly when the box crosses the -180/180 meridian, that is minX &gt; maxX, as spatial4j's RectangleImpl and this class's own getWidth() assume), so a point at longitude 175 is found inside 170..-170 and an indexed box -10..10 does not match a query box at 100..110. Instead Geo3dRectangleShape.getCrossesDateLine() returns getMaxX() &gt; 0 &amp;&amp; getMinX() &lt; 0 ('spans longitude 0'), which is false for 170..-170 and true for -10..10: PointVectorStrategy searches the empty range 170..-170 and returns 0 hits (also for circle(180, 0, 5)), and BBoxStrategy stores xdl=F for the dateline box and misses it (0 hits instead of 1), but stores xdl=T for -10..10, reads it as [-10, 180] plus [-180, 10] and matches it against 100..110 (1 hit instead of 0).</dd></div><div><dt>Introduced</dt><dd>035523ba7a86773500c053129f65c9a6dc4fd384 (master) and its branch_7x cherry-pick 85491401d54c59e1593a5c9f13dca7bfcdda31a2 (the commit that shipped in 7.1.0): LUCENE-7951 'Spatial4j implementations using Geo3d' (migrated as apache/lucene#9000), from PR apache/lucene-solr#246 by GitHub iverase, committed directly by GitHub dsmiley (the PR was closed without a GitHub merge). The new class Geo3dRectangleShape had 'return (getMaxX() &gt; 0 &amp;&amp; getMinX() &lt; 0);' from the start [read: git log -S over the full history finds only these two commits; git blame -w -M -C and git log -L agree; the only later commit touching the method is the LUCENE-9570 reformat 2cbf261032d]. In the PR's first commit ea31e5ce0f getWidth() used the same test; cfbac2fb00 rewrote getWidth() to the wrap convention and left getCrossesDateLine() unchanged [read: GitHub API GETs]. A regression for users of Geo3dShape: before 7.1.0 its getBoundingBox() returned a spatial4j RectangleImpl with the correct flag [exec: the bisection test passes on 7.0.0 and 7.0.1 and fails on 7.1.0]. (2017-09-20 (commit date 23:09:46 -0400, i.e. 2017-09-21T03:09:46Z))</dd></div><div><dt>First affected version</dt><dd>7.1.0 [exec: the primary repro and the version-portable bisection test both fail 5 of 5]; 7.0.0 and 7.0.1 are not affected [exec: the bisection test passes 5 of 5; the Geo3d spatial4j factory classes do not exist there, so the primary repro does not compile on 7.0.1]</dd></div><div><dt>Affected versions</dt><dd>Every release from 7.1.0 through 10.5.2 (the latest) and main a9779ef3c193; not fixed upstream. [exec, JDK 25, SHA-1-checked release jars] the finder's JUnit (run by the finder and the follow-up; the 7.x and 8.x runs use a source variant that differs only in the LuceneTestCase import) fails 5 of 5 on 7.1.0, 7.7.3, 8.0.0, 8.11.4, 9.12.3, 10.5.2 and main (-ea and -da), and the bisection test fails 5 of 5 on the same releases and main and passes on 7.0.0 and 7.0.1 (follow-up); the independent reproduction's JUnit fails 5 of 5 on main (-ea and -da), 10.5.2 and 9.12.3; the intended-behaviour check's JUnit fails 5 of 8 on main (-ea and -da) and 10.5.2. [read] the line is unchanged since 035523ba7a8 except for the 2021 reformat; the 8.9.0-8.10.x tags are not in the local clone (inferred affected from 8.8.1 and the executed 8.11.4); upstream main, branch_10x and branch_10_6 still have the line (read 2026-10-27).</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27, read-only; the prior-report record, verdict new): two scripted prior-report searches (45 and 89 queries over GitHub issues and PRs, commits, downstream repositories, the dev, java-user, issues, commits and solr-user lists, JIRA and the web; the second returned 308 distinct hits and every hit created after 2017-09-01 was triaged), 28 manual GitHub searches (apache/lucene, apache/solr, locationtech/spatial4j, Elasticsearch, OpenSearch), 3 GitHub code searches (33 vendored copies of the file, none with a corrected predicate), 14 JIRA queries over LUCENE and SOLR with 12 issues read, list searches over the Lucene and Solr user and dev lists, 8 web queries and the file's full git history. Nothing reports or discusses Geo3dRectangleShape.getCrossesDateLine or wrong PointVectorStrategy/BBoxStrategy results with Geo3d shapes. Not fixed upstream: upstream main, branch_10x and branch_10_6 still have the line (read 2026-10-27), the file's only commits are 035523ba7a86 and the 2021 reformat 2cbf261032dc, and none of the 4 open module:spatial PRs (#16847, #14996, #14599, #13948) touches the spatial4j, vector or bbox packages. Related items, not reports of this bug: #9000 / LUCENE-7951 and apache/lucene-solr#246 (the introducing issue and PR; no comment on the flag), #9568 / LUCENE-8522 (an NPE in Geo3dShape.getBoundingBox), #9134 / LUCENE-8086, #9038 / LUCENE-7990 and LUCENE-8054 (Geo3d geometry fixes), SOLR-11382 (added Solr's Geo3D context alias), #6776 / LUCENE-5714 and #5247 / LUCENE-4175 (BBoxStrategy dateline work with the spatial4j context, before the Geo3d bridge existed). Not filed</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) with gradle in a scratch worktree and with the standalone JUnit runner, assertions on and off; the 10.5.2 (assertions on and off) and 9.12.3 (on) release jars. The hunt, verifiers, judge and audit ran on main <code class='nw'>a9779ef3c193</code> (the cross-model reviews on <code class='nw'>ea57360912ed</code>, whose spatial-extras and spatial3d sources are the same); the follow-up ran its tests on 7.0.0, 7.0.1, 7.1.0, 7.7.3, 8.0.0, 8.11.4, 9.12.3, 10.5.2 and main. The fix was validated with gradle (the new test, the closest suites 10 times, the whole spatial-extras module with its checks) and with the standalone runner against every repro.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dRectangleShape.java:35 (at a9779ef3c193) (@lucene.experimental), :119-125 (getWidth adds 360 when maxX - minX &lt; 0), :152-155 (getCrossesDateLine returns getMaxX() &gt; 0 &amp;&amp; getMinX() &lt; 0)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dShapeFactory.java:163-173 (at a9779ef3c193) (rect(minX, maxX, ...) keeps minX &gt; maxX for a dateline box) and lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dShape.java:107-118 (getBoundingBox returns a Geo3dRectangleShape for every Geo3d shape); lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dSpatialContextFactory.java:28 (@lucene.experimental)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/vector/PointVectorStrategy.java:80 (at a9779ef3c193) (@lucene.experimental), :209-222 (makeWithin: two longitude ranges only when getCrossesDateLine(), else one range [minX, maxX])</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxStrategy.java:54-71 (at a9779ef3c193) (javadoc &#x27;a boolean to mark a dateline cross&#x27;, @lucene.experimental), :206 (xdl field written from the flag), :299, :382, :542 (query branches on the flag); other readers of the flag, not shown to misbehave: lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/HeatmapFacetCounter.java:257 and lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxOverlapRatioValueSource.java:163-184</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dRectangleShape.java:35 (at a9779ef3c193) (@lucene.experimental), :118-125 (getWidth wraps), :152-155 (getCrossesDateLine)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dShapeFactory.java:163-173; (at a9779ef3c193) lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dShape.java:107-118; lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dSpatialContextFactory.java:28 (@lucene.experimental)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/vector/PointVectorStrategy.java:188-222 (at a9779ef3c193)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxStrategy.java:63, (at a9779ef3c193) 205-207, 299, 382, 473-496, 542</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>grep -rn getCrossesDateLine over a Lucene main checkout lucene/*/src/java: only spatial-extras callers</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/BBoxStrategy.java:63; (at a9779ef3c193) lucene/spatial-extras/src/java/org/apache/lucene/spatial/bbox/package-info.java:21</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/spatial4j/Geo3dRectangleShape.java:64-83 (at a9779ef3c193) (bounds without a longitude bound become -180..180)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestGeo3dRectangleDateLineFlag.java (lucene/spatial-extras, public API): <a href='../repro/LFV-671/TestGeo3dRectangleDateLineFlag.java'><code>repro/LFV-671/TestGeo3dRectangleDateLineFlag.java</code></a> (138 lines)</li><li>TestGeo3dRectangleCrossesDateLine.java (the finder&#x27;s 5 tests): <a href='../repro/LFV-671/TestGeo3dRectangleCrossesDateLine.java'><code>repro/LFV-671/TestGeo3dRectangleCrossesDateLine.java</code></a> (107 lines)</li><li>TestGeo3dDatelineFlag.java (independent reproducer, other coordinates): <a href='../repro/LFV-671/TestGeo3dDatelineFlag.java'><code>repro/LFV-671/TestGeo3dDatelineFlag.java</code></a> (154 lines)</li><li>TestGeo3dBoundingBoxDatelineFlagBisect.java (history test: Geo3dShape under SpatialContext.GEO): <a href='../repro/LFV-671/TestGeo3dBoundingBoxDatelineFlagBisect.java'><code>repro/LFV-671/TestGeo3dBoundingBoxDatelineFlagBisect.java</code></a> (122 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture made in parallel with this doc. Every flag, query and hit on screen is parsed from its own executed probe (main <code class='nw'>a9779ef3c193</code> with assertions on and off, and with the fix shadowed), with the same points and boxes as this doc.</p><ul class='paths'><li><a href='../assets/LFV-671/bug.png'><code>assets/LFV-671/bug.png</code></a> (461 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

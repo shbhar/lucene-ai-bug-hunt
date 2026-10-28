@@ -2,6 +2,8 @@
 
 Bug LFV-318 · Area: index / addIndexes reorder path: SlowCompositeCodecReaderWrapper doc-ID-to-reader lookup (stored fields, term vectors), reached through misc BPReorderingMergePolicy or any OneMerge#reorder · Priority: low · Impact: data corruption · Novelty: new
 
+Bug page: [../../bugs/LFV-318.html](../../bugs/LFV-318.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You call IndexWriter.addIndexes(CodecReader...) with a 3-document reader, an emp
 
 ## Expected vs actual
 
-- Expected: You expect all 5 documents to keep their stored fields and term vectors, as they do with the same call without reordering.
-- Actual: The merged view that IndexWriter builds for the reorder (SlowCompositeCodecReaderWrapper) has doc starts [0, 3, 3, 5], Arrays.binarySearch finds start 3 at the empty reader's index, and docIdToReaderId keeps that exact hit, so merged doc 3 (the first document of the third reader) is read as doc 0 of the empty reader.
+- Expected: All 5 documents (`a0`, `a1`, `a2`, `b0`, `b1`) keep their stored fields and term vectors, as in the no-reorder control.
+- Actual: `testBPReorderingMergePolicy` and `testIdentityReorder` fail with `AssertionError: doc 3 lost its stored fields` (assertions on and off); the control passes.
 
 ## Files
 
@@ -48,6 +50,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestReorderedAddIndexesWithEmptyReader.java](TestReorderedAddIndexesWithEmptyReader.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/codecreader-wrappers/](../../models/codecreader-wrappers/)
 

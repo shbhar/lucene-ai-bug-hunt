@@ -2,6 +2,8 @@
 
 Bug LFV-757 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-757.html](../../bugs/LFV-757.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a valid polygon with two holes, where hole A touches the outer ring at
 
 ## Expected vs actual
 
-- Expected: You expect a point inside hole A not to match.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: Triangles with twice-area 169; the point (3.75, 6.5) inside hole A gives INTERSECTS 0 and DISJOINT 1; `checkSelfIntersections=true` accepts the polygon.
+- Actual: Twice-area 225; INTERSECTS 1 and DISJOINT 0 for `XYShape` and `LatLonShape`, and the doc-values box matches; `checkSelfIntersections=true` throws `Polygon self-intersection at lat=7.142857142857143 lon=3.4285714285714284`.
 
 ## Files
 
@@ -41,6 +43,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestTessellatorSharedVertexLaterHoleBridge.java](TestTessellatorSharedVertexLaterHoleBridge.java)
+- [test-tessellator.diff](test-tessellator.diff)
 
 ## Feedback
 

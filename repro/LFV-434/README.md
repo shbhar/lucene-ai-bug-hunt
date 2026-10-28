@@ -2,6 +2,8 @@
 
 Bug LFV-434 · Area: core / document: XYShape queries (XYShape.newLineQuery and newGeometryQuery, XYShapeQuery, Line2D) · Priority: low · Impact: wrong error · Novelty: new
 
+Bug page: [../../bugs/LFV-434.html](../../bugs/LFV-434.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build XYShape.newLineQuery(field, QueryRelation.WITHIN, line) with a valid X
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The query is accepted, because the XYShapeQuery constructor has validated nothing since LUCENE-9194 (8.5.0) folded the old XY line query into it.
+- Expected: `XYShape.newLineQuery("shape", WITHIN, line)` throws `IllegalArgumentException`, as `LatLonShape.newLineQuery` does.
+- Actual: No exception: the query matches 1 of the 3 shapes, `[point (5,0)]`, and `newGeometryQuery(WITHIN, polygon, line)` is accepted too.
 
 ## Files
 
@@ -48,6 +50,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestXYShapeWithinLine.java](TestXYShapeWithinLine.java)
+- [TestXYShapeWithinLineRejected.java](TestXYShapeWithinLineRejected.java)
+- [TestXYShapeWithinLineQuery.java](TestXYShapeWithinLineQuery.java)
+- [TestVerifyXYWithinLine.java](TestVerifyXYWithinLine.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-778 · Area: spatial-extras / SpatialStrategy recip-distance scoring (every strategy with a distance value source) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-778.html](../../bugs/LFV-778.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You score a geo spatial query with makeRecipDistanceValueSource, whose javadoc s
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: The edge points (170, 0) and (180, 5) score about 0.091 (within 0.10 +- 0.09) on every strategy, as the two controls do.
+- Actual: They score 0.00823 and 0.00285 on all four strategies; both controls pass.
 
 ## Files
 
@@ -46,6 +48,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestRecipDistanceWideGeoBox.java](TestRecipDistanceWideGeoBox.java)
+- [TestRecipDistanceWideQueryShape.java](TestRecipDistanceWideQueryShape.java)
+- [3-TestRecipDistanceWideGeoBox.java](3-TestRecipDistanceWideGeoBox.java)
 
 ## Feedback
 

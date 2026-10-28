@@ -1,0 +1,51 @@
+diff --git a/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java b/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java
+index 8afe91822c7..e4f338e4717 100644
+--- a/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java
++++ b/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java
+@@ -131,6 +131,46 @@ public class TestHeatmapFacetCounter extends StrategyTestCase {
+     assertTrue(foundOne);
+   }
+ 
++  public void testQueryCircleCoarseIndexedShape() throws IOException {
++    // like testQueryCircle, but the document is a square indexed as one coarse (level 2) leaf cell
++    final SpatialContextFactory spatialContextFactory = new SpatialContextFactory();
++    spatialContextFactory.geo = false;
++    spatialContextFactory.worldBounds = new RectangleImpl(-90, 90, -90, 90, null);
++    ctx = spatialContextFactory.newSpatialContext();
++    shapeFactory = ctx.getShapeFactory();
++    final int LEVEL = 4;
++    grid = new QuadPrefixTree(ctx, LEVEL);
++    strategy = new RecursivePrefixTreeStrategy(grid, getTestClass().getSimpleName());
++    Circle circle = shapeFactory.circle(0, 0, 89);
++    adoc("0", shapeFactory.rect(45, 90, 45, 90)); // top-right, partly outside the circle
++    commit();
++    final HeatmapFacetCounter.Heatmap heatmap =
++        HeatmapFacetCounter.calcFacets(
++            (PrefixTreeStrategy) strategy,
++            indexSearcher.getTopReaderContext(),
++            null,
++            circle,
++            LEVEL,
++            1000);
++    assertEquals(16, heatmap.columns);
++    assertEquals(16, heatmap.rows);
++    final double cellWidth = heatmap.region.getWidth() / heatmap.columns;
++    final double cellHeight = heatmap.region.getHeight() / heatmap.rows;
++    for (int c = 0; c < heatmap.columns; c++) {
++      for (int r = 0; r < heatmap.rows; r++) {
++        final double minX = heatmap.region.getMinX() + c * cellWidth;
++        final double minY = heatmap.region.getMinY() + r * cellHeight;
++        final Rectangle cell = shapeFactory.rect(minX, minX + cellWidth, minY, minY + cellHeight);
++        if (cell.relate(circle).intersects() == false) {
++          assertEquals(
++              "cell " + cell + " does not intersect the circle", 0, heatmap.getCount(c, r));
++        }
++      }
++    }
++    // the square is still counted where it is inside the circle, e.g. in [45,56.25]x[45,56.25]
++    assertEquals(1, heatmap.getCount(12, 12));
++  }
++
+   /**
+    * Recursively facet & validate at higher resolutions until we've seen enough. We assume there are
+    * some non-zero cells.

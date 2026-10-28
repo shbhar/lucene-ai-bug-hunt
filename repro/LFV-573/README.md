@@ -2,6 +2,8 @@
 
 Bug LFV-573 · Area: core / geo distance queries (GeoUtils.distanceQuerySortKey, shared by LatLonPoint, LatLonDocValuesField and LatLonShape circle queries) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-573.html](../../bugs/LFV-573.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index points with LatLonPoint (or LatLonDocValuesField or LatLonShape) and r
 
 ## Expected vs actual
 
-- Expected: You expect it not to match.
-- Actual: The point is often missing in the first case and often still matches in the second (each in roughly a fifth to a third of random cases, depending on the points): for example, two points that both the distance sort and haversinMeters put 8154434.476304402 m apart are not matched by any of the three distance queries with exactly that radius.
+- Expected: Radius 8154434.476304402, the point's own sort distance, returns the point; radius 1.6056103066824857E7, one ulp below the other point's distance, does not.
+- Actual: 0 hits and 1 hit, for `LatLonPoint`, `LatLonDocValuesField` and `LatLonShape` circle queries alike, with no error.
 
 ## Files
 
@@ -47,6 +49,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDistanceQueryRadiusBoundary.java](TestDistanceQueryRadiusBoundary.java)
+- [test-TestGeoUtils.diff](test-TestGeoUtils.diff)
+- [TestRadiusBoundaryV1.java](TestRadiusBoundaryV1.java)
+- [BriefProbe.java](BriefProbe.java)
 
 ## Feedback
 

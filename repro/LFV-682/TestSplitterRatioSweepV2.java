@@ -35,7 +35,7 @@ import org.apache.lucene.tests.analysis.MockAnalyzer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.BytesRef;
 
-/** Verifier V2: sweep testRatio vs crossValidationRatio, and check per-class test counts. */
+/** Verifier: sweep testRatio vs crossValidationRatio, and check per-class test counts. */
 public class TestSplitterRatioSweepV2 extends LuceneTestCase {
 
   /** classSizes[i] documents of class "c" + i, added class by class. Returns test,cv,train,perClassTest... */

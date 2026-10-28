@@ -2,6 +2,8 @@
 
 Bug LFV-781 · Area: analysis-common / shingle (FixedShingleFilter, FixedShingleFilterFactory) over core analysis GraphTokenFilter (route walk) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-781.html](../../bugs/LFV-781.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You run 'coffee at the café' through WhitespaceTokenizer, StopFilter{the}, ASCI
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The original 'café', stacked behind 'cafe' with position increment 0, is joined straight to 'at': you get [coffee at, at _, at café], at size 3 'coffee at café' appears and 'at _ café' is missing, and on a canned stream a(+1) b(+2) c(+0) swapping only the stream order of the two stacked tokens changes the output from [a _, a c] to [a _, a b].
+- Expected: "coffee at the café" gives `[coffee at, at _]`; a, gap, b/c gives `[a _]` whatever the order of b and c; "login" (two positions) then "page" gives "login page".
+- Actual: `[coffee at, at _, at café]`; `[a _, a c]` or `[a _, a b]` depending on the stack order; `login _` instead of `login page`. No error.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestFixedShingleFilterGapsOnGraphs.java](TestFixedShingleFilterGapsOnGraphs.java)
+- [TestFixedShingleFilterRouteGaps.java](TestFixedShingleFilterRouteGaps.java)
+- [TestFixedShingleRouteGapV1.java](TestFixedShingleRouteGapV1.java)
+- [RouteGapHistoryCheck.java](RouteGapHistoryCheck.java)
 
 ## Feedback
 

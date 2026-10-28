@@ -1,0 +1,1192 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Shape CONTAINS with a holed query polygon returns shapes whose own boundary runs through the polygon between its holes</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-711 &middot; polygon2d-withintriangle-ignores-hole-edges</p><h1 id='top'>Shape CONTAINS with a holed query polygon returns shapes whose own boundary runs through the polygon between its holes</h1><p class='tldr'>With a query polygon that has holes, <code class='nw'>LatLonShape</code> and <code class='nw'>XYShape</code> CONTAINS return an indexed shape that does not contain it when the shape's own boundary runs from one query hole to another across the land between them. Every release since CONTAINS was added in 8.4.0 (2019) does this.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 339</span><span class='sub'>Core LatLonShape/XYShape CONTAINS wrongly matches for holed query polygons only with two holes or a non-convex hole plus a vertex-free indexed edge spanning them, on the less used CONTAINS relation, which is far rarer than its INTERSECTS sibling LFV-698 and about as rare as LFV-206.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>8.4.0 (LUCENE-8620, 2019): as old as CONTAINS<span class='sub'>introduced 2019-12-11 &middot; about 6 years</span></dd></div><div><dt>Affected</dt><dd>8.4.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading while checking a sibling hole bug</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>LatLonShape</code> and <code class='nw'>XYShape</code> store polygons as triangles. A CONTAINS query keeps a document if one of its triangles may contain the query and none proves it cannot. A triangle proves it cannot when a real boundary edge of the indexed shape runs through the query polygon. The query polygon may have holes.</p><figure class='visual' id='polygon2d-withintriangle-ignores-hole-edges-short-visual'><div class='frame'><a class='still' href='../assets/LFV-711/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-711/bug.png' alt='Summary card of the XYShape example. The query square [0,10] x [0,10] with holes A = [1,3] x [4,6] and B = [7,9] x [4,6]; doc 0, the square [-1,11] x [-1,11], whose own hole [2,8] x [4.5,5.5] reaches from hole A to hole B across the land; doc 1, the same square without a hole. Inside Polygon2D.withinTriangle for doc 0&#x27;s triangles: the corners are outside the query or in its holes, the hole edges cross only the query&#x27;s hole edges, which are never tested, so every triangle answers CANDIDATE and CONTAINS returns docs 0 and 1 instead of doc 1 alone, while CONTAINS of [4,6] x [4,6] correctly leaves doc 0 out. The fix returns NOTWITHIN for a real edge that touches the holes but does not stay inside one. Since 8.4.0 (LUCENE-8620).' width='1920' height='1080'></a></div><figcaption>Doc 0's hole runs from query hole A to hole B across the land. Inside <code class='nw'>withinTriangle</code> its corners are in the holes and its edges never reach the outer ring, so every triangle answers CANDIDATE and CONTAINS returns doc 0; the fix tests the real edges against the holes. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Ask which indexed regions contain a query region with two lakes cut out: the square [0,10] x [0,10] minus the lakes [1,3] x [4,6] and [7,9] x [4,6]. The land between the lakes, for example the point (5,5), belongs to the query.</span></li><li><span>Index three squares [-1,11] x [-1,11]: doc 0 with its own hole [2,8] x [4.5,5.5], which reaches from lake to lake and removes (5,5); doc 1 without a hole; doc 2 with a small hole inside a lake. You expect CONTAINS to return docs 1 and 2.</span></li><li><span>You get docs 0, 1 and 2, with <code class='nw'>XYShape</code> and <code class='nw'>LatLonShape</code>, default settings and no error. On the same index a point query at (5,5) returns only docs 1 and 2, and CONTAINS of the hole-free square [4,6] x [4,6], a part of the query, also leaves doc 0 out.</span></li><li><span>Why: <code>Polygon2D.withinTriangle</code> rejects a shape only if one of its corners is on the query's land or one of its boundary edges crosses the query's outer ring. It never looks at the lake shores, so doc 0's hole edge from (2,4.5) to (8,4.5), whose ends sit in the lakes, goes unnoticed.</span></li><li><span>One U-shaped lake is enough. One added check in <code class='nw'>withinTriangle</code>, for boundary edges that leave the lakes, returns docs 1 and 2, and the whole <code class='nw'>lucene/core</code> test suite (8,896 tests) passes with it.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone running <code class='nw'>LatLonShape</code> or <code class='nw'>XYShape</code> CONTAINS queries with a query polygon that has holes, on 8.4.0 to 10.5.2 or main, default settings. It needs two or more query holes (or one non-convex hole) and an indexed shape, in practice one with its own hole, whose boundary runs from hole to hole with no corner on land. Rare, but silent.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>811 words</span></summary><div class='body'><p><code class='nw'>LatLonShape</code> and <code class='nw'>XYShape</code> CONTAINS queries ask <code>Polygon2D.withinTriangle</code> about each triangle of an indexed shape in the BKD cells that cross the query: NOTWITHIN, CANDIDATE or DISJOINT. A document matches if one triangle is CANDIDATE and none is NOTWITHIN. Each triangle knows which of its edges are real boundary edges of the indexed shape; a real edge that runs through the query polygon proves that the shape does not cover the query and must give NOTWITHIN. <code class='nw'>withinTriangle</code> gives NOTWITHIN only when a vertex lies inside the query (the hole-aware <code class='nw'>contains()</code>) or a real edge crosses the query's <strong>outer ring</strong>; it never tests the query's holes. So a real edge that starts in one query hole, crosses land and ends in another is missed. With the query [0,10] x [0,10] minus holes [1,3] x [4,6] and [7,9] x [4,6], the square [-1,11] x [-1,11] with its own hole [2,8] x [4.5,5.5] is returned by CONTAINS although it does not cover (5,5), and although CONTAINS of [4,6] x [4,6], a part of the query, correctly leaves it out. It needs a query polygon with two or more holes, or one non-convex hole. The method was written with CONTAINS in LUCENE-8620 (8.4.0, 2019); every release from 8.4.0 to 10.5.2 and main is affected. One added check for real edges that leave the holes fixes the repro; lines between holes (<code class='nw'>withinLine</code> has the same gap) and an edge between two corners of one non-convex hole need more.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Query polygon with holes</strong>: an outer ring (clockwise) and holes (counter-clockwise) inside it, as the <code class='nw'>Polygon</code> javadoc describes (<code class='nw'>XYPolygon</code> takes holes the same way). Points in a hole are not part of the polygon; the rest of it is called <em>land</em> here.</li><li><strong>Real edge</strong>: indexed polygons are tessellated into triangles; each triangle edge carries a flag that says whether it is an edge of the original shape (real) or one added by tessellation.</li><li><strong><code class='nw'>withinTriangle</code></strong>: the CONTAINS leaf predicate in <code class='nw'>Polygon2D</code> (<code>Polygon2D.java:277-342</code>), called for each indexed triangle in a BKD leaf cell that crosses the query (<code>LatLonShapeQuery.java:193</code>, <code>XYShapeQuery.java:175</code>; a cell wholly inside the query excludes its documents without that call, <code>SpatialQuery.java:601-604</code>). It answers NOTWITHIN, CANDIDATE or DISJOINT; a document matches if some triangle is CANDIDATE and none is NOTWITHIN (<code>SpatialQuery.java:619-628</code>, <code class='nw'>:376</code>).</li><li><strong>CONTAINS per geometry</strong>: Lucene does not take the union of a document's geometries; a document matches only if one of its geometries contains the query and no other geometry of the document intersects it (the comments at <code>TestXYShape.java:266-270</code> and <code>TestLatLonShape.java:1002-1006</code>). So any real edge of any of the document's shapes that runs through the query rules the document out.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>withinTriangle</code> first returns NOTWITHIN if a vertex is inside the query (<code class='nw'>:298-300</code>); <code class='nw'>contains()</code> is hole-aware (<code class='nw'>:111-117</code>, the hole test at <code class='nw'>:114</code>), so a vertex in a hole does not count.</li><li>It then tests each real edge against <code class='nw'>tree</code>, the query's <strong>outer ring</strong> only (<code class='nw'>:306-327</code>), and returns NOTWITHIN if one crosses it; a tessellation edge that crosses it makes the triangle CANDIDATE.</li><li>It never consults <code class='nw'>holes</code>, unlike <code class='nw'>intersectsLine</code>, <code>intersectsTriangle</code>, <code class='nw'>containsLine</code> and <code class='nw'>containsTriangle</code> in the same class (<code class='nw'>:171</code>, <code class='nw'>:197-198</code>, <code class='nw'>:219</code>, <code class='nw'>:243-244</code>). A real edge whose ends lie in query holes and which crosses land between them is therefore never seen.</li><li>The documented rule is broken: NOTWITHIN means "The query shape intersects an edge that does belong to the original shape or any point of the triangle is inside the shape" (<code>Component2D.java:108-111</code>), and the method's own comment says the same (<code class='nw'>:303</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Query: [0,10] x [0,10] minus holes A = [1,3] x [4,6] and B = [7,9] x [4,6]; (5,5) is land. Documents: squares [-1,11] x [-1,11].</p><div class="tbl"><table><thead><tr><th>indexed document</th><th>covers (5,5)?</th><th>CONTAINS expected / actual</th></tr></thead><tbody><tr><td>doc 0, with a hole [2,8] x [4.5,5.5] from hole A to hole B</td><td>no</td><td>no match / <strong>match</strong></td></tr><tr><td>doc 1, no hole</td><td>yes</td><td>match / match</td></tr><tr><td>doc 2, with a hole [1.5,2.5] x [4.5,5.5] inside hole A (control)</td><td>yes</td><td>match / match</td></tr></tbody></table></div><p>Doc 0 is stored as 8 triangles. Its hole's bottom and top edges cross land from x = 3 to x = 7, but their ends lie in the holes and they never reach the outer ring, so all 8 triangles answer CANDIDATE and none NOTWITHIN (executed per-triangle trace). With the fix, the two triangles that hold those edges answer NOTWITHIN. Results: CONTAINS [0, 1, 2] instead of [1, 2] for <code class='nw'>XYShape</code> and <code class='nw'>LatLonShape</code>, assertions on and off; doc 0 is also wrongly returned for one U-shaped hole (arms [1,3] x [3,6] and [7,9] x [3,6]), for a two-polygon CONTAINS query and for a polygon-plus-point geometry query, which Lucene runs as a conjunction of one-geometry CONTAINS queries (<code>LatLonShape.java:354-370</code>, <code>XYShape.java:263-270</code>).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>491 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Applications that query <code class='nw'>LatLonShape</code> or <code class='nw'>XYShape</code> fields with CONTAINS (<code class='nw'>newPolygonQuery</code>, <code class='nw'>newGeometryQuery</code>) and a query polygon that has holes, on every release since 8.4.0 (in 8.4.x the shape API lived in the sandbox module, in core since 8.5.0). Default codec, <code>IndexWriterConfig</code> and searcher; nothing has to be enabled. Downstream products that build CONTAINS shape queries on these classes with holed polygons would inherit it; no downstream product was tested.</li><li><strong>What it takes.</strong> (1) CONTAINS, which is used less than INTERSECTS. (2) A query polygon with two or more holes, or one non-convex hole: an edge with both ends in one convex hole stays inside it. (3) An indexed shape with a real edge that starts and ends in query holes and crosses land, while none of its vertices is on land and none of its real edges crosses the query's outer ring. By the independent reproducer's reasoning (not exhaustively checked), for a single indexed polygon that means its own hole. These are necessary, not sufficient: the document also needs at least one CANDIDATE triangle (a tessellation edge that crosses the outer ring, or the query's first vertex inside a triangle) and no NOTWITHIN from any other triangle or BKD cell (<code>SpatialQuery.java:601-628</code>).</li><li><strong>What the damage looks like.</strong> Silent extra hits: no exception and no log line. The error is geometric, not a precision effect: no vertex of the query's rings is closer than 0.5 units (or degrees) to an edge of the rings of docs 0-2, and no vertex of theirs to an edge of the query's (computed; only the U-hole variant's subset control touches that hole). Only query answers are wrong and this bug stores nothing wrong, so its fix needs no reindex (by reading). The fix reads the stored edge flags, though: indexes hit by the separate LFV-204 (8.8.0 on), which can store wrong flags, need that bug's fix and a reindex of the affected shapes. By reading, index size does not matter: a BKD cell that holds one of the offending triangles also holds a point outside the query or in a hole, so it is never treated as inside the query and the leaf predicate decides.</li><li><strong>How likely.</strong> Rare: real boundaries are dense, so a vertex usually falls on land, which is caught; it takes a long, vertex-free edge spanning the land between two holes. No report was found since 2019.</li><li><strong>Not affected (executed).</strong> Query polygons without holes; an indexed hole wholly inside one query hole; an indexed hole with a corner on land. Indexed holes whose edges lie on a query hole's edge give the same answers with and without the fix; those answers are not always right (a separate boundary effect, see the repro). INTERSECTS and DISJOINT have their own, independent hole bug in <code class='nw'>intersectsLine</code> / <code>intersectsTriangle</code> of the same class (LFV-698). Not run: shape doc values, whose only working public queries are box queries (<code>ShapeDocValuesField.newGeometryQuery</code> always throws).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>Two JUnit classes for <code class='nw'>lucene/core</code>: four end-to-end tests ({<code class='nw'>XYShape</code>, <code class='nw'>LatLonShape</code>} x {two holes, one U-shaped hole}) that index docs 0-2 and check the point query, the subset control and CONTAINS, and three <code>Polygon2D.withinTriangle</code> checks. 6 of 7 fail on main, 10.5.2 and 9.12.3; all pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestContainsQueryPolygonHoles.java (lucene/core, public API)</span><span class='meta'>159 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.io.IOException;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * CONTAINS with a query polygon that has holes. Rings are written as {x[], y[]}; for LatLonShape x
+ * is the longitude and y the latitude. Outer rings are clockwise, holes counter-clockwise.
+ *
+ * &lt;p&gt;Query: the square [0,10] x [0,10] minus either the two holes [1,3] x [4,6] and [7,9] x [4,6],
+ * or one U-shaped hole with the arms [1,3] x [3,6] and [7,9] x [3,6]. In both, the point (5,5)
+ * between the holes belongs to the query.
+ *
+ * &lt;p&gt;Indexed: the square [-1,11] x [-1,11] with
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;doc 0: a hole [2,8] x [4.5,5.5]. Its corners lie in the query&#x27;s holes and it removes (5,5),
+ *       so doc 0 does NOT contain the query;
+ *   &lt;li&gt;doc 1: no hole, contains the query;
+ *   &lt;li&gt;doc 2: a hole [1.5,2.5] x [4.5,5.5] that lies inside a query hole, contains the query.
+ * &lt;/ul&gt;
+ */
+public class TestContainsQueryPolygonHoles extends LuceneTestCase {
+
+  private static final float[][] SQUARE = {{0, 0, 10, 10, 0}, {0, 10, 10, 0, 0}};
+  private static final float[][] HOLE_A = {{1, 3, 3, 1, 1}, {4, 4, 6, 6, 4}};
+  private static final float[][] HOLE_B = {{7, 9, 9, 7, 7}, {4, 4, 6, 6, 4}};
+  private static final float[][] HOLE_U = {
+    {1, 9, 9, 7, 7, 3, 3, 1, 1}, {3, 3, 6, 6, 4, 4, 6, 6, 3}
+  };
+  private static final float[][] SUBSET = {{4, 4, 6, 6, 4}, {4, 6, 6, 4, 4}}; // [4,6] x [4,6]
+  private static final float[][] DOC = {{-1, -1, 11, 11, -1}, {-1, 11, 11, -1, -1}};
+  private static final float[][] DOC0_HOLE = {{2, 8, 8, 2, 2}, {4.5f, 4.5f, 5.5f, 5.5f, 4.5f}};
+  private static final float[][] DOC2_HOLE = {
+    {1.5f, 2.5f, 2.5f, 1.5f, 1.5f}, {4.5f, 4.5f, 5.5f, 5.5f, 4.5f}
+  };
+
+  public void testXYShapeTwoQueryHoles() throws IOException {
+    check(false, SQUARE, HOLE_A, HOLE_B);
+  }
+
+  public void testXYShapeOneUShapedQueryHole() throws IOException {
+    check(false, SQUARE, HOLE_U);
+  }
+
+  public void testLatLonShapeTwoQueryHoles() throws IOException {
+    check(true, SQUARE, HOLE_A, HOLE_B);
+  }
+
+  public void testLatLonShapeOneUShapedQueryHole() throws IOException {
+    check(true, SQUARE, HOLE_U);
+  }
+
+  private void check(boolean latLon, float[][] outer, float[][]... holes) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        add(w, latLon, DOC, DOC0_HOLE);
+        add(w, latLon, DOC);
+        add(w, latLon, DOC, DOC2_HOLE);
+      }
+      try (IndexReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        Query point =
+            latLon
+                ? LatLonShape.newPointQuery(&quot;f&quot;, QueryRelation.INTERSECTS, new double[] {5, 5})
+                : XYShape.newPointQuery(&quot;f&quot;, QueryRelation.INTERSECTS, new float[] {5, 5});
+        assertEquals(&quot;docs that cover (5,5)&quot;, &quot;[1, 2]&quot;, hits(s, point));
+        assertEquals(&quot;CONTAINS [4,6] x [4,6]&quot;, &quot;[1, 2]&quot;, hits(s, contains(latLon, SUBSET)));
+        assertEquals(
+            &quot;CONTAINS the holed query, which includes [4,6] x [4,6]&quot;,
+            &quot;[1, 2]&quot;,
+            hits(s, contains(latLon, outer, holes)));
+      }
+    }
+  }
+
+  private static Query contains(boolean latLon, float[][] outer, float[][]... holes) {
+    return latLon
+        ? LatLonShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, latLon(outer, holes))
+        : XYShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, xy(outer, holes));
+  }
+
+  private static void add(IndexWriter w, boolean latLon, float[][] outer, float[][]... holes)
+      throws IOException {
+    Field[] fields =
+        latLon
+            ? LatLonShape.createIndexableFields(&quot;f&quot;, latLon(outer, holes), true)
+            : XYShape.createIndexableFields(&quot;f&quot;, xy(outer, holes), true);
+    Document d = new Document();
+    for (Field f : fields) {
+      d.add(f);
+    }
+    w.addDocument(d);
+  }
+
+  private static XYPolygon xy(float[][] outer, float[][]... holes) {
+    XYPolygon[] h = new XYPolygon[holes.length];
+    for (int i = 0; i &lt; holes.length; i++) {
+      h[i] = new XYPolygon(holes[i][0], holes[i][1]);
+    }
+    return new XYPolygon(outer[0], outer[1], h);
+  }
+
+  private static Polygon latLon(float[][] outer, float[][]... holes) {
+    Polygon[] h = new Polygon[holes.length];
+    for (int i = 0; i &lt; holes.length; i++) {
+      h[i] = new Polygon(toDouble(holes[i][1]), toDouble(holes[i][0]));
+    }
+    return new Polygon(toDouble(outer[1]), toDouble(outer[0]), h);
+  }
+
+  private static double[] toDouble(float[] a) {
+    double[] d = new double[a.length];
+    for (int i = 0; i &lt; a.length; i++) {
+      d[i] = a[i];
+    }
+    return d;
+  }
+
+  private static String hits(IndexSearcher s, Query q) throws IOException {
+    StringBuilder b = new StringBuilder(&quot;[&quot;);
+    for (ScoreDoc sd : s.search(q, 10, new Sort(SortField.FIELD_DOC)).scoreDocs) {
+      if (b.length() &gt; 1) {
+        b.append(&quot;, &quot;);
+      }
+      b.append(sd.doc);
+    }
+    return b.append(&quot;]&quot;).toString();
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestContainsQueryPolygonHoles.java $LUCENE/lucene/core/src/test/org/apache/lucene/document/
+cp $REPRO/TestPolygon2DWithinHoles.java $LUCENE/lucene/core/src/test/org/apache/lucene/geo/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests TestContainsQueryPolygonHoles --tests TestPolygon2DWithinHoles -Ptests.seed=5EED0711 -Ptests.asserts=true
+# also with -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>CONTAINS returns docs 1 and 2 (<code>[1, 2]</code>), the same docs the point query at (5,5) returns.</dd></div><div class='got'><dt>Observed</dt><dd>CONTAINS returns <code>[0, 1, 2]</code>: doc 0, whose own hole removes (5,5), is reported as containing the query, for XYShape and LatLonShape alike.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-711/'>repro/LFV-711/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>5 more files (679 lines) · 4,645 words</span></summary><div class='body'><p>The end-to-end test uses only public API (<code class='nw'>XYShape</code> / <code class='nw'>LatLonShape</code> <code>createIndexableFields(..., true)</code>, <code class='nw'>newPointQuery</code>, <code class='nw'>newPolygonQuery</code>, <code class='nw'>Polygon</code> / <code class='nw'>XYPolygon</code>, default <code>IndexWriterConfig</code>). Each test first asserts the point query at (5,5) = [1, 2] and CONTAINS [4,6] x [4,6] = [1, 2] (both pass on stock), then CONTAINS of the holed query = [1, 2] (stock: [0, 1, 2]). The component test calls the package-private <code class='nw'>Polygon2D.create</code> from the same package, as <code class='nw'>TestPolygon2D</code> does; its methods are meant to be added there, and <code class='nw'>testControls</code> holds cases that must keep their answer. The geometry and the expected hits are fixed; the seed only drives the test framework's randomization (directory, codec, similarity, locale, time zone and index settings such as <code>maxPointsInLeafNode</code>). Both classes are formatted with <code>./gradlew :lucene:core:tidy</code> and pass <code>checkGoogleJavaFormat</code>.</p><p>The other files: a <code class='nw'>main()</code> probe that runs docs 0-5 through the two-hole, U-hole, two-polygon and polygon-plus-point CONTAINS queries for both shape types; a component-level probe of 15 edge cases near the holes; a per-triangle trace of doc 0; a probe of the limits of both fix options; and the independent reproducer's test with other geometry and controls.</p><div class="hd hd-3"><h3 id='code-2-h'>TestPolygon2DWithinHoles.java (component level, for TestPolygon2D)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Package-level access to <code class='nw'>Polygon2D.create</code>. <code class='nw'>testControls</code> (a tessellation edge between the holes, a real edge inside hole A, a real edge ending on land) passes on stock and must keep passing with any fix.</p><figure class='code'><figcaption><span class='fname'>TestPolygon2DWithinHoles.java (component level, for TestPolygon2D)</span><span class='meta'>87 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.geo;
+
+import org.apache.lucene.geo.Component2D.WithinRelation;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Polygon2D.withinTriangle with a query polygon that has holes (methods meant for TestPolygon2D). A
+ * triangle edge flagged true belongs to the indexed shape; an edge flagged false is a tessellation
+ * edge.
+ */
+public class TestPolygon2DWithinHoles extends LuceneTestCase {
+
+  private static final float[] SQUARE_X = {0, 0, 10, 10, 0};
+  private static final float[] SQUARE_Y = {0, 10, 10, 0, 0};
+
+  /** the square [0,10] x [0,10] minus the holes [1,3] x [4,6] and [7,9] x [4,6] */
+  private static Component2D twoHoles() {
+    XYPolygon holeA = new XYPolygon(new float[] {1, 3, 3, 1, 1}, new float[] {4, 4, 6, 6, 4});
+    XYPolygon holeB = new XYPolygon(new float[] {7, 9, 9, 7, 7}, new float[] {4, 4, 6, 6, 4});
+    return Polygon2D.create(new XYPolygon(SQUARE_X, SQUARE_Y, holeA, holeB));
+  }
+
+  /**
+   * the square [0,10] x [0,10] minus one U-shaped hole with arms [1,3] x [3,6] and [7,9] x [3,6]
+   */
+  private static Component2D uShapedHole() {
+    XYPolygon hole =
+        new XYPolygon(
+            new float[] {1, 9, 9, 7, 7, 3, 3, 1, 1}, new float[] {3, 3, 6, 6, 4, 4, 6, 6, 3});
+    return Polygon2D.create(new XYPolygon(SQUARE_X, SQUARE_Y, hole));
+  }
+
+  public void testShapeEdgeBetweenTwoHoles() {
+    Component2D polygon = twoHoles();
+    assertTrue(polygon.contains(5, 4.5)); // on the shape edge (2,4.5)-(8,4.5) below
+    assertFalse(polygon.contains(2, 4.5)); // in hole A
+    assertFalse(polygon.contains(8, 4.5)); // in hole B
+    // the third vertex is outside the polygon, so two tessellation edges cross the outer ring
+    assertEquals(
+        WithinRelation.NOTWITHIN,
+        polygon.withinTriangle(-1, -1, false, 2, 4.5, true, 8, 4.5, false));
+    // all three vertices in the holes
+    assertEquals(
+        WithinRelation.NOTWITHIN,
+        polygon.withinTriangle(2, 4.5, true, 8, 4.5, false, 8, 5.5, false));
+  }
+
+  public void testShapeEdgeAcrossUShapedHole() {
+    Component2D polygon = uShapedHole();
+    assertTrue(polygon.contains(5, 4.5)); // the land between the two arms
+    assertEquals(
+        WithinRelation.NOTWITHIN,
+        polygon.withinTriangle(-1, -1, false, 2, 4.5, true, 8, 4.5, false));
+  }
+
+  public void testControls() {
+    Component2D polygon = twoHoles();
+    // the same triangle, but the edge between the holes is a tessellation edge: a candidate
+    assertEquals(
+        WithinRelation.CANDIDATE,
+        polygon.withinTriangle(-1, -1, false, 2, 4.5, false, 8, 4.5, false));
+    // a shape edge that stays inside hole A: a candidate
+    assertEquals(
+        WithinRelation.CANDIDATE,
+        polygon.withinTriangle(-1, -1, false, 1.5, 4.5, true, 2.5, 4.5, false));
+    // a shape edge with an end on the land: not within (as before)
+    assertEquals(
+        WithinRelation.NOTWITHIN,
+        polygon.withinTriangle(-1, -1, false, 2, 4.5, true, 5, 4.5, false));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>ContainsHolesReachProbe.java (main(): query forms and boundary-sharing holes)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Prints CONTAINS hits for docs 0-5 and six query forms, for <code class='nw'>XYShape</code> and <code class='nw'>LatLonShape</code>; exits 1 if doc 0 is returned.</p><figure class='code'><figcaption><span class='fname'>ContainsHolesReachProbe.java (main(): query forms and boundary-sharing holes)</span><span class='meta'>133 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.LatLonGeometry;
+import org.apache.lucene.geo.Point;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.XYGeometry;
+import org.apache.lucene.geo.XYPoint;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+
+/**
+ * Reach and boundary probe for CONTAINS with holed query polygons (public API, default
+ * IndexWriterConfig). Prints the CONTAINS hits per query form for XYShape and LatLonShape; exits 1
+ * if doc 0 (the bridge hole, which does not contain any of the queries) is returned.
+ *
+ * &lt;p&gt;Docs, all the square [-1,11]^2 with: 0 a hole [2,8]x[4.5,5.5] (corners in the query holes);
+ * 1 no hole; 2 a hole [1.5,2.5]x[4.5,5.5] inside query hole A; 3 a hole equal to query hole A
+ * [1,3]x[4,6]; 4 a hole [1,2]x[4,6] that shares part of hole A&#x27;s boundary. Doc 5 is the two-hole
+ * query polygon itself.
+ */
+public class ContainsHolesReachProbe {
+  static final float[][] SQ = {{0, 0, 10, 10, 0}, {0, 10, 10, 0, 0}};
+  static final float[][] HA = {{1, 3, 3, 1, 1}, {4, 4, 6, 6, 4}};
+  static final float[][] HB = {{7, 9, 9, 7, 7}, {4, 4, 6, 6, 4}};
+  static final float[][] HU = {{1, 9, 9, 7, 7, 3, 3, 1, 1}, {3, 3, 6, 6, 4, 4, 6, 6, 3}};
+  static final float[][] SUB = {{4, 4, 6, 6, 4}, {4, 6, 6, 4, 4}};
+  static final float[][] SMALL = {{-0.8f, -0.8f, -0.2f, -0.2f, -0.8f}, {-0.8f, -0.2f, -0.2f, -0.8f, -0.8f}};
+  static final float[][] DOC = {{-1, -1, 11, 11, -1}, {-1, 11, 11, -1, -1}};
+  static final float[][] H0 = {{2, 8, 8, 2, 2}, {4.5f, 4.5f, 5.5f, 5.5f, 4.5f}};
+  static final float[][] H2 = {{1.5f, 2.5f, 2.5f, 1.5f, 1.5f}, {4.5f, 4.5f, 5.5f, 5.5f, 4.5f}};
+  static final float[][] H4 = {{1, 2, 2, 1, 1}, {4, 4, 6, 6, 4}};
+
+  static XYPolygon xy(float[][] o, float[][]... h) {
+    XYPolygon[] hs = new XYPolygon[h.length];
+    for (int i = 0; i &lt; h.length; i++) hs[i] = new XYPolygon(h[i][0], h[i][1]);
+    return new XYPolygon(o[0], o[1], hs);
+  }
+
+  static double[] d(float[] a) {
+    double[] r = new double[a.length];
+    for (int i = 0; i &lt; a.length; i++) r[i] = a[i];
+    return r;
+  }
+
+  static Polygon ll(float[][] o, float[][]... h) {
+    Polygon[] hs = new Polygon[h.length];
+    for (int i = 0; i &lt; h.length; i++) hs[i] = new Polygon(d(h[i][1]), d(h[i][0]));
+    return new Polygon(d(o[1]), d(o[0]), hs);
+  }
+
+  static String hits(IndexSearcher s, Query q) throws Exception {
+    List&lt;Integer&gt; l = new ArrayList&lt;&gt;();
+    for (ScoreDoc sd : s.search(q, 20, new Sort(SortField.FIELD_DOC)).scoreDocs) l.add(sd.doc);
+    return l.toString();
+  }
+
+  public static void main(String[] args) throws Exception {
+    System.out.println(&quot;# &quot; + (args.length &gt; 0 ? args[0] : &quot;&quot;));
+    boolean doc0Returned = false;
+    for (boolean latLon : new boolean[] {false, true}) {
+      float[][][][] docs = {{DOC, H0}, {DOC}, {DOC, H2}, {DOC, HA}, {DOC, H4}, {SQ, HA, HB}};
+      try (Directory dir = new ByteBuffersDirectory()) {
+        try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+          for (float[][][] dd : docs) {
+            float[][][] holes = java.util.Arrays.copyOfRange(dd, 1, dd.length);
+            Field[] fs =
+                latLon
+                    ? LatLonShape.createIndexableFields(&quot;f&quot;, ll(dd[0], holes), true)
+                    : XYShape.createIndexableFields(&quot;f&quot;, xy(dd[0], holes), true);
+            Document doc = new Document();
+            for (Field f : fs) doc.add(f);
+            w.addDocument(doc);
+          }
+        }
+        try (IndexReader r = DirectoryReader.open(dir)) {
+          IndexSearcher s = new IndexSearcher(r);
+          String t = latLon ? &quot;LatLonShape&quot; : &quot;XYShape&quot;;
+          List&lt;String[]&gt; rows = new ArrayList&lt;&gt;();
+          if (latLon) {
+            rows.add(new String[] {&quot;point (5,5) INTERSECTS&quot;, hits(s, LatLonShape.newPointQuery(&quot;f&quot;, QueryRelation.INTERSECTS, new double[] {5, 5}))});
+            rows.add(new String[] {&quot;CONTAINS [4,6]^2 (subset)&quot;, hits(s, LatLonShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, ll(SUB)))});
+            rows.add(new String[] {&quot;CONTAINS two-hole query&quot;, hits(s, LatLonShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, ll(SQ, HA, HB)))});
+            rows.add(new String[] {&quot;CONTAINS U-hole query&quot;, hits(s, LatLonShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, ll(SQ, HU)))});
+            rows.add(new String[] {&quot;CONTAINS two-hole query + small square&quot;, hits(s, LatLonShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, ll(SQ, HA, HB), ll(SMALL)))});
+            rows.add(new String[] {&quot;CONTAINS geometry: two-hole query + point&quot;, hits(s, LatLonShape.newGeometryQuery(&quot;f&quot;, QueryRelation.CONTAINS, new LatLonGeometry[] {ll(SQ, HA, HB), new Point(-0.5, -0.5)}))});
+          } else {
+            rows.add(new String[] {&quot;point (5,5) INTERSECTS&quot;, hits(s, XYShape.newPointQuery(&quot;f&quot;, QueryRelation.INTERSECTS, new float[] {5, 5}))});
+            rows.add(new String[] {&quot;CONTAINS [4,6]^2 (subset)&quot;, hits(s, XYShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, xy(SUB)))});
+            rows.add(new String[] {&quot;CONTAINS two-hole query&quot;, hits(s, XYShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, xy(SQ, HA, HB)))});
+            rows.add(new String[] {&quot;CONTAINS U-hole query&quot;, hits(s, XYShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, xy(SQ, HU)))});
+            rows.add(new String[] {&quot;CONTAINS two-hole query + small square&quot;, hits(s, XYShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, xy(SQ, HA, HB), xy(SMALL)))});
+            rows.add(new String[] {&quot;CONTAINS geometry: two-hole query + point&quot;, hits(s, XYShape.newGeometryQuery(&quot;f&quot;, QueryRelation.CONTAINS, new XYGeometry[] {xy(SQ, HA, HB), new XYPoint(-0.5f, -0.5f)}))});
+          }
+          for (String[] row : rows) {
+            boolean bad = row[0].startsWith(&quot;CONTAINS&quot;) &amp;&amp; row[1].startsWith(&quot;[0&quot;);
+            doc0Returned |= bad;
+            System.out.printf(&quot;%-12s %-44s %-22s %s%n&quot;, t, row[0], row[1], bad ? &quot;doc 0 WRONG&quot; : &quot;&quot;);
+          }
+        }
+      }
+    }
+    System.exit(doc0Returned ? 1 : 0);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>WithinHoleBoundaryProbe.java (main(): 15 component-level edge cases)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Prints <code class='nw'>withinTriangle</code> for real edges inside, along, out of and between holes, including two holes that touch at a corner.</p><figure class='code'><figcaption><span class='fname'>WithinHoleBoundaryProbe.java (main(): 15 component-level edge cases)</span><span class='meta'>72 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.geo;
+
+/**
+ * Prints Polygon2D.withinTriangle for edge cases near the query&#x27;s holes (component level). In each
+ * triangle only the edge b-c belongs to the indexed shape (bc = true); a-b and c-a are tessellation
+ * edges. Run it on stock and with a fix and compare the lines.
+ */
+public class WithinHoleBoundaryProbe {
+
+  static Component2D poly(float[] x, float[] y, float[]... holes) {
+    XYPolygon[] h = new XYPolygon[holes.length / 2];
+    for (int i = 0; i &lt; h.length; i++) {
+      h[i] = new XYPolygon(holes[2 * i], holes[2 * i + 1]);
+    }
+    return Polygon2D.create(new XYPolygon(x, y, h));
+  }
+
+  static void row(String query, Component2D p, String what, double ax, double ay, double bx, double by,
+      double cx, double cy) {
+    System.out.printf(
+        &quot;%-12s %-62s b-c=(%s,%s)-(%s,%s)  %s%n&quot;,
+        query, what, bx, by, cx, cy, p.withinTriangle(ax, ay, false, bx, by, true, cx, cy, false));
+  }
+
+  public static void main(String[] args) {
+    System.out.println(&quot;# &quot; + (args.length &gt; 0 ? args[0] : &quot;&quot;) + &quot;  (a vertex; flagged edge b-c; result)&quot;);
+    float[] sx = {0, 0, 10, 10, 0}, sy = {0, 10, 10, 0, 0};
+    // two holes A = [1,3]x[4,6], B = [7,9]x[4,6]
+    Component2D two =
+        poly(sx, sy, new float[] {1, 3, 3, 1, 1}, new float[] {4, 4, 6, 6, 4},
+            new float[] {7, 9, 9, 7, 7}, new float[] {4, 4, 6, 6, 4});
+    row(&quot;two-holes&quot;, two, &quot;hole A -&gt; hole B across land (the bug)&quot;, -1, -1, 2, 4.5, 8, 4.5);
+    row(&quot;two-holes&quot;, two, &quot;inside hole A&quot;, -1, -1, 1.5, 4.5, 2.5, 4.5);
+    row(&quot;two-holes&quot;, two, &quot;inside hole A, ends on hole A&#x27;s right edge&quot;, -1, -1, 2, 5, 3, 5);
+    row(&quot;two-holes&quot;, two, &quot;inside hole A, ends at hole A&#x27;s corner (3,4)&quot;, -1, -1, 2, 5, 3, 4);
+    row(&quot;two-holes&quot;, two, &quot;along hole A&#x27;s bottom edge (1,4)-(3,4)&quot;, -1, -1, 1, 4, 3, 4);
+    row(&quot;two-holes&quot;, two, &quot;along part of hole A&#x27;s bottom edge (1.5,4)-(2.5,4)&quot;, -1, -1, 1.5, 4, 2.5, 4);
+    row(&quot;two-holes&quot;, two, &quot;hole A -&gt; land (end on land)&quot;, -1, -1, 2, 4.5, 5, 4.5);
+    row(&quot;two-holes&quot;, two, &quot;hole A -&gt; outside, across the outer ring&quot;, -1, -1, 2, 5, -0.5, 5);
+    row(&quot;two-holes&quot;, two, &quot;land only&quot;, -1, -1, 4, 2, 6, 2);
+    row(&quot;two-holes&quot;, two, &quot;outside only&quot;, -1, 12, -1, 11, 11, 11);
+    // one convex hole A
+    Component2D one = poly(sx, sy, new float[] {1, 3, 3, 1, 1}, new float[] {4, 4, 6, 6, 4});
+    row(&quot;one-hole&quot;, one, &quot;inside the only (convex) hole&quot;, -1, -1, 1.5, 4.5, 2.5, 5.5);
+    // two holes that touch at the vertex (4,4): H1 = [2,4]x[2,4], H2 = [4,6]x[4,6]
+    Component2D touch =
+        poly(sx, sy, new float[] {2, 4, 4, 2, 2}, new float[] {2, 2, 4, 4, 2},
+            new float[] {4, 6, 6, 4, 4}, new float[] {4, 4, 6, 6, 4});
+    row(&quot;touching&quot;, touch, &quot;H1 -&gt; H2 through the shared corner (4,4) only&quot;, -1, 11, 3, 3, 5, 5);
+    row(&quot;touching&quot;, touch, &quot;H1 -&gt; H2 across land, not through the corner&quot;, -1, 11, 3, 3.5, 5, 5.5);
+    row(&quot;touching&quot;, touch, &quot;inside H1, ends at the shared corner (4,4)&quot;, -1, 11, 3, 3, 4, 4);
+    row(&quot;touching&quot;, touch, &quot;inside H1&quot;, -1, 11, 2.5, 2.5, 3.5, 3.5);
+    System.out.println(
+        &quot;# contains(4,4)=&quot; + touch.contains(4, 4) + &quot; contains(5,4.5)=&quot; + two.contains(5, 4.5));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>ContainsFixLimitsProbe.java (main(): what both fix options leave open)</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>A polygon plus a line from hole to hole in one document, and a real edge between two corners of one U-shaped hole, end to end and at component level; prints the same answers on stock and with either option, except a corner-to-corner chord between two holes.</p><figure class='code'><figcaption><span class='fname'>ContainsFixLimitsProbe.java (main(): what both fix options leave open)</span><span class='meta'>196 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.geo;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LatLonShape;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.document.XYShape;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+
+/**
+ * Limits of the proposed withinTriangle fixes (run on stock and with each fix).
+ *
+ * &lt;p&gt;Part L (lines): Polygon2D.withinLine has no hole test either. A document with a solid square
+ * plus a line from query hole A to query hole B. Lucene&#x27;s own tests define CONTAINS per geometry:
+ * the query must lie inside one geometry and intersect no other geometry of the document
+ * (TestXYShape / TestLatLonShape &quot;Contains is only true if ...&quot;), so that document must not match.
+ *
+ * &lt;p&gt;Part U (one U-shaped hole, chord between two of its corners): a real edge (3,6)-(7,6) that
+ * crosses land and touches the U-shaped hole only at its two end points.
+ */
+public class ContainsFixLimitsProbe {
+
+  static final float[][] SQUARE = {{0, 0, 10, 10, 0}, {0, 10, 10, 0, 0}};
+  static final float[][] HOLE_A = {{1, 3, 3, 1, 1}, {4, 4, 6, 6, 4}};
+  static final float[][] HOLE_B = {{7, 9, 9, 7, 7}, {4, 4, 6, 6, 4}};
+  static final float[][] HOLE_U = {{1, 9, 9, 7, 7, 3, 3, 1, 1}, {3, 3, 6, 6, 4, 4, 6, 6, 3}};
+  static final float[][] DOC = {{-1, -1, 11, 11, -1}, {-1, 11, 11, -1, -1}};
+  // a hole of the indexed square whose only edge on land is the chord (7,6)-(3,6) of the U hole
+  static final float[][] DOC_U_HOLE = {{3, 2, 2, 8, 8, 7, 3}, {6, 5, 3.5f, 3.5f, 5, 6, 6}};
+
+  public static void main(String[] args) throws Exception {
+    System.out.println(&quot;# &quot; + (args.length &gt; 0 ? args[0] : &quot;&quot;));
+    Path tmp = Files.createTempDirectory(&quot;lfv711-limits&quot;);
+    for (boolean latLon : new boolean[] {false, true}) {
+      String t = latLon ? &quot;LatLonShape&quot; : &quot;XYShape&quot;;
+      // ---- Part L: polygon + line in one document, two-hole query
+      try (Directory dir = FSDirectory.open(tmp.resolve(t + &quot;-L&quot;))) {
+        try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+          addPolyLine(w, latLon, new float[] {2, 8}, new float[] {5, 5}); // 0: hole A -&gt; hole B
+          addPolyLine(w, latLon, new float[] {1.5f, 2.5f}, new float[] {5, 5}); // 1: inside A
+          addPolyLine(w, latLon, new float[] {2, 5}, new float[] {5, 5}); // 2: A -&gt; land
+          addPolyLine(w, latLon, null, null); // 3: square only
+        }
+        try (IndexReader r = DirectoryReader.open(dir)) {
+          IndexSearcher s = new IndexSearcher(r);
+          System.out.printf(
+              &quot;L %-11s point (5,5) INTERSECTS                 %s%n&quot;,
+              t, hits(s, point(latLon, 5, 5)));
+          System.out.printf(
+              &quot;L %-11s CONTAINS two-hole query                %s   (expected [1, 3])%n&quot;,
+              t, hits(s, contains(latLon, SQUARE, HOLE_A, HOLE_B)));
+        }
+      }
+      // ---- Part U: chord between two corners of the U hole, end to end
+      try (Directory dir = FSDirectory.open(tmp.resolve(t + &quot;-U&quot;))) {
+        try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+          addPolygon(w, latLon, DOC, DOC_U_HOLE); // 0: its hole covers the land (5,5)
+          addPolygon(w, latLon, DOC); // 1: solid
+        }
+        try (IndexReader r = DirectoryReader.open(dir)) {
+          IndexSearcher s = new IndexSearcher(r);
+          System.out.printf(
+              &quot;U %-11s point (5,5) INTERSECTS                 %s%n&quot;,
+              t, hits(s, point(latLon, 5, 5)));
+          System.out.printf(
+              &quot;U %-11s CONTAINS U-hole query                  %s   (expected [1])%n&quot;,
+              t, hits(s, contains(latLon, SQUARE, HOLE_U)));
+        }
+      }
+    }
+    // ---- Part U, component level (XY): the chord as the only real edge of a triangle
+    Component2D u = Polygon2D.create(xy(SQUARE, HOLE_U));
+    Component2D two = Polygon2D.create(xy(SQUARE, HOLE_A, HOLE_B));
+    System.out.println(
+        &quot;C U-hole   chord (3,6)-(7,6), corners of the U hole, across land: &quot;
+            + u.withinTriangle(5, 11, false, 3, 6, true, 7, 6, false)
+            + &quot;   contains(5,6)=&quot;
+            + u.contains(5, 6)
+            + &quot; contains(3,6)=&quot;
+            + u.contains(3, 6));
+    System.out.println(
+        &quot;C two-hole chord (3,6)-(7,6), corner of A to corner of B, across land: &quot;
+            + two.withinTriangle(5, 11, false, 3, 6, true, 7, 6, false));
+    System.out.println(
+        &quot;C two-hole withinLine (2,5)-(8,5), hole A -&gt; hole B: &quot;
+            + two.withinLine(2, 8, 5, 5, 2, 5, true, 8, 5));
+  }
+
+  static void addPolyLine(IndexWriter w, boolean latLon, float[] lx, float[] ly)
+      throws IOException {
+    Document d = new Document();
+    for (Field f :
+        latLon
+            ? LatLonShape.createIndexableFields(&quot;f&quot;, latLonPoly(DOC), true)
+            : XYShape.createIndexableFields(&quot;f&quot;, xy(DOC), true)) {
+      d.add(f);
+    }
+    if (lx != null) {
+      for (Field f :
+          latLon
+              ? LatLonShape.createIndexableFields(&quot;f&quot;, new Line(toD(ly), toD(lx)))
+              : XYShape.createIndexableFields(&quot;f&quot;, new XYLine(lx, ly))) {
+        d.add(f);
+      }
+    }
+    w.addDocument(d);
+  }
+
+  static void addPolygon(IndexWriter w, boolean latLon, float[][] outer, float[][]... holes)
+      throws IOException {
+    Document d = new Document();
+    for (Field f :
+        latLon
+            ? LatLonShape.createIndexableFields(&quot;f&quot;, latLonPoly(outer, holes), true)
+            : XYShape.createIndexableFields(&quot;f&quot;, xy(outer, holes), true)) {
+      d.add(f);
+    }
+    w.addDocument(d);
+  }
+
+  static Query point(boolean latLon, double x, double y) {
+    return latLon
+        ? LatLonShape.newPointQuery(&quot;f&quot;, QueryRelation.INTERSECTS, new double[] {y, x})
+        : XYShape.newPointQuery(&quot;f&quot;, QueryRelation.INTERSECTS, new float[] {(float) x, (float) y});
+  }
+
+  static Query contains(boolean latLon, float[][] outer, float[][]... holes) {
+    return latLon
+        ? LatLonShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, latLonPoly(outer, holes))
+        : XYShape.newPolygonQuery(&quot;f&quot;, QueryRelation.CONTAINS, xy(outer, holes));
+  }
+
+  static XYPolygon xy(float[][] outer, float[][]... holes) {
+    XYPolygon[] h = new XYPolygon[holes.length];
+    for (int i = 0; i &lt; holes.length; i++) {
+      h[i] = new XYPolygon(holes[i][0], holes[i][1]);
+    }
+    return new XYPolygon(outer[0], outer[1], h);
+  }
+
+  static Polygon latLonPoly(float[][] outer, float[][]... holes) {
+    Polygon[] h = new Polygon[holes.length];
+    for (int i = 0; i &lt; holes.length; i++) {
+      h[i] = new Polygon(toD(holes[i][1]), toD(holes[i][0]));
+    }
+    return new Polygon(toD(outer[1]), toD(outer[0]), h);
+  }
+
+  static double[] toD(float[] a) {
+    double[] d = new double[a.length];
+    for (int i = 0; i &lt; a.length; i++) {
+      d[i] = a[i];
+    }
+    return d;
+  }
+
+  static String hits(IndexSearcher s, Query q) throws IOException {
+    StringBuilder b = new StringBuilder(&quot;[&quot;);
+    for (ScoreDoc sd : s.search(q, 10, new Sort(SortField.FIELD_DOC)).scoreDocs) {
+      if (b.length() &gt; 1) {
+        b.append(&quot;, &quot;);
+      }
+      b.append(sd.doc);
+    }
+    return b.append(&quot;]&quot;).toString();
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-6-h'>TestContainsHoledQueryBand.java (independent reproducer, other geometry)</h3><a class="hlink" href="#code-6-h" target="_self" aria-label="Link to this section" aria-describedby="code-6-h"><span aria-hidden="true">#</span></a></div><p>Query [0,20]^2 with holes [2,6]^2 and [14,18]^2, a thin diagonal document hole between them, plus solid, hole-inside-a-hole and vertex-on-land controls; 3 of 3 fail on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestContainsHoledQueryBand.java (independent reproducer, other geometry)</span><span class='meta'>191 lines</span><button type='button' class='copy' data-copy='code-6' data-status='code-6-st'>Copy</button><span class='copy-st' id='code-6-st' role='status' aria-live='polite'></span></figcaption><pre id='code-6' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.document;
+
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.document.ShapeField.QueryRelation;
+import org.apache.lucene.geo.Component2D;
+import org.apache.lucene.geo.LatLonGeometry;
+import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.XYGeometry;
+import org.apache.lucene.geo.XYPolygon;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent reproducer: CONTAINS with a query polygon that has two holes.
+ *
+ * &lt;p&gt;Query Q: the square [0,20]^2 (clockwise) with two counter-clockwise holes H1 = [2,6]^2 and
+ * H2 = [14,18]^2. The point (10,10) is in Q.
+ *
+ * &lt;p&gt;Indexed shapes, all based on the square [-5,25]^2 (clockwise):
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;&quot;band&quot;: with a thin diagonal hole (3,4),(4,3),(17,16),(16,17). Its two ends lie in H1 and
+ *       H2 and its middle removes (10,10), so it does NOT contain Q.
+ *   &lt;li&gt;&quot;solid&quot;: no hole, contains Q.
+ *   &lt;li&gt;&quot;inHole&quot;: hole [3,5]^2, which lies wholly inside H1, so it still contains Q.
+ *   &lt;li&gt;&quot;vertexInLand&quot;: hole [9,11]^2 whose corners lie in Q&#x27;s land, does NOT contain Q.
+ * &lt;/ul&gt;
+ *
+ * Expected CONTAINS hits: {inHole, solid}.
+ */
+public class TestContainsHoledQueryBand extends LuceneTestCase {
+
+  private static final String F = &quot;shape&quot;;
+
+  // ---- geometry in (x, y); for LatLon: lon = x, lat = y ----
+  private static final double[][] Q_OUTER = {
+    {0, 0, 20, 20, 0}, // x
+    {0, 20, 20, 0, 0} // y   clockwise
+  };
+  private static final double[][] Q_H1 = {
+    {2, 6, 6, 2, 2}, {2, 2, 6, 6, 2} // counter-clockwise
+  };
+  private static final double[][] Q_H2 = {
+    {14, 18, 18, 14, 14}, {14, 14, 18, 18, 14}
+  };
+  private static final double[][] D_OUTER = {
+    {-5, -5, 25, 25, -5}, {-5, 25, 25, -5, -5} // clockwise
+  };
+  private static final double[][] D_BAND_HOLE = {
+    {3, 4, 17, 16, 3}, {4, 3, 16, 17, 4} // counter-clockwise, ends inside H1 and H2
+  };
+  private static final double[][] D_INHOLE_HOLE = {
+    {3, 5, 5, 3, 3}, {3, 3, 5, 5, 3}
+  };
+  private static final double[][] D_LAND_HOLE = {
+    {9, 11, 11, 9, 9}, {9, 9, 11, 11, 9}
+  };
+
+  private static float[] f(double[] a) {
+    float[] r = new float[a.length];
+    for (int i = 0; i &lt; a.length; i++) {
+      r[i] = (float) a[i];
+    }
+    return r;
+  }
+
+  private static XYPolygon xy(double[][] ring, XYPolygon... holes) {
+    return new XYPolygon(f(ring[0]), f(ring[1]), holes);
+  }
+
+  private static Polygon ll(double[][] ring, Polygon... holes) {
+    // Polygon(lats, lons): lat = y, lon = x
+    return new Polygon(ring[1].clone(), ring[0].clone(), holes);
+  }
+
+  private static Set&lt;String&gt; hits(IndexSearcher s, Query q) throws Exception {
+    Set&lt;String&gt; out = new TreeSet&lt;&gt;();
+    for (ScoreDoc sd : s.search(q, 100).scoreDocs) {
+      out.add(s.storedFields().document(sd.doc).get(&quot;id&quot;));
+    }
+    return out;
+  }
+
+  private static Document doc(String id, Field[] fields) {
+    Document d = new Document();
+    d.add(new StoredField(&quot;id&quot;, id));
+    for (Field fl : fields) {
+      d.add(fl);
+    }
+    return d;
+  }
+
+  public void testXYShapeContainsHoledQuery() throws Exception {
+    XYPolygon query = xy(Q_OUTER, xy(Q_H1), xy(Q_H2));
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        w.addDocument(doc(&quot;band&quot;, XYShape.createIndexableFields(F, xy(D_OUTER, xy(D_BAND_HOLE)), true)));
+        w.addDocument(doc(&quot;solid&quot;, XYShape.createIndexableFields(F, xy(D_OUTER), true)));
+        w.addDocument(
+            doc(&quot;inHole&quot;, XYShape.createIndexableFields(F, xy(D_OUTER, xy(D_INHOLE_HOLE)), true)));
+        w.addDocument(
+            doc(&quot;vertexInLand&quot;, XYShape.createIndexableFields(F, xy(D_OUTER, xy(D_LAND_HOLE)), true)));
+      }
+      try (IndexReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        // Sanity: which documents cover the query point (10,10), which lies in Q.
+        assertEquals(
+            &quot;(10,10) is in Q; band and vertexInLand do not cover it&quot;,
+            Set.of(&quot;inHole&quot;, &quot;solid&quot;),
+            hits(s, XYShape.newPointQuery(F, QueryRelation.INTERSECTS, new float[] {10f, 10f})));
+        // The query polygon really contains (10,10)
+        assertTrue(XYGeometry.create(query).contains(10, 10));
+        assertEquals(
+            &quot;CONTAINS: only shapes that contain the whole query polygon&quot;,
+            new TreeSet&lt;&gt;(Set.of(&quot;inHole&quot;, &quot;solid&quot;)),
+            hits(s, XYShape.newPolygonQuery(F, QueryRelation.CONTAINS, query)));
+      }
+    }
+  }
+
+  public void testLatLonShapeContainsHoledQuery() throws Exception {
+    Polygon query = ll(Q_OUTER, ll(Q_H1), ll(Q_H2));
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+        w.addDocument(
+            doc(&quot;band&quot;, LatLonShape.createIndexableFields(F, ll(D_OUTER, ll(D_BAND_HOLE)), true)));
+        w.addDocument(doc(&quot;solid&quot;, LatLonShape.createIndexableFields(F, ll(D_OUTER), true)));
+        w.addDocument(
+            doc(
+                &quot;inHole&quot;,
+                LatLonShape.createIndexableFields(F, ll(D_OUTER, ll(D_INHOLE_HOLE)), true)));
+        w.addDocument(
+            doc(
+                &quot;vertexInLand&quot;,
+                LatLonShape.createIndexableFields(F, ll(D_OUTER, ll(D_LAND_HOLE)), true)));
+      }
+      try (IndexReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = newSearcher(r);
+        assertEquals(
+            &quot;(lat 10, lon 10) is in Q; band and vertexInLand do not cover it&quot;,
+            Set.of(&quot;inHole&quot;, &quot;solid&quot;),
+            hits(s, LatLonShape.newPointQuery(F, QueryRelation.INTERSECTS, new double[] {10, 10})));
+        assertTrue(LatLonGeometry.create(query).contains(10, 10));
+        assertEquals(
+            &quot;CONTAINS: only shapes that contain the whole query polygon&quot;,
+            new TreeSet&lt;&gt;(Set.of(&quot;inHole&quot;, &quot;solid&quot;)),
+            hits(s, LatLonShape.newPolygonQuery(F, QueryRelation.CONTAINS, query)));
+      }
+    }
+  }
+
+  /**
+   * Component level (Component2D is public but @lucene.internal). Triangle a=(-5,-5), b=(4,3),
+   * c=(17,16) with bc an edge of the original shape (the band hole&#x27;s lower edge, which runs through
+   * Q&#x27;s land from H1 to H2). WithinRelation javadoc: NOTWITHIN when &quot;The query shape intersects an
+   * edge that does belong to the original shape&quot;.
+   */
+  public void testComponentWithinTriangleShapeEdgeThroughLand() {
+    Component2D q = XYGeometry.create(xy(Q_OUTER, xy(Q_H1), xy(Q_H2)));
+    // the shape edge (4,3)-(17,16) passes through (10,9), which is in Q
+    assertTrue(q.contains(10, 9));
+    assertFalse(q.contains(4, 3));
+    assertFalse(q.contains(17, 16));
+    Component2D.WithinRelation rel =
+        q.withinTriangle(-5, 17, -5, 16, -5, -5, false, 4, 3, true, 17, 16, false);
+    assertEquals(Component2D.WithinRelation.NOTWITHIN, rel);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also 10.5.2 and 9.12.3 (release jars)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64 (pure Java; only this platform was run)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestContainsQueryPolygonHoles.java $LUCENE/lucene/core/src/test/org/apache/lucene/document/
+cp $REPRO/TestPolygon2DWithinHoles.java $LUCENE/lucene/core/src/test/org/apache/lucene/geo/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests TestContainsQueryPolygonHoles --tests TestPolygon2DWithinHoles -Ptests.seed=5EED0711 -Ptests.asserts=true
+# also with -Ptests.asserts=false; the geometry is fixed, the seed only drives the test framework&#x27;s randomization
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193 (the same 6 failures with -Ptests.asserts=false)
+TestPolygon2DWithinHoles &gt; testShapeEdgeBetweenTwoHoles FAILED
+    java.lang.AssertionError: expected:&lt;NOTWITHIN&gt; but was:&lt;CANDIDATE&gt;
+TestPolygon2DWithinHoles &gt; testShapeEdgeAcrossUShapedHole FAILED
+    java.lang.AssertionError: expected:&lt;NOTWITHIN&gt; but was:&lt;CANDIDATE&gt;
+TestContainsQueryPolygonHoles &gt; testLatLonShapeTwoQueryHoles FAILED
+    org.junit.ComparisonFailure: CONTAINS the holed query, which includes [4,6] x [4,6] expected:&lt;[[]1, 2]&gt; but was:&lt;[[0, ]1, 2]&gt;
+TestContainsQueryPolygonHoles &gt; testXYShapeOneUShapedQueryHole FAILED   (same message)
+TestContainsQueryPolygonHoles &gt; testLatLonShapeOneUShapedQueryHole FAILED   (same message)
+TestContainsQueryPolygonHoles &gt; testXYShapeTwoQueryHoles FAILED   (same message)
+7 tests completed, 6 failed
+
+# per-triangle trace of doc 0 against the two-hole query, stock (&#x27;=&#x27; a real edge, &#x27;-&#x27; a tessellation edge)
+(-1.0,-1.0) - (8.0,4.5) = (2.0,4.5) -  -&gt; CANDIDATE    (with the fix: NOTWITHIN, the hole&#x27;s bottom edge)
+(2.0,5.5) = (8.0,5.5) - (11.0,11.0) -  -&gt; CANDIDATE    (with the fix: NOTWITHIN, the hole&#x27;s top edge)
+... the other 6 triangles: CANDIDATE, with and without the fix
+# triangles CANDIDATE=8 NOTWITHIN=0 -&gt; doc 0 MATCHES     (with the fix: CANDIDATE=6 NOTWITHIN=2 -&gt; does not match)
+
+# reach probe, stock (XYShape; LatLonShape gives the same doc 0 result)
+CONTAINS two-hole query                    [0, 1, 2, 3, 4]   doc 0 WRONG
+CONTAINS U-hole query                      [0, 1, 2, 3, 4]   doc 0 WRONG
+CONTAINS two-hole query + small square     [0, 1, 2, 3, 4]   doc 0 WRONG
+CONTAINS geometry: two-hole query + point  [0, 1, 2, 3, 4]   doc 0 WRONG
+# with the fix (either option): the same rows without doc 0; docs 3 and 4 (holes on a query hole&#x27;s edge) unchanged
+# docs 3-5 contain the query (edges exactly on its boundaries): doc 5 is missing from every row, and LatLonShape
+# also drops docs 3 and 4, on stock and with the fix: a separate boundary effect, not investigated</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Lucene contradicts itself: CONTAINS of the holed query returns doc 0; CONTAINS of [4,6] x [4,6], a part of it, does not.</li><li>The documented rule says NOTWITHIN when "the query shape intersects an edge that does belong to the original shape"; here it does.</li><li>Nothing limits CONTAINS to hole-free queries; the random tests use <code class='nw'>withinTriangle</code> itself as oracle.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>295 words</span></summary><div class='body'><ul><li><strong>Self-contradiction.</strong> On the same index, CONTAINS of the holed query returns doc 0 and CONTAINS of [4,6] x [4,6], a subset of it, does not; any shape that contains a region contains each part of it. The point query at (5,5) also leaves doc 0 out. All 16 ring-orientation combinations give the same wrong answer, so it is not a winding misuse.</li><li><strong>Contract.</strong> <code>Component2D.WithinRelation.NOTWITHIN</code> (<code>Component2D.java:108-111</code>, <code class='nw'>@lucene.internal</code>): "The query shape intersects an edge that does belong to the original shape or any point of the triangle is inside the shape". The method's comment (<code>Polygon2D.java:303</code>): "if any of the edges intersects a edge belongs to the shape then it cannot be within". The public <code>ShapeField.QueryRelation.CONTAINS</code> says only "used for CONTAINS Queries" (<code>ShapeField.java:126-127</code>); the <code class='nw'>newPolygonQuery</code> javadoc says "intersect" for every relation and names the dateline as its only limitation (<code>LatLonShape.java:294-297</code>); <code>XYShape.java:227-230</code> has the same "intersect" prose and states no limitation at all. <code>Polygon.java:31-36</code>: clockwise shells, counter-clockwise holes, closed rings, no self-crossing; the repro follows all of them, and its shapes pass <code>createIndexableFields(..., true)</code>.</li><li><strong>Tests.</strong> The random CONTAINS validators compute the expected answer with the same method (<code>TestLatLonPolygonShapeQueries.java:46-52</code> returns <code>testWithinQuery(...) == CANDIDATE</code>; <code>BaseSpatialTestCase.java:800-845</code> calls <code>query.withinTriangle</code>), and the random polygon generators build no query holes (<code>TestPolygon2D.java:364</code>: "currently we don't generate these"). No test asserts the current answer, and the fix breaks no test.</li><li><strong>History.</strong> LUCENE-8620 (2019-12-11) wrote the method together with CONTAINS and tested real edges against the outer ring only from its first version; the issue (#9666) and PRs #546, #608 and #872 never discuss query holes. Later edits (LUCENE-9152, LUCENE-9273, LUCENE-9570) never touched hole handling.</li><li><strong>Precedent.</strong> Comparable CONTAINS false positives were fixed as bugs: LUCENE-10514 (#11550 / #809) and #12020 / #12022.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>164 words</span></summary><div class='body'><p>The strongest "intended" case: the public CONTAINS javadoc is one line and <code class='nw'>newPolygonQuery</code> says "intersect"; <code class='nw'>Component2D</code> and its <code class='nw'>WithinRelation</code> contract are <code class='nw'>@lucene.internal</code>; <code class='nw'>Polygon</code> is <code>@lucene.experimental</code> and points to spatial-extras for more advanced operations; CONTAINS is a per-triangle approximation, and maintainers accepted rounding at shared boundaries (LUCENE-8736, #9782, open); the random tests pass; the trigger is rare.</p><p>Why it fails: the subset contradiction holds under any meaning of "contains"; <code>@lucene.experimental</code> is about API stability, not wrong answers; the repro is half a unit from every boundary, far from the encoding quantum of about 1e-7 degrees; the method's own comment and the internal contract state the rule that is broken; the passing tests use the method as their oracle and never build holed query polygons; nothing documents a limit on holed query polygons; rarity bounds the impact but does not make the answer intended. <strong>Verdict: a defect</strong> (adjudication: confirmed, high; the reproducer, the devil's advocate and the intended-lens review all rated the intended case weak).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Test the real edges against the holes right after the vertex test</strong></p><p class='short'>In <code>Polygon2D.withinTriangle</code>, right after the vertex test, return NOTWITHIN when a real edge touches the query's holes but does not lie inside a single hole (+14 lines, 12 non-blank). The repro and all 8,896 <code class='nw'>lucene/core</code> tests pass, assertions on and off. Lines between holes (<code class='nw'>withinLine</code>) and an edge between two corners of one non-convex hole stay uncovered.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 1,066 words</span></summary><div class='body'><p>Both options add the same test for each real edge of the triangle, "does it touch a hole without lying inside a single hole?" (<code>holes.intersectsLine &amp;&amp; !holes.containsLine</code>); after the vertex test, such an edge crosses land (or passes from one hole into another through a shared corner). They differ only in where the test sits, and since NOTWITHIN wins in either order they return the same relation for every triangle (executed: identical outputs on every test and probe). <strong>Boundary behaviour (executed, 15 component-level cases):</strong> only the three cases where a real edge leaves the holes change, from CANDIDATE to NOTWITHIN: hole A to hole B across land, and, for two holes that touch at the corner (4,4), an edge from one into the other across land and one through the shared corner only. By reading, NOTWITHIN is right for the last one too (near the corner both sides of the edge are land, and the shape lies on one side only), but only the component probe was run; whether holes that touch at a corner are valid input, and what the public query returns, were not checked, so it is behaviour for maintainers to review. Real edges inside a hole, ending on its edge or corner, or running along its edge keep their answer, and so do indexed holes equal to or sharing an edge with a query hole, end to end. Only query code changes, so this bug's fix needs no reindex; the check reads the stored edge flags, so it is only as right as those flags (LFV-204). <strong>Limits of both options (executed, <code class='nw'>probe-limits</code>):</strong> (1) <code>Polygon2D.withinLine</code> (<code>Polygon2D.java:255-274</code>) has the same outer-ring-only test and neither option touches it: a document holding the square [-1,11] x [-1,11] plus the line (2,5)-(8,5) from hole A to hole B is still returned by CONTAINS, for <code class='nw'>XYShape</code> and <code class='nw'>LatLonShape</code>, although under Lucene's per-geometry CONTAINS it must not match (the same square with a line that ends on land is correctly left out); a matching check in <code class='nw'>withinLine</code> is the obvious extension, not written or run. (2) The helper asks <code>holes.containsLine</code>, which, by reading, accepts a segment whose ends are on the hole's boundary when no hole edge crosses it strictly (<code>Polygon2D.java:204-221</code>, <code>GeoUtils.java:217-227</code>; the shortcut behind LFV-206); so a real edge (3,6)-(7,6) between two corners of one U-shaped hole, which crosses land, stays CANDIDATE, and <code class='nw'>XYShape</code> still returns a square whose own hole has this edge (<code class='nw'>LatLonShape</code> answered correctly here already on stock). It needs coordinates exactly equal to the hole's corners; with two holes the same chord is caught. (3) The missing boundary-sharing documents of the reach probe are unchanged. Add the component tests to <code class='nw'>TestPolygon2D</code>, and consider letting the random shape tests build query polygons with holes: their CONTAINS oracle calls the method under test. The INTERSECTS sibling (LFV-698) needs its own change in the same file.</p><div class="hd hd-3"><h3 id='fix-edge-leaves-holes-after-vertex-test'>Test the real edges against the holes right after the vertex test <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-edge-leaves-holes-after-vertex-test" target="_self" aria-label="Link to this section" aria-describedby="fix-edge-leaves-holes-after-vertex-test"><span aria-hidden="true">#</span></a></div><p>After the vertex test, return NOTWITHIN when a real edge touches the query's holes but is not inside a single hole; a private helper <code class='nw'>leavesHoles</code> does the two hole lookups. +14 lines in <code class='nw'>Polygon2D.java</code> (12 non-blank); the finder's fix, and an independent reproducer wrote an equivalent one. Query polygons without holes are untouched (<code>holes == null</code>).</p><pre class='snippet' tabindex='0'><code>if (contains(aX, aY) || contains(bX, bY) || contains(cX, cY)) {
+  return WithinRelation.NOTWITHIN;
+}
+
+// an edge of the original shape that touches a hole but is not inside a single hole runs
+// through the polygon (between holes, or out of a hole), so the polygon cannot be within it
+if (holes != null
+    &amp;&amp; ((ab &amp;&amp; leavesHoles(aX, aY, bX, bY))
+        || (bc &amp;&amp; leavesHoles(bX, bY, cX, cY))
+        || (ca &amp;&amp; leavesHoles(cX, cY, aX, aY)))) {
+  return WithinRelation.NOTWITHIN;
+}
+...
+/** true if the segment touches a hole and is not contained in a single hole */
+private boolean leavesHoles(double aX, double aY, double bX, double bY) {
+  return holes.intersectsLine(aX, aY, bX, bY) &amp;&amp; holes.containsLine(aX, aY, bX, bY) == false;
+}</code></pre><p class='k'>Trade-offs</p><ul><li>Smallest reviewable change, next to the vertex test it complements.</li><li>Like option B, it leaves <code class='nw'>withinLine</code> and a chord between two corners of one non-convex hole uncovered (see above).</li><li>Cost: up to one <code class='nw'>intersectsLine</code> and one <code class='nw'>containsLine</code> on the hole tree per real edge of each triangle that passes the vertex test, only for holed query polygons; no benchmark was run.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: the new tests fail 6 of 7 on stock (assertions on and off) and pass 7 of 7 with the fix; the 50 geo and shape suites, 426 tests, 0 failures with assertions on and off; <code>checkGoogleJavaFormat</code> passes; the whole <code>:lucene:core:test</code>, 750 suites and 8,896 tests, 0 failures, with assertions on and off.</li><li>Standalone runner: 7 of 7 pass with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the reach probe no longer returns doc 0 and is otherwise unchanged; 12 of the 15 boundary cases keep their answer. Earlier, the independent reproducers' and reviewers' tests and 57 upstream shape and <code class='nw'>Polygon2D</code> tests passed with the same fix.</li></ul><div class="hd hd-3"><h3 id='fix-edge-leaves-holes-after-outer-ring'>The same test, after the outer-ring checks <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-edge-leaves-holes-after-outer-ring" target="_self" aria-label="Link to this section" aria-describedby="fix-edge-leaves-holes-after-outer-ring"><span aria-hidden="true">#</span></a></div><p>Put the same block below the three <code class='nw'>tree.crossesLine</code> checks, before the CANDIDATE return. +14 lines (12 non-blank). Same relation for every triangle.</p><p class='k'>Trade-offs</p><p>Skips the hole lookups for triangles whose real edge already crosses the outer ring, so slightly cheaper than the recommended option in that case and the same otherwise; not benchmarked.</p><p class='k'>What the checks validated</p><p>Same worktree: the new tests, the 50 geo and shape suites (426 tests) with assertions on and off, <code>checkGoogleJavaFormat</code>, and the whole <code>:lucene:core:test</code> (8,896 tests) with assertions on and off, 0 failures; standalone 7 of 7 pass with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, and every probe prints exactly what the recommended option prints.</p><div class="hd hd-3"><h3 id='fix-one-edge-tree'>One edge tree for all rings</h3><a class="hlink" href="#fix-one-edge-tree" target="_self" aria-label="Link to this section" aria-describedby="fix-one-edge-tree"><span aria-hidden="true">#</span></a></div><p>Build the crossing test from the outer ring and the holes together.</p><p class='k'>Trade-offs</p><p>Changes the data structure of every holed <code class='nw'>Polygon2D</code> for one method. Not written or run, so this is a judgement, not a measurement; how it would treat the boundary cases is not known.</p><div class="hd hd-3"><h3 id='fix-document'>Document it as a limitation</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>State that CONTAINS may be wrong for query polygons with holes.</p><p class='k'>Trade-offs</p><p>No javadoc limits holed query polygons today and the fix is small. Not recommended.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Products that answer "which stored regions fully cover this area?" with holed areas, such as service zones with lakes or enclaves cut out, can return a region that leaves part of the area uncovered until a fix is released; this bug stores nothing wrong, so its fix needs no reindex.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code reading. While triaging a sibling bug (INTERSECTS misses shapes between query holes), the AI finder checked the other <code class='nw'>Polygon2D</code> predicates for the same "outer ring only" pattern and found it in <code class='nw'>withinTriangle</code>; a component probe and a public-API test confirmed it. The bounded-exhaustive comparison with an exact geometry library did not hit it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>122 words</span></summary><div class='body'><p><strong>Method: code reading (non-formal)</strong>, a hunt unit, "shape relations against an exact reference", 2026-10-27.</p><ul><li>The unit's bounded-exhaustive comparison of <code class='nw'>LatLonShape</code> / <code class='nw'>XYShape</code> relation queries with JTS DE-9IM relations had found the sibling INTERSECTS bug (<code class='nw'>intersectsLine</code> / <code>intersectsTriangle</code> ignore hole edges).</li><li>While triaging it, the finder read the other <code class='nw'>Polygon2D</code> predicates for the same pattern. <code class='nw'>withinTriangle</code> tests real edges against the outer ring only; an executed component-level probe and a public-API JUnit confirmed the CONTAINS false positive.</li><li>The lattice comparison itself did not hit it: its query polygons have at most one hole, and its holed documents never had a hole edge crossing the land between two query holes.</li><li>Then independent AI tools reproduced, reviewed and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (best-effort search, 2026-10-27): four runs of the scripted prior-report search (197 queries over GitHub, commits, downstream projects, mailing lists and JIRA), about 60 manual GitHub searches, 12 web searches and all 409 open PRs. The nearest item is LUCENE-8620 (#9666), which added the method.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>No issue, PR, commit, JIRA entry, list thread or web page found reports this defect. Upstream <code class='nw'>Polygon2D.java</code> last changed in <code class='nw'>de3b294be44</code> (formatting only; authored 2023-10-10, committed 2023-10-11), and no open PR touches it; the file is byte-identical to <code class='nw'>a9779ef3c193</code> on upstream main <code class='nw'>20ced71c1e6</code> (2026-10-27) and on <code class='nw'>branch_10_6</code>, <code class='nw'>branch_10x</code> and <code class='nw'>branch_10_5</code> (checked 2026-10-28).</p><p>Nearest items, none of them this bug: #9666 (LUCENE-8620), which added CONTAINS and the method and never discusses query holes; #11550 / #809 (LUCENE-10514), within* consistency, which changed <code class='nw'>withinLine</code>; #12020 / #12022, a CONTAINS false positive from the edge flag of very flat triangles, no holes; #9782 (LUCENE-8736, open), WITHIN at shared boundaries; #9680 (LUCENE-8634, open), identical shapes that may not match; #10313 (LUCENE-9273), which edited the method but kept the outer-ring-only test.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene, apache/lucene-solr)</th><td class='when'>2026-10-27</td><td>four runs of a scripted prior-report search (197 queries in total, also covering downstream repositories, the lists and JIRA) plus about 60 manual searches: Polygon2D withinTriangle, CONTAINS polygon with holes, LatLonShape / XYShape CONTAINS hole, WithinRelation NOTWITHIN, LUCENE-8620</td><td>no report; the items listed above</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>the changed files of all 409 open apache/lucene PRs, and the upstream commit log of Polygon2D.java</td><td>none touches Polygon2D.java</td></tr><tr><th scope='row'>Downstream repositories</th><td class='when'>2026-10-27</td><td>Elasticsearch, OpenSearch, its geospatial plugin and Solr (tool queries and manual searches)</td><td>no report</td></tr><tr><th scope='row'>JIRA, mailing lists, web</th><td class='when'>2026-10-27</td><td>16 JIRA-archive and 80 mailing-list queries over dev@, java-user@, issues@ and commits@ (scripted prior-report search); 12 web searches; about 35 threads read in full</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with CONTAINS itself by LUCENE-8620 (<code class='nw'>a06a2ea3da2</code> / <code class='nw'>2ef2ddd77c5</code>, 2019-12-11), first released in 8.4.0; not a regression. A probe fails on all 54 releases from 8.4.0 to 10.5.2 and on main; 8.3.1 has no CONTAINS. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>4 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-8620 "Add CONTAINS support for LatLonShape and XYShape" (lucene-solr PR #872, superseding #608; issue now apache/lucene#9666; author iverase), merged 2019-12-11 as <code class='nw'>a06a2ea3da2</code> on branch_8x (shipped in 8.4.0) and <code class='nw'>2ef2ddd77c5</code> on master (identical <code class='nw'>Polygon2D.java</code>). From its first version <code class='nw'>withinTriangle</code> tests real edges against the outer ring only. Later edits (LUCENE-9152 in 8.5.0, LUCENE-9273 in 8.6.0, LUCENE-9570) never touched hole handling; LUCENE-10514 (9.2.0) changed <code class='nw'>withinLine</code>. In 8.4.x the shape API lived in the sandbox module; LUCENE-8621 moved it to core in 8.5.0.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's tests 6 of 7 fail (gradle and the standalone runner, assertions on and off); CONTAINS [0, 1, 2]</td></tr><tr><th scope='row'>10.0.0-10.5.2 (12), 9.0.0-9.12.3 (21), 8.4.0-8.11.4 (21)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the history probe gives CONTAINS [0, 1] (expected [1]) for XYShape and LatLonShape on each, with the sanity check and the subset control correct; the brief's tests 6 of 7 fail on 10.5.2 and 9.12.3 (assertions on; 9.12.3 also with assertions off in the fact check)</td></tr><tr><th scope='row'>8.3.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no CONTAINS</span></td><td>the API does not exist: <code class='nw'>QueryRelation</code> has no CONTAINS, the probes fail to compile</td></tr><tr><th scope='row'>main + fix (either option)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>all repros pass; the 50 geo and shape suites and the 8,896 lucene/core tests, 0 failed, each option with assertions on and off</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate, an adjudication and reviews by another model family (which ran their own tests) all found it real; the adjudication confirmed it with high confidence. Registry re-runs, a final audit and this doc's gradle runs reproduced it with new seeds.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>513 words</span></summary><div class='body'><p>Every verification check (all but the security assessment) wrote or ran its own test against the stock jars.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-API JUnit fails 2 of 2 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3, and its <code class='nw'>main()</code> port on 8.5.2 and 8.4.0; passes with the fix; still fails with five other known geo fixes and the sibling's fix applied.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) wrote its own test with other geometry and point-query controls: CONTAINS [0,1,2] instead of [1,2] for both shape types; with the fix it passes, as do <code class='nw'>TestPolygon2D</code> and the <code class='nw'>TestXYShape</code> CONTAINS tests.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test from the claim only (a thin diagonal document hole between two query holes): 3 of 3 fail on main (30 of 30 with 10 iterations), 10.5.2 and 9.12.3; found that one U-shaped query hole is enough; its own equivalent fix passes.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>OpenAI GPT-5.6: the intended-behaviour argument is weak; its own test fails on main with <code class='nw'>-ea</code> and <code class='nw'>-da</code> and passes with the fix.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>No doc, test or discussion limits CONTAINS to hole-free query polygons; showed the subset contradiction and that all 16 ring orientations fail; its probe fails 4 of 5 on main and 10.5.2 and passes with the fix.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test (3 of 3 fail with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, fresh seeds; 3 of 3 pass with the fix) and the finder's; 57 upstream shape and <code class='nw'>Polygon2D</code> tests pass with the fix (their CONTAINS oracle is the same method, so no-regression only).</td></tr><tr><th scope='row'>security assessment</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> none</span></td><td>Extra CONTAINS hits only; no guarantee for untrusted input is broken; file publicly.</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> kept</span></td><td>Follow-up re-run, seed 5EEDF00D: 2 of 2 fail with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, 2 of 2 pass with the fix. A fourth independent audit failed the finder's and the independent reproduction's tests again with new seeds and passed the finder's with the fix.</td></tr><tr><th scope='row'>brief runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; both fixes validated</span></td><td>Gradle in a scratch worktree: 6 of 7 new tests fail on stock with assertions on and off; both fixes pass the new tests, the geo and shape suites and the whole lucene/core suite with assertions on and off; reach, boundary, per-triangle and fix-limits probes on stock and both fixes.</td></tr><tr><th scope='row'>fact checks of this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; corrections applied</span></td><td>An independent fact check re-ran the doc's gradle command (6 of 7 fail, assertions on and off), both fixes (7 of 7 pass; option A also the 50 geo and shape suites) and the standalone runner on main, 10.5.2 and 9.12.3, and the probes. A second one, by another model family (OpenAI GPT-5.6, read-only), re-read the sources and logs. Both found the bug as described; their counting and wording corrections and the missing caveats (lines, one non-convex hole, stored edge flags, boundary false negatives) are applied, the caveats with an executed probe.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-711/bug.png' download='polygon2d-withintriangle-ignores-hole-edges-bug.png' target='_self'>PNG</a> <span class='n'>422 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,394 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-711, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>LatLonShape/XYShape CONTAINS with a query polygon that has holes returns indexed shapes that do not contain it, because Polygon2D.withinTriangle never tests the query's hole edges</dd></div><div><dt>Area</dt><dd>geo / shape queries (Polygon2D.withinTriangle; LatLonShape and XYShape CONTAINS with a query polygon that has holes)</dd></div><div><dt>Priority</dt><dd>Low, rank 339: Core LatLonShape/XYShape CONTAINS wrongly matches for holed query polygons only with two holes or a non-convex hole plus a vertex-free indexed edge spanning them, on the less used CONTAINS relation, which is far rarer than its INTERSECTS sibling LFV-698 and about as rare as LFV-206.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that run LatLonShape or XYShape CONTAINS queries (newPolygonQuery or newGeometryQuery; default codec, IndexWriterConfig and searcher, any index size, every release from 8.4.0 to 10.5.2) with a query polygon that has holes silently get extra hits: an indexed shape whose own boundary (in practice an edge of the indexed shape's own hole) runs through the query's solid area with both ends inside query holes, without crossing the query's outer ring, is reported as containing the query; it needs two query holes or one non-convex hole, hole-less queries and indexed holes that lie wholly inside one query hole are handled correctly, the error is geometric (half a unit or more from any boundary in the repros), not a precision effect, and only query answers are wrong (the index is unchanged).</dd></div><div><dt>Summary</dt><dd>You index polygons with LatLonShape or XYShape and ask which of them CONTAIN a query polygon that has holes, for example a region with two lakes cut out; an indexed polygon whose own hole runs across the land between the two lakes does not cover that land, so it must not match. Polygon2D.withinTriangle rejects an indexed triangle only when one of its vertices is inside the query or one of its real (original-shape) edges crosses the query's outer ring; it never tests the query's hole edges, so an edge that starts and ends inside query holes and crosses the land between them goes unnoticed and the shape is returned as CONTAINS, with no error. Repro: query = the square [0,10]^2 with holes [1,3]x[4,6] and [7,9]x[4,6]; doc 0 = the square [-1,11]^2 with a hole [2,8]x[4.5,5.5] (it does not cover the query point (5,5)), doc 1 = the same square without a hole; CONTAINS returns [0, 1] instead of [1] for XYShape and LatLonShape, while a point query at (5,5) correctly returns only doc 1.</dd></div><div><dt>Introduced</dt><dd>a06a2ea3da28457429b297ca178eaecb1c6c4a58 (branch_8x, shipped in 8.4.0) and 2ef2ddd77c59bceb4704e1e091653a8ae42e4139 (the same change on the then-master branch, identical Polygon2D.java, first released in 9.0.0): LUCENE-8620 'Add CONTAINS support for LatLonShape and XYShape', apache/lucene-solr#872 (supersedes #608; issue now apache/lucene#9666), author iverase [read: git log -L and git show of Polygon2D.withinTriangle in the history clone]. The method was written together with the CONTAINS relation and has tested original-shape edges only against the outer-ring EdgeTree ('tree') from its first version; it never consults the 'holes' component, so this is not a regression and there is no earlier correct state to bisect against (8.3.1 has no CONTAINS relation [exec]). Later edits never touched hole handling: LUCENE-9152 (29542c7f59e, 8.5.0: includeBoundary=true), LUCENE-9273 (f914e08b364 / a001f135f22, 8.6.0: parameter renames, degenerate triangles moved to withinLine/withinPoint), LUCENE-9570 (2d6ad2fee6d, reformatting); LUCENE-10514 (9.2.0) changed withinLine, not withinTriangle [read: normalised body hashes of withinTriangle at every release tag]. (2019-12-11)</dd></div><div><dt>First affected version</dt><dd>8.4.0 [exec] (in 8.4.x the LatLonShape/XYShape/QueryRelation API was in the lucene-sandbox module while Polygon2D was in lucene-core; LUCENE-8621 moved the shape API to core in 8.5.0); 8.3.1 cannot express the query (no CONTAINS relation, no Component2D) [exec]</dd></div><div><dt>Affected versions</dt><dd>Every release from 8.4.0 to 10.5.2 (54 releases) and main a9779ef3c193; no earlier release has CONTAINS. [exec] the follow-up's history probe (public API: an INTERSECTS sanity check at (5,5), a CONTAINS control with the hole-less square [4,6]^2, which is a subset of the query, and the two-hole CONTAINS query) and the finder's main() port on all 54 SHA-1-checked release jars from 8.4.0 to 10.5.2 (-ea) and on main (-ea and -da): every run returns CONTAINS=[0, 1] (expected [1]) for XYShape and LatLonShape while the sanity check and the control are correct; 8.3.1 fails to compile on QueryRelation.CONTAINS; with the fix shadowed main returns [1]. The finder's JUnit fails 2 of 2 on main (-ea and -da), 10.5.2, 10.0.0, 9.12.3 and 9.1.0; the independent reproduction's test fails 3 of 3 on main (-ea and -da), 10.5.2 and 9.12.3; the intended-behaviour check's probe fails 4 of 5 on main (-ea and -da) and 10.5.2. Not fixed upstream: Polygon2D.java last changed on upstream main on 2023-10-10 (de3b294be44, formatting only) and none of the 409 open apache/lucene PRs touches it (checked 2026-10-27). Unreleased release branches after 10.5.2 were not checked. All runs with JDK 25 on aarch64.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (the prior-report record, verdict new, searched 2026-10-27 plus, read-only): four scripted prior-report searches with 197 queries in total over GitHub issues, PRs and commits, downstream repositories (Elasticsearch, OpenSearch, Solr), the dev@, java-user@, issues@ and commits@ lists and the JIRA archive; about 60 manual GitHub searches across apache/lucene, apache/lucene-solr, elastic/elasticsearch, opensearch-project/OpenSearch, opensearch-project/geospatial and apache/solr; 12 web searches; the changed-file lists of all 409 open apache/lucene PRs; about 35 threads read in full. Nearest items, not this bug: apache/lucene#9666 (LUCENE-8620, added CONTAINS and withinTriangle; the issue and lucene-solr PRs #546/#608/#872 never discuss query holes), #11550 / #809 (LUCENE-10514, within* inner-node/leaf consistency; it changed withinLine), #12020 / #12022 (a CONTAINS false positive from the edge flag of very flat triangles, no holes), #9782 (LUCENE-8736, open, WITHIN at shared boundaries), #9680 (LUCENE-8634, open, boundary precision), #10313 (LUCENE-9273, edited withinTriangle but kept the edge test). Not fixed upstream: Polygon2D.java is unchanged on upstream main (head a95c754ee00 at search time) since 2023-10-10 and no open PR touches it. Not filed by the owner.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27 and 2026-10-28) through gradle in a scratch worktree and through the standalone JUnit runner, with assertions on and off; the 10.5.2 and 9.12.3 release jars (the brief's tests, assertions on; 9.12.3 also off in the fact check); a version-independent probe on all 54 release jars from 8.4.0 to 10.5.2 (8.3.1 has no CONTAINS). Both fix options were validated in the scratch worktree: the new tests, the 50 geo and shape suites with assertions on and off, <code>checkGoogleJavaFormat</code>, and the whole <code class='nw'>lucene/core</code> test suite (8,896 tests) with assertions on and off for each option. Reach, boundary, per-triangle and fix-limits probes ran on stock and with each fix.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/geo/Polygon2D.java:277-342 (withinTriangle: hole-aware vertex test at :298-300, outer-ring-only tree.crossesLine edge tests at :306-327; the hunt&#x27;s record and the verifiers cite :277-344)</code></li><li><code>lucene/core/src/java/org/apache/lucene/geo/Component2D.java:101-115 (WithinRelation; NOTWITHIN javadoc at :108-111)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/SpatialQuery.java:591-650 (getContainsDenseVisitor: a document matches when some triangle is CANDIDATE and none is NOTWITHIN)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonShapeQuery.java:193 and XYShapeQuery.java:175 (CONTAINS leaf calls component2D.withinTriangle); LatLonShape.java:298 and XYShape.java:231 (newPolygonQuery); ShapeField.java:126-127 (QueryRelation.CONTAINS)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/geo/Polygon2D.java:111-117, :171, :197-198, :219, :243-244, :277-342, :369-386</code></li><li><code>lucene/core/src/java/org/apache/lucene/geo/Component2D.java:101-112</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/SpatialQuery.java:368-381, :591-650 (:601-604 cells inside the query); LatLonShapeQuery.java:193; XYShapeQuery.java:175; LatLonShape.java:336-337, :354-370; XYShape.java:263-270</code></li><li><code>lucene/core/src/test/org/apache/lucene/document/TestXYShape.java:266-270; TestLatLonShape.java:1002-1006 (CONTAINS per geometry)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/document/SpatialQuery.java:168-175 (segment-level shortcut), :591-650; geo/Polygon2D.java:120-153 (relate checks holes first)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/LatLonShape.java:263-284; XYShape.java:214-217 (doc-values queries take a box only); ShapeDocValuesField.java:89-95 (newGeometryQuery throws); geo/Polygon.java:31-36</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/geo/Component2D.java:27, :101-112; geo/Polygon2D.java:303; document/ShapeField.java:126-127; document/LatLonShape.java:294-297; document/XYShape.java:227-230; geo/Polygon.java:31-41</code></li><li><code>lucene/core/src/test/org/apache/lucene/document/TestLatLonPolygonShapeQueries.java:46-52; document/BaseSpatialTestCase.java:800-845; geo/TestPolygon2D.java:364</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/geo/Polygon2D.java:204-221, :255-274; geo/GeoUtils.java:217-227; lucene/core/src/test/org/apache/lucene/document/TestXYShape.java:266-270</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestContainsQueryPolygonHoles.java (lucene/core, public API): <a href='../repro/LFV-711/TestContainsQueryPolygonHoles.java'><code>repro/LFV-711/TestContainsQueryPolygonHoles.java</code></a> (159 lines)</li><li>TestPolygon2DWithinHoles.java (component level, for TestPolygon2D): <a href='../repro/LFV-711/TestPolygon2DWithinHoles.java'><code>repro/LFV-711/TestPolygon2DWithinHoles.java</code></a> (87 lines)</li><li>ContainsHolesReachProbe.java (main(): query forms and boundary-sharing holes): <a href='../repro/LFV-711/ContainsHolesReachProbe.java'><code>repro/LFV-711/ContainsHolesReachProbe.java</code></a> (133 lines)</li><li>WithinHoleBoundaryProbe.java (main(): 15 component-level edge cases): <a href='../repro/LFV-711/WithinHoleBoundaryProbe.java'><code>repro/LFV-711/WithinHoleBoundaryProbe.java</code></a> (72 lines)</li><li>ContainsFixLimitsProbe.java (main(): what both fix options leave open): <a href='../repro/LFV-711/ContainsFixLimitsProbe.java'><code>repro/LFV-711/ContainsFixLimitsProbe.java</code></a> (196 lines)</li><li>TestContainsHoledQueryBand.java (independent reproducer, other geometry): <a href='../repro/LFV-711/TestContainsHoledQueryBand.java'><code>repro/LFV-711/TestContainsHoledQueryBand.java</code></a> (191 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A light step-by-step card of the finder's two-document XYShape example (docs 0 and 1), made in parallel with this doc from an executed probe on main <code class='nw'>a9779ef3c193</code> and the code; the PNG is the summary card.</p><ul class='paths'><li><a href='../assets/LFV-711/bug.png'><code>assets/LFV-711/bug.png</code></a> (422 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

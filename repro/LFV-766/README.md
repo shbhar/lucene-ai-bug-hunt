@@ -2,6 +2,8 @@
 
 Bug LFV-766 · Area: join / JoinUtil query-time join (single-valued term and numeric collectors) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-766.html](../../bugs/LFV-766.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You join orders to customers with JoinUtil.createJoinQuery("customer", false, "i
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The order without a key is collected as if its key were the empty term (term join) or 0 (numeric join), so the customer whose id is "" or 0 is returned too, in every ScoreMode, and a real customer 0 also gets the key-less order's score (Max 5.0 instead of 1.0).
+- Expected: `[c7]` for both joins in every ScoreMode, and score 1.0 for customer 0 under Max, Avg and Total.
+- Actual: `[c0, c7]` (numeric) and `["", c7]` (term) in every ScoreMode; customer 0 scores Max 5.0, Avg 3.0, Total 6.0.
 
 ## Files
 
@@ -43,6 +45,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestJoinUtilMissingFromValue.java](TestJoinUtilMissingFromValue.java)
+- [TestJoinFromDocWithoutKeyV1.java](TestJoinFromDocWithoutKeyV1.java)
+- [TestJoinUtilMissingFromValueWorkaround.java](TestJoinUtilMissingFromValueWorkaround.java)
 
 ## Feedback
 

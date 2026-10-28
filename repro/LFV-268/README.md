@@ -2,6 +2,8 @@
 
 Bug LFV-268 · Area: highlighter / UnifiedHighlighter re-analysis offset source (MemoryIndexOffsetStrategy under WEIGHT_MATCHES) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-268.html](../../bugs/LFV-268.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a field whose tokens carry payloads as a plain TextField (no offsets),
 
 ## Expected vs actual
 
-- Expected: You expect the snippet the highlighter gives with offsets in postings or with WEIGHT_MATCHES off, 'both terms. only &lt;b&gt;terms&lt;/b&gt;.' for a check on the second 'terms'.
-- Actual: Re-analysis builds its one-document MemoryIndex without payloads (MemoryIndexOffsetStrategy stores payloads only when the span PhraseHelper is position-sensitive, and WEIGHT_MATCHES replaces that helper with PhraseHelper.NONE), so Weight#matches on that copy finds nothing and the snippet is 'both terms. only terms.', while the interval query makes highlight throw IllegalArgumentException 'Cannot create a payload-filtered iterator over field body because it has no indexed payloads'.
+- Expected: Every test gets its baseline's snippet: `both terms. only <b>terms</b>.`, or `both <b>terms</b>. only terms.` for the exclusion.
+- Actual: Three snippets have no highlight, the exclusion highlights both `terms`, and the interval test throws `IllegalArgumentException:... because it has no indexed payloads`.
 
 ## Files
 
@@ -45,6 +47,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestUnifiedHighlighterPayloadQueries.java](TestUnifiedHighlighterPayloadQueries.java)
+- [TestUnifiedHighlighterReanalysisPayloads.java](TestUnifiedHighlighterReanalysisPayloads.java)
+- [TestPayloadHighlightDocumentedPaths.java](TestPayloadHighlightDocumentedPaths.java)
+- [TestReanalysisPayloadQueries.java](TestReanalysisPayloadQueries.java)
+- [TestSecurityReachReanalysisPayloads.java](TestSecurityReachReanalysisPayloads.java)
 
 ## Feedback
 

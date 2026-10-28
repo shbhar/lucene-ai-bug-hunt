@@ -1,0 +1,778 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Stempel: a second Optimizer2 or Optimizer pass over an already merge-reduced stemmer trie can silently lose words</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-693 &middot; stempel-optimizer-second-pass-remaps-to-row-zero</p><h1 id='top'>Stempel: a second Optimizer2 or Optimizer pass over an already merge-reduced stemmer trie can silently lose words</h1><p class='tldr'>Reducing a stempel trie that a merge pass already reduced, with <code>Compile -22</code> or <code class='nw'>-M22</code> or a second <code>reduce(new Optimizer2())</code>, can silently corrupt it: all 9 training words of TestCompile's data lose their stem, and a one-word trie loses its only word. The default Polish analyzer is not affected.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 380</span><span class='sub'>A second Optimizer or Optimizer2 pass silently corrupts a whole stempel table, but only for self-compiled tables with an undocumented two-merge-pass method string or a re-reduced table while the bundled Polish table is unaffected, matching the custom-dictionary silent-stemming Hunspell profile.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>3.1.0 (2011); in the code since stempel was added (LUCENE-2298, 2010)<span class='sub'>introduced 2010-05-03 &middot; over 16 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>3.1.0 to 10.5.2 and main; 19 releases run</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>bounded-exhaustive translation validation of trie reductions</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Stempel stores its stemming rules in a trie of rows; each cell of a row has a patch command and/or a reference to a child row. A merge pass joins compatible rows. Doing that a second time breaks the trie.</p><figure class='visual' id='stempel-optimizer-second-pass-remaps-to-row-zero-short-visual'><div class='frame'><a class='still' href='../assets/LFV-693/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-693/bug.png' alt='Step-by-step diagram of the one-word example: the backward stemmer trie for aab -&gt; aa (patch Da) before and after each Optimizer2 pass, the remap array during the second pass, and the lookup of aab, which returns Da after one pass and an empty result after two.' width='1920' height='1080'></a></div><figcaption>The one-word trie for <code>aab -&gt; aa</code> before and after each <code class='nw'>Optimizer2</code> pass, and the lookup of <code class='nw'>aab</code>: <code class='nw'>Da</code> after one pass, nothing after two. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You build a one-word stemmer trie, read backward like the bundled Polish table: <code class='nw'>aab</code> stems to <code class='nw'>aa</code> (patch <code class='nw'>Da</code>). One <code class='nw'>Optimizer2</code> pass shrinks it from 3 rows to 2, and <code>getLastOnPath("aab")</code> is still <code class='nw'>Da</code>.</span></li><li><span>You run <code class='nw'>Optimizer2</code> again on the result, as <code>Compile -22</code> does, or as code does on a loaded table. You expect <code class='nw'>Da</code> again: the javadoc says Optimizer2 keeps "words for which the original trie was built".</span></li><li><span>You get <code class='nw'>null</code>, with no error. After pass 1, row R1 points back to row R0. Pass 2 places rows from the last one down, so it remaps R1's reference before R0 is placed; the unset slot reads 0, R1's own new index. R1 now points to itself, and the walk never reaches <code class='nw'>Da</code>.</span></li><li><span>At table scale: <code>Compile -2</code> and <code class='nw'>-M2</code> stem all 9 training words of TestCompile's data; <code class='nw'>-22</code> stems all 9 to <code class='nw'>null</code> and <code class='nw'>-M22</code> returns all 9 unchanged. One more pass over the bundled Polish table changes 8,356 of 21,147 sampled stored keys.</span></li><li><span>Not affected: <code class='nw'>PolishAnalyzer</code> and <code>StempelPolishStemFilterFactory</code> load the bundled table, compiled with <code class='nw'>-0ME2</code> (one merge pass) and never reduced again.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Only people who build or modify their own stempel tables: a <code class='nw'>Compile</code> method string with two merge letters (<code class='nw'>-22</code>, <code class='nw'>-M22</code>, <code class='nw'>-0ME22</code>, <code class='nw'>-0M11</code>), or <code>reduce(new Optimizer2())</code> / <code>reduce(new Optimizer())</code> on a trie a merge pass already reduced, such as the bundled table. One word is enough; no error; every release since 3.1.0. Rare: the recipes found use one merge pass.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>726 words</span></summary><div class='body'><p>The stempel table compiler <code class='nw'>Compile</code> shrinks a stemmer trie with reduction passes named by letters (<code class='nw'>1</code> = <code class='nw'>Optimizer</code>, <code class='nw'>2</code> = <code class='nw'>Optimizer2</code>, the two "merge" passes); the same reducers are public API (<code>Trie.reduce(new Optimizer2())</code>). One merge pass keeps the training words in every case tested. A second merge pass over a trie that a merge pass already reduced can silently corrupt it: <code>Optimizer.optimize</code> (inherited by <code class='nw'>Optimizer2</code>) walks the rows from the last one down and remaps each child reference through an <code>int[] remap</code> whose slots are read before they are filled (Java zero-fills the new array), so a reference to a row it has not placed yet becomes 0. That is only right when every child row comes after its parent, which holds for a freshly built trie but not for the output of a merge pass. A one-word trie loses its only word; <code>Compile -22</code> and <code class='nw'>-M22</code> lose all 9 training words of TestCompile's data; one more pass over the bundled Polish table changes 8,356 of 21,147 sampled stored keys. No error, with assertions on and off, in every release since 3.1.0. The default <code class='nw'>PolishAnalyzer</code> and <code>StempelPolishStemFilterFactory</code> are not affected.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Stemmer trie</strong>: stempel stores each training word with a patch command that turns it into its stem (<code class='nw'>aab</code> -&gt; <code class='nw'>aa</code> is <code class='nw'>Da</code>, delete one character). The trie is a list of <strong>rows</strong>; a row maps a character to a <strong>cell</strong> with a command and/or a <strong>reference</strong> to a child row. Polish tables are read <strong>backward</strong>, from the last character.</li><li><strong>Merge passes</strong>: <code class='nw'>Optimizer</code> (<code class='nw'>1</code>) and <code class='nw'>Optimizer2</code> (<code class='nw'>2</code>) join rows that do not conflict (<code class='nw'>Optimizer2</code> only when the shared cells are identical) to shrink the table. <code class='nw'>Compile</code> applies the reduction letters of its method string in turn: the bundled table used <code class='nw'>-0ME2</code>.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>Optimizer.optimize</code> (<code>Optimizer.java:79-110</code>, inherited by <code class='nw'>Optimizer2</code>) allocates <code>int[] remap = new int[orows.size()]</code> and never fills it (<code class='nw'>:83</code>), so every slot is 0.</li><li>It walks the rows from the last one down (<code class='nw'>:85</code>) and builds <code>new Remap(orows.get(j), remap)</code> (<code class='nw'>:86</code>), which sets <code>nc.ref = remap[nc.ref]</code> for every child (<code class='nw'>Reduce.java:121</code>), before row <code class='nw'>j</code> itself gets its new index (<code class='nw'>:94</code>, <code class='nw'>:100</code>).</li><li>On a fresh trie that is right: <code class='nw'>Trie.add</code> appends every new row (<code>Trie.java:351-354</code>), so children always come after their parent and are placed first.</li><li>A merge pass breaks that order: <code class='nw'>removeGaps</code> renumbers rows in pre-order (<code>Reduce.java:88-102</code>), so a row merged with a deeper row, or shared by several parents, can sit at the same or a lower index than a parent. The bundled table has 31,837 such references.</li><li>In a second pass, such a reference reads <code class='nw'>remap[child]</code> before the child is placed, gets 0, and points to whichever row was placed first. Row 0 is a real row, not a sentinel (<code class='nw'>removeGaps</code> uses -1, <code>Optimizer.java:106</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-one-word-example-executed-trace'>The one-word example (executed trace)</h3><a class="hlink" href="#what-the-bug-is-the-one-word-example-executed-trace" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-one-word-example-executed-trace"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>state</th><th>rows</th><th>lookup <code class='nw'>aab</code> (b, a, a)</th></tr></thead><tbody><tr><td>fresh</td><td>R0 <code>{b -&gt; R1}</code>, R1 <code>{a -&gt; R2}</code>, R2 <code>{a: Da}</code></td><td><strong>Da</strong></td></tr><tr><td>after pass 1</td><td>R0 <code>{a: Da, b -&gt; R1}</code>, R1 <code>{a -&gt; R0}</code> (R2 merged into R0)</td><td><strong>Da</strong></td></tr><tr><td>pass 2</td><td>R1 is placed first; its reference to R0 reads <code class='nw'>remap[0]</code> = 0, the new index of R1 itself</td><td></td></tr><tr><td>after pass 2</td><td>R0 <code>{a: Da, b -&gt; R1}</code>, R1 <code>{a -&gt; R1}</code> (self-loop)</td><td><strong>null</strong></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><ul><li>TestCompile's <code class='nw'>testRules.txt</code> (4 lines, 9 training words): <code class='nw'>-2</code> and <code class='nw'>-M2</code> stem all 9; <code class='nw'>-22</code> stems all 9 to <code class='nw'>null</code>; <code class='nw'>-M22</code> returns all 9 unchanged. Compile's statistics after the second pass are identical to those after the first.</li><li>Two-word trie {<code class='nw'>aa</code> -&gt; <code class='nw'>Da</code>, <code class='nw'>ab</code> -&gt; <code class='nw'>Db</code>}: after two <code class='nw'>Optimizer</code> passes <code class='nw'>ab</code> returns <code class='nw'>Da</code>.</li><li>2,000 random small tries: about 930 lose a key after two <code class='nw'>Optimizer2</code> passes, about 800 after two <code class='nw'>Optimizer</code> passes, none after one pass.</li><li>Bundled table plus one more <code class='nw'>Optimizer2</code> pass: 8,356 of 21,147 sampled keys whose whole path is stored change their answer (0 with the fix).</li><li>An 11-lemma Polish table (94 training forms): <code class='nw'>-0ME2</code> stems 93 correctly in every run; <code class='nw'>-0ME22</code> about two thirds and <code class='nw'>-0M22</code> almost none (67 and 0 in the finder's run, 63 to 74 and 0 to 3 in later runs; the counts depend on hash iteration order).</li></ul></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>234 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> People who compile their own stempel tables with a method string that has two of the merge letters <code class='nw'>1</code>/<code class='nw'>2</code>, or whose code calls <code>Trie.reduce(new Optimizer2())</code> or <code>reduce(new Optimizer())</code> on a table loaded with <code>StempelStemmer.load</code> that a merge pass built (such as the bundled one) or on any other trie that was already merge-reduced. <code class='nw'>Optimizer2</code>'s javadoc also says the class "allows the stemmer to be self-teaching", which reads like adding words to a table and reducing it again; nobody tested that flow.</li><li><strong>Not exposed.</strong> <code class='nw'>PolishAnalyzer</code> and <code>StempelPolishStemFilterFactory</code> load the bundled <code>stemmer_20000.tbl</code> (its header names <code class='nw'>-0ME2</code>, one merge pass) and never reduce it (<code>PolishAnalyzer.java:61, 89</code>, <code>StempelPolishStemFilterFactory.java:50</code>). A table that was never merge-reduced is not affected by one more pass: a <code class='nw'>-0M</code> table reduced once with <code class='nw'>Optimizer2</code> changes 0 forms.</li><li><strong>What it takes.</strong> No scale: one word suffices. Not every twice-reduced trie loses a key (about 930 of 2,000 random tries do with <code class='nw'>Optimizer2</code>), but every minimal case and every word table tested does. Exact counts vary with hash iteration order (since 9.11.0) and seeds; the failures always occur.</li><li><strong>Silent.</strong> No exception or warning; the table loads and stems, just wrongly. The same with <code class='nw'>-ea</code> and <code class='nw'>-da</code>.</li><li><strong>Likelihood: rare.</strong> The recipes found (the bundled <code class='nw'>-0ME2</code>, a downstream port's <code class='nw'>-0ME2</code>) use one merge pass, and the searches found no report since 3.1.0 (2011).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test in the stempel module's <code>org.egothor.stemmer</code> test package, like <code class='nw'>TestStemmer</code>, because <code class='nw'>Trie.add</code> is package-private: a one-word trie reduced twice with <code class='nw'>Optimizer2</code>, a two-word trie reduced twice with <code class='nw'>Optimizer</code>, and <code class='nw'>Compile</code> with <code class='nw'>-2</code>/<code class='nw'>-M2</code> (controls) against <code class='nw'>-22</code>/<code class='nw'>-M22</code> on TestCompile's four rule lines.</p><figure class='code'><figcaption><span class='fname'>TestSecondMergePass.java (stempel module, package org.egothor.stemmer, 3 tests)</span><span class='meta'>103 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.egothor.stemmer;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.lucene.analysis.stempel.StempelStemmer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * A merge pass (Optimizer or Optimizer2) over a trie that a merge pass has already reduced must
+ * keep the words the trie was built for, as a single pass does.
+ */
+public class TestSecondMergePass extends LuceneTestCase {
+
+  /** The four lines of TestCompile&#x27;s testRules.txt: the first word of a line is the stem. */
+  private static final List&lt;String&gt; RULES =
+      List.of(
+          &quot;act acted acting actor&quot;,
+          &quot;walk walked walking&quot;,
+          &quot;wander wandered wanderer&quot;,
+          &quot;want wanted wanting&quot;);
+
+  private static String str(CharSequence cs) {
+    return cs == null ? null : cs.toString();
+  }
+
+  /** One word in a backward trie: aab stems to aa, the patch is &quot;Da&quot;. */
+  public void testSecondOptimizer2PassKeepsTheOnlyWord() {
+    Trie trie = new Trie(false);
+    trie.add(&quot;aab&quot;, &quot;Da&quot;);
+    Trie once = trie.reduce(new Optimizer2());
+    assertEquals(&quot;one Optimizer2 pass&quot;, &quot;Da&quot;, str(once.getLastOnPath(&quot;aab&quot;)));
+    Trie twice = once.reduce(new Optimizer2());
+    assertEquals(&quot;two Optimizer2 passes&quot;, &quot;Da&quot;, str(twice.getLastOnPath(&quot;aab&quot;)));
+  }
+
+  /** Optimizer shares Optimizer2&#x27;s optimize(), so it has the same problem. */
+  public void testSecondOptimizerPassKeepsBothWords() {
+    Trie trie = new Trie(false);
+    trie.add(&quot;aa&quot;, &quot;Da&quot;);
+    trie.add(&quot;ab&quot;, &quot;Db&quot;);
+    Trie once = trie.reduce(new Optimizer());
+    assertEquals(&quot;one Optimizer pass&quot;, &quot;Da&quot;, str(once.getLastOnPath(&quot;aa&quot;)));
+    assertEquals(&quot;one Optimizer pass&quot;, &quot;Db&quot;, str(once.getLastOnPath(&quot;ab&quot;)));
+    Trie twice = once.reduce(new Optimizer());
+    assertEquals(&quot;two Optimizer passes&quot;, &quot;Da&quot;, str(twice.getLastOnPath(&quot;aa&quot;)));
+    assertEquals(&quot;two Optimizer passes&quot;, &quot;Db&quot;, str(twice.getLastOnPath(&quot;ab&quot;)));
+  }
+
+  /** The Compile tool: one Optimizer2 pass (&quot;2&quot;) versus two (&quot;22&quot;). */
+  public void testCompileWithTwoOptimizer2Passes() throws Exception {
+    Map&lt;String, List&lt;String&gt;&gt; wrong = new LinkedHashMap&lt;&gt;();
+    for (String method : new String[] {&quot;-2&quot;, &quot;-M2&quot;, &quot;-22&quot;, &quot;-M22&quot;}) {
+      wrong.put(method, wronglyStemmed(method));
+    }
+    List&lt;String&gt; none = List.of();
+    assertEquals(Map.of(&quot;-2&quot;, none, &quot;-M2&quot;, none, &quot;-22&quot;, none, &quot;-M22&quot;, none), wrong);
+  }
+
+  /** Compiles RULES with the given method and lists the training words that lose their stem. */
+  private List&lt;String&gt; wronglyStemmed(String method) throws Exception {
+    Path dir = createTempDir(&quot;secondMergePass&quot;);
+    Path rules = dir.resolve(&quot;rules.txt&quot;);
+    Files.write(rules, RULES, StandardCharsets.UTF_8);
+    Compile.main(new String[] {method, rules.toAbsolutePath().toString()});
+    StempelStemmer stemmer;
+    try (InputStream in = Files.newInputStream(dir.resolve(&quot;rules.txt.out&quot;))) {
+      stemmer = new StempelStemmer(StempelStemmer.load(in));
+    }
+    List&lt;String&gt; wrong = new ArrayList&lt;&gt;();
+    for (String line : RULES) {
+      String[] words = line.split(&quot; &quot;);
+      for (int i = 1; i &lt; words.length; i++) {
+        String got = str(stemmer.stem(words[i]));
+        if (words[0].equals(got) == false) {
+          wrong.add(words[i] + &quot; -&gt; &quot; + got);
+        }
+      }
+    }
+    return wrong;
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestSecondMergePass.java $LUCENE/lucene/analysis/stempel/src/test/org/egothor/stemmer/
+cd $LUCENE
+./gradlew :lucene:analysis:stempel:test --tests org.egothor.stemmer.TestSecondMergePass -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off (production-like): the same with -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>Da</code> after two <code class='nw'>Optimizer2</code> passes, <code class='nw'>Db</code> after two <code class='nw'>Optimizer</code> passes, and all 9 training words stemmed with <code class='nw'>-22</code> and <code class='nw'>-M22</code>, as with <code class='nw'>-2</code> and <code class='nw'>-M2</code>.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>null</code> after the second <code class='nw'>Optimizer2</code> pass, <code class='nw'>Da</code> for <code class='nw'>ab</code> after the second <code class='nw'>Optimizer</code> pass; <code class='nw'>-22</code> stems all 9 words to <code class='nw'>null</code>, <code class='nw'>-M22</code> returns all 9 unchanged. 3 of 3 tests fail, assertions on and off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-693/'>repro/LFV-693/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>1 more file (308 lines) · 1,807 words</span></summary><div class='body'><p>Three tests, a few seconds. Everything except <code class='nw'>Trie.add</code> is public API: <code class='nw'>Trie.reduce</code>, <code class='nw'>Optimizer</code>, <code class='nw'>Optimizer2</code>, <code class='nw'>Compile.main</code>, <code>StempelStemmer.load</code>/<code class='nw'>stem</code>, plus <code>LuceneTestCase.createTempDir</code>. The rule lines are TestCompile's <code class='nw'>testRules.txt</code>, inlined.</p><p>The independent reproducer's test (10 tests, 4 controls) adds the random-trie counts and the bundled-table check over a sample of stored paths (depth at most 8, at most 5,000 keys per sub-trie); it prints <code>stored-path keys checked=21147 changed=8356</code> on main and <code class='nw'>changed=0</code> with the fix. Do not use the hunt's earlier "8 of 8" / "284,561 of 366,667" bundled-table figures: they compare arbitrary words, which even a correct merge may change.</p><div class="hd hd-3"><h3 id='code-2-h'>TestRepeatedOptimizer2.java (independent reproducer, 10 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Same package and command (class <code>org.egothor.stemmer.TestRepeatedOptimizer2</code>). 6 of 10 fail on main (assertions on and off), 10.5.2 and 9.12.3; the 4 controls pass; 10 of 10 pass with fix A. Not formatted to Lucene's style; reformat before attaching.</p><figure class='code'><figcaption><span class='fname'>TestRepeatedOptimizer2.java (independent reproducer, 10 tests)</span><span class='meta'>308 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.egothor.stemmer;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import org.apache.lucene.analysis.pl.PolishAnalyzer;
+import org.apache.lucene.analysis.stempel.StempelStemmer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Optimizer2 joins only rows whose shared cells are identical; its javadoc says this allows &quot;the
+ * stemmer to recognize words for which the original trie was built&quot;. These tests apply it to a
+ * trie that is already reduced (a second pass) and check that the stored keys keep their answers.
+ * Same package as TestStemmer, because Trie.add is package-private.
+ */
+public class TestRepeatedOptimizer2 extends LuceneTestCase {
+
+  private static String str(CharSequence cs) {
+    return cs == null ? null : cs.toString();
+  }
+
+  /** Control: one pass on a one-key backward trie keeps the key. */
+  public void testOnePassOneKeyControl() {
+    Trie t = new Trie(false);
+    t.add(&quot;aab&quot;, &quot;Da&quot;);
+    Trie once = t.reduce(new Optimizer2());
+    assertEquals(&quot;Da&quot;, str(once.getLastOnPath(&quot;aab&quot;)));
+    assertEquals(&quot;Da&quot;, str(once.getFully(&quot;aab&quot;)));
+  }
+
+  /** Second Optimizer2 pass on the same one-key trie. */
+  public void testTwoPassesOneKey() {
+    Trie t = new Trie(false);
+    t.add(&quot;aab&quot;, &quot;Da&quot;);
+    Trie once = t.reduce(new Optimizer2());
+    Trie twice = once.reduce(new Optimizer2());
+    assertEquals(&quot;getLastOnPath after second pass&quot;, &quot;Da&quot;, str(twice.getLastOnPath(&quot;aab&quot;)));
+    assertEquals(&quot;getFully after second pass&quot;, &quot;Da&quot;, str(twice.getFully(&quot;aab&quot;)));
+  }
+
+  private static final String[] CMDS = {&quot;Da&quot;, &quot;Db&quot;, &quot;Rx&quot;, &quot;Iy&quot;, &quot;Dc&quot;};
+
+  private static Map&lt;String, String&gt; randomKeys(Random r) {
+    Map&lt;String, String&gt; m = new LinkedHashMap&lt;&gt;();
+    int n = 1 + r.nextInt(6);
+    for (int k = 0; k &lt; n; k++) {
+      int len = 1 + r.nextInt(4);
+      StringBuilder sb = new StringBuilder();
+      for (int c = 0; c &lt; len; c++) {
+        sb.append((char) (&#x27;a&#x27; + r.nextInt(3)));
+      }
+      m.put(sb.toString(), CMDS[r.nextInt(CMDS.length)]); // last add wins, as in Trie.add
+    }
+    return m;
+  }
+
+  private static Trie build(boolean forward, Map&lt;String, String&gt; keys) {
+    Trie t = new Trie(forward);
+    for (Map.Entry&lt;String, String&gt; e : keys.entrySet()) {
+      t.add(e.getKey(), e.getValue());
+    }
+    return t;
+  }
+
+  /** returns {violating tries, violating keys, total keys}; fills one example */
+  private int[] check(int passes, StringBuilder example) {
+    return check(passes, false, example);
+  }
+
+  private int[] check(int passes, boolean useOptimizer, StringBuilder example) {
+    Random r = new Random(random().nextLong());
+    int badTries = 0, badKeys = 0, total = 0;
+    for (int iter = 0; iter &lt; 2000; iter++) {
+      boolean forward = r.nextBoolean();
+      Map&lt;String, String&gt; keys = randomKeys(r);
+      Trie t = build(forward, keys);
+      // sanity: the unreduced trie answers every key
+      for (Map.Entry&lt;String, String&gt; e : keys.entrySet()) {
+        assertEquals(e.getValue(), str(t.getLastOnPath(e.getKey())));
+      }
+      Trie red = t;
+      for (int p = 0; p &lt; passes; p++) {
+        red = red.reduce(useOptimizer ? new Optimizer() : new Optimizer2());
+      }
+      boolean bad = false;
+      for (Map.Entry&lt;String, String&gt; e : keys.entrySet()) {
+        total++;
+        String got = str(red.getLastOnPath(e.getKey()));
+        if (e.getValue().equals(got) == false) {
+          badKeys++;
+          bad = true;
+          if (example.length() == 0) {
+            example
+                .append(forward ? &quot;forward &quot; : &quot;backward &quot;)
+                .append(keys)
+                .append(&quot;: key &quot;)
+                .append(e.getKey())
+                .append(&quot; expected &quot;)
+                .append(e.getValue())
+                .append(&quot; got &quot;)
+                .append(got);
+          }
+        }
+      }
+      if (bad) {
+        badTries++;
+      }
+    }
+    return new int[] {badTries, badKeys, total};
+  }
+
+  /** Control: a single Optimizer2 pass keeps every stored key of 2000 random small tries. */
+  public void testRandomTriesOnePassControl() {
+    StringBuilder ex = new StringBuilder();
+    int[] res = check(1, ex);
+    assertEquals(&quot;one pass: &quot; + res[1] + &quot; of &quot; + res[2] + &quot; keys lost, e.g. &quot; + ex, 0, res[1]);
+  }
+
+  /** Two Optimizer2 passes on the same 2000 random small tries. */
+  public void testRandomTriesTwoPasses() {
+    StringBuilder ex = new StringBuilder();
+    int[] res = check(2, ex);
+    assertEquals(
+        &quot;two passes: &quot;
+            + res[0]
+            + &quot; of 2000 tries and &quot;
+            + res[1]
+            + &quot; of &quot;
+            + res[2]
+            + &quot; keys lost, e.g. &quot;
+            + ex,
+        0,
+        res[1]);
+  }
+
+  /**
+   * Same with Optimizer (the inherited optimize() is the same code). Optimizer documents some
+   * information loss, so this control only records whether one pass keeps these small tries.
+   */
+  public void testRandomTriesOptimizerOnePassControl() {
+    StringBuilder ex = new StringBuilder();
+    int[] res = check(1, true, ex);
+    assertEquals(&quot;Optimizer one pass: &quot; + res[1] + &quot; of &quot; + res[2] + &quot; keys lost, e.g. &quot; + ex, 0, res[1]);
+  }
+
+  public void testRandomTriesOptimizerTwoPasses() {
+    StringBuilder ex = new StringBuilder();
+    int[] res = check(2, true, ex);
+    assertEquals(
+        &quot;Optimizer two passes: &quot; + res[0] + &quot; of 2000 tries and &quot; + res[1] + &quot; of &quot; + res[2]
+            + &quot; keys lost, e.g. &quot; + ex,
+        0,
+        res[1]);
+  }
+
+  // ---- public API only: the Compile tool and StempelStemmer ----
+
+  private static final String TABLE =
+      &quot;aa aab\n&quot;
+          + &quot;walk walks walked walking\n&quot;
+          + &quot;jump jumps jumped jumping\n&quot;
+          + &quot;stem stems stemmed stemming\n&quot;
+          + &quot;run runs running\n&quot;
+          + &quot;talk talks talked talking\n&quot;;
+
+  private List&lt;String&gt; compileAndStem(String method) throws Exception {
+    Path dir = createTempDir(&quot;v1compile&quot;);
+    Path table = dir.resolve(&quot;table.txt&quot;);
+    Files.write(table, TABLE.getBytes(StandardCharsets.UTF_8));
+    Compile.main(new String[] {method, table.toAbsolutePath().toString()});
+    Trie trie;
+    try (InputStream in = Files.newInputStream(dir.resolve(&quot;table.txt.out&quot;))) {
+      trie = StempelStemmer.load(in);
+    }
+    StempelStemmer stemmer = new StempelStemmer(trie);
+    List&lt;String&gt; wrong = new ArrayList&lt;&gt;();
+    for (String line : TABLE.split(&quot;\n&quot;)) {
+      String[] tok = line.split(&quot; &quot;);
+      for (int i = 1; i &lt; tok.length; i++) {
+        StringBuilder s = stemmer.stem(tok[i]);
+        String got = s == null ? null : s.toString();
+        if (tok[0].equals(got) == false) {
+          wrong.add(tok[i] + &quot;-&gt;&quot; + got + &quot; (expected &quot; + tok[0] + &quot;)&quot;);
+        }
+      }
+    }
+    return wrong;
+  }
+
+  /** Control: Compile with one Optimizer2 pass stems every training form to its stem. */
+  public void testCompileOnePassControl() throws Exception {
+    assertEquals(&quot;-2&quot;, List.of(), compileAndStem(&quot;-2&quot;));
+    assertEquals(&quot;-M2&quot;, List.of(), compileAndStem(&quot;-M2&quot;));
+  }
+
+  /** Compile with two Optimizer2 passes (method -22, backward trie). */
+  public void testCompileTwoPasses() throws Exception {
+    assertEquals(&quot;-22&quot;, List.of(), compileAndStem(&quot;-22&quot;));
+  }
+
+  /** Compile with two Optimizer2 passes on a MultiTrie2 (method -M22). */
+  public void testCompileTwoPassesMulti() throws Exception {
+    assertEquals(&quot;-M22&quot;, List.of(), compileAndStem(&quot;-M22&quot;));
+  }
+
+  // ---- bundled Polish table: a second Optimizer2 pass must keep every stored path ----
+
+  private static final String ALPHABET = &quot;abcdefghijklmnopqrstuvwxyząćęłńóśźż&quot;;
+
+  /**
+   * Collects keys whose whole walk exists in t (every character finds a cell, the last cell has a
+   * command). A correct Optimizer2 keeps such walks cell by cell, so it keeps their answers.
+   */
+  private static void collect(
+      Trie t, int rowIdx, StringBuilder path, int depth, int cap, List&lt;String&gt; out) {
+    if (out.size() &gt;= cap || depth == 0) {
+      return;
+    }
+    Row row = t.rows.get(rowIdx);
+    for (int a = 0; a &lt; ALPHABET.length() &amp;&amp; out.size() &lt; cap; a++) {
+      char ch = ALPHABET.charAt(a);
+      Cell c = row.at(ch);
+      if (c == null) {
+        continue;
+      }
+      path.append(ch);
+      if (c.cmd &gt;= 0) {
+        String p = path.toString();
+        out.add(t.forward ? p : new StringBuilder(p).reverse().toString());
+      }
+      if (c.ref &gt;= 0) {
+        collect(t, c.ref, path, depth - 1, cap, out);
+      }
+      path.setLength(path.length() - 1);
+    }
+  }
+
+  public void testBundledTableSecondPassKeepsStoredPaths() throws Exception {
+    Trie table;
+    try (InputStream in =
+        PolishAnalyzer.class.getResourceAsStream(PolishAnalyzer.DEFAULT_STEMMER_FILE)) {
+      table = StempelStemmer.load(in);
+    }
+    assertTrue(table instanceof MultiTrie);
+    List&lt;Trie&gt; subs = ((MultiTrie) table).tries;
+    int checked = 0, lost = 0, lowerRefs = 0;
+    String example = null;
+    for (int s = 0; s &lt; subs.size(); s++) {
+      Trie t = subs.get(s);
+      for (int ri = 0; ri &lt; t.rows.size(); ri++) {
+        Row row = t.rows.get(ri);
+        for (int a = 0; a &lt; ALPHABET.length(); a++) {
+          Cell c = row.at(ALPHABET.charAt(a));
+          if (c != null &amp;&amp; c.ref &gt;= 0 &amp;&amp; c.ref &lt;= ri) {
+            lowerRefs++;
+          }
+        }
+      }
+      List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+      collect(t, t.root, new StringBuilder(), 8, 5000, keys);
+      Trie red = t.reduce(new Optimizer2());
+      for (String k : keys) {
+        checked++;
+        String before = str(t.getLastOnPath(k));
+        String after = str(red.getLastOnPath(k));
+        if (before.equals(after) == false) {
+          lost++;
+          if (example == null) {
+            example = &quot;subtrie &quot; + s + &quot; key &quot; + k + &quot;: &quot; + before + &quot; -&gt; &quot; + after;
+          }
+        }
+      }
+    }
+    System.out.println(
+        &quot;bundled table: sub-tries=&quot;
+            + subs.size()
+            + &quot; refs to same-or-lower row (alphabet cells)=&quot;
+            + lowerRefs
+            + &quot; stored-path keys checked=&quot;
+            + checked
+            + &quot; changed=&quot;
+            + lost);
+    assertEquals(
+        lost + &quot; of &quot; + checked + &quot; stored-path keys changed, e.g. &quot; + example, 0, lost);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cp $REPRO/TestRepeatedOptimizer2.java $LUCENE/lucene/analysis/stempel/src/test/org/egothor/stemmer/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:stempel:test --tests org.egothor.stemmer.TestRepeatedOptimizer2 -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT) through gradle and a standalone JUnit runner; the 10.5.2 and 9.12.3 release jars (the same test); 3.1.0 to 10.5.2 with a main() probe</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code># $LUCENE = a Lucene checkout of main; JAVA_HOME = a JDK 25
+cp $REPRO/TestSecondMergePass.java $LUCENE/lucene/analysis/stempel/src/test/org/egothor/stemmer/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:stempel:test --tests org.egothor.stemmer.TestSecondMergePass -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: the same with -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, -Ptests.asserts=true, seed DEADBEEF (abridged); -Ptests.asserts=false prints the same
+TestSecondMergePass &gt; testSecondOptimizerPassKeepsBothWords FAILED
+    org.junit.ComparisonFailure: two Optimizer passes expected:&lt;D[b]&gt; but was:&lt;D[a]&gt;
+TestSecondMergePass &gt; testCompileWithTwoOptimizer2Passes FAILED
+    java.lang.AssertionError: expected:&lt;{-22=[], -M22=[], -M2=[], -2=[]}&gt; but was:&lt;{-2=[], -M2=[],
+    -22=[acted -&gt; null, acting -&gt; null, actor -&gt; null, walked -&gt; null, walking -&gt; null, wandered -&gt; null, wanderer -&gt; null, wanted -&gt; null, wanting -&gt; null],
+    -M22=[acted -&gt; acted, acting -&gt; acting, actor -&gt; actor, walked -&gt; walked, walking -&gt; walking, wandered -&gt; wandered, wanderer -&gt; wanderer, wanted -&gt; wanted, wanting -&gt; wanting]}&gt;
+TestSecondMergePass &gt; testSecondOptimizer2PassKeepsTheOnlyWord FAILED
+    java.lang.AssertionError: two Optimizer2 passes expected:&lt;Da&gt; but was:&lt;null&gt;
+3 tests completed, 3 failed
+
+# Compile&#x27;s statistics for -22 in the same run: identical after both passes
+2:  nds 4 cmds 2 cells 22 valcells 4 pntcells 18
+2:  nds 4 cmds 2 cells 22 valcells 4 pntcells 18
+
+# the same test on the 10.5.2 and 9.12.3 jars (the repro runner, assertions on): 3 of 3 fail with the same messages</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>Optimizer2</code>'s javadoc promises it keeps "words for which the original trie was built", with no condition on the input.</li><li><code class='nw'>Trie.reduce</code>, <code class='nw'>Optimizer</code> and <code class='nw'>Optimizer2</code> are public; <code class='nw'>Compile</code> runs every method letter in turn, repeats included. Nothing says "one merge pass only".</li><li>The bad input is Lucene's own output: the first merge pass creates the backward references (the bundled table has 31,837).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>358 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>Optimizer2.java:60-63</code>: "Information loss, resulting in the stemmer not being able to recognize words (as in Optimizer), is curtailed, allowing the stemmer to recognize words for which the original trie was built." <code class='nw'>Trie.reduce</code> (<code>Trie.java:361-369</code>): "Remove empty rows from the given Trie and return the newly reduced Trie." Neither states a condition on the input. The module's <code class='nw'>overview.html</code> (lines 175-177) says only: "Several optimization steps are applied in turn to reduce and optimize the initial trie", a chain of steps each run on the previous output, with no recipe and no limit.</li><li><strong>The API composes reducers.</strong> <code class='nw'>Trie.reduce</code>, <code>MultiTrie2.reduce</code>, <code class='nw'>Optimizer</code> and <code class='nw'>Optimizer2</code> are public in the exported <code>org.egothor.stemmer</code> package; a reducer returns an ordinary <code class='nw'>Trie</code>. <code class='nw'>Compile</code> applies every letter <code class='nw'>1</code>, <code class='nw'>2</code>, <code class='nw'>E</code>, <code class='nw'>L</code>, <code class='nw'>G</code> in turn without rejecting repeats (<code>Compile.java:145-171</code>). The method string is case-sensitive and partly positional: a leading <code class='nw'>-</code> selects a backward trie, then an optional <code class='nw'>0</code> stores original forms and an optional <code class='nw'>M</code> selects <code class='nw'>MultiTrie2</code> (<code>Compile.java:88-100</code>); of the rest, only the uppercase letters run a reduction and any other character is skipped (<code>Compile.java:168-169</code>); the "list ... in the package description" its javadoc cites (<code>Compile.java:76-78</code>) does not exist (<code>package-info.java</code>: "Egothor stemmer API.").</li><li><strong>Tests.</strong> <code>TestStemmer.assertTrieContents</code> asserts that each reduction keeps every inserted key, on fresh tries only; <code class='nw'>TestCompile</code>'s methods <code class='nw'>test</code>, <code class='nw'>-test</code> and <code class='nw'>Mtest</code> contain no reduction letter. No upstream test composes two merge passes.</li><li><strong>History.</strong> The logic is the 2010 import (LUCENE-2298), never changed; no commit, issue or list thread calls repeated merge passes invalid.</li><li><strong>Optimizer vs Optimizer2.</strong> <code class='nw'>Optimizer2</code>'s javadoc says <code class='nw'>Optimizer</code> loses information, so lead with <code class='nw'>2</code>-only sequences. But one <code class='nw'>Optimizer</code> pass keeps every key of 2,000 random tries and two lose keys in about 800 of them; and with the finder's fix sketch shadowed (the same idea as fix A), the bounded checks' only remaining <code class='nw'>getLastOnPath</code> violations are sequences with <code class='nw'>Lift(false)</code> before an <code class='nw'>Optimizer</code> pass (<code class='nw'>E1</code> in the length-2 run; <code class='nw'>E1</code>, <code class='nw'>2E1</code>, <code class='nw'>E21</code>, <code class='nw'>LE1</code> and others in the length-3 run): the documented loss. The same root cause affects both.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>171 words</span></summary><div class='body'><p>The intended-behaviour checker's strongest case (moderate; the cross-model reviews rated it weak): these are legacy offline compiler passes with an unstated "fresh trie only" precondition, since <code class='nw'>Optimizer</code>, <code class='nw'>Gener</code> and <code class='nw'>Lift</code> all walk rows downward; every known recipe uses one merge pass; a second pass gains little; and maintainers treat the forked code as frozen (#8841: "I think we should avoid applying these kinds of modifications to forked code").</p><p>Why it fails: nothing documents that precondition; the bad input is produced by Lucene's own merge pass and shipped in its own table; on such input <code class='nw'>Gener</code>'s downward walk treats a row it has not visited yet as alive (<code class='nw'>Gener.java:84</code>) and <code class='nw'>Lift</code> on the loaded bundled table changes 0 stems, while <code class='nw'>Optimizer</code> sends the reference to an unrelated row; and the unfilled slot is not a deliberate sentinel (<code class='nw'>Gener</code> fills its array with 1, alive; <code class='nw'>removeGaps</code> uses -1, not placed yet). The frozen-fork stance is a triage preference, not a statement of intent. <strong>Verdict: not intended, a defect.</strong></p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A. Keep rows with unresolved references unmerged and remap them after the loop (validated)</strong></p><p class='short'>Fix A: in <code>Optimizer.optimize</code>, fill <code class='nw'>remap</code> with -1, place a row whose reference points to a row not placed yet without merging it, and remap such rows after the loop (+24/-1 in <code class='nw'>Optimizer.java</code> and <code class='nw'>Reduce.java</code>). The repro and the whole stempel test task pass; a first pass over a fresh trie gives byte-identical output.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 700 words</span></summary><div class='body'><p>Fix A was built and validated in a scratch worktree at <code class='nw'>a9779ef3c193</code>; options B and C come from the adjudication and the audit and were not built.</p><div class="hd hd-3"><h3 id='fix-defer-unresolved'>A. Keep rows with unresolved references unmerged and remap them after the loop (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-defer-unresolved" target="_self" aria-label="Link to this section" aria-describedby="fix-defer-unresolved"><span aria-hidden="true">#</span></a></div><p><code class='nw'>Reduce.Remap</code> records whether any reference got a negative (unassigned) value. <code>Optimizer.optimize</code> fills <code class='nw'>remap</code> with -1; a row whose <code class='nw'>Remap</code> has an unresolved reference is placed as it is, is never used as a merge target, and is remapped once every row has its new index. Every other row goes through the old merge code, except that deferred rows are never merge targets. Same idea as the finder's sketch, written more compactly.</p><pre class='snippet' tabindex='0'><code>--- a/lucene/analysis/stempel/src/java/org/egothor/stemmer/Optimizer.java
++++ b/lucene/analysis/stempel/src/java/org/egothor/stemmer/Optimizer.java
+     int[] remap = new int[orows.size()];
++    Arrays.fill(remap, -1);
++    // Rows are placed from the last one down, so a reference to the same or a lower row is not
++    // resolved yet. A trie that is already reduced has such references: keep those rows unmerged
++    // and remap them once every row is placed.
++    BitSet deferred = new BitSet();
+ 
+     for (int j = orows.size() - 1; j &gt;= 0; j--) {
+-      Row now = new Remap(orows.get(j), remap);
++      Remap now = new Remap(orows.get(j), remap);
++      if (now.unresolved) {
++        remap[j] = rows.size();
++        deferred.set(rows.size());
++        rows.add(orows.get(j));
++        continue;
++      }
+       boolean merged = false;
+ 
+       for (int i = 0; i &lt; rows.size(); i++) {
++        if (deferred.get(i)) {
++          continue;
++        }
+         Row q = merge(now, rows.get(i));
+@@ after the loop
++    for (int i = deferred.nextSetBit(0); i &gt;= 0; i = deferred.nextSetBit(i + 1)) {
++      rows.set(i, new Remap(rows.get(i), remap));
++    }
+--- a/lucene/analysis/stempel/src/java/org/egothor/stemmer/Reduce.java
++++ b/lucene/analysis/stempel/src/java/org/egothor/stemmer/Reduce.java
+   class Remap extends Row {
++    /** true if a reference points to a row that has no new index yet (remap value below 0) */
++    boolean unresolved;
+@@ in the constructor
+           nc.ref = remap[nc.ref];
++          unresolved |= nc.ref &lt; 0;
+(plus import java.util.BitSet; full patch: fix-a.diff)</code></pre><p class='k'>Trade-offs</p><ul><li>A second pass now merges little: one more <code class='nw'>Optimizer2</code> pass over the bundled table keeps all 6,815 rows of its 8 sub-tries (stock goes from 6,815 to 6,577 rows, with a corrupted result). The fix makes a second pass safe, not useful.</li><li>It touches <code class='nw'>Reduce.Remap</code>, which <code class='nw'>removeGaps</code> also uses (there <code class='nw'>unresolved</code> is never read). Keeping <code class='nw'>Reduce</code> untouched with a separate scan of each row's cells (the finder's sketch) passes the same tests, but every iteration of a row's cell map advances that map's iteration seed, so the extra scan changes the order in which later code visits the cells, and the output bytes change even for fresh tries: with the finder's sketch shadowed, all 13 identity-probe hashes differ from stock.</li><li>Forked code (#8841): a maintainer may prefer B or C.</li></ul><p class='k'>What the checks validated</p><ul><li>The repro class: 3 of 3 fail on stock (gradle, assertions on and off); with fix A whole <code>:lucene:analysis:stempel:test</code> task passes: 6 classes, 22 tests, 0 failures (assertions on), 6 classes, 22 tests, 0 failures (assertions off).</li><li><code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code>, <code>checkGoogleJavaFormat</code> of the module with fix A and the repro class: pass (a first run flagged one line wrap in the test's javadoc; rewrapped).</li><li>The independent reproducer's 10 tests and the finder's 4 pass with fix A; the bundled-table check reports <code class='nw'>changed=0</code> of 21,147 stored-path keys.</li><li>Byte-identical output on stock and with fix A (SHA-256) for 5,000 random fresh tries after one <code class='nw'>Optimizer</code> and after one <code class='nw'>Optimizer2</code> pass, and for <code class='nw'>Compile</code> with 11 one-merge method strings, including the bundled <code class='nw'>-0ME2</code>.</li><li>The one-word trie: with fix A second pass returns exactly the pass-1 trie.</li></ul><div class="hd hd-3"><h3 id='fix-fail-loudly'>B. Reject an already reduced trie</h3><a class="hlink" href="#fix-fail-loudly" target="_self" aria-label="Link to this section" aria-describedby="fix-fail-loudly"><span aria-hidden="true">#</span></a></div><p><code>Optimizer.optimize</code> throws <code>IllegalArgumentException</code> when a row refers to the same or a lower row, and <code class='nw'>Compile</code> rejects a second merge letter.</p><p class='k'>Trade-offs</p><p>Turns silent corruption into an error, but blocks re-reducing loaded tables, which fix A handles correctly in the tested cases. Not built.</p><div class="hd hd-3"><h3 id='fix-document'>C. Document the precondition</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>State in the <code class='nw'>Optimizer</code>/<code class='nw'>Optimizer2</code> javadoc that the input must be a trie built by <code class='nw'>add</code> and not merge-reduced yet, and document Compile's method letters (the missing "package description" list).</p><p class='k'>Trade-offs</p><p>Cheapest, but Java callers stay exposed to silent corruption. Not built.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that use <code class='nw'>PolishAnalyzer</code> or <code>StempelPolishStemFilterFactory</code> get the bundled table and are not affected; only code or tooling that compiles or re-reduces its own stempel tables is.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Bounded-exhaustive translation validation: every trie of up to 4 keys over {a,b} (length up to 3), forward and backward, under every sequence of up to two reductions, compared with the unreduced trie (183,540 tries, 21.3M key checks). Every single pass kept every inserted key (by <code class='nw'>getLastOnPath</code>, the stemmer's lookup); each sequence with two merge passes lost keys on some tries.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>189 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation on the real jar</strong> (the hunt's "semi-formal" tier), unit "stempel trie and diff round trips", main <code class='nw'>a9779ef3c193</code>, 2026-10-27.</p><ul><li>The harness built every set of at most 4 keys over {a,b} of length at most 3 with 3 commands, forward and backward, and applied every reduction sequence of length at most 2 over {1, 2, L, E, G} and of length 3 over {1, 2, L, E} on tries of at most 3 keys. The reference was the unreduced trie, itself checked against an independent longest-match reference (0 mismatches).</li><li>Result (by <code class='nw'>getLastOnPath</code>): every single pass kept the inserted keys; each sequence with two merge passes (<code class='nw'>11</code>, <code class='nw'>12</code>, <code class='nw'>21</code>, <code class='nw'>22</code>, <code class='nw'>2E2</code>, ...) lost keys on some tries. With the finder's shadow fix of <code>Optimizer.optimize</code> (a one-file sketch of the same idea as fix A), all of those violations disappeared; only sequences with <code class='nw'>Lift(false)</code> before an <code class='nw'>Optimizer</code> pass (<code class='nw'>E1</code>, <code class='nw'>2E1</code>, ...: Optimizer's documented loss) remained.</li><li>An AI finder then wrote the public-API JUnit and traced the cause; independent AI tools reproduced and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (GitHub issues, PRs and commits, JIRA, the Lucene lists, ports and forks; searched 2026-10-27). Closest: #6584, an undiagnosed 2014 report that "optimize" fails on a path that never runs <code class='nw'>Optimizer</code>. See also #8841 (forked-code stance).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>. #6584 belongs to a sibling bug in <code class='nw'>Reduce.optimize</code>; cite it as "see also".</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>Prior-art tool, two runs</th><td class='when'>2026-10-27</td><td>57 queries each over apache/lucene GitHub issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, JIRA and ingested web results; plus the finder's run (45 completed queries; its 6 web queries stayed pending)</td><td>411 and 167 hits, none about this defect</td></tr><tr><th scope='row'>GitHub (apache/lucene), manual</th><td class='when'>2026-10-27</td><td><code class='nw'>Optimizer2</code>, <code>org.egothor.stemmer</code>, <code class='nw'>egothor</code>, <code class='nw'>StempelStemmer</code>, <code class='nw'>MultiTrie2</code>, <code class='nw'>-0ME2</code>, <code>stemmer table</code>; every stempel issue and PR title; open PRs touching stempel</td><td>no report; no open PR touches <code>lucene/analysis/stempel</code></td></tr><tr><th scope='row'>Related items (read)</th><td class='when'>2026-10-27</td><td>#6584, #6569, #8841, #7678, #9465 and the stempel issues</td><td>#6584 (LUCENE-5521, open): 'optimize method does not work correctly' after the toUpperCase fix of #6569; that path runs only <code class='nw'>Lift(false)</code>, never <code class='nw'>Optimizer</code>. #8841: maintainer reply on forked code</td></tr><tr><th scope='row'>Ports, forks, downstream</th><td class='when'>2026-10-27</td><td>Lucene.NET, buda-base/stemmer, other ports, Elasticsearch, OpenSearch, Solr, the old Egothor tracker</td><td>Lucene.NET has the same loop and no report; a fork replaced <code class='nw'>Optimizer</code> because the optimizers 'give different results' (single-pass loss on unseen words, not this)</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-27</td><td>dev@, java-user@ (all 52 'egothor' mails read), issues@, solr lists; JIRA 'egothor', 'Optimizer' AND 'stempel', 'stemmer table'</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since stempel was added (LUCENE-2298, <code class='nw'>98c47c57e0a</code>, 2010-05-03); first release 3.1.0 (2011). Fails on all 19 releases run from 3.1.0 to 10.5.2 and on main; the logic never changed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>98c47c57e0a</code> (trunk, svn r940433, 2010-05-03), "LUCENE-2298: Add stempel, an algorithmic stemmer with included Polish support" (issue #3374; svn era, no PR), the import of the whole <code>org.egothor.stemmer</code> package; the release line got it through the branch_3x backport <code class='nw'>58328f03790</code> (2010-05-06). The <code class='nw'>StempelStemmer</code> javadoc says the implementation is "taken verbatim from the Egothor project", and a 2010 copy of the original Stempel source has the same loop, so the defect most likely predates Lucene.</p><p>Later commits made only cosmetic changes to these lines (for example <code class='nw'>8ac26737913</code> LUCENE-10003 and <code class='nw'>dbaf97f5dcc</code> #14965) or changed <code class='nw'>Row</code>'s cell map to a hash map (#13420: main commit <code class='nw'>6e2a8fc9b75</code>, first released in 10.0.0; the 9.x backport <code class='nw'>6f774936ef6</code> is in 9.11.0), which changes exact counts, not the defect. A code-identity check finds one variant of the four methods in all 131 release tags from 3.1 to 10.5.2 present in the clones, plus main.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 3 of 3 fail (gradle and runner, assertions on and off); the probe fails 5 of 5 checks</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 3 of 3 fail (the repro runner, assertions on); the finder's and the reproducer's tests fail too</td></tr><tr><th scope='row'>3.1.0 to 10.0.0 (17 releases: 3.1.0, 3.2.0, 3.6.2, 4.0.0, 4.10.4, 5.0.0, 5.5.5, 6.0.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.10.0, 9.11.0, 10.0.0)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the <code class='nw'>main()</code> probe fails all 5 bug checks (4 on training words; the fifth compares 8 arbitrary words) and passes all 5 controls</td></tr><tr><th scope='row'>3.0.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no stempel</span></td><td>the stempel module does not exist; the probe does not compile</td></tr><tr><th scope='row'>3.1.0 and main with the finder's fix sketch shadowed</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix sketch</span></td><td>the probe passes: 0 of 5 bug checks fail</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder, an independent reproducer, an intended-behaviour devil's advocate, reviews from another model family (OpenAI GPT-5.6) and an adjudication all ran code and said real; an audit kept it. This doc's gradle runs reproduced it and validated fix A.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>259 words</span></summary><div class='body'><p>Every check executed code. The cross-model reviews ran on main <code class='nw'>ea57360912ed</code>, whose stempel sources are identical to <code class='nw'>a9779ef3c193</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Bounded check (183,540 tries); public-API JUnit fails 4 of 4 on main (-ea, -da), 40 of 40 over 10 iterations, and on 10.5.2 and 9.12.3; passes with the shadow fix.</td></tr><tr><th scope='row'>refute review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Own public-API test reproduces; traced a lower-row reference turning into a self-loop; the fix also passed TestStemmer and TestPolishAnalyzer; intended argument weak.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 10-test JUnit: 6 of 10 fail on main (-ea, -da), 10.5.2 and 9.12.3; 4 controls pass; the bundled stored-path oracle (8,356 of 21,147); 10 of 10 pass with the fix.</td></tr><tr><th scope='row'>intended-lens review (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Structural probe: 0 lower-row references in a fresh trie, 2 after one merge, value lost after the second; intended argument weak.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium-high</span></td><td>Strongest 'fresh trie only' case rated moderate and rejected; TestCompile data loses 9 of 9 with -22 and -M22; a never-merged table reduced once changes 0 forms.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the reproducer's test (6 of 10 fail, -ea and -da), with the fix (10 of 10 pass) and the finder's test (4 of 4 fail).</td></tr><tr><th scope='row'>audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's test with a new seed (4 of 4 fail, -ea and -da) and an own probe (929 / 786 of 2,000 random tries lose a key after two passes; 0 after one).</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-693/bug.png' download='stempel-optimizer-second-pass-remaps-to-row-zero-bug.png' target='_self'>PNG</a> <span class='n'>509 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,762 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-693, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Stempel: running Optimizer or Optimizer2 on an already merge-reduced trie silently corrupts it, because Optimizer.optimize remaps references to rows it has not placed yet to row 0</dd></div><div><dt>Area</dt><dd>analysis-stempel / egothor stemmer trie reductions (Optimizer, Optimizer2; Compile tool, Trie.reduce)</dd></div><div><dt>Priority</dt><dd>Low, rank 380: A second Optimizer or Optimizer2 pass silently corrupts a whole stempel table, but only for self-compiled tables with an undocumented two-merge-pass method string or a re-reduced table while the bundled Polish table is unaffected, matching the custom-dictionary silent-stemming Hunspell profile.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits only people who build or modify their own stempel stemmer table, when a trie that a merge pass has already reduced goes through a second Optimizer or Optimizer2 pass (a Compile method string with two of the merge letters 1/2, such as '-22', '-M22' or '-0ME22', or Trie.reduce(new Optimizer()) / reduce(new Optimizer2()) on a loaded or already reduced table); then the failures always occur and need no scale (a one-word table suffices; about half of 2000 random small tries are hit), with -ea and -da, in every release since 3.1.0 (exact counts vary with hash iteration order), and nothing throws: the table loads and stems, but wrongly (Compile '-22' stems every training form of a small table to null, '-M22' leaves them unstemmed, and one more Optimizer2 pass over the bundled Polish table changes 8,356 of 21,147 keys whose whole path is stored); the default PolishAnalyzer and StempelPolishStemFilterFactory load the bundled table (compiled '-0ME2', one merge pass, never reduced again) and are not affected.</dd></div><div><dt>Summary</dt><dd>You build a stempel table with the Compile tool and a method string that has two merge passes (for example '-M22' or '-0ME22'), or you call reduce(new Optimizer2()) (or Optimizer) on a table that a merge pass already reduced, such as a loaded table; Optimizer2's javadoc says its row joining keeps the stemmer able to 'recognize words for which the original trie was built', so the training words should keep their stems, as they do after one pass. Instead the second pass silently corrupts the trie: two Optimizer2 passes over the one-word trie {aab -&gt; Da} lose its only entry, Compile '-22' stems every training form of a small table to null and '-M22' leaves every form unstemmed (while '-2' and '-M2' are correct), and one more Optimizer2 pass over the bundled Polish table changes 8,356 of 21,147 keys whose whole path is stored. The cause is Optimizer.optimize (inherited by Optimizer2): it walks the rows from the highest index down and remaps every child reference through a remap[] array that is still 0 for rows it has not placed yet, which is only correct when every child has a higher index than its parent; a freshly built trie has that property, but the output of a merge pass does not (shared rows, self-loops, pre-order renumbering).</dd></div><div><dt>Introduced</dt><dd>98c47c57e0a54ab4aab9d91dd60c33edef130893 (trunk, svn r940433, 'LUCENE-2298: Add stempel, an algorithmic stemmer with included Polish support', committed by GitHub rmuir on 2010-05-03; issue LUCENE-2298 = apache/lucene#3374, no pull request in the svn era): the import of the whole org.egothor.stemmer package, whose Optimizer.optimize already leaves remap[] unfilled and walks the rows downward; the release line got it through the branch_3x backport 58328f0379049045b325d2082295836a7a50e9ce (svn r941704, 2010-05-06). Not a regression: the code is the Egothor stemmer (the StempelStemmer javadoc says the implementation is 'taken verbatim from the Egothor project'), and the prior-report search found the same loop in a 2010 copy of the original Stempel source, so the defect most likely predates Lucene. Later commits only reformatted these lines (8ac26737913 LUCENE-10003, dbaf97f5dcc #14965) or changed Row's cell map (6e2a8fc9b75 #13420, backport 6f774936ef6) [read: git blame and git log -G remap in the full-history clone; code-identity check over 131 release tags] (2010-05-03 (trunk 98c47c57e0a; branch_3x backport 58328f03790 on 2010-05-06))</dd></div><div><dt>First affected version</dt><dd>3.1.0 [exec] (tagged 2011-03-30; the first release with the stempel module, through the branch_3x backport; the trunk commit first shipped in 4.0.0-ALPHA). No release that has the API is unaffected: 3.0.3 has no stempel module [exec: the probe does not compile, packages org.egothor.stemmer and org.apache.lucene.analysis.stempel do not exist].</dd></div><div><dt>Affected versions</dt><dd>Every release that ships stempel, 3.1.0 to 10.5.2, and main a9779ef3c193; no upstream fix. [exec: the history probe (a main() class, public API that exists from 3.1.0 to main) fails all 5 bug checks with all 5 controls passing on 3.1.0 (-ea and -da), 3.2.0, 3.6.2, 4.0.0, 4.10.4, 5.0.0, 5.5.5, 6.0.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.10.0, 9.11.0, 9.12.3, 10.0.0, 10.5.2 (-ea and -da) and main (-ea and -da); with the candidate fix shadowed it passes on 3.1.0 and on main; the finder's JUnit fails 4 of 4 and the independent reproduction's and the intended-behaviour check's own tests fail on 10.5.2 and 9.12.3] [read: a code-identity check of the normalized Optimizer.optimize, Reduce.removeGaps, Reduce.Remap and Optimizer2.merge finds one variant in all 131 release tags from 3.1 to 10.5.2 present in the clones, plus main (tags 8.8.2-8.11.4 are missing from the clones; 8.11.4 was executed); upstream main a95c754ee00, 2 commits ahead of a9779ef3c193, does not touch lucene/analysis/stempel]. Since 9.11.0 (Row cells in a hash map, the #13420 backport) the exact counts differ (the probe's '-0ME22' check changes 31 instead of 27 of 94 Polish training forms); the defect is the same.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27 plus the finder's run, read-only; the prior-report record, verdict new): two scripted prior-report searches of 57 queries each (apache/lucene GitHub issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, JIRA, ingested web results; 411 and 167 distinct hits, none rated high) plus the finder's 51-query run; manual GitHub searches on apache/lucene (Optimizer2, org.egothor.stemmer, egothor, StempelStemmer, MultiTrie2, '-0ME2', 'stemmer table', every stempel issue and PR title), GitHub-wide and code search, Lucene.NET, three outside ports or forks, Elasticsearch, OpenSearch and Solr, the Lucene and Solr lists and JIRA. No issue, PR, commit, JIRA entry, list thread, downstream report or fork discussion describes a second merge pass (or any merge pass on an already reduced or loaded trie) sending references to unplaced rows to row 0. Closest: #6584 (LUCENE-5521, open since 2014, no patch) 'Egothor Stemmer Bug for Optimizing (removing holes in the rows) for the given Trie' says only that 'optimize method does not work correctly and TestCompile.java throws error' once Compile's ignored toUpperCase (#6569) is fixed; upper-cased, TestCompile's methods 'test', '-test' and 'Mtest' contain only the reduction letter E (Lift(false)), so no Optimizer code runs on that path; it is the anchor of the sibling candidate reduce-optimize-reads-empty-row-list, not of this bug (re-read read-only in the registration check). #8841 (LUCENE-7790, open) asks to make Trie.add public; jpountz replied 'I think we should avoid applying these kinds of modifications to forked code' (a maintainer stance, not a defect report). Another contributor's fork (buda-base/stemmer#1, closed 2018) replaced Optimizer because the stock optimizers 'give different results'; its tests concern Optimizer's documented single-pass loss on unseen words, not this defect, and nothing was filed against Lucene. Lucene.NET's Optimizer.cs has the same loop and no report. Not fixed: no open PR touches lucene/analysis/stempel, and upstream main a95c754ee00 (2 commits ahead of a9779ef3c193) does not touch it. Gaps: the list archive search is keyword-based, the original Stempel site is offline, and private reports are not searchable.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (gradle in a scratch worktree, assertions on and off, and the standalone JUnit runner); the release jars 10.5.2 and 9.12.3 with this doc's test; a <code class='nw'>main()</code> probe on 19 releases from 3.1.0 to 10.5.2 and on main; fix A with the whole <code>:lucene:analysis:stempel:test</code> task (assertions on and off), lint and format checks, and a byte-identity check on tries without backward references. OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Optimizer.java:79-110 (optimize: remap = new int[orows.size()] at :83 left at 0, downward loop at :85, new Remap(orows.get(j), remap) at :86, remap[j] set at :94/:100, removeGaps at :105-107)</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Reduce.java:88-102 (removeGaps: pre-order renumbering) and :112-127 (Remap: nc.ref = remap[nc.ref] at :121)</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Optimizer2.java:57-65 (class javadoc: joining rows &#x27;allowing the stemmer to recognize words for which the original trie was built. Use of this class allows the stemmer to be self-teaching.&#x27;; extends Optimizer, so it inherits optimize)</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Compile.java:73-81 (javadoc: args[0] names the algorithm, &#x27;a list is available in the package description&#x27;), :104-107 (every char after the flags is a step), :139-172 (letters 1, 2, E, L, G applied in sequence, no repeat check); Trie.java:340-356 (add appends new rows, so children get higher indexes), :361-369 (public reduce, &#x27;Remove empty rows from the given Trie and return the newly reduced Trie&#x27;); MultiTrie2.java:195 (public add), :277 (public reduce)</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/test/org/egothor/stemmer/TestCompile.java:79, :93, :107 (methods &#x27;test&#x27;, &#x27;-test&#x27;, &#x27;Mtest&#x27;: no merge letter); Lucene main ea57360912ed: and a Lucene main checkout lucene/analysis/stempel/src are identical (diff -r, registration check)</code></li><li><code>https://github.com/apache/lucene/issues/6584 (read-only gh issue view in the registration check: body &#x27;However optimize method does not work correctly and TestCompile.java throws error&#x27;, one comment moving the issue to 4.9)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Optimizer.java:79-110 (:83 remap never filled, :85 downward loop, :86 Remap, :94/:100 remap[j], :106 fill -1)</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Reduce.java:88-102 (removeGaps, pre-order), :112-127 (Remap, nc.ref = remap[nc.ref] at :121)</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Trie.java:327-359 (add appends rows at :351-354)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Optimizer2.java:60-63 (javadoc, &#x27;self-teaching&#x27;)</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/apache/lucene/analysis/pl/PolishAnalyzer.java:61, 89; .../stempel/StempelPolishStemFilterFactory.java:50</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/resources/org/apache/lucene/analysis/pl/stemmer_20000.tbl (header bytes: writeUTF &#x27;-0ME2&#x27;)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/analysis/stempel/src/java/org/egothor/stemmer/Optimizer2.java:60-63; Trie.java:361-369; Compile.java:76-78, 145-171; package-info.java; Gener.java:84; src/java/overview.html:175-177</code></li><li><code>a Lucene main checkout lucene/analysis/stempel/src/test/org/egothor/stemmer/TestStemmer.java:151-168 (assertTrieContents), TestCompile.java:79, 93, 107</code></li><li><code>https://github.com/apache/lucene/issues/8841 (maintainer reply, via the prior-report follow-up)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/internal/hppc/CharObjectHashMap.java:110 (seed taken when a map is built), :432-434 (nextIterationSeed, called by each iterator at :463, :530, :588)</code></li></ul></dd></div><div><dt>Prior reports</dt><dd><ul class='paths'><li><code>https://github.com/apache/lucene/issues/6584 (read-only, registration check)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestSecondMergePass.java (stempel module, package org.egothor.stemmer, 3 tests): <a href='../repro/LFV-693/TestSecondMergePass.java'><code>repro/LFV-693/TestSecondMergePass.java</code></a> (103 lines)</li><li>TestRepeatedOptimizer2.java (independent reproducer, 10 tests): <a href='../repro/LFV-693/TestRepeatedOptimizer2.java'><code>repro/LFV-693/TestRepeatedOptimizer2.java</code></a> (308 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the one-word example, made in parallel with this doc from an executed trace on main <code class='nw'>a9779ef3c193</code>.</p><ul class='paths'><li><a href='../assets/LFV-693/bug.png'><code>assets/LFV-693/bug.png</code></a> (509 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -2,6 +2,8 @@
 
 Bug LFV-276 · Area: highlighter / matchhighlight (MatchRegionRetriever default offset strategy OffsetsFromTokens for fields indexed without positions; MatchHighlighter on top of it) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-276.html](../../bugs/LFV-276.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a stored field without positions (one document 'foo bar', IndexOptions
 
 ## Expected vs actual
 
-- Expected: You expect the region [4,7) for 'bar', which a TermQuery('bar') on the same field, a FuzzyQuery('baz'~1) and the same PrefixQuery on a field with positions all give.
-- Actual: The field gets no hit regions at all ({}), although the document is a hit and Weight#matches reports a match on that field.
+- Expected: Every multi-term query gives `{tag=[[from=0, to=6]]}`, like its controls, and `MatchHighlighter` gives `>lucene<` for the prefix query too.
+- Actual: All five multi-term queries give `{}` (no hit region) and `MatchHighlighter` drops the field (`null`), while every control passes.
 
 ## Files
 
@@ -50,6 +52,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMatchRegionRetrieverMultiTermNoPositions.java](TestMatchRegionRetrieverMultiTermNoPositions.java)
+- [TestOffsetsFromTokensMultiTermQuery.java](TestOffsetsFromTokensMultiTermQuery.java)
+- [TestNoPositionsMultiTermHighlight.java](TestNoPositionsMultiTermHighlight.java)
+- [TestOffsetsFromTokensIntent.java](TestOffsetsFromTokensIntent.java)
 
 ## Feedback
 

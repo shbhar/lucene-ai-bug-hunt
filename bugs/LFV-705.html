@@ -1,0 +1,774 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>PackedQuadPrefixTree in a geo context stores a point at longitude +180 in the -180 edge cell but looks it up in the +180 edge cell, so a query for that same point misses the document</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-705 &middot; packedquad-geo-plus180-point-index-query-cell-mismatch</p><h1 id='top'>PackedQuadPrefixTree in a geo context stores a point at longitude +180 in the -180 edge cell but looks it up in the +180 edge cell, so a query for that same point misses the document</h1><p class='tldr'>With the opt-in <code>PackedQuadPrefixTree</code> in a geo context, a document at longitude +180 is not found by a query for the same point: <code>Pt(180, 10)</code> gets 0 hits from RPT Intersects and Contains (default settings) and from <code>CompositeSpatialStrategy</code>, 1 at -180. Affected since 8.3.0; a small fix needs no reindexing.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 352</span><span class='sub'>The experimental PackedQuadPrefixTree silently misses a point at exactly longitude +180, a boundary-value point miss with the same profile as LFV-316 and LFV-371.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>8.3.0 (LUCENE-8755, 2019)<span class='sub'>introduced 2019-08-20 &middot; about 7 years</span></dd></div><div><dt>Affected</dt><dd>8.3.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>bounded differential check against exact geometry</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>A prefix tree files each indexed shape under grid cells, and a query looks it up by the same cells. Here the two sides pick different cells for one point: indexing files (180, 10) at the west edge of the map, the point query looks at the east edge. Both edges are longitude 180, but they are different cells.</p><figure class='visual' id='packedquad-geo-plus180-point-index-query-cell-mismatch-short-visual'><div class='frame'><a class='still' href='../assets/LFV-705/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-705/bug.png' alt='Diagram of the bug: the geo world split into quad cells, with the point (180, 10) on the right edge. Indexing keeps the first cell in Z order that contains the point; because +180 and -180 are the same meridian, that is the west cell, down to the leaf [-180, -178.59] x [9.84, 10.55]. The point query compares 180 with each cell&#x27;s mid-point, goes east at every level and ends in the leaf [178.59, 180] x [9.84, 10.55], which holds no document: 0 hits instead of 1. The same point at -180 is filed and found in the west leaf.' width='1920' height='1080'></a></div><figcaption>The world grid at the antimeridian: indexing files (180, 10) in the west edge cell because the geo wrap makes it contain +180 and it comes first in Z order; the point query walks mid-points east to the +180 edge cell and finds nothing. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index one document at <code>Pt(180, 10)</code> with <code>RecursivePrefixTreeStrategy</code> over <code>new PackedQuadPrefixTree(SpatialContext.GEO, 8)</code> and search Intersects, or Contains, with that same point.</span></li><li><span>You expect 1 hit: a point intersects and contains itself, and a point query has zero distance error, so it is matched at the tree's full depth, where the point was indexed. The same point at -180, <code class='nw'>QuadPrefixTree</code> at +180, and a rectangle query [179, 180] x [9, 11] all give 1.</span></li><li><span>You get 0 hits, and <code>CompositeSpatialStrategy</code> over the same tree also gets 0. No error.</span></li><li><span>Why: +180 and -180 are the same meridian, so both top cells, [-180, 0] x [0, 90] and [0, 180] x [0, 90], contain (180, 10). Indexing keeps the first in Z order, the west one, and ends at the -180 edge: leaf [-180, -178.59] x [9.84, 10.55].</span></li><li><span>The query walks mid-points instead (since 8.3.0): 180 is east of every mid-point, so it ends at the +180 edge, [178.59, 180] x [9.84, 10.55], a cell with no document in it.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that index geo points with RPT, or <code>CompositeSpatialStrategy</code> over it, on the opt-in <code>PackedQuadPrefixTree</code> and search for a point at exactly longitude +180: that document is silently missing. Such data is uncommon; no report was found since 8.3.0. Other longitudes, RPT Intersects with <code class='nw'>pointsOnly=true</code> and geohash are unaffected; rectangle and circle queries showed no such misses.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>903 words</span></summary><div class='body'><p>With <code>PackedQuadPrefixTree</code> in a geo <code class='nw'>SpatialContext</code>, a document indexed at longitude exactly +180 is not found by a query for that same point. For one document at <code>Pt(180, 10)</code> and an 8-level tree, RPT Intersects (with <code class='nw'>pointsOnly=false</code>), RPT Contains and <code>CompositeSpatialStrategy</code> Intersects return 0 hits instead of 1; the same point at -180, <code class='nw'>QuadPrefixTree</code> and a rectangle query that touches +180 find it. Indexing and querying use two different point-to-cell rules. <code>PrefixTreeIterator</code> stores the point in the first cell in Z order whose rectangle <code class='nw'>relate()</code>s to it, and a geo rectangle treats +180 as -180, so the point lands in the cells at the -180 edge. A point query descends with <code class='nw'>getCell</code>, a mid-point walk that LUCENE-8755 introduced in 8.3.0, and that walk sends x = +180 to the cells at the +180 edge. Every release from 8.3.0 to 10.5.2 and main is affected, with no error and the index intact; 8.2.0 passes. A small fix in <code class='nw'>getCell</code> (one <code class='nw'>if</code>: treat +180 as -180 in a geo context) makes the query look where the document is, needs no reindexing, and passes the repro and the module's tests.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Prefix tree (grid)</strong>: <code>PackedQuadPrefixTree</code> splits the world into 4 cells per level (a quad tree) and stores each cell as a term. <code>RecursivePrefixTreeStrategy</code> (RPT) indexes a shape as the terms of the cells it touches; a point is stored as one path of cells, from the top level down to a leaf at the tree's maximum level.</li><li><strong>Z order</strong>: the four children of a cell are visited as NW, NE, SW, SE.</li><li><strong>Geo wrap</strong>: in <code>SpatialContext.GEO</code>, longitude +180 and -180 are the same meridian, and a spatial4j rectangle that starts at -180 relates to x = +180 as if it were -180.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-step-1-indexing-keeps-the-first-cell-that-relates'>Step 1: indexing keeps the first cell that relates</h3><a class="hlink" href="#what-the-bug-is-step-1-indexing-keeps-the-first-cell-that-relates" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-step-1-indexing-keeps-the-first-cell-that-relates"><span aria-hidden="true">#</span></a></div><p><code>PackedQuadPrefixTree.getTreeCellIterator</code> (<code>PackedQuadPrefixTree.java:183-190</code> at <code class='nw'>a9779ef3c193</code>) returns a <code>PrefixTreeIterator</code>. Its <code class='nw'>hasNext</code> (<code class='nw'>:468-503</code>) walks the children in Z order, keeps the first whose rectangle <code class='nw'>relate()</code>s to the shape (<code class='nw'>:476</code>), and for a <code class='nw'>Point</code> stops at the first leaf (<code class='nw'>:489-491</code>). On main, <code>[-180,0] x [0,90]</code> relate <code class='nw'>Pt(180,10)</code> is CONTAINS, and so is <code>[0,180] x [0,90]</code>. NW comes first, so the point goes west, and in every later level the westmost child again relates first.</p><div class="hd hd-3"><h3 id='what-the-bug-is-step-2-the-point-query-walks-mid-points'>Step 2: the point query walks mid-points</h3><a class="hlink" href="#what-the-bug-is-step-2-the-point-query-walks-mid-points" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-step-2-the-point-query-walks-mid-points"><span aria-hidden="true">#</span></a></div><p>A point query descends with <code>LegacyCell.getNextLevelCells(Point)</code> (<code>LegacyCell.java:134-143</code>), which calls <code>getSubCell(point)</code>, here <code>PackedQuadPrefixTree.getCell(p, level + 1)</code> (<code>PackedQuadPrefixTree.java:342-345</code>). <code class='nw'>getCell</code> (<code class='nw'>:90-128</code>) compares the point with each cell's mid-point using <code>QuadPrefixTree.battenberg</code> (<code>QuadPrefixTree.java:223-235</code>): <code>xmid &gt;= xp</code> goes west, otherwise east. 180 is greater than every mid-point, so the walk goes east at every level.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-two-leaves-executed-on-main-print-only-probe'>The two leaves (executed on main, print-only probe)</h3><a class="hlink" href="#what-the-bug-is-the-two-leaves-executed-on-main-print-only-probe" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-two-leaves-executed-on-main-print-only-probe"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>point, tree levels</th><th>indexed leaf</th><th>looked-up leaf</th><th>same</th></tr></thead><tbody><tr><td>(180, 10), 1</td><td>[-180, 0] x [0, 90]</td><td>[0, 180] x [0, 90]</td><td>no</td></tr><tr><td>(180, 10), 2</td><td>[-180, -90] x [0, 45]</td><td>[90, 180] x [0, 45]</td><td>no</td></tr><tr><td>(180, 10), 8</td><td>[-180, -178.59375] x [9.84375, 10.546875]</td><td>[178.59375, 180] x [9.84375, 10.546875]</td><td>no</td></tr><tr><td>(-180, 10), 1, 2, 8</td><td>west edge</td><td>west edge</td><td>yes</td></tr><tr><td>(180, 10) with the fix, 1, 2, 8</td><td>west edge</td><td>west edge</td><td>yes</td></tr></tbody></table></div><p><strong>Tree depth</strong> (executed at depths 1 to 8 for every strategy and operation; the scope below is at 8 and 26 levels). <code class='nw'>Contains</code> misses at every depth, a 1-level tree included: <code>ContainsPrefixTreeQuery</code> starts at the world cell and descends with <code>getNextLevelCells(point)</code> (<code>ContainsPrefixTreeQuery.java:88-89, 120</code>), which picks the east level-1 cell. RPT Intersects (<code class='nw'>pointsOnly=false</code>) finds the document on a 1-level tree, because the visiting queries clamp the scan level to <code>maxLevels - 1</code> (<code>AbstractVisitingPrefixTreeQuery.java:61</code>) and scan the world cell with <code class='nw'>relate()</code>, and misses from 2 levels on (the independent reproducer: 30 of 36 misses over levels 1, 2, 5, 12, 20, 29 and six latitudes, the north pole included; the south pole misses too in this doc's probes). The optimized composite Intersects, which uses RPT's default scan level <code>maxLevels - 4</code> (<code>RecursivePrefixTreeStrategy.java:62-63</code>), finds the document up to 4 levels and misses from 5 on.</p><div class="hd hd-3"><h3 id='what-the-bug-is-which-queries-take-the-mid-point-walk'>Which queries take the mid-point walk</h3><a class="hlink" href="#what-the-bug-is-which-queries-take-the-mid-point-walk" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-which-queries-take-the-mid-point-walk"><span aria-hidden="true">#</span></a></div><ul><li>RPT Intersects with a point (<code>RecursivePrefixTreeStrategy.java:185-188, 216-237</code>): with <code class='nw'>pointsOnly=true</code> it builds a <code class='nw'>TermQuery</code> from the index-side iterator and finds the document; with <code class='nw'>pointsOnly=false</code> it builds an <code>IntersectsPrefixTreeQuery</code>, which descends with <code>getNextLevelCells</code>, and misses.</li><li>RPT Contains (<code>ContainsPrefixTreeQuery.java:106-142</code>) descends with <code>getNextLevelCells</code>: misses with either <code class='nw'>pointsOnly</code> value. RPT IsWithin finds the document.</li><li><code>CompositeSpatialStrategy</code> optimized Intersects, the default, builds <code>IntersectsRPTVerifyQuery</code> (<code>CompositeSpatialStrategy.java:122-134</code>), a visiting descent: misses with either value, as does composite Contains. Composite IsWithin, Equals, Overlaps and non-optimized Intersects take their candidates from RPT Intersects, so they miss only when the composite's RPT has <code class='nw'>pointsOnly=false</code>.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-why-quadprefixtree-and-other-longitudes-are-fine'>Why QuadPrefixTree and other longitudes are fine</h3><a class="hlink" href="#what-the-bug-is-why-quadprefixtree-and-other-longitudes-are-fine" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-why-quadprefixtree-and-other-longitudes-are-fine"><span aria-hidden="true">#</span></a></div><p><code class='nw'>QuadPrefixTree</code> got the same mid-point <code class='nw'>getCell</code> in the same commit, but it also indexes points with <code class='nw'>getCell</code> (<code>LegacyPrefixTree.java:62-83</code>): one rule on both sides. Inside the world both rules break ties the same way (west on an x tie, north on a y tie) and the geo bounds are exact in binary, so only the wrap at +180 separates them. An SMT check (Z3, exact rationals) found the rules agree in every cell without the wrap and, on the level-1 split of the geo world, differ only at x = +180. Executed controls: -180, <code>Math.nextDown(180)</code>, 179.9, 0 and 90 are found.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>464 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Applications that index points with <code>RecursivePrefixTreeStrategy</code>, or <code>CompositeSpatialStrategy</code> over it, on <code>PackedQuadPrefixTree</code> with a geo <code class='nw'>SpatialContext</code>, and search for a point exactly at longitude +180.</li><li><strong>Exactly which queries miss</strong> (independent reproducer and this doc's probes, 8 and 26 levels; for smaller trees see the depth note in "What"): RPT Intersects with <code class='nw'>pointsOnly=false</code>; RPT Contains with either <code class='nw'>pointsOnly</code> value; the default (optimized) composite Intersects and composite Contains with either value; composite IsWithin, Equals, Overlaps and non-optimized Intersects only when the composite's RPT has <code class='nw'>pointsOnly=false</code>.</li><li><strong>Not affected</strong>: RPT Intersects with <code class='nw'>pointsOnly=true</code>, RPT IsWithin, <code>TermQueryPrefixTreeStrategy</code>, x = -180, <code>Math.nextDown(180)</code>, <code class='nw'>QuadPrefixTree</code>, geohash. Rectangle and circle queries showed no packed-quad-specific misses in the finder's lattice sweep; its exact-boundary misses (such as a line exactly on a circle's rim) occur in the same numbers with <code class='nw'>QuadPrefixTree</code>.</li><li><strong>Opt-in, experimental.</strong> <code>SpatialPrefixTreeFactory</code> picks geohash for a geo context unless <code class='nw'>prefixTree</code> names another tree (<code class='nw'>quad</code>, <code class='nw'>packedQuad</code>, <code class='nw'>s2</code>, or a factory class name) (<code>SpatialPrefixTreeFactory.java:45-66</code>); the tree, RPT, <code>ContainsPrefixTreeQuery</code> and the composite strategy are <code>@lucene.experimental</code>. Otherwise default <code>IndexWriterConfig</code>, codec and searcher, any index size. A tree built by the factory from WKT input (26 levels, <code>Intersects(POINT(180 10))</code> parsed by <code>SpatialArgsParser</code>) misses too, also with <code>normWrapLongitude=true</code>.</li><li><strong>Silent.</strong> No exception, no assertion, and the index is intact; the same with assertions off.</li><li><strong>Measured scope.</strong> This doc's side-effect probe: points at x = +/-180 for six latitudes, rectangles and circles touching or crossing the antimeridian, queried with points at +/-180 and two rectangles, three operations, RPT and composite, 8 and 26 levels. Of 552 combinations that should match, stock main misses 60, every one a document at exactly +180 queried with the same point. Its queries are points and rectangles (no circles), and with <code class='nw'>pointsOnly=true</code> it ran Intersects on point documents only; a second probe covers Contains and IsWithin with <code class='nw'>pointsOnly=true</code> (see the workaround).</li><li><strong>Downstream</strong> (code reading only, not executed): Solr exposes the tree as <code>prefixTree="packedQuad"</code>; two downstream search engines map their legacy geo_shape <code class='nw'>quadtree</code> tree to it in a geo context with RPT <code class='nw'>pointsOnly=false</code> by default. Whether they rewrite +180 first was not checked.</li><li><strong>How likely.</strong> Rare: it needs a document exactly on +180 and a point query at exactly that spot; no report of it was found since 8.3.0 (2019). Registry likelihood "rare", priority low.</li><li><strong>Workaround today</strong>: write longitude +180 as -180 on both sides, before indexing and before querying. On stock main a document at -180 queried with the same point is found in all 216 combinations tried: RPT with either <code class='nw'>pointsOnly</code> value and the composite strategy (optimized and general, either value), each with Intersects, Contains and IsWithin, at six latitudes and 8 and 26 levels (the same set at +180: 144 misses).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test on the public API in spatial-extras' own test package: one document at <code>Pt(180, 10)</code> on <code>PackedQuadPrefixTree(SpatialContext.GEO, 8)</code>, queried with the same point by RPT Intersects, RPT Contains and the composite strategy, plus three controls (-180, <code class='nw'>QuadPrefixTree</code>, a rectangle). Run it with gradle, assertions on or off.</p><figure class='code'><figcaption><span class='fname'>TestPackedQuadPlus180Point.java (JUnit, public API, 3 bug tests + 3 controls)</span><span class='meta'>146 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.SpatialStrategy;
+import org.apache.lucene.spatial.composite.CompositeSpatialStrategy;
+import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.serialized.SerializedDVStrategy;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.Shape;
+
+/**
+ * PackedQuadPrefixTree in the geo context: a document indexed at the point (180, 10) is not found
+ * by a query with that same point.
+ *
+ * &lt;p&gt;Indexing walks PackedQuadPrefixTree&#x27;s PrefixTreeIterator, which keeps the first cell (Z order)
+ * whose rectangle relate()s to the point; geo rectangles treat longitude +180 as -180, so the point
+ * lands in the cells at the WEST edge. A point query descends with
+ * LegacyCell.getNextLevelCells(Point) -&gt; PackedQuadPrefixTree.getCell (mid-point test), which sends
+ * x = +180 to the EAST edge. QuadPrefixTree uses getCell on both sides and is consistent.
+ */
+public class TestPackedQuadPlus180Point extends LuceneTestCase {
+
+  private static final SpatialContext CTX = SpatialContext.GEO;
+
+  private static int count(
+      SpatialStrategy indexStrategy,
+      SpatialStrategy queryStrategy,
+      Point indexed,
+      SpatialOperation op,
+      Shape query)
+      throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+      Document doc = new Document();
+      for (Field f : indexStrategy.createIndexableFields(indexed)) {
+        doc.add(f);
+      }
+      w.addDocument(doc);
+      w.commit();
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        IndexSearcher searcher = new IndexSearcher(r);
+        return searcher.count(queryStrategy.makeQuery(new SpatialArgs(op, query)));
+      }
+    }
+  }
+
+  private static RecursivePrefixTreeStrategy rpt(SpatialPrefixTree grid, boolean pointsOnly) {
+    RecursivePrefixTreeStrategy s = new RecursivePrefixTreeStrategy(grid, &quot;geo&quot;);
+    s.setPointsOnly(pointsOnly);
+    return s;
+  }
+
+  private static Point pt(double x, double y) {
+    return CTX.getShapeFactory().pointXY(x, y);
+  }
+
+  /** RPT Intersects with the indexed point itself. */
+  public void testRptIntersectsSamePoint() throws IOException {
+    Point p = pt(180, 10);
+    assertTrue(SpatialOperation.Intersects.evaluate(p, p));
+    RecursivePrefixTreeStrategy s = rpt(new PackedQuadPrefixTree(CTX, 8), false);
+    assertEquals(
+        &quot;RPT/PackedQuadPrefixTree Intersects(Pt(180,10)) must find the doc at Pt(180,10)&quot;,
+        1,
+        count(s, s, p, SpatialOperation.Intersects, p));
+  }
+
+  /** RPT Contains (Covers) with the indexed point itself. */
+  public void testRptContainsSamePoint() throws IOException {
+    Point p = pt(180, 10);
+    assertTrue(SpatialOperation.Contains.evaluate(p, p));
+    RecursivePrefixTreeStrategy s = rpt(new PackedQuadPrefixTree(CTX, 8), false);
+    assertEquals(
+        &quot;RPT/PackedQuadPrefixTree Contains(Pt(180,10)) must find the doc at Pt(180,10)&quot;,
+        1,
+        count(s, s, p, SpatialOperation.Contains, p));
+  }
+
+  /**
+   * CompositeSpatialStrategy checks RPT&#x27;s candidates against the stored shape; with pointsOnly the
+   * RPT index alone finds the document (TermQuery shortcut), the composite does not.
+   */
+  public void testCompositeIntersectsSamePoint() throws IOException {
+    Point p = pt(180, 10);
+    CompositeSpatialStrategy c =
+        new CompositeSpatialStrategy(
+            &quot;geo&quot;,
+            rpt(new PackedQuadPrefixTree(CTX, 8), true),
+            new SerializedDVStrategy(CTX, &quot;geo_sdv&quot;));
+    assertEquals(
+        &quot;CompositeSpatialStrategy Intersects(Pt(180,10)) must find the doc at Pt(180,10)&quot;,
+        1,
+        count(c, c, p, SpatialOperation.Intersects, p));
+  }
+
+  /** Control: the same point at -180 is found. */
+  public void testControlMinus180() throws IOException {
+    Point p = pt(-180, 10);
+    RecursivePrefixTreeStrategy s = rpt(new PackedQuadPrefixTree(CTX, 8), false);
+    assertEquals(1, count(s, s, p, SpatialOperation.Intersects, p));
+  }
+
+  /** Control: QuadPrefixTree (same cell geometry, getCell on both sides) finds the doc at +180. */
+  public void testControlQuadPrefixTree() throws IOException {
+    Point p = pt(180, 10);
+    RecursivePrefixTreeStrategy s = rpt(new QuadPrefixTree(CTX, 8), false);
+    assertEquals(1, count(s, s, p, SpatialOperation.Intersects, p));
+  }
+
+  /** Control: a rectangle query touching +180 finds the doc (relate-based traversal). */
+  public void testControlRectangleQuery() throws IOException {
+    Point p = pt(180, 10);
+    RecursivePrefixTreeStrategy s = rpt(new PackedQuadPrefixTree(CTX, 8), false);
+    assertEquals(
+        1,
+        count(s, s, p, SpatialOperation.Intersects, CTX.getShapeFactory().rect(179, 180, 9, 11)));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp TestPackedQuadPlus180Point.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/
+cd $LUCENE
+./gradlew :lucene:spatial-extras:test --tests org.apache.lucene.spatial.prefix.TestPackedQuadPlus180Point -Ptests.seed=DEADBEEF
+./gradlew :lucene:spatial-extras:test --tests org.apache.lucene.spatial.prefix.TestPackedQuadPlus180Point -Ptests.seed=DEADBEEF -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Each of the three queries for <code>Pt(180, 10)</code> finds the document at <code>Pt(180, 10)</code>: 1 hit, as the three controls do.</dd></div><div class='got'><dt>Observed</dt><dd>RPT Intersects, RPT Contains and <code>CompositeSpatialStrategy</code> Intersects each return 0 hits (<code>expected:&lt;1&gt; but was:&lt;0&gt;</code>); the controls return 1.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-705/'>repro/LFV-705/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (281 lines) · 1,678 words</span></summary><div class='body'><p>The test indexes one document per method with the randomized <code>newIndexWriterConfig()</code> and counts hits with a plain <code class='nw'>IndexSearcher</code>. Three methods assert the bug (expected 1 hit, got 0); three controls pass on stock main: the same point at -180, <code>QuadPrefixTree(GEO, 8)</code> at +180, and a rectangle query [179, 180] x [9, 11] on the packed-quad tree.</p><p>It is the finder's test after the project formatter (<code>./gradlew :lucene:spatial-extras:tidy</code> only re-wrapped three long lines); one javadoc sentence of the composite test was reworded afterwards, and <code>checkGoogleJavaFormat</code> and <code class='nw'>ecjLintTest</code> pass on the reworded file. For 7.7.3 to 9.0.0 the hunt used a copy that differs only in the <code class='nw'>LuceneTestCase</code> import (<code>org.apache.lucene.util</code>).</p><p>The other files below are optional: the cell probe prints both leaves, the side-effect probe checks the fix around the antimeridian, and the cross-sign table shows the workaround.</p><p class='k'>About TestPackedQuadPlus180Point.java (JUnit, public API, 3 bug tests + 3 controls)</p><p>Copy into <code>$LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/</code>. Formatted with the project formatter. When you rewrite it, <code class='nw'>count</code>'s two strategy parameters can become one; every caller passes the same strategy twice.</p><div class="hd hd-3"><h3 id='code-2-h'>Plus180CellProbe.java (print-only: the indexed and the looked-up leaf)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>A plain <code class='nw'>main()</code> on the public API; prints the level-1 <code class='nw'>relate()</code> results and both leaves for (180, 10) and (-180, 10) at 1, 2, 3 and 8 levels.</p><figure class='code'><figcaption><span class='fname'>Plus180CellProbe.java (print-only: the indexed and the looked-up leaf)</span><span class='meta'>38 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>import org.apache.lucene.spatial.prefix.tree.Cell;
+import org.apache.lucene.spatial.prefix.tree.CellIterator;
+import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+import org.locationtech.spatial4j.shape.ShapeFactory;
+
+/** Print-only: the cells PackedQuadPrefixTree(GEO) uses to index and to look up a point. Public API only. */
+public class Plus180CellProbe {
+  public static void main(String[] args) {
+    SpatialContext ctx = SpatialContext.GEO;
+    ShapeFactory f = ctx.getShapeFactory();
+    System.out.println(&quot;level-1 cell rectangles vs Pt(180,10):&quot;);
+    System.out.println(&quot;  NW [-180,0]x[0,90] relate = &quot; + f.rect(-180, 0, 0, 90).relate(f.pointXY(180, 10)));
+    System.out.println(&quot;  NE [0,180]x[0,90]  relate = &quot; + f.rect(0, 180, 0, 90).relate(f.pointXY(180, 10)));
+    for (double x : new double[] {180, -180}) {
+      Point p = f.pointXY(x, 10);
+      for (int maxLevels : new int[] {1, 2, 3, 8}) {
+        PackedQuadPrefixTree grid = new PackedQuadPrefixTree(ctx, maxLevels);
+        CellIterator it = grid.getTreeCellIterator(p, maxLevels);
+        Cell last = null;
+        while (it.hasNext()) {
+          last = it.next();
+        }
+        // the query side: what a point query descends to (LegacyCell.getNextLevelCells(Point) -&gt; getCell)
+        Cell world = grid.getWorldCell();
+        Cell q = world;
+        for (int l = 0; l &lt; maxLevels; l++) {
+          CellIterator sub = q.getNextLevelCells(p);
+          q = sub.next();
+        }
+        System.out.println(
+            &quot;Pt(&quot; + x + &quot;,10) maxLevels=&quot; + maxLevels + &quot;  index leaf=&quot; + last.getShape()
+                + &quot;  query leaf=&quot; + q.getShape() + &quot;  same=&quot; + last.getShape().equals(q.getShape()));
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestPlus180FixNeighbours.java (side-effect probe around the antimeridian)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>552 combinations that should match: stock 60 misses (all exact +180 point lookups), with the fix 0.</p><figure class='code'><figcaption><span class='fname'>TestPlus180FixNeighbours.java (side-effect probe around the antimeridian)</span><span class='meta'>155 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.SpatialStrategy;
+import org.apache.lucene.spatial.composite.CompositeSpatialStrategy;
+import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.serialized.SerializedDVStrategy;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.ShapeFactory;
+
+/**
+ * Side-effect probe for the query-side fix (getCell maps x=+180 to -180 in a geo context): indexes
+ * points, rectangles and circles at and around the antimeridian and runs point (and one rectangle)
+ * queries at +/-180 with RPT (pointsOnly false and true where legal) and the default composite
+ * strategy. A false negative is a document for which SpatialOperation.evaluate(indexed, query) is
+ * true but the query returns 0 hits. Prints every false negative, then asserts there are none.
+ */
+public class TestPlus180FixNeighbours extends LuceneTestCase {
+
+  private static final SpatialContext CTX = SpatialContext.GEO;
+  private static final ShapeFactory F = CTX.getShapeFactory();
+
+  private static int count(SpatialStrategy s, Shape indexed, SpatialOperation op, Shape query)
+      throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+      Document doc = new Document();
+      for (Field f : s.createIndexableFields(indexed)) {
+        doc.add(f);
+      }
+      w.addDocument(doc);
+      w.commit();
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        return new IndexSearcher(r).count(s.makeQuery(new SpatialArgs(op, query)));
+      }
+    }
+  }
+
+  public void testNoFalseNegativesAroundTheAntimeridian() throws IOException {
+    List&lt;Shape&gt; pointDocs = new ArrayList&lt;&gt;();
+    List&lt;Shape&gt; otherDocs = new ArrayList&lt;&gt;();
+    double[] ys = {-90, -45.5, 0, 10, 89.9, 90};
+    for (double y : ys) {
+      pointDocs.add(F.pointXY(180, y));
+      pointDocs.add(F.pointXY(-180, y));
+    }
+    otherDocs.add(F.rect(179, 180, 9, 11));
+    otherDocs.add(F.rect(-180, -179, 9, 11));
+    otherDocs.add(F.rect(170, -170, 9, 11)); // crosses the antimeridian
+    otherDocs.add(F.rect(180, 180, 9, 11)); // zero width on +180
+    otherDocs.add(F.rect(-180, 180, -90, 90)); // whole world
+    otherDocs.add(F.circle(F.pointXY(180, 10), 1));
+    otherDocs.add(F.circle(F.pointXY(179.5, 10), 0.5));
+    otherDocs.add(F.circle(F.pointXY(-179.5, 10), 0.5));
+    otherDocs.add(F.circle(F.pointXY(178, 10), 5));
+
+    List&lt;Shape&gt; queries = new ArrayList&lt;&gt;();
+    for (double y : ys) {
+      queries.add(F.pointXY(180, y));
+      queries.add(F.pointXY(-180, y));
+    }
+    queries.add(F.rect(179, 180, 9, 11));
+    queries.add(F.rect(-180, -179, 9, 11));
+
+    SpatialOperation[] ops = {
+      SpatialOperation.Intersects, SpatialOperation.Contains, SpatialOperation.IsWithin
+    };
+    int[] levels = {8, 26};
+    int cases = 0;
+    int falseNeg = 0;
+    StringBuilder sb = new StringBuilder();
+    for (int levelsMax : levels) {
+      for (int strat = 0; strat &lt; 3; strat++) {
+        SpatialPrefixTree grid = new PackedQuadPrefixTree(CTX, levelsMax);
+        boolean pointsOnly = strat == 1;
+        RecursivePrefixTreeStrategy rpt = new RecursivePrefixTreeStrategy(grid, &quot;geo&quot;);
+        rpt.setPointsOnly(pointsOnly);
+        SpatialStrategy s;
+        String name;
+        if (strat == 2) {
+          s = new CompositeSpatialStrategy(&quot;geo&quot;, rpt, new SerializedDVStrategy(CTX, &quot;geo_sdv&quot;));
+          name = &quot;composite(rpt pointsOnly=false)&quot;;
+        } else {
+          s = rpt;
+          name = &quot;rpt pointsOnly=&quot; + pointsOnly;
+        }
+        List&lt;Shape&gt; docs = new ArrayList&lt;&gt;(pointDocs);
+        if (pointsOnly == false) {
+          docs.addAll(otherDocs);
+        }
+        for (Shape indexed : docs) {
+          for (Shape q : queries) {
+            for (SpatialOperation op : ops) {
+              if (pointsOnly &amp;&amp; op != SpatialOperation.Intersects) {
+                continue; // RPT pointsOnly supports Intersects only
+              }
+              boolean exact = op.evaluate(indexed, q);
+              if (exact == false) {
+                continue;
+              }
+              cases++;
+              int hits = count(s, indexed, op, q);
+              if (hits == 0) {
+                falseNeg++;
+                sb.append(&quot;FN levels=&quot;)
+                    .append(levelsMax)
+                    .append(&#x27; &#x27;)
+                    .append(name)
+                    .append(&#x27; &#x27;)
+                    .append(op)
+                    .append(&quot; doc=&quot;)
+                    .append(indexed)
+                    .append(&quot; query=&quot;)
+                    .append(q)
+                    .append(&#x27;\n&#x27;);
+              }
+            }
+          }
+        }
+      }
+    }
+    System.out.println(sb);
+    System.out.println(&quot;PROBE cases(exact match expected)=&quot; + cases + &quot; falseNegatives=&quot; + falseNeg);
+    assertEquals(&quot;false negatives (see output)&quot;, 0, falseNeg);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestPlus180CrossSignTable.java (+180 / -180 documents and queries)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Print-only hit table per strategy for doc x and query x in {+180, -180}; shows the workaround and what the fix changes for mixed signs.</p><figure class='code'><figcaption><span class='fname'>TestPlus180CrossSignTable.java (+180 / -180 documents and queries)</span><span class='meta'>88 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.spatial.SpatialStrategy;
+import org.apache.lucene.spatial.composite.CompositeSpatialStrategy;
+import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
+import org.apache.lucene.spatial.query.SpatialArgs;
+import org.apache.lucene.spatial.query.SpatialOperation;
+import org.apache.lucene.spatial.serialized.SerializedDVStrategy;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Point;
+
+/**
+ * Print-only table: hits for a document at x = +180 or -180 (y = 10) queried with a point at x =
+ * +180 or -180, per strategy and operation, on PackedQuadPrefixTree(GEO, 8). Shows the
+ * workaround (write +180 as -180 on both sides) and what the fix changes for mixed signs.
+ */
+public class TestPlus180CrossSignTable extends LuceneTestCase {
+
+  private static final SpatialContext CTX = SpatialContext.GEO;
+
+  private static int count(SpatialStrategy s, Point doc, SpatialOperation op, Point q)
+      throws IOException {
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, newIndexWriterConfig())) {
+      Document d = new Document();
+      for (Field f : s.createIndexableFields(doc)) {
+        d.add(f);
+      }
+      w.addDocument(d);
+      w.commit();
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        return new IndexSearcher(r).count(s.makeQuery(new SpatialArgs(op, q)));
+      }
+    }
+  }
+
+  public void testTable() throws IOException {
+    StringBuilder sb = new StringBuilder(&quot;TABLE strategy | op | doc x | query x | exact | hits\n&quot;);
+    for (int strat = 0; strat &lt; 4; strat++) {
+      boolean pointsOnly = strat % 2 == 1;
+      RecursivePrefixTreeStrategy rpt =
+          new RecursivePrefixTreeStrategy(new PackedQuadPrefixTree(CTX, 8), &quot;geo&quot;);
+      rpt.setPointsOnly(pointsOnly);
+      SpatialStrategy s =
+          strat &lt; 2 ? rpt : new CompositeSpatialStrategy(&quot;geo&quot;, rpt, new SerializedDVStrategy(CTX, &quot;sdv&quot;));
+      String name = (strat &lt; 2 ? &quot;RPT&quot; : &quot;composite&quot;) + &quot;(pointsOnly=&quot; + pointsOnly + &quot;)&quot;;
+      for (SpatialOperation op : new SpatialOperation[] {SpatialOperation.Intersects, SpatialOperation.Contains}) {
+        if (strat == 1 &amp;&amp; op != SpatialOperation.Intersects) {
+          continue;
+        }
+        for (double dx : new double[] {180, -180}) {
+          for (double qx : new double[] {180, -180}) {
+            Point doc = CTX.getShapeFactory().pointXY(dx, 10);
+            Point q = CTX.getShapeFactory().pointXY(qx, 10);
+            sb.append(&quot;TABLE &quot;).append(name).append(&quot; | &quot;).append(op).append(&quot; | &quot;).append(dx)
+                .append(&quot; | &quot;).append(qx).append(&quot; | &quot;).append(op.evaluate(doc, q)).append(&quot; | &quot;)
+                .append(count(s, doc, op, q)).append(&#x27;\n&#x27;);
+          }
+        }
+      }
+    }
+    System.out.println(sb);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193: fails (gradle and the classpath runner, assertions on and off); 8.3.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2: fail; 8.2.0, 7.7.3: pass</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, seed DEADBEEF, -Ptests.asserts=true (identical with false)
+TestPackedQuadPlus180Point &gt; testCompositeIntersectsSamePoint FAILED
+    java.lang.AssertionError: CompositeSpatialStrategy Intersects(Pt(180,10)) must find the doc at Pt(180,10) expected:&lt;1&gt; but was:&lt;0&gt;
+TestPackedQuadPlus180Point &gt; testRptContainsSamePoint FAILED
+    java.lang.AssertionError: RPT/PackedQuadPrefixTree Contains(Pt(180,10)) must find the doc at Pt(180,10) expected:&lt;1&gt; but was:&lt;0&gt;
+TestPackedQuadPlus180Point &gt; testRptIntersectsSamePoint FAILED
+    java.lang.AssertionError: RPT/PackedQuadPrefixTree Intersects(Pt(180,10)) must find the doc at Pt(180,10) expected:&lt;1&gt; but was:&lt;0&gt;
+6 tests completed, 3 failed
+
+# with the fix: 6 tests, 0 failed (assertions on and off)
+
+# cell probe, main a9779ef3c193
+level-1 cell rectangles vs Pt(180,10):
+  NW [-180,0]x[0,90] relate = CONTAINS
+  NE [0,180]x[0,90]  relate = CONTAINS
+Pt(180.0,10) maxLevels=8  index leaf=Rect(minX=-180.0,maxX=-178.59375,minY=9.84375,maxY=10.546875)  query leaf=Rect(minX=178.59375,maxX=180.0,minY=9.84375,maxY=10.546875)  same=false
+Pt(-180.0,10) maxLevels=8  index leaf=Rect(minX=-180.0,maxX=-178.59375,minY=9.84375,maxY=10.546875)  query leaf=Rect(minX=-180.0,maxX=-178.59375,minY=9.84375,maxY=10.546875)  same=true</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>A point intersects and contains itself, and a point query has zero distance error.</li><li>Reviewing the change that introduced this, its committer (dsmiley) named "exact point lookup of itself should round-trip" as a use case that must keep working.</li><li>The same tree finds the point written as -180; <code class='nw'>QuadPrefixTree</code> finds it at +180.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>363 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code>SpatialArgs#getDistErrPct</code> / <code class='nw'>#getDistErr</code>: the error "effectively inflates the size of the shape but should not shrink it" (<code>SpatialArgs.java:118-119, 134-135</code>). <code>PrefixTreeStrategy#setDistErrPct</code>: "Points don't use this as they are always indexed at the configured maximum precision" (<code>PrefixTreeStrategy.java:102-103</code>), and for a <code class='nw'>Point</code> query the distance error is 0 (<code>SpatialArgs.java:60-61</code>), so the query runs at the full depth (<code>QuadPrefixTree.java:117-119</code>). <code>SpatialOperation.Intersects.evaluate(p, p)</code> and <code>Contains.evaluate(p, p)</code> are true (the repro asserts it). <code>CompositeSpatialStrategy</code>: "RPT acts as an index to the precision available in SDV" (<code>CompositeSpatialStrategy.java:38</code>).</li><li><strong>Legal input.</strong> <code>Pt(180, y)</code> is inside the <code>SpatialContext.GEO</code> world bounds. spatial4j keeps x = 180: WKT <code>POINT(180 10)</code> gives x = 180, and with <code>normWrapLongitude=true</code> <code class='nw'>normX(180)</code> and even <code class='nw'>normX(540)</code> are 180. No Lucene javadoc asks callers to rewrite +180 as -180 (spatial4j's javadoc was not checked).</li><li><strong>Stated intent.</strong> In the review of apache/lucene-solr#824 (the PR behind LUCENE-8755), dsmiley, who then committed the change, asked to keep the old tokenization available because otherwise "some use-cases with existing indexes may break, like exact point lookup of itself should round-trip". Upstream <code>testPackedQuadPointsOnlyBug</code> indexes one point on a packed-quad tree and expects 1 hit for Intersects with that same point (non-geo world, one level, <code class='nw'>pointsOnly=true</code>, the <code class='nw'>TermQuery</code> path this bug does not break; <code>TestRandomSpatialOpFuzzyPrefixTree.java:143-152</code>); the randomized checks fail with "Should have matched" when an indexed shape is missed (<code class='nw'>:416</code>).</li><li><strong>Precedent.</strong> In 2017 a packed-quad "index a point, search by the same point" failure with a different cause was fixed as a bug (LUCENE-7845, fixed by LUCENE-7859, <code class='nw'>38741ece587</code>).</li><li><strong>The rules used to agree.</strong> Before 8.3.0 <code class='nw'>getCell</code> used the same "first relating cell in Z order" search as the iterator. LUCENE-8755 replaced it with the mid-point walk to fix an exception at high-precision cell edges in a non-geo world, and left the iterator unchanged; neither the issue nor the PR mentions the dateline or longitude 180.</li><li><strong>Why the tests missed it.</strong> The randomized packed-quad tests run in a non-geo [0, 256] x [-128, 128] world (<code>TestRandomSpatialOpFuzzyPrefixTree.java:97-112</code>, <code>factory.geo = false</code>); the only geo packed-quad test, <code>TestDistanceStrategy</code> (<code>PackedQuadPrefixTree(ctx, 25)</code> with <code>SpatialContext.GEO</code>, <code>TestDistanceStrategy.java:43, 55</code>), never uses longitude +180.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>161 words</span></summary><div class='body'><p>The strongest case for "works as designed": +180 and -180 are the same meridian and spatial4j's rectangle <code class='nw'>relate()</code> deliberately treats them as one, so storing the point at the -180 edge is defensible; an application could normalize to -180; and the classes are <code>@lucene.experimental</code>, with approximate filtering.</p><p>Why it fails: no Lucene documentation states a normalization requirement, and spatial4j's own normalization keeps +180; the query uses the very same <code class='nw'>Point</code> that was indexed, so the library disagrees with itself, not with the caller; a point query has zero distance error, so no documented approximation explains a miss; the change's committer named exact point round trip as something that must keep working; and the same tree finds -180 while <code class='nw'>QuadPrefixTree</code> finds +180. <code>@lucene.experimental</code> lowers the severity, not the fact that a document cannot find itself. The intended-behaviour devil's advocate found no documented, accepted or misuse argument, and the intended-lens reviewer from another model family (OpenAI GPT-5.6) rated the "intended" argument weak.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Query side: look up +180 where indexing put it (one <code class='nw'>if</code> in getCell, no reindexing)</strong></p><p class='short'>In <code>PackedQuadPrefixTree.getCell</code>, treat x = +180 as -180 when the context is geo, so the query looks in the cell where indexing put the point. One <code class='nw'>if</code>, no reindexing, no format change. The repro and the whole spatial-extras test suite (123 tests) pass; around the antimeridian it removes all 60 misses and adds none.</p><pre class='snippet' tabindex='0'><code>--- a/lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/PackedQuadPrefixTree.java
++++ b/lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/PackedQuadPrefixTree.java
+@@ -93,6 +93,11 @@ public class PackedQuadPrefixTree extends QuadPrefixTree {
+     double currentYmid = ymid;
+     double xp = p.getX();
+     double yp = p.getY();
++    if (ctx.isGeo() &amp;&amp; xp == 180) {
++      // Geo rectangles treat longitude +180 as -180: PrefixTreeIterator (used to index points) puts
++      // such a point in the cell at the -180 edge, so look it up there too.
++      xp = -180;
++    }
+     long term = 0L;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 1,073 words</span></summary><div class='body'><p>One fix was applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF) and through classpath probes; the alternatives were not run.</p><div class="hd hd-3"><h3 id='fix-query-side-wrap'>Query side: look up +180 where indexing put it (one <code class='nw'>if</code> in getCell, no reindexing) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-query-side-wrap" target="_self" aria-label="Link to this section" aria-describedby="fix-query-side-wrap"><span aria-hidden="true">#</span></a></div><p>At the start of <code>PackedQuadPrefixTree.getCell</code>, map x = +180 to -180 when <code class='nw'>ctx.isGeo()</code>. Point queries then descend into the -180 edge cells, where <code>PrefixTreeIterator</code> stored the point. The finder wrote this fix; the independent reproducer, the cross-model reviewers and the adjudication ran it.</p><pre class='snippet' tabindex='0'><code>--- a/lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/PackedQuadPrefixTree.java
++++ b/lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/PackedQuadPrefixTree.java
+@@ -93,6 +93,11 @@ public class PackedQuadPrefixTree extends QuadPrefixTree {
+     double currentYmid = ymid;
+     double xp = p.getX();
+     double yp = p.getY();
++    if (ctx.isGeo() &amp;&amp; xp == 180) {
++      // Geo rectangles treat longitude +180 as -180: PrefixTreeIterator (used to index points) puts
++      // such a point in the cell at the -180 edge, so look it up there too.
++      xp = -180;
++    }
+     long term = 0L;</code></pre><p class='k'>Trade-offs</p><ul><li><strong>No reindexing</strong>: stored terms do not change, so existing indexes are found again at once.</li><li><strong>Same answers as the existing TermQuery shortcut.</strong> With <code class='nw'>pointsOnly=true</code>, RPT Intersects already builds its term from the index-side iterator, so on stock main a +180 query matches both a +180 and a -180 document. After the fix RPT with <code class='nw'>pointsOnly=false</code> gives the same answers: hits for (doc x, query x) = (+,+), (+,-), (-,+), (-,-) go from 0, 1, 0, 1 to 1, 1, 1, 1. A -180 document returned for a +180 query is an RPT candidate: RPT is documented as "a fast approximate spatial search filter" (<code>PrefixTreeStrategy.java:39-40</code>), and its <code class='nw'>pointsOnly</code> <code class='nw'>TermQuery</code> path already returns it today; the composite strategy checks the exact geometry and returns only exact matches (0 for mixed signs, before and after).</li><li><strong>A public method changes its answer at one coordinate</strong>: <code>getCell(Point, int)</code> is public; in a geo context it now returns the -180 edge cell for x = +180. Its callers inside spatial-extras are <code>PackedQuadCell.getSubCell</code> and <code>LegacyPrefixTree.getDistanceForLevel</code> (world centre, x = 0, unaffected). The survey covers Lucene's spatial-extras only: code outside Lucene that calls the public <code class='nw'>getCell</code> and relies on the east cell for +180 would get the west cell.</li><li><strong>A special case for one meridian</strong>, matching what the indexer already does; only the geo wrap can make the two rules disagree. Cost: one comparison per call.</li><li><strong>A design choice for maintainers</strong>: spatial4j's geo rectangles treat +180 and -180 as one meridian, while exact point relations treat <code>Pt(180, 10)</code> and <code>Pt(-180, 10)</code> as different points. Maintainers may prefer a wider policy (normalize point longitudes in one place, or let the index follow <code class='nw'>getCell</code>); this fix is the smallest change that keeps existing indexes working, not the only defensible design.</li><li><strong>Same method as another hunt fix</strong>: LFV-316 also changes <code class='nw'>getCell</code> for a different cause (floating-point mid-point drift with non-power-of-two non-geo bounds); with its fix applied this bug still reproduces (3 of 6), so offer the two together or in sequence.</li></ul><p class='k'>What the checks validated</p><ul><li><strong>Stock</strong> (scratch worktree, gradle, seed DEADBEEF): the repro fails 3 of 6 with assertions on and off; the 8 closest suites (<code>TestRandomSpatialOpFuzzyPrefixTree</code>, <code>TestDistanceStrategy</code>, <code>TestCompositeStrategy</code>, <code>TestSpatialPrefixTree</code>, <code>TestHeatmapFacetCounter</code>, <code>TestTermQueryPrefixGridStrategy</code>, <code class='nw'>TestPortedSolr3</code>, <code>TestQueryEqualsHashCode</code>) pass, 35 tests.</li><li><strong>With the fix</strong>: the repro passes 6 of 6 with assertions on and off; the 8 closest suites pass, 35 tests, 0 failures; the whole spatial-extras test suite with the repro in place passes, 123 tests, 5 skipped, 0 failures; <code>TestRandomSpatialOpFuzzyPrefixTree</code> with 20 iterations passes, 180 tests; <code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code> and <code>checkGoogleJavaFormat</code> of the module pass.</li><li><strong>Around the antimeridian</strong> (classpath probe, main jars with the fixed class shadowed): of 552 combinations that should match (points at +/-180 for six latitudes, rectangles and circles touching or crossing +/-180, the whole world; point and rectangle queries; Intersects, Contains, IsWithin; RPT and composite; 8 and 26 levels), stock misses 60 and the fix 0. No rectangle or circle document is missed before or after. Not covered: circle queries, and the heatmap and facet code at +180 (the module's heatmap and facet tests pass with the fix).</li><li><strong>Every strategy, operation and depth</strong> (resolution probe, main jars with the fixed class shadowed): doc = query at x = +/-180 for RPT (<code class='nw'>pointsOnly</code> false and true) and the composite strategy (optimized and general, either value), Intersects, Contains and IsWithin, six latitudes, 8 and 26 levels: 432 of 432 found (stock: 144 misses, all at +180); depths 1 to 8 at (180, 10): every combination found.</li><li><strong>Cells</strong>: with the fix the looked-up leaf equals the indexed leaf for (180, 10) and (-180, 10) at 1, 2, 3 and 8 levels.</li><li>Earlier hunt runs: the finder's repro passes 6 of 6 with the fix shadowed (seeds DEADBEEF, 5EEDF00D, A0D17004), the independent reproducer's 10 tests pass 10 of 10, the cross-model reviewers' own tests pass, and a clean worktree ran the whole module with the repro: 123 tests, 3 failures stock, 0 with the fix.</li></ul><div class="hd hd-3"><h3 id='fix-index-side'>Index side: store a point along the getCell path (needs a reindex)</h3><a class="hlink" href="#fix-index-side" target="_self" aria-label="Link to this section" aria-describedby="fix-index-side"><span aria-hidden="true">#</span></a></div><p>Make <code>PrefixTreeIterator</code> store a <code class='nw'>Point</code> along the mid-point path (or pick the east cell for +180), so both sides use one rule, as <code class='nw'>QuadPrefixTree</code> does.</p><p class='k'>Trade-offs</p><p>One rule everywhere, but existing indexes keep the -180 cells and must be reindexed; until then the <code class='nw'>pointsOnly</code> TermQuery shortcut, which builds its term with the same iterator, would start missing the old documents too. It also changes the stored terms of new documents. Not run.</p><div class="hd hd-3"><h3 id='fix-relate-at-wrap'>Fall back to the old relate-based search at the wrap only</h3><a class="hlink" href="#fix-relate-at-wrap" target="_self" aria-label="Link to this section" aria-describedby="fix-relate-at-wrap"><span aria-hidden="true">#</span></a></div><p>In <code class='nw'>getCell</code>, use the old <code class='nw'>buildNotRobustly</code> search (still in the class) when <code class='nw'>ctx.isGeo()</code> and x = +180.</p><p class='k'>Trade-offs</p><p>Same answers as the recommended fix by construction (it is the indexer's rule), more code. Not run.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround for users today (not a fix): write +180 as -180 on both sides</h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p>Rewrite longitude +180 as -180 before indexing and before querying. On stock main a document at -180 queried at -180 is found in all 216 combinations tried (RPT with either <code class='nw'>pointsOnly</code> value, the composite strategy optimized and general with either value; Intersects, Contains, IsWithin; six latitudes; 8 and 26 levels).</p><p class='k'>Trade-offs</p><p>Querying at -180 alone finds a +180 document with RPT, but not with the composite strategy, whose exact check treats <code>Pt(180, 10)</code> and <code>Pt(-180, 10)</code> as different points; existing +180 documents need reindexing for the composite.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Solr exposes this tree as <code>prefixTree="packedQuad"</code> and two downstream search engines map their legacy geo_shape <code class='nw'>quadtree</code> to it in a geo context, so their users can hit this miss with data exactly on +180 unless the longitude is rewritten first (not checked).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded differential check compared the strategies with exact geometry on a lattice of points, rectangles and circles in the geo context (including +/-180 and the poles) over three tree types. Beyond exact-boundary cases that the quad tree shows equally, the extra packed-quad misses were point queries at +180; a cell probe and an SMT check located the two rules.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>247 words</span></summary><div class='body'><p><strong>Method: bounded differential check of the stock main jars against exact geometry</strong> (semi-formal tier), in a hunt unit on spatial-extras composite and prefix-tree queries.</p><ul><li>A harness indexed a lattice of points, rectangles and circles in <code>SpatialContext.GEO</code> (including longitude +/-180 and the poles) and compared <code>CompositeSpatialStrategy</code> (optimized and general path), <code>RecursivePrefixTreeStrategy</code> and <code>TermQueryPrefixTreeStrategy</code> with <code>SpatialOperation.evaluate</code> on the stored shapes, over geohash, quad and packed-quad trees, levels, <code class='nw'>distErrPct</code>, prune and <code>prefixGridScanLevel</code> settings.</li><li>Both quad trees showed the same exact-boundary misses (for example a line lying exactly on a circle's rim, which RPT Contains misses with <code class='nw'>QuadPrefixTree</code> too). On top of those, the packed-quad tree had extra RPT and composite false negatives and term-query vs RPT disagreements on points, for most classes exactly 192 more than the <code class='nw'>QuadPrefixTree</code> control (the number of +180 point-query cases), and every printed example was a point query at x = +180; the control had none of these extras.</li><li>A cell-level diagnosis printed the two different leaves, and an SMT check (Z3, exact rationals) showed the index-side and query-side point-to-cell rules agree in every cell without the longitude wrap and, on the level-1 split of the geo world, differ only at x = +180.</li><li>The finding was reduced to a 6-method public-API JUnit and checked by an independent reproducer, an intended-behaviour devil's advocate, reviews by a model from another family (OpenAI GPT-5.6) that ran their own tests, an adjudication, a history, prior-report and security follow-up, and an audit. Found 2026-10-27 on main <code class='nw'>a9779ef3c193</code>.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): four prior-report tool runs, GitHub searches across Lucene, Solr, spatial4j and downstream projects, JIRA, the mailing lists, the web and the changed files of all 409 open PRs (one list capped by GitHub). The nearest items are the change that introduced it and a 2017 packed-quad point-lookup bug with a different cause.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: no report by anyone, none by the owner. Keyword search cannot prove absence; GitHub search does not index review comments repository-wide. Nearest items, none of them this bug: #9800 (LUCENE-8755) and apache/lucene-solr#824, the change that introduced it (non-geo floating-point robustness only); #8896 / #8910 (LUCENE-7845 / LUCENE-7859, 2017), a packed-quad "index a point, search the same point" failure with a different cause, fixed before this bug existed; #13305 (open), an RPT Contains test failure with rectangles near +/-180 on the geohash tree; locationtech/spatial4j#85 (2015), why geo <code class='nw'>relate</code> treats +/-180 as equal.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene and downstream repositories), dev@, java-user@, issues@, commits@, the JIRA archive, the web</th><td class='when'>2026-10-27</td><td>the hunt's prior-report tool, four runs (identifiers, strategies, origin and Solr, downstream): 58, 51, 51 and 59 queries</td><td>no report; every post-2019 hit is unrelated (commits, number noise on "180", other geo_shape dateline items, an unanswered 2023 question)</td></tr><tr><th scope='row'>apache/lucene, apache/lucene-solr, apache/solr, locationtech/spatial4j, downstream repositories, all of GitHub</th><td class='when'>2026-10-27</td><td>manual GitHub GraphQL searches (PackedQuadPrefixTree, packedQuad, + 180 / dateline / antimeridian; author:shbhar PackedQuad: 0); issue threads #9800, #8896, #8910, #7481, #13305 and lucene-solr#824 read</td><td>context only: #9800 / lucene-solr#824 (origin), #8896 / #8910 (precedent), #13305 (geohash, rectangles), spatial4j#85 (why +/-180 relate as equal)</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR), mailing lists (lucene and solr domains), the web</th><td class='when'>2026-10-27</td><td>15 manual JIRA queries, 40 list-archive queries, 13 web queries</td><td>no report</td></tr><tr><th scope='row'>all 409 open apache/lucene PRs; upstream main and branch_10x</th><td class='when'>2026-10-27</td><td>changed-file lists; read of getCell on upstream main a95c754ee003 and branch_10x</td><td>no open PR touches PackedQuadPrefixTree.java or QuadPrefixTree.java as far as the file lists show (one very large PR's list stops at the 3,000-file API limit; 411 open PRs re-checked on 2026-10-28, same result); getCell unchanged upstream</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 8.3.0 by LUCENE-8755 (<code class='nw'>26628b2717a</code>, 2019-08-20), which gave point queries a faster mid-point <code class='nw'>getCell</code> while indexing kept the relate-based iterator. Executed: 7.7.3 and 8.2.0 pass; 8.3.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main fail. A version switch kept the old rule until 10.0.0.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>26628b2717a</code> "LUCENE-8755: Spatial-extras quad and packed-quad trees now index points a little faster, and also fix an edge case bug. Fixes #824" (apache/lucene#9800; PR apache/lucene-solr#824, by chenkovsky, closed and committed directly by dsmiley on 2019-08-20; branch_8x <code class='nw'>c09ddcb7180</code>). It replaced <code class='nw'>getCell</code>'s relate-based search (<code class='nw'>build</code> / <code class='nw'>checkBattenberg</code>, the indexer's rule) with the mid-point walk and did not touch <code>PrefixTreeIterator</code>, unchanged since LUCENE-6422 (<code class='nw'>9d1c2019a8a</code>, 2015). <code>git blame -w</code> attributes main's <code class='nw'>getCell</code> body and <code class='nw'>battenberg</code> to it.</p><p><strong>Version switch.</strong> From 8.3.0 to 9.12.x, <code>SpatialPrefixTreeFactory</code> with <code class='nw'>version</code> &lt; 8.3.0 kept the old <code class='nw'>getCell</code>; flipping only that argument turns the failure off and on inside one release. <code class='nw'>1ddb01044a0</code> ("remove unnecessary backward compatibility", 2021-11-02, first in 10.0.0) removed it, so from 10.0.0 on every <code>PackedQuadPrefixTree</code> is affected. Between 8.2.0 and 8.3.0 only <code class='nw'>c09ddcb7180</code> and LUCENE-8758 touch spatial-extras sources; both brackets ran with spatial4j 0.7. Releases between the executed ones were not run (no semantic change to the involved code). Upstream main and branch_10x still have the same <code class='nw'>getCell</code>.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fails 3 of 6 (gradle and the classpath runner, assertions on and off); passes 6 of 6 with the fix</td></tr><tr><th scope='row'>10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fail 3 of 6; the factory's old-rule switch is gone, so the version=8.2.0 tree fails too</td></tr><tr><th scope='row'>9.0.0, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>fail 3 of 6; a factory-built tree with version=8.2.0 passes</td></tr><tr><th scope='row'>8.3.0, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release 8.3.0</span></td><td>fail 3 of 6; a factory-built tree with version=8.2.0 passes</td></tr><tr><th scope='row'>8.2.0, 7.7.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>pass 6 of 6: getCell still used the indexer's relate-based rule</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and an intended-behaviour devil's advocate reproduced it with their own tests, controls passing; reviews by a model from another family (OpenAI GPT-5.6) ran their own tests and agreed; an adjudication and an audit re-ran it with new seeds, and this doc's gradle runs reproduce it and validate the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>397 words</span></summary><div class='body'><p>Every check wrote or re-ran a repro on stock main; every control passed, and every fix run passed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Lattice sweep, cell diagnosis and Z3 check, then the 6-method JUnit: fails 3 of 6 on main (-ea, -da), 10.5.2, 9.12.3 and 8.3.0, passes on 8.2.0 and with the fix; with LFV-316's fix still 3 of 6.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Own test fails only for exact +180 (seeds DEADBEEF, C0FFEE, BADC0DE, -da; 3 of 9 over three iterations); <code>Math.nextDown(180)</code> and pointsOnly controls pass; the fix passes it and the existing packed-quad suites.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 10-test JUnit from the claim: 4 fail on main (-ea, -da), 10.5.2 and 9.12.3; prints both leaves; level sweep 30 of 36; 8.2.0 passes, 8.3.0 fails; narrowed the composite scope; the finder's fix passes 10 of 10.</td></tr><tr><th scope='row'>cross-model review, intended lens (the cross-model review, OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high; intended argument weak</span></td><td>Own test fails 2 of 6 on main, 9.12.3 and 10.5.2; a cell probe shows the two leaf tokens; 8.2.0 passes, 8.3.0 fails. The cross-model review stage re-ran both tests on a9779ef3c193 and with the fix (12 of 12 pass).</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>No documented, accepted or misuse argument. Own probe with the factory-built tree, WKT and <code>SpatialArgsParser</code>: 0 hits, also with <code>normWrapLongitude=true</code>; fails on main and 10.5.2.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the independent reproduction's test (seeds 1D236A01 -ea, 1D236A02 -da: 4 of 10 fail), the finder's repro (1D236A03: 3 of 6) and the independent reproduction's test with the fix (1D236A04: 10 of 10 pass).</td></tr><tr><th scope='row'>Follow-up and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Follow-up re-run (seed 5EEDF00D) and an independent credibility audit (seed A0D17004): 3 of 6 fail with -ea and -da, 6 of 6 pass with the fix.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Gradle in a scratch worktree: stock 3 of 6 fail (assertions on and off); with the fix the repro, the 8 closest suites and the whole module pass; the antimeridian probe goes from 60 misses to 0. After the fact checks, a resolution probe ran every strategy and operation at depths 1 to 8 and over the +/-180 cross product (stock and fixed), and the reworded repro was re-run (3 of 6 fail stock, 6 of 6 with the fix, format check passes).</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-705/bug.png' download='packedquad-geo-plus180-point-index-query-cell-mismatch-bug.png' target='_self'>PNG</a> <span class='n'>528 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,104 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-705, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>PackedQuadPrefixTree in a geo context indexes a point at longitude +180 under the -180 edge cell, but point queries look in the +180 edge cell, so RPT and CompositeSpatialStrategy Intersects/Contains with that same point miss the document</dd></div><div><dt>Area</dt><dd>spatial-extras / prefix trees: PackedQuadPrefixTree point-to-cell lookup (RecursivePrefixTreeStrategy and CompositeSpatialStrategy point queries)</dd></div><div><dt>Priority</dt><dd>Low, rank 352: The experimental PackedQuadPrefixTree silently misses a point at exactly longitude +180, a boundary-value point miss with the same profile as LFV-316 and LFV-371.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that index points with RecursivePrefixTreeStrategy, or CompositeSpatialStrategy over it, on the opt-in, @lucene.experimental PackedQuadPrefixTree in a geo SpatialContext (any maxLevels &gt;= 2; Solr exposes it as prefixTree=packedQuad) silently lose a document stored at exactly longitude +180 when they query that same point: RPT Intersects with pointsOnly=false, RPT Contains with either pointsOnly value, the default (optimized) composite Intersects and Contains with either value, and composite IsWithin/Equals/Overlaps when the composite's RPT is not pointsOnly; nothing throws and the index is intact, while RPT pointsOnly=true Intersects, RPT IsWithin, TermQueryPrefixTreeStrategy, the rectangle and circle queries of the finder's sweep, x=-180, Math.nextDown(180), QuadPrefixTree and geohash are unaffected; default IndexWriterConfig, codec and searcher, any index size, -ea and -da, every release from 8.3.0 to 10.5.2 and main.</dd></div><div><dt>Summary</dt><dd>You index a point at longitude +180, for example Pt(180, 10), with RecursivePrefixTreeStrategy over PackedQuadPrefixTree(SpatialContext.GEO, 8) and query Intersects or Contains with that same point; the document must match, since a point intersects and contains itself and the prefix-tree approximation may only add matches (SpatialArgs: the error 'should not shrink' the shape). Instead the query returns 0 hits, and so does CompositeSpatialStrategy's Intersects: indexing keeps the first cell in Z order whose rectangle relate()s to the point, and a geo rectangle treats +180 as -180, so the point is stored in the cells at the -180 edge, while the point query's cell lookup (PackedQuadPrefixTree.getCell, a mid-point walk since LUCENE-8755 in 8.3.0) sends x=+180 to the cells at the +180 edge. The same point at -180, QuadPrefixTree, and a rectangle query touching +180 still find the document.</dd></div><div><dt>Introduced</dt><dd>26628b2717a73235db56fde94f7f5b64cbc5b8b2 (LUCENE-8755 'QuadPrefixTree robustness: can throw exception while indexing a point at high precision', apache/lucene#9800, from apache/lucene-solr#824, which was closed and committed directly; branch_8x backport c09ddcb7180ccc4abaef25f654ffc053421353a4, shipped in 8.3.0) [exec: the candidate repro passes 6/6 on 8.2.0 and fails 3/6 on 8.3.0, and inside 8.3.0-9.12.3 flipping only SpatialPrefixTreeFactory's version argument (old vs new getCell) turns the failure off and on; read: git blame -w attributes main's getCell body and QuadPrefixTree.battenberg to this commit, the indexing iterator PrefixTreeIterator is unchanged since LUCENE-6422 (9d1c2019a8a), and between 8.2.0 and 8.3.0 only the backport c09ddcb7180 and LUCENE-8758 (f3b2358bc73, unused fields) touch spatial-extras sources] (2019-08-20 (commit date; authored 2019-08-07))</dd></div><div><dt>First affected version</dt><dd>8.3.0 [exec] (8.2.0 and 7.7.3 pass [exec])</dd></div><div><dt>Affected versions</dt><dd>8.3.0-8.11.4, 9.0.0-9.12.3, 10.0.0-10.5.2 and main a9779ef3c193; never fixed (getCell is unchanged on upstream main a95c754ee003 and branch_10x, read-only check 2026-10-27). [exec] the candidate repro fails 3/6 on 8.3.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da) and passes 6/6 on 7.7.3 and 8.2.0; the independent reproduction's own JUnit fails on main (-ea, -da), 10.5.2 (-ea, -da) and 9.12.3, and the independent reproduction's framework-free main() passes on 8.2.0 and fails on 8.3.0; the GPT reviewers' own tests fail on main, and the intended-lens reviewer's also on 10.5.2 and 9.12.3, while its 8.x probe passes on 8.2.0 and fails on 8.3.0. [read] the releases in between (no semantic change to the involved code). In 8.3.0-9.12.x a tree built through SpatialPrefixTreeFactory with version &lt; 8.3.0 keeps the old getCell and is not affected (the switch was removed by 1ddb01044a0 in 10.0.0); the public constructor and the default factory version are affected.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (the prior-report record, verdict new, searched 2026-10-27, read-only: four scripted prior-report searches (58, 51, 51 and 59 queries; 78, 231, 45 and 81 distinct hits) over GitHub issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, JIRA and the web; manual GitHub GraphQL searches in apache/lucene, apache/lucene-solr, apache/solr, locationtech/spatial4j and downstream repositories (including repo:apache/lucene author:shbhar PackedQuad: 0); JIRA LUCENE and SOLR searches; 40 lists.apache.org queries; 13 web queries; and the file lists of all 409 open apache/lucene PRs, none of which touches PackedQuadPrefixTree.java or QuadPrefixTree.java; the finder's, the independent reproduction's and the intended-behaviour check's searches agree). Closest items, none of them this bug: #9800 (LUCENE-8755, the change that introduced it; its discussion covers non-geo floating-point robustness only) and its PR apache/lucene-solr#824; #8896/#8910 (LUCENE-7845/LUCENE-7859, a 2017 PackedQuad point self-lookup failure with a different cause, fixed before this bug existed); #13305 (open, an RPT Contains test failure with rectangles near +/-180 on GeohashPrefixTree). Not fixed upstream: getCell is unchanged on upstream main a95c754ee003 and branch_10x.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-28): this doc's gradle runs in a scratch worktree (stock and fixed, assertions on and off, the module's tests) and its classpath probes (cells, side effects, mixed signs); the hunt's runs on 7.7.3, 8.2.0, 8.3.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 (Maven Central jars). OpenJDK 25.0.3 on Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/PackedQuadPrefixTree.java:49 (@lucene.experimental), :90-128 (getCell mid-point walk), :183-190 (getTreeCellIterator -&gt; PrefixTreeIterator), :468-503 (PrefixTreeIterator.hasNext: first relating Z-order cell, a Point stops at its first leaf)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/QuadPrefixTree.java:223-235 (battenberg: xmid &gt;= xp goes west)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/LegacyCell.java:134-143 (getNextLevelCells(Point) -&gt; getSubCell)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:216-237 (pointsOnly TermQuery shortcut via getTreeCellIterator, else IntersectsPrefixTreeQuery)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/ContainsPrefixTreeQuery.java:106-142 (Contains descends with getNextLevelCells)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeSpatialStrategy.java:122-134 (optimized Intersects -&gt; IntersectsRPTVerifyQuery)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/query/SpatialArgs.java:117-135 (&#x27;inflates the size of the shape but should not shrink it&#x27;)</code></li><li><code>SECURITY.md (In-scope reports; out-of-scope reports filed publicly)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/PackedQuadPrefixTree.java:90-128, 183-190, 342-345, 452-503</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/QuadPrefixTree.java:223-235; prefix/tree/LegacyCell.java:134-143; prefix/tree/LegacyPrefixTree.java:62-83</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:179-207, 216-237; prefix/ContainsPrefixTreeQuery.java:106-142; prefix/AbstractVisitingPrefixTreeQuery.java:61; composite/CompositeSpatialStrategy.java:122-134</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/ContainsPrefixTreeQuery.java:88-89, 120; prefix/RecursivePrefixTreeStrategy.java:62-63; composite/CompositeSpatialStrategy.java:128-134</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/SpatialPrefixTreeFactory.java:45-58; prefix/tree/PackedQuadPrefixTree.java:49; prefix/RecursivePrefixTreeStrategy.java:40; prefix/ContainsPrefixTreeQuery.java:41; composite/CompositeSpatialStrategy.java:43</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/query/SpatialArgs.java:118-119, 134-135; prefix/PrefixTreeStrategy.java:102-103; composite/CompositeSpatialStrategy.java:38</code></li><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestRandomSpatialOpFuzzyPrefixTree.java:97-112, 143-152, 416; TestDistanceStrategy.java:43, 55</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/PackedQuadPrefixTree.java:130 (buildNotRobustly), :342-345; prefix/tree/LegacyPrefixTree.java:37-47; prefix/RecursivePrefixTreeStrategy.java:216-237</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestPackedQuadPlus180Point.java (JUnit, public API, 3 bug tests + 3 controls): <a href='../repro/LFV-705/TestPackedQuadPlus180Point.java'><code>repro/LFV-705/TestPackedQuadPlus180Point.java</code></a> (146 lines)</li><li>Plus180CellProbe.java (print-only: the indexed and the looked-up leaf): <a href='../repro/LFV-705/Plus180CellProbe.java'><code>repro/LFV-705/Plus180CellProbe.java</code></a> (38 lines)</li><li>TestPlus180FixNeighbours.java (side-effect probe around the antimeridian): <a href='../repro/LFV-705/TestPlus180FixNeighbours.java'><code>repro/LFV-705/TestPlus180FixNeighbours.java</code></a> (155 lines)</li><li>TestPlus180CrossSignTable.java (+180 / -180 documents and queries): <a href='../repro/LFV-705/TestPlus180CrossSignTable.java'><code>repro/LFV-705/TestPlus180CrossSignTable.java</code></a> (88 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><ul class='paths'><li><a href='../assets/LFV-705/bug.png'><code>assets/LFV-705/bug.png</code></a> (528 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

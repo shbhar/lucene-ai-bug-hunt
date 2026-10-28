@@ -96,7 +96,7 @@ public class DefaultCodecForceMergeAfterAddIndexes {
 
   public static void main(String[] args) throws Exception {
     System.out.println("PROBE default codec: " + Codec.getDefault().getName());
-    // -Dprobe.delegate=logdoc uses LogDocMergePolicy (as in the V3 probe); default: TieredMergePolicy
+    // -Dprobe.delegate=logdoc uses LogDocMergePolicy (as in the probe); default: TieredMergePolicy
     boolean logDoc = "logdoc".equals(System.getProperty("probe.delegate"));
     MergePolicy delegate = logDoc ? new LogDocMergePolicy() : new TieredMergePolicy();
     System.out.println("PROBE delegate merge policy: " + delegate.getClass().getSimpleName());

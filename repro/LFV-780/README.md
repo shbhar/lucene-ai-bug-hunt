@@ -2,6 +2,8 @@
 
 Bug LFV-780 · Area: analysis / HTMLStripCharFilter (JFlex grammar: the BR, SCRIPT and STYLE start-tag rules of the LEFT_ANGLE_BRACKET state; also the 'htmlStrip' char filter SPI) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-780.html](../../bugs/LFV-780.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You strip '&lt;scripts&gt;hello&lt;/scripts&gt; world' (or '&lt;style-guide&gt;h
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `<scripts>hello</scripts> world` strips to `\nhello\n world`, as the `<scrapes>` control does, and `<brand>Acme</brand>` with `escapedTags={brand}` stays unchanged.
+- Actual: It strips to an empty string, the tokenizer test gets no token, and `<brand>Acme</brand>` becomes `\nAcme</brand>`: 4 of the 5 new tests fail.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestHTMLStripCharFilter-prefix-methods.java](TestHTMLStripCharFilter-prefix-methods.java)
+- [test-main.diff](test-main.diff)
+- [TestHTMLStripTagNamePrefix.java](TestHTMLStripTagNamePrefix.java)
+- [PrefixProbe.java](PrefixProbe.java)
 
 ## Feedback
 

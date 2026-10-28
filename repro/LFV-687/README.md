@@ -2,6 +2,8 @@
 
 Bug LFV-687 · Area: queryparser / surround (QueryParser.jj QUOTED token and SimpleTerm production, SrndTermQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-687.html](../../bugs/LFV-687.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You parse a surround query with a quoted term that escapes a double quote or a b
 
 ## Expected vs actual
 
-- Expected: You expect a match, because the grammar comment on the QUOTED token says 'escape quoted quote or backslash by backslash' and the lexer accepts a backslash inside quotes only as such an escape.
-- Actual: The parser strips only the outer quotes, so SrndTermQuery searches for a\"b and c:\\temp dir with the backslashes kept: 0 hits, or a silent match on a different document that holds that escaped text, and no surround syntax matches those terms exactly.
+- Expected: `"a\"b"` matches doc quote (`a"b`) and `"c:\\temp dir"` matches doc path (`c:\temp dir`).
+- Actual: They match doc raw-quote (`a\"b`) and doc raw-path (`c:\\temp dir`) instead; without those documents, 0 hits.
 
 ## Files
 
@@ -47,6 +49,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSurroundQuotedTermEscapes.java](TestSurroundQuotedTermEscapes.java)
+- [TestSrndQuotedTermEscapes.java](TestSrndQuotedTermEscapes.java)
+- [TestSurroundQuotedEscapesV1.java](TestSurroundQuotedEscapesV1.java)
+- [TestSrndQuotedEscapesV3.java](TestSrndQuotedEscapesV3.java)
 
 ## Feedback
 

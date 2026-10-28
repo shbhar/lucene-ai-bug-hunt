@@ -2,6 +2,8 @@
 
 Bug LFV-346 · Area: analysis / kuromoji (JapaneseCompletionFilter and JapaneseCompletionAnalyzer romanization, KatakanaRomanizer) · Priority: medium · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-346.html](../../bugs/LFV-346.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyze a short Japanese string with JapaneseCompletionAnalyzer or JapaneseC
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: KatakanaRomanizer.romanize builds every combination of the alternative spellings of each ambiguous kana (2^n for シ ジ チ ツ ヅ フ ヲ ン, 3^n for ヂ; for ン most are duplicates: 2^n tokens but only n+1 distinct strings), eagerly and with no limit, and the filter buffers all of them before it returns the first token.
+- Expected: Both 32-character strings are analyzed into a bounded set of tokens (for 32 x `ン`: the surface and 33 distinct spellings).
+- Actual: Both throw `OutOfMemoryError` inside the first `incrementToken`, with 0 tokens returned; 16 x `ン` already gives 65,537 tokens for only 17 different spellings.
 
 ## Files
 
@@ -46,6 +48,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-kuromoji also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestJapaneseCompletionShortInput.java](TestJapaneseCompletionShortInput.java)
+- [TestJapaneseCompletionRomajiExpansion.java](TestJapaneseCompletionRomajiExpansion.java)
+- [RomajiFixEffectProbe.java](RomajiFixEffectProbe.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/japanese-completion-fifo/](../../models/japanese-completion-fifo/)
 

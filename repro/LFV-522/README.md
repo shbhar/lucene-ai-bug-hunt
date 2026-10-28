@@ -2,6 +2,8 @@
 
 Bug LFV-522 · Area: suggest / document (NRT) suggester (ContextSuggestField context validation; the context then passes through ConcatenateGraphFilter's SEP_LABEL escaping and HOLE removal) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-522.html](../../bugs/LFV-522.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index one suggestion under context 'ab' and another under context 'a&lt;U+00
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Both documents are indexed: ContextQuery.addContext("ab") returns both and reports both with context 'ab', addContext("a&lt;U+001E&gt;b") returns nothing, and a context 'a&lt;U+001F&gt;b' is also accepted, its exact query returns nothing and addAllContexts reports it as 'a&lt;U+001F&gt;&lt;U+001F&gt;b'.
+- Expected: `IllegalArgumentException` at `addDocument` for the contexts `a<1E>b` and `a<1F>b`, or at least contexts that round-trip: exact `ab` -&gt; `[sugg0:ab]`, exact `a<1E>b` -&gt; `[sugg1:a<1E>b]`.
+- Actual: Both accepted; exact `ab` -&gt; `[sugg0:ab, sugg1:ab]`, exact `a<1E>b` -&gt; ``, `a<1F>b` never matches and is reported as `a<1F><1F>b`: 4 of 4 tests fail, assertions on and off; the controls pass.
 
 ## Files
 
@@ -43,6 +45,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestContextSuggestFieldReservedChars.java](TestContextSuggestFieldReservedChars.java)
+- [fix.diff](fix.diff)
+- [TestContextReservedCharacters.java](TestContextReservedCharacters.java)
+- [TestContextReservedChars.java](TestContextReservedChars.java)
+- [ContextReservedCharsHistoryProbe.java](ContextReservedCharsHistoryProbe.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-729 · Area: facet / FacetsConfig drill-down term indexing (DrillDownTermsIndexing.NONE in a shared indexFieldName) vs the core per-field schema check (IndexingChain FieldSchema, FieldInfo.verifySameIndexOptions) · Priority: medium · Impact: wrong error · Novelty: new
 
+Bug page: [../../bugs/LFV-729.html](../../bugs/LFV-729.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You call config.setDrillDownTermsIndexing("rating", NONE), leave every dimension
 
 ## Expected vs actual
 
-- Expected: You expect both to be indexed, as they are on Lucene 8.9 to 8.11 and as they are when rating gets its own index field.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: Both documents indexed in every order, `rating/5` and `author/Bob` counted once each, and `author` drills down.
+- Actual: The second `addDocument` throws `IllegalArgumentException` ("... field [$facets]... index options: expected 'NONE', but it has 'DOCS'", or the reverse); after a commit: "cannot change field "$facets"...".
 
 ## Files
 
@@ -49,6 +51,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDrillDownTermsNoneSharedIndexField.java](TestDrillDownTermsNoneSharedIndexField.java)
+- [TestDrillDownNoneSharedField.java](TestDrillDownNoneSharedField.java)
+- [TestNoneDimSharedIndexField.java](TestNoneDimSharedIndexField.java)
+- [DrillDownNoneHistoryMain.java](DrillDownNoneHistoryMain.java)
 
 ## Feedback
 

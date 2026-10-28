@@ -2,6 +2,8 @@
 
 Bug LFV-607 · Area: analysis-kuromoji / Japanese char filters (JapaneseIterationMarkCharFilter kana iteration marks ゝ/ヽ: isHiraganaDakuten / isKatakanaDakuten over the h2d / k2d voicing tables, used by normalizedHiragana / normalizedKatakana; JapaneseIterationMarkCharFilterFactory 'japaneseIterationMark') · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-607.html](../../bugs/LFV-607.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You put JapaneseIterationMarkCharFilter in front of an analyzer and index なゝ
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It emits などめ, so the index holds a different word and a search for ななめ finds nothing; the same happens for 19 more kana (のゝ becomes のね, ぱゝ becomes ぱば, っゝ becomes っぢ, and the katakana forms with ヽ).
+- Expected: なゝめ → ななめ, のゝしる → ののしる, every one of the 20 pairs repeats its kana (なゝ → なな, ぱゝ → ぱぱ,...), and a `TermQuery` for ななめ finds the document.
+- Actual: なゝめ → などめ and のゝしる → のねしる, 20 of 20 pairs wrong (なゝ → など, ぱゝ → ぱば,...); ななめ finds 0 documents and などめ finds 1.
 
 ## Files
 
@@ -49,6 +51,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-kuromoji also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestJapaneseIterationMarkUnvoicedKana.java](TestJapaneseIterationMarkUnvoicedKana.java)
+- [IterationMarkProbe.java](IterationMarkProbe.java)
+- [TestIterationMarkV3.java](TestIterationMarkV3.java)
+- [IterationMarkHistoryMain.java](IterationMarkHistoryMain.java)
 
 ## Feedback
 

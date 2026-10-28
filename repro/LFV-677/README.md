@@ -2,6 +2,8 @@
 
 Bug LFV-677 · Area: analysis-common / language analyzers (TeluguAnalyzer default stop set te/stopwords.txt, applied after IndicNormalizationFilter and TeluguNormalizationFilter) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-677.html](../../bugs/LFV-677.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyze Telugu text with the stock new TeluguAnalyzer, whose default stop li
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: కూడా gives no token, all 43 single-word default stop words are removed, and the AND query "రాముడు కూడా" matches 2 documents.
+- Actual: కూడా is indexed as `కుడ`, 13 of the 43 single-word stop words are kept, and the AND query matches 1 document.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestTeluguDefaultStopwordsRemoved.java](TestTeluguDefaultStopwordsRemoved.java)
+- [TestTeluguDefaultStopwords.java](TestTeluguDefaultStopwords.java)
+- [3-TestTeluguDefaultStopwords.java](3-TestTeluguDefaultStopwords.java)
+- [TestTeluguStopSetVerifyV1.java](TestTeluguStopSetVerifyV1.java)
 
 ## Feedback
 

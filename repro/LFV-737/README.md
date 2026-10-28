@@ -2,6 +2,8 @@
 
 Bug LFV-737 · Area: spatial3d / geom exact-circle outside distance (GeoExactCircle.outsideDistance, reached through GeoCircleFactory.makeExactGeoCircle and GeoOutsideDistance.computeOutsideDistance) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-737.html](../../bugs/LFV-737.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build an exact circle on the default WGS84 planet model (GeoCircleFactory.ma
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: You get +Infinity, and the same for every point due north or due south at any distance; on the unit sphere a point 0.001 rad due west of a 1e-4 rad exact circle gets 0.0012, the distance to the far side of the circle.
+- Expected: Each meridian point's outside distance is at most its distance to the shape's own edge point (0.009558 for 0.11 north); the sphere point 0.001 west gets 0.001.
+- Actual: All six meridian points get Infinity; the sphere point gets 0.001199999997484277; the control passes.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeoExactCircleOutsideDistanceAtSliceJoints.java](TestGeoExactCircleOutsideDistanceAtSliceJoints.java)
+- [TestExactCircleOutsideDistanceJointsV1.java](TestExactCircleOutsideDistanceJointsV1.java)
+- [TestExactCircleJointStyles.java](TestExactCircleJointStyles.java)
 
 ## Feedback
 

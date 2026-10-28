@@ -2,6 +2,8 @@
 
 Bug LFV-639 · Area: analysis / hunspell (WordFormGenerator: getAllWordForms, generateAllSimpleWords) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-639.html](../../bugs/LFV-639.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a Hunspell dictionary in which an ordinary entry carries a compound-pos
 
 ## Expected vs actual
 
-- Expected: You expect [foo, foos]: Lucene's own spell accepts both and analyzeSimpleWord attributes them to foo/AB, as C Hunspell 1.7.2 also does, because COMPOUNDBEGIN/MIDDLE/END only allow a word to take part in compounds while ONLYINCOMPOUND is the flag that forbids it on its own.
-- Actual: You get , because WordFormGenerator.shouldConsiderAtAll (WordFormGenerator.java:261-273) rejects the three compound-position flags together with FORBIDDENWORD and ONLYINCOMPOUND, both for the entry (so the entry yields nothing) and for affix continuation classes (so with 'SFX C 0 n/W' and W = COMPOUNDEND, getAllWordForms("Computer") never yields Computern, a word in Lucene's own germancompounding.good list); generateAllSimpleWords skips the same entries.
+- Expected: `getAllWordForms("foo")` = `[foo, foos]` for each of the three flags, `[Computer, Computern]` for the suffix case, and `generateAllSimpleWords` lists `bar, foo, foos, qux, quxs`.
+- Actual: `` for all three flags, `[Computer]`, and `[qux, quxs]`: 3 of 4 tests fail with assertions on and off; the control test passes.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestWordFormsCompoundPositionFlags.java](TestWordFormsCompoundPositionFlags.java)
+- [TestWordFormsCompoundFlags.java](TestWordFormsCompoundFlags.java)
+- [TestCompoundFlagWordForms.java](TestCompoundFlagWordForms.java)
 
 ## Feedback
 

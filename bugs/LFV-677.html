@@ -1,0 +1,748 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>TeluguAnalyzer never removes 13 of its 43 single-word default stop words, such as కూడా (&quot;also&quot;), because its stop list is not normalized</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-677 &middot; telugu-analyzer-stopwords-not-normalized</p><h1 id='top'>TeluguAnalyzer never removes 13 of its 43 single-word default stop words, such as కూడా (&quot;also&quot;), because its stop list is not normalized</h1><p class='tldr'>The stock <code class='nw'>TeluguAnalyzer</code> shortens long vowel signs before its stop filter, but its stop list holds only the long spellings, so 13 of its 43 single-word stop words, such as కూడా ("also"), are indexed as ordinary terms. No error; 8.10.0 to 10.5.2 and main.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 366</span><span class='sub'>The stock TeluguAnalyzer keeps 13 default stop words, which costs only extra terms, scoring noise and slightly stricter AND and phrase queries, the same minor quality class as its Bengali twin LFV-672, so both go in Low with this new one first, right after LFV-583.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>8.10.0 (LUCENE-10083, 2021)<span class='sub'>introduced 2021-09-02 &middot; about 5 years</span></dd></div><div><dt>Affected</dt><dd>8.10.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>exhaustive check of every default stop word against the analyzer's own normalization</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>TeluguAnalyzer</code> runs <code>IndicNormalizationFilter</code>, then <code>TeluguNormalizationFilter</code>, then its <code class='nw'>StopFilter</code>. The normalizer shortens the long vowel signs ీ ూ ే ో to ి ు ె ొ, but the default list holds only the long spellings and the stop filter is an exact lookup, so in the stock analyzer 13 entries can never match a token.</p><figure class='visual' id='telugu-analyzer-stopwords-not-normalized-short-visual'><div class='frame'><a class='still' href='../assets/LFV-677/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-677/bug.png' alt='Summary card titled: Lucene TeluguAnalyzer: 13 of its 43 single-word default stop words are never removed. Subtitle: its StopFilter runs after TeluguNormalizationFilter, which folds four long vowel signs, but the default stop list is not normalized: కూడా (&#x27;also&#x27;) is indexed as కుడ. No error. Panel 1, createComponents on కూడా (lines 115-123): StandardTokenizer, DecimalDigitFilter and IndicNormalizationFilter leave it unchanged; TeluguNormalizationFilter turns the vowel sign UU into U (TeluguNormalizer.java:80-81), giving కుడా; StopFilter (line 122) keeps it because the set holds కూడా (stopwords.txt line 21), not కుడా; TeluguStemFilter drops the final vowel sign, giving కుడ. Actual: the indexed term కుడ; expected: no token. Panel 2, 13 of the 43 single-word entries are kept (executed): each has one of the four long vowel signs that TeluguNormalizer folds (lines 76-88: 0C40 to 0C3F, 0C42 to 0C41, 0C47 to 0C46, 0C4B to 0C4A), with a table of the 13 entries, their line numbers and indexed terms. Panel 3, effect and fix: a query for కుడి (&#x27;right&#x27;) also finds a document that has కూడా but not కుడి; a query of only కూడా matches documents (executed on a 5-document index); fix: append the 13 normalized forms, as hi/stopwords.txt does: 0 of 43 kept, upstream Telugu tests pass (16 of 16); a fix changes indexed terms, so fields need reindexing, and a Telugu speaker should review the 13 forms. Footer: executed on main a9779ef3c193 (OpenJDK 25.0.3, Linux aarch64, assertions on and off); the same failure on all 40 releases from 8.10.0 to 10.5.2; not counted: 2 two-word entries, 5 duplicate lines.' width='1920' height='1080'></a></div><figcaption>The word కూడా ("also") through <code class='nw'>TeluguAnalyzer</code>: the normalizer shortens ూ to ు before the stop filter, so the filter looks up కుడా, misses the list entry కూడా, and the stemmer indexes <code class='nw'>కుడ</code>; on the right, the 13 kept entries, the effect and the fix. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index Telugu text with the stock <code>new TeluguAnalyzer()</code>, for example "రాముడు కూడా వచ్చాడు" (roughly "Ramudu also came") and "రాముడు వచ్చాడు" ("Ramudu came"). కూడా ("also") is in the analyzer's default stop list.</span></li><li><span>You expect కూడా to be dropped: analyzing it gives no token, and the AND query "రాముడు కూడా" matches both documents, like "రాముడు" alone.</span></li><li><span>Before the stop filter, the Telugu normalizer shortens the long vowel sign ూ to ు, so the filter looks up కుడా. The list holds only కూడా, nothing matches, and the stemmer indexes the term <code class='nw'>కుడ</code>.</span></li><li><span>The AND query becomes <code>+f:రాము +f:కుడ</code> and matches 1 of the 2 documents. 13 of the 43 single-word default stop words survive the same way, among them అయితే, మళ్ళీ, మాత్రమే and ఇప్పటికే; గురించి, which has no long vowel sign, is removed.</span></li><li><span>No error, with assertions on or off. Hindi's analyzer also runs its stop filter after its normalizers, but its list holds the normalized spellings too, so it removes all of its stop words.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Every application that analyzes Telugu with the stock <code>new TeluguAnalyzer()</code>, at index and query time, since 8.10.0. 13 default stop words become ordinary terms: extra postings and scoring noise, stricter AND and phrase queries, and stem collisions (కూడా and కుడి, "right", both become <code class='nw'>కుడ</code>). Plain OR queries still find their documents; a fix needs a reindex.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>581 words</span></summary><div class='body'><p><code class='nw'>TeluguAnalyzer</code> normalizes every token before its <code class='nw'>StopFilter</code>: <code>IndicNormalizationFilter</code>, then <code>TeluguNormalizationFilter</code>, then <code class='nw'>StopFilter</code>, then <code class='nw'>TeluguStemFilter</code>. The Telugu normalizer shortens the four long vowel signs ీ ూ ే ో to ి ు ె ొ, but the default stop list <code class='nw'>te/stopwords.txt</code> holds only the original spellings, and <code class='nw'>StopFilter</code> is an exact set lookup. So the filter sees కుడా while the list holds కూడా: 13 of the 43 single-word entries (30%), among them కూడా ("also"), అయితే, మళ్ళీ, మాత్రమే and ఇప్పటికే, are never removed and are indexed and searched as ordinary terms, with no error. <code class='nw'>HindiAnalyzer</code> has the same chain shape, and its list ships the normalized forms, so it removes all of its single-word entries. The list has been like this since the analyzer was added (LUCENE-10083, 8.10.0); every release from 8.10.0 to 10.5.2 and main is affected. The fix is a 16-line data change in the Hindi style; it changes indexed terms, so affected fields need reindexing.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Stop words</strong>: common words an analyzer drops before indexing and querying. <code class='nw'>TeluguAnalyzer()</code> "Builds an analyzer with the default stop words" from <code class='nw'>te/stopwords.txt</code> (<code>TeluguAnalyzer.java:98-101</code>, <code class='nw'>:42-43</code>).</li><li><strong>Vowel sign (matra)</strong>: the mark a Telugu consonant carries for its vowel. ూ (U+0C42) is the long u sign, ు (U+0C41) the short one; కూడా is క + ూ + డ + ా.</li><li><strong>The chain</strong> (<code>TeluguAnalyzer.java:114-125</code>): <code>StandardTokenizer</code> -&gt; <code>DecimalDigitFilter</code> -&gt; <code>SetKeywordMarkerFilter</code> (only with a stem-exclusion set) -&gt; <code>IndicNormalizationFilter</code> (<code class='nw'>:120</code>) -&gt; <code>TeluguNormalizationFilter</code> (<code class='nw'>:121</code>) -&gt; <code>StopFilter(result, stopwords)</code> (<code class='nw'>:122</code>) -&gt; <code class='nw'>TeluguStemFilter</code> (<code class='nw'>:123</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>TeluguNormalizer</code> folds the long vowel signs to the short ones on every token that is not marked as a keyword: ీ -&gt; ి, ూ -&gt; ు, ే -&gt; ె, ో -&gt; ొ (<code>TeluguNormalizer.java:76-88</code>, "// long -&gt; short vowels matras"). The default constructor adds no keyword marker.</li><li><code>StopFilter.accept()</code> is an exact <code class='nw'>CharArraySet</code> lookup of the current term (<code>StopFilter.java:96-97</code>).</li><li><code class='nw'>te/stopwords.txt</code> has only the header <code># Telugu stop word list</code> and the original spellings. Every entry with one of those four vowel signs is therefore unreachable in the stock analyzer (no stem-exclusion set): the filter sees కుడా, the set holds కూడా. The word goes on to the stemmer and is indexed as <code class='nw'>కుడ</code>.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>The file has 50 entry lines, 45 distinct entries (5 duplicate lines), 2 of them two words (lines 31 and 45, which can never match one token). Of the 43 single-word entries, 13 (30%) are never removed: మెచ్చుకో, చేయగలిగింది, ఇప్పటికే, మళ్ళీ, అయితే, కూడా, అందుబాటులో, వేరుగా, మాత్రమే, అందరూ, దూరంగా, చుట్టూ, వ్యతిరేకంగా (lines 2, 11, 12, 14, 18, 20, 21, 22, 37, 39, 43, 50, 51). Each differs from its normalized form only in those vowel signs. The entry గురించి has none of them and is removed.</p><div class="hd hd-3"><h3 id='what-the-bug-is-not-affected'>Not affected</h3><a class="hlink" href="#what-the-bug-is-not-affected" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-not-affected"><span aria-hidden="true">#</span></a></div><ul><li>Words named in a stem-exclusion set: the keyword marker makes <code>TeluguNormalizationFilter</code> skip them, so the raw entry matches (<code>IndicNormalizationFilter</code> ignores the marker, but it changes none of the 13 entries).</li><li><code class='nw'>normalize()</code> (<code>TeluguAnalyzer.java:127-133</code>, used for prefix, wildcard and fuzzy terms): it has no <code class='nw'>StopFilter</code>.</li><li>Custom stop sets that hold the normalized forms.</li></ul><p>A sweep ran every default entry of the 39 stock <code class='nw'>analysis-common</code> analyzers that have a default stop set through the whole analyzer. Read entry by entry, the leftovers outside Telugu and <code class='nw'>BengaliAnalyzer</code> are comment lines, hyphenated, elided or multi-word entries, so only these two lose single-word entries to pre-stop normalization (13 each; the Bengali case is a separate, already publicly described bug).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>338 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> The default constructor of a stock language analyzer, so every Telugu field that uses it, at index and query time, on every release from 8.10.0. Also code that reuses <code>TeluguAnalyzer.getDefaultStopSet()</code> after the same two normalization filters. Only Telugu fields use this analyzer. No dedicated Elasticsearch or OpenSearch Telugu analyzer was found (the Elasticsearch request #84800 is open), but Solr can configure a Lucene analyzer class by name (<code>&lt;analyzer class="..."&gt;</code>, built with its no-arg constructor), so Solr users can use it directly.</li><li><strong>What goes wrong</strong> (5-document probe index, stock analyzer vs the fixed list, assertions on and off):<ul><li>the 13 words are indexed: extra postings, scoring noise, and no position gap where a stop word should leave one;</li><li>a query made only of them still matches: the term query కూడా matches 2 documents, where the fixed analyzer builds no query at all;</li><li>AND and phrase queries that contain one are stricter: MUST("రాముడు కూడా") matches 1 document instead of 3, the phrase "రాముడు కూడా వచ్చాడు" 1 instead of 2;</li><li>the stemmer folds the kept word onto an unrelated one: కూడా and కుడి ("right") both give <code class='nw'>కుడ</code>, so the query కుడి also finds "రాముడు కూడా వచ్చాడు".</li></ul></li><li><strong>What does not go wrong.</strong> Index and query share the chain, so plain OR queries still find their documents. No exception, no corruption, and no unusual cost observed: 20,000 seeded random Telugu texts gave 0 exceptions, and 200,000 copies of కూడా take the same 4,188 index bytes as 200,000 copies of an ordinary word (one codec, one single-document segment). Deterministic; no scale needed.</li><li><strong>How common.</strong> Every such index gets these terms whenever its text contains one of the 13 words; their corpus frequency was not measured. Impact class: minor relevance quality. Compared with the intended stop-word behaviour it does lose matches for AND and phrase queries that contain one of the words (above), and the stem collision adds false ones; plain OR queries are not affected.</li><li><strong>Reindex.</strong> Any fix changes indexed and query terms, so affected fields need reindexing.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit for <code>lucene/analysis/common</code> on the public API (<code class='nw'>TeluguAnalyzer</code>, <code class='nw'>IndexWriter</code>, <code class='nw'>QueryBuilder</code>): 4 tests, 3 fail today and 1 control passes. It fails the same way with assertions on and off, on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestTeluguDefaultStopwordsRemoved.java (analysis-common, 4 tests incl. a control)</span><span class='meta'>119 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.te;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.util.QueryBuilder;
+
+/**
+ * The default TeluguAnalyzer must remove the words of its own default stop list. Its StopFilter
+ * runs after IndicNormalizationFilter and TeluguNormalizationFilter, which shorten long vowel
+ * signs, while the list holds only the unnormalized spellings.
+ */
+public class TestTeluguDefaultStopwordsRemoved extends BaseTokenStreamTestCase {
+
+  private static List&lt;String&gt; terms(TeluguAnalyzer a, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    return out;
+  }
+
+  /** కూడా (&quot;also&quot;) is in the default stop set, so analyzing it must give no token. */
+  public void testAlsoIsRemoved() throws IOException {
+    try (TeluguAnalyzer a = new TeluguAnalyzer()) {
+      assertTrue(TeluguAnalyzer.getDefaultStopSet().contains(&quot;కూడా&quot;));
+      assertEquals(List.of(), terms(a, &quot;కూడా&quot;));
+    }
+  }
+
+  /** Every single-word entry of the default stop set must give no token. */
+  public void testEverySingleWordDefaultIsRemoved() throws IOException {
+    try (TeluguAnalyzer a = new TeluguAnalyzer()) {
+      int singleWord = 0;
+      List&lt;String&gt; kept = new ArrayList&lt;&gt;();
+      for (Object o : TeluguAnalyzer.getDefaultStopSet()) {
+        String w = new String((char[]) o);
+        if (w.indexOf(&#x27; &#x27;) &gt;= 0) {
+          continue; // two entries are two words each and can never match a single token
+        }
+        singleWord++;
+        List&lt;String&gt; t = terms(a, w);
+        if (t.isEmpty() == false) {
+          kept.add(w + &quot; -&gt; &quot; + t);
+        }
+      }
+      assertEquals(
+          kept.size() + &quot; of &quot; + singleWord + &quot; single-word default stop words kept: &quot; + kept,
+          0,
+          kept.size());
+    }
+  }
+
+  /**
+   * With the stop word dropped, the AND query &quot;రాముడు కూడా&quot; must match both documents with రాముడు.
+   */
+  public void testAndQueryIgnoresStopWord() throws IOException {
+    try (TeluguAnalyzer a = new TeluguAnalyzer();
+        Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(a))) {
+        for (String text : new String[] {&quot;రాముడు కూడా వచ్చాడు&quot;, &quot;రాముడు వచ్చాడు&quot;, &quot;కుడి చేయి&quot;}) {
+          Document doc = new Document();
+          doc.add(new TextField(&quot;f&quot;, text, Field.Store.NO));
+          w.addDocument(doc);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        Query q =
+            new QueryBuilder(a).createBooleanQuery(&quot;f&quot;, &quot;రాముడు కూడా&quot;, BooleanClause.Occur.MUST);
+        assertEquals(&quot;hits for &quot; + q, 2, new IndexSearcher(r).count(q));
+      }
+    }
+  }
+
+  /**
+   * Control: గురించి has no long vowel sign, so the normalizers leave it alone and it is removed.
+   */
+  public void testControlEntryWithoutLongVowelSignIsRemoved() throws IOException {
+    try (TeluguAnalyzer a = new TeluguAnalyzer()) {
+      assertTrue(TeluguAnalyzer.getDefaultStopSet().contains(&quot;గురించి&quot;));
+      assertEquals(List.of(), terms(a, &quot;గురించి&quot;));
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.te.TestTeluguDefaultStopwordsRemoved -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>కూడా gives no token, all 43 single-word default stop words are removed, and the AND query "రాముడు కూడా" matches 2 documents.</dd></div><div class='got'><dt>Observed</dt><dd>కూడా is indexed as <code class='nw'>కుడ</code>, 13 of the 43 single-word stop words are kept, and the AND query matches 1 document.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-677/'>repro/LFV-677/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (278 lines) · 1,707 words</span></summary><div class='body'><p>Copy the file into <code>lucene/analysis/common/src/test/org/apache/lucene/analysis/te/</code> of a checkout and run the command below. The tests: కూడా alone gives no token; every single-word default entry gives no token (the two two-word entries are skipped); the AND query "రాముడు కూడా" over three documents matches both documents with రాముడు; and a control, గురించి (no long vowel sign), is removed. It needs the <code>org.apache.lucene.tests</code> test framework (9.1.0 and later).</p><p>The other files: the finder's JUnit (2 tests, the source of the 48-run history matrix), its copy with the old <code>BaseTokenStreamTestCase</code> import for 8.10.0-9.0.0, and the independent reproducer's JUnit (5 tests, 3 controls).</p><div class="hd hd-3"><h3 id='code-2-h'>TestTeluguDefaultStopwords.java (the finder&#x27;s JUnit, 2 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails 2 of 2 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3; its message says "13 of 45" because it divides by the whole set, 2 entries of which are two words.</p><figure class='code'><figcaption><span class='fname'>TestTeluguDefaultStopwords.java (the finder&#x27;s JUnit, 2 tests)</span><span class='meta'>73 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.te;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * TeluguAnalyzer runs its StopFilter after its normalization filters, but its default stop word list is
+ * not normalized, so default stop words that the normalizers change are never removed.
+ */
+public class TestTeluguDefaultStopwords extends BaseTokenStreamTestCase {
+
+  private static List&lt;String&gt; terms(TeluguAnalyzer a, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute t = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) out.add(t.toString());
+      ts.end();
+    }
+    return out;
+  }
+
+  /** కూడా (&quot;also&quot;) is in the default stop set, so analyzing it alone must produce no token. */
+  public void testOneDefaultStopword() throws IOException {
+    try (TeluguAnalyzer a = new TeluguAnalyzer()) {
+      String w = &quot;కూడా&quot;;
+      assertTrue(a.getStopwordSet().contains(w));
+      assertEquals(List.of(), terms(a, w));
+    }
+  }
+
+  /**
+   * Every single-word entry of the default stop set must be removed by the analyzer (entries that
+   * contain a space can never match one token and are left out here).
+   */
+  public void testAllDefaultStopwordsAreRemoved() throws IOException {
+    try (TeluguAnalyzer a = new TeluguAnalyzer()) {
+      CharArraySet stop = TeluguAnalyzer.getDefaultStopSet();
+      List&lt;String&gt; notRemoved = new ArrayList&lt;&gt;();
+      for (Object o : stop) {
+        String w = new String((char[]) o);
+        if (w.indexOf(&#x27; &#x27;) &gt;= 0) continue;
+        List&lt;String&gt; t = terms(a, w);
+        if (!t.isEmpty()) notRemoved.add(w + &quot; -&gt; &quot; + t);
+      }
+      assertEquals(
+          &quot;default stop words not removed (&quot; + notRemoved.size() + &quot; of &quot; + stop.size() + &quot;): &quot; + notRemoved,
+          0,
+          notRemoved.size());
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.te.TestTeluguDefaultStopwords -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestTeluguDefaultStopwords.java for 8.10.0-9.0.0 (old test-framework import)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>The same test with <code>org.apache.lucene.analysis.BaseTokenStreamTestCase</code>; it fails 2 of 2 on every 8.x release with <code class='nw'>TeluguAnalyzer</code> and on 9.0.0.</p><figure class='code'><figcaption><span class='fname'>TestTeluguDefaultStopwords.java for 8.10.0-9.0.0 (old test-framework import)</span><span class='meta'>73 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.te;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.BaseTokenStreamTestCase;
+
+/**
+ * TeluguAnalyzer runs its StopFilter after its normalization filters, but its default stop word list is
+ * not normalized, so default stop words that the normalizers change are never removed.
+ */
+public class TestTeluguDefaultStopwords extends BaseTokenStreamTestCase {
+
+  private static List&lt;String&gt; terms(TeluguAnalyzer a, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute t = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) out.add(t.toString());
+      ts.end();
+    }
+    return out;
+  }
+
+  /** కూడా (&quot;also&quot;) is in the default stop set, so analyzing it alone must produce no token. */
+  public void testOneDefaultStopword() throws IOException {
+    try (TeluguAnalyzer a = new TeluguAnalyzer()) {
+      String w = &quot;కూడా&quot;;
+      assertTrue(a.getStopwordSet().contains(w));
+      assertEquals(List.of(), terms(a, w));
+    }
+  }
+
+  /**
+   * Every single-word entry of the default stop set must be removed by the analyzer (entries that
+   * contain a space can never match one token and are left out here).
+   */
+  public void testAllDefaultStopwordsAreRemoved() throws IOException {
+    try (TeluguAnalyzer a = new TeluguAnalyzer()) {
+      CharArraySet stop = TeluguAnalyzer.getDefaultStopSet();
+      List&lt;String&gt; notRemoved = new ArrayList&lt;&gt;();
+      for (Object o : stop) {
+        String w = new String((char[]) o);
+        if (w.indexOf(&#x27; &#x27;) &gt;= 0) continue;
+        List&lt;String&gt; t = terms(a, w);
+        if (!t.isEmpty()) notRemoved.add(w + &quot; -&gt; &quot; + t);
+      }
+      assertEquals(
+          &quot;default stop words not removed (&quot; + notRemoved.size() + &quot; of &quot; + stop.size() + &quot;): &quot; + notRemoved,
+          0,
+          notRemoved.size());
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestTeluguStopSetVerifyV1.java (independent reproducer, 5 tests, 3 controls)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only: fails 2 of 5 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2, 9.12.3, 8.11.4 and 8.10.0; its controls pass (an unchanged entry is removed; a custom set holding కుడా removes కూడా; the default set holds కూడా while <code class='nw'>normalize()</code> gives కుడా).</p><figure class='code'><figcaption><span class='fname'>TestTeluguStopSetVerifyV1.java (independent reproducer, 5 tests, 3 controls)</span><span class='meta'>132 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.te;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.standard.StandardTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Independent check: words listed in TeluguAnalyzer&#x27;s default stop set should not be emitted by
+ * the default TeluguAnalyzer. Uses only public API (TeluguAnalyzer, getDefaultStopSet,
+ * Analyzer#normalize, StandardTokenizer).
+ */
+public class TestTeluguStopSetVerifyV1 extends BaseTokenStreamTestCase {
+
+  private static List&lt;String&gt; tokens(Analyzer a, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    return out;
+  }
+
+  private static int standardTokenCount(String text) throws IOException {
+    int n = 0;
+    try (StandardTokenizer tok = new StandardTokenizer()) {
+      tok.setReader(new StringReader(text));
+      tok.reset();
+      while (tok.incrementToken()) {
+        n++;
+      }
+      tok.end();
+    }
+    return n;
+  }
+
+  private static List&lt;String&gt; defaultStopWords() {
+    List&lt;String&gt; words = new ArrayList&lt;&gt;();
+    for (Object o : TeluguAnalyzer.getDefaultStopSet()) {
+      words.add(new String((char[]) o));
+    }
+    Collections.sort(words);
+    return words;
+  }
+
+  /** Control: a default stop word whose spelling the normalizers leave unchanged is removed. */
+  public void testControlShortVowelStopwordIsRemoved() throws Exception {
+    Analyzer a = new TeluguAnalyzer();
+    assertTrue(TeluguAnalyzer.getDefaultStopSet().contains(&quot;గురించి&quot;));
+    assertAnalyzesTo(a, &quot;గురించి&quot;, new String[0]);
+    a.close();
+  }
+
+  /** Mechanism (expected to pass): the pre-stop chain rewrites కూడా to a form not in the set. */
+  public void testMechanismNormalizedFormNotInDefaultSet() throws Exception {
+    Analyzer a = new TeluguAnalyzer();
+    CharArraySet stop = TeluguAnalyzer.getDefaultStopSet();
+    assertTrue(&quot;raw form is in the default list&quot;, stop.contains(&quot;కూడా&quot;));
+    BytesRef normalized = a.normalize(&quot;f&quot;, &quot;కూడా&quot;);
+    String norm = normalized.utf8ToString();
+    assertEquals(&quot;కుడా&quot;, norm); // long u vowel sign folded to short u
+    assertFalse(&quot;normalized form is not in the default list&quot;, stop.contains(norm));
+    a.close();
+  }
+
+  /** Control (expected to pass): a stop set holding the normalized form does remove the word. */
+  public void testControlNormalizedCustomStopSetRemovesWord() throws Exception {
+    CharArraySet custom = new CharArraySet(List.of(&quot;కుడా&quot;), false);
+    Analyzer a = new TeluguAnalyzer(custom);
+    assertAnalyzesTo(a, &quot;కూడా&quot;, new String[0]);
+    a.close();
+  }
+
+  /** Bug: a single, very common default stop word is indexed by the default analyzer. */
+  public void testDefaultStopwordKudaaIsRemoved() throws Exception {
+    Analyzer a = new TeluguAnalyzer();
+    assertEquals(1, standardTokenCount(&quot;కూడా&quot;));
+    assertEquals(
+        &quot;default stop word కూడా should produce no token&quot;, List.of(), tokens(a, &quot;కూడా&quot;));
+    a.close();
+  }
+
+  /** Bug: sweep over every single-token entry of the default stop set. */
+  public void testEveryDefaultStopwordIsRemoved() throws Exception {
+    Analyzer a = new TeluguAnalyzer();
+    List&lt;String&gt; survivors = new ArrayList&lt;&gt;();
+    int checked = 0;
+    for (String w : defaultStopWords()) {
+      if (standardTokenCount(w) != 1) {
+        continue; // multi-token entries cannot match a single token; not part of this claim
+      }
+      checked++;
+      List&lt;String&gt; out = tokens(a, w);
+      if (!out.isEmpty()) {
+        survivors.add(
+            w + &quot; -&gt; normalize=&quot; + a.normalize(&quot;f&quot;, w).utf8ToString() + &quot; emitted=&quot; + out);
+      }
+    }
+    System.out.println(&quot;checked single-token default stop words: &quot; + checked);
+    System.out.println(&quot;survivors (&quot; + survivors.size() + &quot;): &quot; + survivors);
+    assertEquals(&quot;default stop words emitted as tokens: &quot; + survivors, 0, survivors.size());
+    a.close();
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle, clean worktree); classpath runner: main a9779ef3c193 (-ea, -da), 10.5.2, 9.12.3</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE   # apache/lucene at a9779ef3c193 (the same file also fails on 10.5.2 and 9.12.3)
+cp $REPRO/TestTeluguDefaultStopwordsRemoved.java lucene/analysis/common/src/test/org/apache/lucene/analysis/te/
+./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.te.TestTeluguDefaultStopwordsRemoved -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# production-like: -Ptests.asserts=false instead: the same 3 failures
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF -Ptests.asserts=true (the same with =false)
+TestTeluguDefaultStopwordsRemoved &gt; testAndQueryIgnoresStopWord FAILED
+    java.lang.AssertionError: hits for +f:రాము +f:కుడ expected:&lt;2&gt; but was:&lt;1&gt;
+TestTeluguDefaultStopwordsRemoved &gt; testEverySingleWordDefaultIsRemoved FAILED
+    java.lang.AssertionError: 13 of 43 single-word default stop words kept: [మెచ్చుకో -&gt; [మెచ్చుక], చేయగలిగింది -&gt; [చెయగలిగిం], ఇప్పటికే -&gt; [ఇప్పటిక], మళ్ళీ -&gt; [మళ్ళ], అయితే -&gt; [అయిత], కూడా -&gt; [కుడ], అందుబాటులో -&gt; [అందుబాటుల], వేరుగా -&gt; [వెరుగ], మాత్రమే -&gt; [మాత్రమ], అందరూ -&gt; [అందర], దూరంగా -&gt; [దురంగ], చుట్టూ -&gt; [చుట్ట], వ్యతిరేకంగా -&gt; [వ్యతిరెకంగ]] expected:&lt;0&gt; but was:&lt;13&gt;
+TestTeluguDefaultStopwordsRemoved &gt; testAlsoIsRemoved FAILED
+    java.lang.AssertionError: expected:&lt;[]&gt; but was:&lt;[కుడ]&gt;
+4 tests completed, 3 failed
+
+# classpath runner: the same 3 failures on main (-ea, -da), 10.5.2 (-da) and 9.12.3 (-da);
+# with either fix on the main jars: 4 of 4 pass (-ea, -da)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>Hindi's analyzer has the same chain shape, and its list "also contains forms normalized by HindiNormalizer".</li><li>Arabic filters stop words before normalizing because "the stopword list is not normalized!"; Persian after, because its list "is normalized with the above!"</li><li>No test, review or changelog records a choice; the Telugu tests never check that a stop word is removed.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>420 words</span></summary><div class='body'><ul><li><strong>Contract (implied, not literal).</strong> <code class='nw'>TeluguAnalyzer()</code> "Builds an analyzer with the default stop words" (<code class='nw'>:98</code>), the field is the "File containing default Telugu stopwords." (<code class='nw'>:42-43</code>), and the <code class='nw'>createComponents</code> javadoc lists "Telugu Stop words" in the chain. No sentence literally promises that every entry is removed, but an entry no input can reach through the default analyzer (no stem-exclusion set) is dead data in a shipped default resource.</li><li><strong>Lucene's other stop files and analyzers state the same rule for their own lists</strong> (a convention stated file by file, not a general API contract): a list must match the token form where its <code class='nw'>StopFilter</code> runs: <code>hi/stopwords.txt:4-7</code> ("by default this file also contains forms normalized by HindiNormalizer for spelling variation ... such that it can be used whether or not you enable that feature. When adding additional entries to this list, please add the normalized form as well."); <code>ArabicAnalyzer.java:135</code> ("the order here is important: the stopword list is not normalized!", so its <code class='nw'>StopFilter</code> runs before normalization) and <code>ar/stopwords.txt:4</code>; <code>PersianAnalyzer.java:136-137</code> and <code>fa/stopwords.txt:4-5</code> ("used after normalization"); <code>ckb/stopwords.txt:2</code> ("normalized with our scheme"); <code>el/stopwords.txt:2-3</code>.</li><li><strong>A copied template.</strong> The Telugu <code class='nw'>createComponents</code> javadoc is <code class='nw'>HindiAnalyzer</code>'s with Hindi replaced by Telugu and <code class='nw'>LowerCaseFilter</code> left out, and the chain has the same shape (<code>HindiAnalyzer.java:122-129</code>; Hindi also lowercases first); the Hindi list rule was not copied.</li><li><strong>No recorded choice.</strong> <code class='nw'>te/stopwords.txt</code> has exactly one commit (the one that added the analyzer). The list, the four folds and the filter order were all in PR #275's first commit; the PR has one review ("LGTM") and no line comments; #11121, CHANGES and MIGRATE say nothing about Telugu stop words. <code>TestTeluguAnalyzer</code> never checks that a stop word is removed.</li><li><strong>Precedent.</strong> LUCENE-1966 (#3041, 2009) caught the same mismatch for <code class='nw'>ArabicAnalyzer</code> in review and settled it by running <code class='nw'>StopFilter</code> first. Stop-list data fixes have gone under Bug Fixes (GITHUB#14075) and Improvements (GITHUB#12172, GITHUB#16718), so the CHANGES section is the committers' call.</li><li><strong>Filing corrections.</strong> Say "13 of the 43 single-word entries" (the finder's test divides by all 45); mention the 2 two-word entries and the 5 duplicate lines only as minor data issues; the <code class='nw'>createComponents</code> javadoc lists the stop words after <code class='nw'>TeluguStemFilter</code> while the code runs <code class='nw'>StopFilter</code> before it, and <code>SetKeywordMarkerFilter</code> after both normalizers while the code adds it before them (<code class='nw'>HindiAnalyzer</code> has the same two doc nits); the 13 entries are dead in either order. Frame it as a default stop-list data inconsistency with correctness effects, not as a violated API contract (the case for intended behaviour is moderate).</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>207 words</span></summary><div class='body'><p>The intended-behaviour devil's advocate and the cross-model reviewer's intended lens built the strongest case for "not a bug": no javadoc promises that every entry is removed; <code class='nw'>StopFilter</code> is exact matching and never promises to normalize a supplied set; the list looks like rough data (the devil's advocate's non-native reading: a word-by-word translation of the a-words of an English stop list, which would explain the duplicate pairs, the two-word entries and content words such as "available"); the fold is lossy, Telugu normalization has been questioned upstream (#14659, about IndicNormalizer's separate వు -&gt; మ rule, not these four folds), and upstream might prefer to change the fold; and with a stem-exclusion set the raw entries do match.</p><p>Why it fails: Lucene's other stop files and analyzers state the rule for their own lists, and <code class='nw'>TeluguAnalyzer</code> follows neither form of it; a rough list explains how the error happened, but nobody chose to ship entries that can never fire in the default analyzer; "change the fold" is a choice of fix, not intent (the fold is documented: "long -&gt; short vowels matras"); the keyword path needs a user-supplied exclusion set naming the stop word, which the default analyzer never has. <strong>Every checker's verdict: real; the adjudication's class: minor (tier Low).</strong></p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Add the 13 normalized forms to te/stopwords.txt (the Hindi style)</strong></p><p class='short'>Add the 13 normalized forms to <code class='nw'>te/stopwords.txt</code>, as Hindi's list does (16 lines, no code change). The repro, the Telugu tests and all of <code>lucene/analysis/common</code> pass. Indexed terms change, so affected fields need reindexing, and a Telugu speaker should review the added forms.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 853 words</span></summary><div class='body'><p>Two fixes were applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF); the stop-filter-first option and the workaround were not run.</p><div class="hd hd-3"><h3 id='fix-stoplist'>Add the 13 normalized forms to te/stopwords.txt (the Hindi style) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-stoplist" target="_self" aria-label="Link to this section" aria-describedby="fix-stoplist"><span aria-hidden="true">#</span></a></div><p>Append a 3-line comment and the 13 forms that the analyzer's own pre-stop filters produce for the 13 entries. The raw spellings stay, so the list still works in a chain that filters stop words before normalizing. Add the repro (or its first two tests) to the Telugu tests as the regression test; it states a broader rule than any javadoc does, so a test focused on the 13 forms is a less brittle choice if a committer prefers.</p><pre class='snippet' tabindex='0'><code>--- a/lucene/analysis/common/src/resources/org/apache/lucene/analysis/te/stopwords.txt
++++ b/lucene/analysis/common/src/resources/org/apache/lucene/analysis/te/stopwords.txt
+@@ -49,3 +49,19 @@
+ వద్ద
+ అందుబాటులో
+ దూరంగా
++# TeluguAnalyzer applies this list after IndicNormalizationFilter and TeluguNormalizationFilter,
++# which shorten long vowel signs. The forms below are the normalized forms of the entries above
++# that those filters change. When adding entries, please add the normalized form as well.
++చెయగలిగింది
++మళ్ళి
++వ్యతిరెకంగా
++అందరు
++మాత్రమె
++ఇప్పటికె
++కుడా
++అయితె
++వెరుగా
++మెచ్చుకొ
++చుట్టు
++అందుబాటులొ
++దురంగా</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Reindex.</strong> Indexed and query terms change for text with the 13 words (old documents keep <code class='nw'>కుడ</code>, new queries drop the word): needs a CHANGES entry and a MIGRATE note.</li><li><strong>Over-stopping: ask a Telugu speaker to review the 13 forms.</strong> The fold can merge distinct words, so a normalized form may also be an ordinary word: చుట్టు, the normal form of చుట్టూ ("around"), is also an ordinary verb form. The Hindi list accepts the same cost; a reviewer may drop individual forms.</li><li><code>getDefaultStopSet()</code> grows from 45 to 58 entries; custom chains that reuse it after the two normalizers are fixed too. No API change.</li><li>The list stays consistent only by convention; the comment asks future editors to add normalized forms.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock main <code class='nw'>a9779ef3c193</code> (gradle, seed DEADBEEF): the repro fails 3 of 4 with assertions on and off; the four upstream Telugu test classes pass (16 tests).</li><li>With the fix: the repro and the four Telugu classes pass (20 tests, 0 failures) with assertions on, and again with assertions off; the repro alone passes with assertions off (4 tests); all of <code>:lucene:analysis:common:test</code> with the repro added passes (1,913 tests, 0 failures, 18 skipped); <code class='nw'>ecjLintTest</code> and <code>checkGoogleJavaFormat</code> pass with the final test file.</li><li>Run order, for the record: the stock gradle runs and the module-wide run used the test before <code>checkGoogleJavaFormat</code> asked for a different line wrapping; the final file differs only in layout, and the fix run with it was repeated.</li><li>Through the classpath runner: the repro passes 4 of 4 with <code class='nw'>-ea</code> and <code class='nw'>-da</code> with the fixed list first on the classpath; the default set then has 58 entries (45 before).</li><li><code class='nw'>fix.diff</code> and <code>fix-with-test.diff</code> (the fix plus the repro as a new test file) pass <code>git apply --check</code> on a clean tree.</li></ul><div class="hd hd-3"><h3 id='fix-loadtime'>Normalize the default set when it is loaded <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-loadtime" target="_self" aria-label="Link to this section" aria-describedby="fix-loadtime"><span aria-hidden="true">#</span></a></div><p>In <code>TeluguAnalyzer.DefaultSetHolder</code>, add <code>normalize("", entry)</code> of every entry (the same <code>DecimalDigitFilter</code>, <code>IndicNormalizationFilter</code> and <code>TeluguNormalizationFilter</code> the analyzer runs before its <code class='nw'>StopFilter</code>) to the loaded set and keep it unmodifiable (+10/-1 lines in <code>TeluguAnalyzer.java</code>).</p><pre class='snippet' tabindex='0'><code>CharArraySet raw = WordlistLoader.getWordSet(/* te/stopwords.txt, as before */);
+// The StopFilter runs after IndicNormalizationFilter and TeluguNormalizationFilter, so also
+// add every entry in the form those filters produce (as normalize() does).
+CharArraySet set = new CharArraySet(raw, false);
+try (TeluguAnalyzer normalizer = new TeluguAnalyzer(CharArraySet.EMPTY_SET)) {
+  for (Object entry : raw) {
+    set.add(normalizer.normalize(&quot;&quot;, new String((char[]) entry)).utf8ToString());
+  }
+}
+DEFAULT_STOP_SET = CharArraySet.unmodifiableSet(set);</code></pre><p class='k'>Trade-offs</p><p>Future list edits stay consistent automatically and the data file is unchanged; but it is code in a static initializer that builds a temporary <code class='nw'>TeluguAnalyzer</code>, <code>Analyzer.normalize</code> treats each entry as one token (no tokenizer), so it also adds the normalized form of a two-word entry (harmless for the stock chain; 59 entries), and the same reindex and over-stopping review apply.</p><p class='k'>What the checks validated</p><ul><li>With the change (gradle, seed DEADBEEF, assertions on): the repro and the four Telugu classes pass (20 tests, 0 failures); <code class='nw'>ecjLintMain</code> and <code>checkGoogleJavaFormat</code> pass.</li><li>Through the classpath runner (the changed class shadowed onto the main jars): the repro passes 4 of 4 with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the default set then has 59 entries.</li><li>Not run: the whole module with this change.</li></ul><div class="hd hd-3"><h3 id='fix-stop-first'>Run the StopFilter before the normalizers (the Arabic order)</h3><a class="hlink" href="#fix-stop-first" target="_self" aria-label="Link to this section" aria-describedby="fix-stop-first"><span aria-hidden="true">#</span></a></div><p>Move <code class='nw'>StopFilter</code> above <code>IndicNormalizationFilter</code> in <code class='nw'>createComponents</code>.</p><p class='k'>Trade-offs</p><p>Not run. The 13 raw spellings would then match, but the analyzer would stop removing variant spellings that the normalizer folds onto an entry today (for example a word written with a long vowel sign where the list has the short one), and users who worked around the bug with a normalized custom stop set would break. Not recommended.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround for users today (not a fix)</h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p>Pass a stop set that also holds the normalized forms: <code>new TeluguAnalyzer(set)</code> with the default set plus <code>analyzer.normalize("", w)</code> of each entry. The independent reproducer's control shows that a set holding కుడా removes కూడా.</p><p class='k'>Trade-offs</p><p>Changes indexed terms, so it also needs reindexing, and it does not help other users of the default list.</p></div></details></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An exhaustive check on the real jar: for every default stop word of the analyzers that run their stop filter after these normalizers, is the analyzer's own normalized form still in the stop set? It flagged 14 of the 45 Telugu entries (13 single-word) and none for Hindi or Persian; the finding was then reduced to a public-API JUnit.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>153 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive checking of the stock jar against the analyzer's own documented chain</strong> (semi-formal tier), in a hunt unit that checked script normalizers against their documented rules.</p><ul><li>For every entry of the default stop set of each analyzer that runs <code class='nw'>StopFilter</code> after these normalizers, the check ran the entry through exactly the analyzer's pre-stop filters and asked whether the result is still in the set. Telugu: 14 of 45 entries flagged (the 13 single-word entries plus one two-word entry); Bengali 13; Hindi and Persian 0.</li><li>It was confirmed end to end with <code>Analyzer.tokenStream</code>, then reduced to a 2-test public-API JUnit that fails on the stock main jars with assertions on and off.</li><li>Checked by an independent reproducer, a reviewer from another model family (OpenAI GPT-5.6, refute and intended lenses, both executed), an intended-behaviour devil's advocate, an adjudication, a history, prior-report and security follow-up, and an audit. Found 2026-10-27 on main <code class='nw'>a9779ef3c193</code>.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): 177 logged queries over GitHub issues, PRs and commits, the Lucene and Solr lists, the JIRA archive, downstream trackers and the web, plus the changed files of all 409 open PRs. Another contributor's public note describes the same mismatch for the Bengali analyzer only.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>3 searches</span></summary><div class='body'><p>Verdict <strong>new</strong> for Telugu: no report by anyone, none by the owner; the same mismatch pattern is publicly described for the Bengali analyzer only (a separate bug). Every upstream Telugu item was read in full and none mentions stop words. Keyword search cannot prove absence; a report written only in Telugu script could be missed (two Telugu-script queries found nothing), and private reports are not searchable.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), downstream repos, dev@, java-user@, issues@, commits@, the JIRA archive, the web</th><td class='when'>2026-10-27</td><td>the hunt's prior-report tool: 65 queries (24 GitHub, 3 commit, 2 downstream, 24 list, 6 JIRA, 6 web), 136 distinct hits; a defect-class run (38 queries, 437 hits); the finder's run (24 queries)</td><td>no report; nearest: #11121 / PR #275 (added the analyzer), #13059 (normalize() wiring), #14659, #14699, #14657 (IndicNormalizer's Telugu vu -&gt; ma rule)</td></tr><tr><th scope='row'>apache/lucene and the OpenSearch, Elasticsearch and Solr repos; all 409 open apache/lucene PRs; commits API on main and branch_10x</th><td class='when'>2026-10-27</td><td>26 issue searches (two in Telugu script), 3 code searches, changed-file scan of every open PR</td><td>no report; no open PR touches te/stopwords.txt (#14699 touches IndicNormalizer and Telugu tests only)</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR), 7 mailing lists incl. the Solr lists, wiki notes of a search team's analysis work, the web, the Solr Reference Guide</th><td class='when'>2026-10-27</td><td>4 JIRA and 21 list queries, 10 wiki searches and 8 page reads, 6 web queries</td><td>same defect class elsewhere only: LUCENE-1966 (#3041, ArabicAnalyzer, 2009, settled by design), LUCENE-1963 (#3038), #12172; another contributor's 2022 wiki note on BengaliAnalyzer's list (not Telugu)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Born with the analyzer: <code class='nw'>544dbbea468</code> (LUCENE-10083, PR #275, 2021-09-02), first released in 8.10.0. The list has not changed since; the finder's JUnit fails on all 40 releases from 8.10.0 to 10.5.2 and on main.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced</strong> by <code class='nw'>544dbbea468</code> "LUCENE-10083: Analyzer and stemmer for Telugu language" (apache/lucene PR #275 by @vinodrenu, approved and merged by @rmuir on 2021-09-02; issue #11121), backported to branch_8x of the former lucene-solr repository as <code class='nw'>114c9dff46c</code> the same day. Not a regression: the list, the filter order and the four vowel-sign folds were already in the PR's first commit <code class='nw'>c143ef618e</code> (2021-08-13).</p><p><code class='nw'>te/stopwords.txt</code> has no later commit and is the same blob at every 9.x and 10.x tag, in the 8.10.0 and 8.11.4 jars, on main and on the unreleased branch_10x and branch_10_6 heads. The later commits to <code>TeluguAnalyzer.java</code> (LUCENE-10335 stop-file loading, #13059 <code class='nw'>normalize()</code> only) and to <code>TeluguNormalizer.java</code> (visibility, formatting, a comment typo) do not change this. The <code class='nw'>te</code> classes say <code>@since 9.0.0</code>, but they first shipped in 8.10.0.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's JUnit fails 3 of 4 through gradle (assertions on and off) and the classpath runner (-ea, -da); passes with either fix</td></tr><tr><th scope='row'>10.0.0 to 10.5.2 (12 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's JUnit fails 2 of 2, the same 13 words; this doc's JUnit fails 3 of 4 on 10.5.2</td></tr><tr><th scope='row'>9.0.0 to 9.12.3 (21 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's JUnit fails 2 of 2 (9.0.0 with the old test-framework import); this doc's JUnit fails 3 of 4 on 9.12.3</td></tr><tr><th scope='row'>8.10.0, 8.10.1, 8.11.0 to 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release 8.10.0</span></td><td>the finder's JUnit (old import) fails 2 of 2; 8.10.0 with only the fixed list first on the classpath passes</td></tr><tr><th scope='row'><code class='nw'>544dbbea468</code> (its te sources over the 9.0.0 jars)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> introducing commit</span></td><td>fails 2 of 2, the same message (a consistency check, not a full build of that commit)</td></tr><tr><th scope='row'>8.9.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>no TeluguAnalyzer (compile error)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a reviewer from another model family (OpenAI GPT-5.6, two executed lenses), an intended-behaviour devil's advocate, an adjudication and an audit each re-ran it with their own tests or new seeds; all say real, every control passes, and this doc's gradle runs reproduce it on <code class='nw'>a9779ef3c193</code>.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>350 words</span></summary><div class='body'><p>Every check executed code on the stock main jars; the cross-model reviewer ran on main <code class='nw'>ea57360912ed</code>, whose <code class='nw'>lucene/analysis</code> sources equal <code class='nw'>a9779ef3c193</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Stop-list model over six analyzers (Telugu 14 of 45 flagged, Hindi and Persian 0), then the 2-test JUnit: fails 2 of 2 on main (-ea, -da), 10.5.2 and 9.12.3; passes with the fixed list; upstream Telugu tests 16 of 16 with it.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 5-test JUnit written from the claim: fails 2 of 5 on main (-ea, -da), 10.5.2, 9.12.3, 8.11.4 and 8.10.0, 3 controls pass; its sweep of 39 analyzers, read entry by entry, leaves single-word defaults lost to pre-stop normalization only in Telugu and Bengali.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Refutation failed: own pipeline test fails on main (also -da and another seed), 10.5.2 and 9.12.3; the fixed list passes; upstream Telugu tests 16 of 16 with it.</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6, executed)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high (intended argument moderate)</span></td><td>Strongest case: exact-match StopFilter, lossy fold; rejected because the Arabic, Persian, Hindi and Sorani analyzers align list and filter position. Its survey: those four remove every single-word default.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high on facts, moderate on how upstream files it)</span></td><td>Re-ran the finder's JUnit on main (-ea, -da), 10.5.2, 9.12.3 and 8.10.0; its probe shows the 13 stay dead in the javadoc's order too, the keyword path, and Hindi with 0 dead entries.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high; class minor</span></td><td>Re-ran the independent reproduction's JUnit (2 of 5 fail, -ea), the finder's (2 of 2 fail, -da) and the finder's with the fixed list (2 of 2 pass), seeds 1DEA1234/1DEA1235; wrote the filing corrections.</td></tr><tr><th scope='row'>audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's JUnit on a clean main checkout with new seeds (-ea, -da): 2 of 2 fail each.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Gradle in a clean worktree: the repro fails 3 of 4 on stock (assertions on and off) and passes with either fix; <code>lucene/analysis/common</code> passes with the recommended fix.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-677/bug.png' download='telugu-analyzer-stopwords-not-normalized-bug.png' target='_self'>PNG</a> <span class='n'>493 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,574 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-677, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>TeluguAnalyzer runs its StopFilter after Indic and Telugu normalization, but its default stop list is not normalized, so 13 of the 43 single-word default stop words (for example కూడా, 'also') are never removed</dd></div><div><dt>Area</dt><dd>analysis-common / language analyzers (TeluguAnalyzer default stop set te/stopwords.txt, applied after IndicNormalizationFilter and TeluguNormalizationFilter)</dd></div><div><dt>Priority</dt><dd>Low, rank 366: The stock TeluguAnalyzer keeps 13 default stop words, which costs only extra terms, scoring noise and slightly stricter AND and phrase queries, the same minor quality class as its Bengali twin LFV-672, so both go in Low with this new one first, right after LFV-583.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Relevance quality and index size only, with no error: every application that analyzes Telugu text with the stock new TeluguAnalyzer() (or reuses TeluguAnalyzer.getDefaultStopSet() after the same two normalization filters), on every release from 8.10.0 through 10.5.2 and on main, indexes and queries 13 common function words from the default list (among them కూడా 'also', అయితే, మళ్ళీ, మాత్రమే and ఇప్పటికే) as ordinary terms (కూడా is indexed as కుడ), so they take postings, add scoring noise and leave no position gap, a query made only of them still matches documents, AND and phrase queries that contain one are stricter than with the word removed, and because the stemmer folds a kept word onto unrelated words, a query for కుడి ('right') also matches a document that contains only కూడా (all shown on a 5-document index by the security probe); index and query use the same chain, so plain OR queries still find their documents, no scale is needed, -ea and -da behave the same, and because a fix changes indexed terms, affected fields need reindexing after it.</dd></div><div><dt>Summary</dt><dd>You analyze Telugu text with the stock new TeluguAnalyzer(), whose default stop list (te/stopwords.txt) holds common function words such as కూడా ('also') that the analyzer should drop. The analyzer normalizes every token before its StopFilter and folds long vowel signs to short ones (ూ to ు, ీ to ి, ే to ె, ో to ొ), but the list holds only the unnormalized spellings, so the StopFilter sees కుడా and never matches the entry కూడా. As a result 13 of the 43 single-word default stop words are never removed and are indexed and searched as ordinary terms, while the Hindi analyzer, which has the same chain, ships the normalized forms in its list and removes all of its stop words.</dd></div><div><dt>Introduced</dt><dd>544dbbea46878b49be5c4c4e82d9b06a5679c891 (LUCENE-10083 'Analyzer and stemmer for Telugu language', apache/lucene PR #275 by vinodrenu, approved ('LGTM') and merged by rmuir on 2021-09-02; issue #11121; backported to branch_8x of the former lucene-solr repository as 114c9dff46c the same day) [read: git log --follow in the history clone, PR #275 and its commits through the read-only GitHub API]. It is the commit that added TeluguAnalyzer, so the bug shipped with the feature and is not a regression: the stop list (blob ea175d67), the StopFilter placed after both normalization filters and the four long-vowel-sign folds were already in the PR's first commit c143ef618e (2021-08-13). te/stopwords.txt has had no commit since. The later TeluguAnalyzer.java commits do not change this behaviour: cc342ea7407 (LUCENE-10335, stop-file loading only), 9caeb9395da (#13059, normalize() only), 694d797526a, f99deb58b74 and 54283150a81 (visibility, formatting, comments). (2021-09-02 (merged on main and backported to branch_8x the same day; first released in 8.10.0))</dd></div><div><dt>First affected version</dt><dd>8.10.0 [exec] (the first release with TeluguAnalyzer; CHANGES lists LUCENE-10083 under 8.10.0 New Features). 8.9.0, the last release before it, has no Telugu analysis API [exec: the repro does not compile]. On the main line the first affected release is 9.0.0.</dd></div><div><dt>Affected versions</dt><dd>Every release that has TeluguAnalyzer, 8.10.0 through 10.5.2, and main a9779ef3c193; not fixed. [exec] the follow-up's history matrix ran the finder's JUnit (2 tests, public API) 48 times: it fails 2 of 2 with the identical message (same 13 survivors) on all 40 releases (8.10.0, 8.10.1, 8.11.0-8.11.4, the 21 releases 9.0.0-9.12.3 and the 12 releases 10.0.0-10.5.2), on the introducing commit's sources over the 9.0.0 jars and on main, with extra -da runs on 8.10.0, 9.12.3, 10.5.2 and main; 8.9.0 does not compile (API absent); 8.10.0 with only the fixed stop list first on the classpath passes. The independent reproduction's own JUnit fails on main (-ea and -da), 10.5.2, 9.12.3, 8.11.4 and 8.10.0; the intended-behaviour check re-ran the finder's JUnit on main (-ea and -da) and on 10.5.2, 9.12.3 and 8.10.0 (-da), all failing. [read] te/stopwords.txt is the same blob (ea175d67) at every 9.x and 10.x tag, inside the 8.10.0 and 8.11.4 jars, on main, and on the unreleased branch_10x and branch_10_6 heads (read through the GitHub contents API on 2026-10-27, not executed); upstream main a95c754ee003 (2026-10-26) is unchanged.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27, read-only; the prior-report record, verdict new): 177 logged queries, among them a scripted prior-report search (65 queries: 24 GitHub, 3 commit, 2 downstream, 24 mailing-list queries over the dev, java-user, issues and commits lists, 6 JIRA, 6 web; 136 distinct hits, none rated high), a defect-class run (38 queries, 437 hits), the finder's earlier run (24 queries) and 74 manual searches (26 GitHub issue searches including two in Telugu script, 3 code searches, a scan of the touched files of all 409 open apache/lucene PRs, commits-API checks on main and branch_10x, 4 JIRA queries over LUCENE and SOLR, 21 queries on 7 lists including the Solr lists, mediawiki.org notes pages, 6 web queries, the Solr Reference Guide). Every upstream Telugu item was read in full and none mentions stop words: #11121 / LUCENE-10083 and PR #275 (introduced the analyzer and the list; one 'LGTM' review), #13059 (normalize() wiring fix, a different defect), #14659, #14699 and #14657 (IndicNormalizer's Telugu vu -&gt; ma rule). Same defect class elsewhere, not this bug: LUCENE-1966 (#3041, 2009, ArabicAnalyzer, settled by running StopFilter before normalization), LUCENE-1963 (#3038) and #12172 (other stop-list fixes), and another contributor's public 2022 wiki note that describes the same mismatch for BengaliAnalyzer only. No open PR touches te/stopwords.txt (#14699 touches IndicNormalizer and Telugu tests; #16911 deletes all of branch_10x). Not fixed: upstream main a95c754ee003 and branch_10x unchanged. Gaps: keyword search only (a report written only in Telugu script could be missed; two Telugu-script queries found nothing); private reports and chat are not searchable.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26): this doc's JUnit through gradle in a clean worktree, stock and with the recommended fix with assertions on and off, and with the load-time fix with assertions on, plus the four upstream Telugu test classes and all of <code>lucene/analysis/common</code> with the recommended fix; through the hunt's classpath runner, the same JUnit on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>, both fixes), 10.5.2 and 9.12.3. Hunt runs: the finder's JUnit on all 40 releases from 8.10.0 to 10.5.2, on the introducing commit's sources and on main.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/te/TeluguAnalyzer.java:42-43 (at a9779ef3c193) (DEFAULT_STOPWORD_FILE, &#x27;File containing default Telugu stopwords&#x27;), :47-54 (getDefaultStopSet), :98-101 (TeluguAnalyzer(): &#x27;Builds an analyzer with the default stop words&#x27;), :103-112 (createComponents javadoc, which lists &#x27;Telugu Stop words&#x27; after TeluguStemFilter), :114-125 (chain: StandardTokenizer, DecimalDigitFilter, SetKeywordMarkerFilter only with a stem-exclusion set, IndicNormalizationFilter, TeluguNormalizationFilter, StopFilter at :122, TeluguStemFilter), :127-133 (normalize(), no StopFilter)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/te/TeluguNormalizer.java:76-88 (at a9779ef3c193) (&#x27;// long -&gt; short vowels matras&#x27;: U+0C40 -&gt; U+0C3F, U+0C42 -&gt; U+0C41, U+0C47 -&gt; U+0C46, U+0C4B -&gt; U+0C4A)</code></li><li><code>lucene/analysis/common/src/resources/org/apache/lucene/analysis/te/stopwords.txt:1-51 (at a9779ef3c193) (header only &#x27;# Telugu stop word list&#x27;; 50 entry lines, 45 distinct, 5 duplicates, multi-word entries at :31 and :45; the 13 dead entries at :2, :11, :12, :14, :18, :20, :21, :22, :37, :39, :43, :50, :51)</code></li><li><code>lucene/analysis/common/src/resources/org/apache/lucene/analysis/hi/stopwords.txt:4-7 (at a9779ef3c193) (&#x27;by default this file also contains forms normalized by HindiNormalizer ... please add the normalized form as well&#x27;); ckb/stopwords.txt:2 (&#x27;normalized with our scheme&#x27;); lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicAnalyzer.java:135-136 (&#x27;the order here is important: the stopword list is not normalized!&#x27;, StopFilter before normalization); fa/PersianAnalyzer.java:136 (&#x27;the stopword list is normalized with the ...&#x27;)</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/te/TestTeluguAnalyzer.java (at a9779ef3c193) (no test checks that a default stop word is removed); lucene/CHANGES.txt:5215 (&#x27;LUCENE-10083: Analyzer and stemmer for Telugu language&#x27; under 8.10.0, section at :5192) and :3048 (&#x27;GITHUB#13059: Fixed missing IndicNormalization and DecimalDigit filters in TeluguAnalyzer normalization&#x27; under 9.10.0)</code></li><li><code>GitHub, read-only (2026-10-27): apache/lucene PR #275 (commits c143ef618e, 6c0c09933f; review), #11121, #13059, #14659, #14699, #14657, #3041 (LUCENE-1966), #3038 (LUCENE-1963), #12172, #16911; upstream main a95c754ee003 and branch_10x te/stopwords.txt unchanged</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/te/TeluguAnalyzer.java:42-43, :94-101, :114-125, :127-133</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/te/TeluguNormalizer.java:76-88</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/StopFilter.java:96-97</code></li><li><code>lucene/analysis/common/src/resources/org/apache/lucene/analysis/te/stopwords.txt:1-51 (lines 2, 11, 12, 14, 18, 20, 21, 22, 37, 39, 43, 50, 51; :31, :45 two-word)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/te/TeluguAnalyzer.java:42-43, :98, :103-112</code></li><li><code>lucene/analysis/common/src/resources/org/apache/lucene/analysis/hi/stopwords.txt:4-7; lucene/analysis/common/src/resources/org/apache/lucene/analysis/ar/stopwords.txt:4-6; lucene/analysis/common/src/resources/org/apache/lucene/analysis/fa/stopwords.txt:4-5; lucene/analysis/common/src/resources/org/apache/lucene/analysis/ckb/stopwords.txt:2; lucene/analysis/common/src/resources/org/apache/lucene/analysis/el/stopwords.txt:2-3</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/ar/ArabicAnalyzer.java:135-138; lucene/analysis/common/src/java/org/apache/lucene/analysis/fa/PersianAnalyzer.java:135-139; lucene/analysis/common/src/java/org/apache/lucene/analysis/hi/HindiAnalyzer.java:110-119, :123-129</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/te/TestTeluguAnalyzer.java (six tests, none checks stop-word removal)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:5192, :5215 (LUCENE-10083 under 8.10.0), :3048 (GITHUB#13059, 9.10.0)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestTeluguDefaultStopwordsRemoved.java (analysis-common, 4 tests incl. a control): <a href='../repro/LFV-677/TestTeluguDefaultStopwordsRemoved.java'><code>repro/LFV-677/TestTeluguDefaultStopwordsRemoved.java</code></a> (119 lines)</li><li>TestTeluguDefaultStopwords.java (the finder&#x27;s JUnit, 2 tests): <a href='../repro/LFV-677/TestTeluguDefaultStopwords.java'><code>repro/LFV-677/TestTeluguDefaultStopwords.java</code></a> (73 lines)</li><li>TestTeluguDefaultStopwords.java for 8.10.0-9.0.0 (old test-framework import): <a href='../repro/LFV-677/3-TestTeluguDefaultStopwords.java'><code>repro/LFV-677/3-TestTeluguDefaultStopwords.java</code></a> (73 lines)</li><li>TestTeluguStopSetVerifyV1.java (independent reproducer, 5 tests, 3 controls): <a href='../repro/LFV-677/TestTeluguStopSetVerifyV1.java'><code>repro/LFV-677/TestTeluguStopSetVerifyV1.java</code></a> (132 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A summary card (the PNG), made in parallel with this doc; the alt text describes the PNG as delivered on 2026-10-28.</p><ul class='paths'><li><a href='../assets/LFV-677/bug.png'><code>assets/LFV-677/bug.png</code></a> (493 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

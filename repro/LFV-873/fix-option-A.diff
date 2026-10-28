@@ -1,0 +1,42 @@
+diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiNormalizer.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiNormalizer.java
+index 5ce1c08fa7b..a7ed1750032 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiNormalizer.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiNormalizer.java
+@@ -65,6 +65,18 @@ public class ThaiNormalizer {
+       len = delete(s, 0, len);
+     }
+ 
++    // Steps 2-4 can leave a decomposed Sara Am behind: step 2 tests for it on the characters as
++    // typed, but converts a following Lakkhangyao only after that test, and step 4 removes a
++    // repeated or extra tone mark between Nikhahit and Sara Aa. Run them again while one is left.
++    // Each extra pass recomposes at least one, which shortens the buffer, so the loop ends.
++    do {
++      len = normalizeMarks(s, len);
++    } while (hasDecomposedSaraAm(s, len));
++    return len;
++  }
++
++  /** Steps 2-4: compositions, canonical reordering and deduplication. */
++  private static int normalizeMarks(char[] s, int len) {
+     // Step 2: Handle compositions (Double Sara E -> Sara Ae, Sara Am recomposition, Lakkhangyao)
+     for (int i = 0; i < len; i++) {
+       char c = s[i];
+@@ -149,6 +161,18 @@ public class ThaiNormalizer {
+     return len;
+   }
+ 
++  /** Nikhahit + Sara Aa, or Nikhahit + tone mark + Sara Aa. */
++  private static boolean hasDecomposedSaraAm(char[] s, int len) {
++    for (int i = 0; i + 1 < len; i++) {
++      if (s[i] == '\u0E4D'
++          && (s[i + 1] == '\u0E32'
++              || (i + 2 < len && isToneMark(s[i + 1]) && s[i + 2] == '\u0E32'))) {
++        return true;
++      }
++    }
++    return false;
++  }
++
+   private static boolean isToneMark(char c) {
+     return c >= '\u0E48' && c <= '\u0E4B';
+   }

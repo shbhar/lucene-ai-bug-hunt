@@ -2,6 +2,8 @@
 
 Bug LFV-306 · Area: queries / intervals (Intervals.ordered/unordered with equal sub-sources: RepeatingIntervalsSource, maxgaps) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-306.html](../../bugs/LFV-306.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You search with an interval query that repeats a multi-word piece, for example m
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It finds nothing: Lucene turns equal sub-sources into a RepeatingIntervalsSource whose iterator adds start - end + 1 instead of end - start + 1 for each copy, so width is 0 instead of 4, gaps is 4 instead of 0, and maxgaps rejects the interval.
+- Expected: `maxgaps(0, ordered(ny, ny))` finds `new york new york` (count 1), and the iterator reports gaps 0, width 4.
+- Actual: Count 0 while `Weight#matches` matches; the iterator reports gaps 4, width 0 (three-word phrase: gaps 8, width -2).
 
 ## Files
 
@@ -43,6 +45,15 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestRepeatedSourceGaps.java](TestRepeatedSourceGaps.java)
+- [TestRepeatedSourceWidth.java](TestRepeatedSourceWidth.java)
+- [TestRepeatedSourceGapsV1.java](TestRepeatedSourceGapsV1.java)
+- [IntendedProbe.java](IntendedProbe.java)
+- [RepeatWidthHistoryProbe.java](RepeatWidthHistoryProbe.java)
+- [WorkaroundProbe.java](WorkaroundProbe.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-542 · Area: analysis / common miscellaneous (ConditionalTokenFilter#end and OneTimeWrapper#end: final position increment on the delegate branch) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-542.html](../../bugs/LFV-542.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyse 'abc the' with WhitespaceTokenizer, a StopFilter that removes 'the',
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It reports 0 whenever the last token went through the wrapped filter, although LowerCaseFilter never touches positions: end keeps the wrapped chain's end state, and the internal wrapper that feeds that chain resets the increment to 0.
+- Expected: Every chain reports the final position increment of the plain chain (1, or 2 for `abc a the`), and `def` is at position 2 with 0 hits for `"abc def"`.
+- Actual: `finalPosInc expected:<1> but was:<0>` (and `<2>` but `<1>`), and `def at position [1, "abc def" 1] hits`: 5 of 5 tests fail, assertions on and off.
 
 ## Files
 
@@ -47,6 +49,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestConditionalTokenFilterTrailingHole.java](TestConditionalTokenFilterTrailingHole.java)
+- [fix-option-Bplus.diff](fix-option-Bplus.diff)
+- [TestConditionalTokenFilterStackedLastToken.java](TestConditionalTokenFilterStackedLastToken.java)
+- [TestConditionalTokenFilterFinalPositionIncrement.java](TestConditionalTokenFilterFinalPositionIncrement.java)
+- [TestConditionalFinalPosInc.java](TestConditionalFinalPosInc.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-337 · Area: analysis / WordDelimiterGraphFilter catenation runs (CATENATE_WORDS, CATENATE_NUMBERS; WordDelimiterIterator character types; factory 'types' option; term-level half shared with the deprecated WordDelimiterFilter) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-337.html](../../bugs/LFV-337.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You run WordDelimiterGraphFilter with CATENATE_WORDS or CATENATE_NUMBERS on a to
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Because such a subword is typed ALPHA|DIGIT and a run started by it is never ended by a subword it does not absorb, the filter emits catenations of non-adjacent parts ('U+20000 12', '@x12', 'U+20000abcd' across '12') and catenations whose position length also covers the skipped part ('U+20000ab' at [0,3), over '12').
+- Expected: `#hotsale` covers 2 positions, `#x-ab-12` gives only `#x`, `ab`, `12`, and the phrase `#hot-sale-50` finds only `#hot-sale-50`.
+- Actual: `posLength 0 term=#hotsale expected:<2> but was:<3>`, an extra `#x12`, and the phrase matches `#hot-sale`, `#hot-sale-49` and `#hot-sale-50`: 4 of 4 tests fail, assertions on and off.
 
 ## Files
 
@@ -48,6 +50,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestWordDelimiterGraphFilterAlphanumRuns.java](TestWordDelimiterGraphFilterAlphanumRuns.java)
+- [fix-option-A.diff](fix-option-A.diff)
+- [TestWdgfAlphanumCatenation.java](TestWdgfAlphanumCatenation.java)
+- [TestWdgfRunAcrossIncompatibleSubword.java](TestWdgfRunAcrossIncompatibleSubword.java)
 
 ## Feedback
 

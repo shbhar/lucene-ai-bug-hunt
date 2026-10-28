@@ -2,6 +2,8 @@
 
 Bug LFV-308 · Area: core / document: shape doc-values queries (BaseShapeDocValuesQuery via SpatialQuery) and the query cache · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-308.html](../../bugs/LFV-308.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You keep a shape in a doc-values-only field (LatLonShape.createDocValueField or 
 
 ## Expected vs actual
 
-- Expected: You expect the reopened searcher to stop matching that document, because a query that reads doc values must report itself not cacheable once those doc values have been updated (SegmentCacheable).
-- Actual: Its Weight#isCacheable stays true (inherited from SpatialQuery#queryIsCacheable, which always returns true), the segment keeps its core cache key, and the cache keeps serving the pre-update result (5 hits instead of 4 in the repro) until the segment is merged away or the entry is evicted.
+- Expected: After doc 0 is moved out of the box and the reader reopened: 4 hits through the cache, the same as without one.
+- Actual: 5 hits through the cache (doc 0 still matches; `isCacheable` is `true`) for `LatLonShape` and `XYShape`; the binary doc-values control gives 4.
 
 ## Files
 
@@ -47,6 +49,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestShapeDocValuesQueryCaching.java](TestShapeDocValuesQueryCaching.java)
+- [ZeroConfigShapeDocValues.java](ZeroConfigShapeDocValues.java)
+- [TestShapeDocValuesQueryCacheStaleness.java](TestShapeDocValuesQueryCacheStaleness.java)
+- [TestShapeDvCacheRestrictionProbe.java](TestShapeDvCacheRestrictionProbe.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/query-cache-correctness/](../../models/query-cache-correctness/)
 

@@ -2,6 +2,8 @@
 
 Bug LFV-621 · Area: analysis-opennlp / sentence-aware filters (SentenceAttributeExtractor.extractSentenceAttributes, shared by OpenNLPPOSFilter, OpenNLPChunkerFilter and OpenNLPLemmatizerFilter; factories opennlpPOS, opennlpChunker, opennlplemmatizer) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-621.html](../../bugs/LFV-621.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build an OpenNLP chain that removes some tokens before a sentence-aware filt
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The whole value yields no token: SentenceAttributeExtractor starts with currSentence = 0, so when the first token it receives already belongs to sentence 1 it returns an empty first sentence, and the POS, chunker and lemmatizer filters all treat an empty sentence as the end of the stream.
+- Expected: Each chain emits the same tokens with or without the removed first sentence: `[they, evening]`, or the 12 words of the two kept sentences.
+- Actual: `AssertionError: token 0 does not exist`: no token at all; 3 of 3 tests fail, assertions on and off, while every control passes.
 
 ## Files
 
@@ -45,6 +47,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-opennlp also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestOpenNLPFirstSentenceRemoved.java](TestOpenNLPFirstSentenceRemoved.java)
+- [fix-option-A.diff](fix-option-A.diff)
+- [TestSentenceFiltersFirstSentenceRemoved.java](TestSentenceFiltersFirstSentenceRemoved.java)
+- [TestDroppedFirstSentenceV1.java](TestDroppedFirstSentenceV1.java)
 
 ## Feedback
 

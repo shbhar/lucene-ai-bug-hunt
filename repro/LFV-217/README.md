@@ -2,6 +2,8 @@
 
 Bug LFV-217 · Area: join / JoinUtil numeric (point-based) query-time join · Priority: medium · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-217.html](../../bugs/LFV-217.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build JoinUtil.createJoinQuery("fromF", false, "toF", Float.class, fromQuery
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: createJoinQuery throws IllegalArgumentException 'values are out of order: saw [40 7f ff ff] before [3f ff ff ff]' (that is, -1 before -2; releases before 10.4.0 show an UnsupportedOperationException raised while that message is built), and Double and every scoring ScoreMode fail the same way.
+- Expected: `createJoinQuery` returns a query, and `searcher.count(join)` is 2 (the to documents -1 and -2) for `Float` and `Double`.
+- Actual: `createJoinQuery` throws `IllegalArgumentException: values are out of order: saw [40 7f ff ff] before [3f ff ff ff]` (-1 before -2; Double likewise); 4 of 4 tests fail.
 
 ## Files
 
@@ -44,6 +46,12 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestNumericJoinNegativeFloats.java](TestNumericJoinNegativeFloats.java)
+- [TestNumericJoinSignedFloatOrder.java](TestNumericJoinSignedFloatOrder.java)
+- [fix.diff](fix.diff)
 
 ## Feedback
 

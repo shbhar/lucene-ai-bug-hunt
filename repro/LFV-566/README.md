@@ -2,6 +2,8 @@
 
 Bug LFV-566 · Area: suggest / spell: SpellChecker.suggestSimilar (index-based n-gram spell checker; comparator vs. full-queue accuracy cutoff) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-566.html](../../bugs/LFV-566.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build an index-based SpellChecker with the shipped SuggestWordFrequencyCompa
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `numSug=1` returns `[receive]`, the first entry of the `numSug=2` result `[receive, relieve]`; with `numSug=5`, `abcdfeg` (50 documents) comes first.
+- Actual: `numSug=1` returns `[relieve]`, and `numSug=5` returns `[abcdefx, abcdefy, abcdefz, abcdexg, abcdeyg]` without `abcdfeg`; 2 of 3 tests fail, the default-comparator control passes.
 
 ## Files
 
@@ -48,6 +50,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSpellCheckerFrequencyComparatorTopK.java](TestSpellCheckerFrequencyComparatorTopK.java)
+- [TestSpellCheckerFrequencyComparatorCutoff.java](TestSpellCheckerFrequencyComparatorCutoff.java)
+- [TestFrequencyComparatorTopKConsistency.java](TestFrequencyComparatorTopKConsistency.java)
 
 ## Feedback
 

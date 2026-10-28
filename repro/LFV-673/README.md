@@ -2,6 +2,8 @@
 
 Bug LFV-673 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dShape.relate(Rectangle) and its shared GeoArea-to-SpatialRelation mapping), reached through SpatialOperation IsWithin/Contains on SerializedDVStrategy and CompositeSpatialStrategy, RecursivePrefixTreeStrategy cell traversal over PackedQuadPrefixTree, and any spatial4j relate against ctx.getWorldBounds · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-673.html](../../bugs/LFV-673.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You use the Geo3d spatial context and relate a Geo3d shape to a spatial4j rectan
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: relate returns CONTAINS and the query matches nothing, while Contains(world bounds) matches the circle: Geo3dShape.relate(Rectangle) asks spatial3d how this shape relates to the rectangle but then applies the mapping written for the opposite question (how the other shape relates to this one), so the two nested answers come out swapped, whereas the same box built by the Geo3d factory relates correctly.
+- Expected: WITHIN and CONTAINS; `IsWithin(world bounds)` 1 hit and `Contains` 0; 0 hits for the point about 97 degrees from the half-degree circle.
+- Actual: CONTAINS and WITHIN; `IsWithin(world bounds)` 0 hits (the test stops there; `Contains` gives 1 in the independent reproducer's test and the diagram probe); 1 hit for the far point: 4 of 4 tests fail, no exception.
 
 ## Files
 
@@ -45,6 +47,13 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeo3dPlainRectangleRelation.java](TestGeo3dPlainRectangleRelation.java)
+- [TestGeo3dShapeRelatePlainRectangle.java](TestGeo3dShapeRelatePlainRectangle.java)
+- [TestGeo3dLibraryRectangleRelateV3.java](TestGeo3dLibraryRectangleRelateV3.java)
+- [TestGeo3dShapeRptSameSource.java](TestGeo3dShapeRptSameSource.java)
 
 ## Feedback
 

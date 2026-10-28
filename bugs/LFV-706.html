@@ -1,0 +1,858 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>FSTCompletionLookup ignores exactMatchFirst=false for by-weight lookups after build() and load(), so an exact match is always ranked first</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-706 &middot; fstcompletionlookup-ignores-exactmatchfirst-false</p><h1 id='top'>FSTCompletionLookup ignores exactMatchFirst=false for by-weight lookups after build() and load(), so an exact match is always ranked first</h1><p class='tldr'><code>FSTCompletionLookup</code> built with <code>exactMatchFirst=false</code> still ranks an exact match first in by-weight lookups: for star (weight 1), star wars (100) and start (50), <code>lookup("star", true, 3)</code> returns <code>[star/0, star wars/6, start/3]</code>, not <code>[star wars/6, start/3, star/0]</code>, with no error. Every release since 3.6.0 is affected.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 313</span><span class='sub'>Ranking-only with a correct result set: FSTCompletionLookup ignores a non-default exactMatchFirst=false flag, rarely hit and unreported since 3.6, so it joins the suggester ranking rows after LFV-479 and LFV-689 and before LFV-641.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>3.6.0 (SOLR-2888, 2012)<span class='sub'>introduced 2011-12-01 &middot; over 14 years</span></dd></div><div><dt>Affected</dt><dd>3.6.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>bounded-exhaustive differential against the javadoc</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>FSTCompletionLookup</code> keeps two views of one FST: a by-weight view for <code>lookup(key, true, num)</code> and an alphabetical view for <code>lookup(key, false, num)</code>. <code class='nw'>build()</code> and <code class='nw'>load()</code> pass <code class='nw'>exactMatchFirst</code> only to the alphabetical view, where an exact match sorts first anyway. The by-weight view always keeps its "exact first" default.</p><figure class='visual' id='fstcompletionlookup-ignores-exactmatchfirst-false-short-visual'><div class='frame'><a class='still' href='../assets/LFV-706/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-706/bug.png' alt='Summary diagram. Example: new FSTCompletionLookup(tempDir, &quot;fst&quot;, 10, false), build() from star (weight 1), star wars (100), start (50), then lookup(&quot;star&quot;, true, 3). The flag exactMatchFirst = false reaches normalCompletion (alphabetical lookups, exactFirst = false) but not higherWeightsCompletion (by-weight lookups), which keeps exactFirst = true. Expected, the javadoc&#x27;s order by discretized weight: [star wars/6, start/3, star/0]. Actual, the exact match first: [star/0, star wars/6, start/3]; with num = 1 only [star/0]. The same after store() and load(). Control: the pre-built-completion constructor passes the flag to both views and returns the documented order. Fix: new FSTCompletion(fst, true, exactMatchFirst) in build() and load().' width='1920' height='1080'></a></div><figcaption>The flag reaches only the alphabetical view; the by-weight view keeps "exact first", so <code>lookup("star", true, 3)</code> returns <code>[star/0, star wars/6, start/3]</code> instead of <code>[star wars/6, start/3, star/0]</code>. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You create <code>new FSTCompletionLookup(dir, "fst", 10, false)</code> to rank suggestions purely by popularity and <code class='nw'>build()</code> it from star (weight 1), star wars (weight 100) and start (weight 50). With 10 buckets they land in buckets 0, 6 and 3.</span></li><li><span>The user types "star" and you ask for the most popular completions: <code>lookup("star", true, 3)</code>. The javadoc of <code class='nw'>exactMatchFirst</code> says that with <code class='nw'>false</code> exact matches "appear in the order of discretized weight", so you expect <code>[star wars/6, start/3, star/0]</code>.</span></li><li><span>Instead you get <code>[star/0, star wars/6, start/3]</code>: the least popular entry comes first, only because it equals the typed text. With <code>lookup("star", true, 1)</code> the only suggestion is <code class='nw'>star/0</code>. No error, and <code>exactMatchFirst=true</code> returns the same lists.</span></li><li><span>Why: the lookup keeps two views of one FST. <code class='nw'>build()</code> and <code class='nw'>load()</code> pass the flag only to the alphabetical view; the by-weight view is made with <code>new FSTCompletion(fst)</code>, which means "higher weights first and exact first".</span></li><li><span>It is the same after <code class='nw'>store()</code> and <code class='nw'>load()</code> into an instance built with <code class='nw'>false</code>. The other constructor, which takes a pre-built <code class='nw'>FSTCompletion</code>, passes the flag to both views and returns <code>[star wars/6, start/3, star/0]</code>.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that build the experimental <code>FSTCompletionLookup</code> with the non-default <code>exactMatchFirst=false</code> and ask for by-weight suggestions, <code>lookup(key, true, num)</code>. Any typed prefix that is itself a less popular entry is ranked first, every time; with a small <code class='nw'>num</code> it pushes out a correct entry. The default <code class='nw'>true</code> and alphabetical lookups are unaffected.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>598 words</span></summary><div class='body'><p><code>FSTCompletionLookup</code> has a constructor argument <code class='nw'>exactMatchFirst</code>; its javadoc says that with <code class='nw'>false</code> exact matches "appear in the order of discretized weight and alphabetical within the bucket". The lookup keeps two <code class='nw'>FSTCompletion</code> views over one FST: a by-weight view for <code>lookup(key, true, num)</code> and an alphabetical view for <code>lookup(key, false, num)</code>. <code class='nw'>build()</code> and <code class='nw'>load()</code> pass the flag only to the alphabetical view; the by-weight view is created with the one-argument <code>FSTCompletion(FST)</code>, "higher weights first and exact first". So by-weight lookups always put the exact match first, whatever its weight, with no error, and on distinct keys the argument has no visible effect at all. With star (1), star wars (100), start (50) and 10 buckets, <code>lookup("star", true, 3)</code> returns <code>[star/0, star wars/6, start/3]</code> instead of <code>[star wars/6, start/3, star/0]</code>. It came with the class in SOLR-2888 (3.6.0), which replaced <code class='nw'>FSTLookup</code>, a class that honoured the flag; every release since is affected. Two statements fix it: create the by-weight view with <code>new FSTCompletion(fst, true, exactMatchFirst)</code> in <code class='nw'>build()</code> and <code class='nw'>load()</code>, as the pre-built-completion constructor already does.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Buckets</strong>: <code class='nw'>build()</code> sorts the entries by weight and splits them into <code class='nw'>buckets</code> equal ranges, <code>bucket = (int) (line * buckets / inputLineCount)</code> (<code>FSTCompletionLookup.java:222-227</code>). A result shows the bucket, not the weight: <code>star wars/6</code>. With 3 entries and 10 buckets: star (weight 1) gets 0, start (50) gets 3, star wars (100) gets 6.</li><li><strong>Two views</strong>: <code>higherWeightsCompletion</code> (by weight, highest bucket first) and <code class='nw'>normalCompletion</code> (alphabetical), two <code class='nw'>FSTCompletion</code> wrappers over the same FST (<code>FSTCompletionLookup.java:96-100</code>). <code>lookup(key, contexts, higherWeightsFirst, num)</code> picks the first when <code>higherWeightsFirst</code> is true (<code class='nw'>:268-272</code>); <code>Lookup.lookup(key, onlyMorePopular, num)</code> delegates to it (<code>Lookup.java:193-195</code>).</li><li><strong>Exact first</strong>: an <code class='nw'>FSTCompletion</code> with <code class='nw'>exactFirst</code> set looks for the key itself, puts it at the head of the results and removes it from the rest (<code>FSTCompletion.java:233-283</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>The buckets constructor <code>FSTCompletionLookup(Directory, String, int, boolean)</code> stores <code class='nw'>exactMatchFirst</code> (<code>FSTCompletionLookup.java:130-136</code>).</li><li><code class='nw'>build()</code> ends with <code>this.higherWeightsCompletion = builder.build();</code> (<code class='nw'>:242</code>) and <code>this.normalCompletion = new FSTCompletion(higherWeightsCompletion.getFST(), false, exactMatchFirst);</code> (<code class='nw'>:243-244</code>). <code>FSTCompletionBuilder.build()</code> returns <code>new FSTCompletion(automaton)</code> (<code>FSTCompletionBuilder.java:197</code>), and that constructor is "Defaults to higher weights first and exact first", <code>this(automaton, true, true)</code> (<code>FSTCompletion.java:124-131</code>).</li><li><code class='nw'>load()</code> does the same with <code>new FSTCompletion(new FST&lt;&gt;(readMetadata(...), input))</code> (<code>FSTCompletionLookup.java:305-306</code>); again only <code class='nw'>normalCompletion</code> gets the flag (<code class='nw'>:307-308</code>).</li><li>In the alphabetical view the flag cannot show: when more than one bucket is in use the results are sorted before they are cut (<code>FSTCompletion.java:202-206</code>), and an exact match is a prefix of all its completions, so it sorts first anyway; with one bucket the depth-first walk already emits it first. On stock main, instances built with <code class='nw'>true</code> and with <code class='nw'>false</code> gave 0 different results over about 300,000 lookups in each mode on random dictionaries of distinct keys; with the fix about 37,000 by-weight lookups differ.</li><li>The fourth constructor, <code>FSTCompletionLookup(Directory, String, FSTCompletion, boolean)</code>, creates both views with the flag (<code>FSTCompletionLookup.java:152-153</code>) and returns the documented order.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>star (1), star wars (100), start (50), 10 buckets, <code>exactMatchFirst=false</code>: <code>lookup("star", true, 3)</code> = <code>[star/0, star wars/6, start/3]</code>, expected <code>[star wars/6, start/3, star/0]</code>; <code>lookup("star", true, 1)</code> = <code class='nw'>[star/0]</code>, expected <code>[star wars/6]</code>. The same after <code class='nw'>store()</code> + <code class='nw'>load()</code>. The alphabetical <code>lookup("star", false, 3)</code> = <code>[star/0, star wars/6, start/3]</code>, which is correct UTF-8 order. Another dictionary, {foo: 1, bar: 5, fool: 200, food: 500, foobar: 1000}: <code>lookup("foo", true, 1)</code> = <code class='nw'>[foo/0]</code> instead of <code class='nw'>[foobar/8]</code>. The smallest case: {a: 0, aa: 1}, <code>lookup("a", true, 1)</code> = <code class='nw'>[a/0]</code> instead of <code class='nw'>[aa/5]</code>.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>287 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Code that calls the buckets constructor <code>(Directory, String, int, boolean)</code> with <code>exactMatchFirst=false</code>, for example to rank suggestions purely by popularity, and then <code>lookup(key, true, num)</code>, after <code class='nw'>build()</code> or after <code class='nw'>load()</code>.</li><li><strong>When.</strong> For distinct keys and <code>num &gt; 0</code>: whenever the typed text is itself an entry and another of its completions is in a higher bucket: ordinary autocomplete input, such as "star" while "star wars" is far more popular. Deterministic; no scale, concurrency or unusual data needed.</li><li><strong>What goes wrong.</strong> Silent ranking error. If <code class='nw'>num</code> covers all completions only the order is wrong; if <code class='nw'>num</code> is small the exact match takes a slot and the lowest-ranked correct entry drops out, so the top-1 suggestion can be the least popular entry.</li><li><strong>Not affected.</strong> The default (<code>FSTCompletionLookup(dir, prefix)</code> uses <code class='nw'>true</code>, <code>FSTCompletionLookup.java:116-118</code>), alphabetical lookups, <code class='nw'>get(key)</code> (it reads <code class='nw'>normalCompletion</code>, <code class='nw'>:287-290</code>), and the pre-built-completion constructor. The class is <code>@lucene.experimental</code> (<code class='nw'>:71</code>).</li><li><strong>Size of the check.</strong> A bounded-exhaustive differential on the stock jars over every set of 1-3 distinct keys from the 39 strings of length 1-3 over {a, b, c}, with weights {0, 1, 2, 2^31-1} (596,908 dictionaries, about 4.76 billion lookups) found 265,860 order mismatches each for 3 and 10 buckets with <code class='nw'>false</code>, and none with <code class='nw'>true</code> or with 1 bucket. That full scope was not re-run with the fix; a smaller exhaustive run with the fix shadowed (keys of length 1-2, sets of 1-4 keys: 141,904 dictionaries, about 1.13 billion lookups) found no <code>FSTCompletionLookup</code> mismatch.</li><li><strong>Distinct keys only.</strong> Every check used dictionaries of distinct keys; a dictionary holding the same key twice, with weights in different buckets, was not covered, so the doc makes no claim about it.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A public-API JUnit for <code class='nw'>lucene/suggest</code>: it builds the lookup with <code>exactMatchFirst=false</code> from three entries, asks <code>lookup("star", true, 3)</code> after <code class='nw'>build()</code> and after <code class='nw'>store()</code> + <code class='nw'>load()</code>, and checks the documented order. Both tests fail; the control with a pre-built <code class='nw'>FSTCompletion</code> passes, with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestFSTCompletionLookupExactMatchFirst.java (suggest, 2 tests + 1 control)</span><span class='meta'>64 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.fst;
+
+import java.io.StringReader;
+import org.apache.lucene.search.suggest.FileDictionary;
+import org.apache.lucene.store.ByteBuffersDataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/** FSTCompletionLookup with exactMatchFirst=false must rank an exact match by its weight. */
+public class TestFSTCompletionLookupExactMatchFirst extends LuceneTestCase {
+  // key TAB weight; with 10 buckets: star -&gt; bucket 0, start -&gt; bucket 3, star wars -&gt; bucket 6
+  private static final String DICT = &quot;star\t1\nstar wars\t100\nstart\t50\n&quot;;
+  // &quot;Otherwise they appear in the order of discretized weight and alphabetical within the bucket.&quot;
+  private static final String BY_WEIGHT = &quot;[star wars/6, start/3, star/0]&quot;;
+
+  public void testBuild() throws Exception {
+    try (Directory dir = newDirectory()) {
+      FSTCompletionLookup lookup = new FSTCompletionLookup(dir, &quot;fst&quot;, 10, false);
+      lookup.build(new FileDictionary(new StringReader(DICT)));
+      assertEquals(BY_WEIGHT, lookup.lookup(&quot;star&quot;, true, 3).toString());
+    }
+  }
+
+  public void testLoad() throws Exception {
+    try (Directory dir = newDirectory()) {
+      FSTCompletionLookup built = new FSTCompletionLookup(dir, &quot;fst&quot;, 10, false);
+      built.build(new FileDictionary(new StringReader(DICT)));
+      ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+      assertTrue(built.store(out));
+      FSTCompletionLookup loaded = new FSTCompletionLookup(dir, &quot;fst&quot;, 10, false);
+      assertTrue(loaded.load(out.toDataInput()));
+      assertEquals(BY_WEIGHT, loaded.lookup(&quot;star&quot;, true, 3).toString());
+    }
+  }
+
+  /** Control: the constructor that takes a pre-built FSTCompletion honours the flag. */
+  public void testPrebuiltCompletionControl() throws Exception {
+    FSTCompletionBuilder builder = new FSTCompletionBuilder();
+    builder.add(new BytesRef(&quot;star&quot;), 0);
+    builder.add(new BytesRef(&quot;star wars&quot;), 6);
+    builder.add(new BytesRef(&quot;start&quot;), 3);
+    try (Directory dir = newDirectory()) {
+      FSTCompletionLookup lookup = new FSTCompletionLookup(dir, &quot;fst&quot;, builder.build(), false);
+      assertEquals(BY_WEIGHT, lookup.lookup(&quot;star&quot;, true, 3).toString());
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:suggest:test --tests org.apache.lucene.search.suggest.fst.TestFSTCompletionLookupExactMatchFirst -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>lookup("star", true, 3)</code> = <code>[star wars/6, start/3, star/0]</code> after <code class='nw'>build()</code> and after <code class='nw'>load()</code>.</dd></div><div class='got'><dt>Observed</dt><dd><code>[star/0, star wars/6, start/3]</code> both times, with no error; the pre-built-completion control returns the expected order.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-706/'>repro/LFV-706/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (458 lines) · 2,214 words</span></summary><div class='body'><p><code>TestFSTCompletionLookupExactMatchFirst</code> (package <code>org.apache.lucene.search.suggest.fst</code>, public API only, formatted by <code>./gradlew tidy</code>; it needs <code>org.apache.lucene.tests.util.LuceneTestCase</code>, which first ships in 9.1.0; run on 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main). The dictionary comes from <code class='nw'>FileDictionary</code> over a <code class='nw'>StringReader</code> (key TAB weight). It does not depend on the seed: 10 iterations with another seed fail the same 2 tests every time.</p><ul><li><code class='nw'>testBuild</code>, <code class='nw'>testLoad</code>: <code>lookup("star", true, 3)</code> must be <code>[star wars/6, start/3, star/0]</code>.</li><li><code>testPrebuiltCompletionControl</code> (control): the same buckets through <code>FSTCompletionBuilder</code> and the pre-built-completion constructor give that order.</li></ul><p>The hunt's own tests are attached too: the finder's (the same data with its own <code class='nw'>InputIterator</code>) and the independent reproducer's (another dictionary, a top-1 case and a random differential whose oracle is checked by an <code>exactMatchFirst=true</code> run).</p><div class="hd hd-3"><h3 id='code-2-h'>fix-with-test.diff (the fix plus TestFSTCompletion#testExactMatchFirstFalse)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>A regression test in the existing <code>TestFSTCompletion</code>: build and store/load with <code class='nw'>false</code>, assert <code>[star wars/6, start/3, star/0]</code>. It fails on stock main and passes with the fix.</p><figure class='code'><figcaption><span class='fname'>fix-with-test.diff (the fix plus TestFSTCompletion#testExactMatchFirstFalse)</span><span class='meta'>60 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java b/lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java
+index 0f80c6b46d7..718043f47af 100644
+--- a/lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java
++++ b/lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java
+@@ -239,7 +239,8 @@ public class FSTCompletionLookup extends Lookup {
+       }
+ 
+       // The two FSTCompletions share the same automaton.
+-      this.higherWeightsCompletion = builder.build();
++      this.higherWeightsCompletion =
++          new FSTCompletion(builder.build().getFST(), true, exactMatchFirst);
+       this.normalCompletion =
+           new FSTCompletion(higherWeightsCompletion.getFST(), false, exactMatchFirst);
+       this.count = newCount;
+@@ -303,7 +304,8 @@ public class FSTCompletionLookup extends Lookup {
+   public synchronized boolean load(DataInput input) throws IOException {
+     count = input.readVLong();
+     this.higherWeightsCompletion =
+-        new FSTCompletion(new FST&lt;&gt;(readMetadata(input, NoOutputs.getSingleton()), input));
++        new FSTCompletion(
++            new FST&lt;&gt;(readMetadata(input, NoOutputs.getSingleton()), input), true, exactMatchFirst);
+     this.normalCompletion =
+         new FSTCompletion(higherWeightsCompletion.getFST(), false, exactMatchFirst);
+     return true;
+diff --git a/lucene/suggest/src/test/org/apache/lucene/search/suggest/fst/TestFSTCompletion.java b/lucene/suggest/src/test/org/apache/lucene/search/suggest/fst/TestFSTCompletion.java
+index 12ec8913d12..7954c08bb08 100644
+--- a/lucene/suggest/src/test/org/apache/lucene/search/suggest/fst/TestFSTCompletion.java
++++ b/lucene/suggest/src/test/org/apache/lucene/search/suggest/fst/TestFSTCompletion.java
+@@ -29,6 +29,7 @@ import org.apache.lucene.search.suggest.Lookup.LookupResult;
+ import org.apache.lucene.search.suggest.SuggestRebuildTestUtil;
+ import org.apache.lucene.search.suggest.TestLookupBenchmark;
+ import org.apache.lucene.search.suggest.fst.FSTCompletion.Completion;
++import org.apache.lucene.store.ByteBuffersDataOutput;
+ import org.apache.lucene.store.Directory;
+ import org.apache.lucene.tests.util.LuceneTestCase;
+ import org.apache.lucene.tests.util.TestUtil;
+@@ -208,6 +209,23 @@ public class TestFSTCompletion extends LuceneTestCase {
+     tempDir.close();
+   }
+ 
++  public void testExactMatchFirstFalse() throws Exception {
++    Directory tempDir = getDirectory();
++    FSTCompletionLookup lookup = new FSTCompletionLookup(tempDir, &quot;fst&quot;, 10, false);
++    lookup.build(
++        new InputArrayIterator(new Input[] {tf(&quot;star&quot;, 1), tf(&quot;star wars&quot;, 100), tf(&quot;start&quot;, 50)}));
++    // The exact match keeps its place in weight order.
++    String expected = &quot;[star wars/6, start/3, star/0]&quot;;
++    assertEquals(expected, lookup.lookup(stringToCharSequence(&quot;star&quot;), true, 3).toString());
++
++    ByteBuffersDataOutput out = new ByteBuffersDataOutput();
++    assertTrue(lookup.store(out));
++    FSTCompletionLookup loaded = new FSTCompletionLookup(tempDir, &quot;fst&quot;, 10, false);
++    assertTrue(loaded.load(out.toDataInput()));
++    assertEquals(expected, loaded.lookup(stringToCharSequence(&quot;star&quot;), true, 3).toString());
++    tempDir.close();
++  }
++
+   public void testMultilingualInput() throws Exception {
+     List&lt;Input&gt; input = TestLookupBenchmark.readTop50KWiki();
+ 
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestFSTCompletionLookupExactMatchFirstFalse.java (the finder&#x27;s test)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Same data and assertions, with its own <code class='nw'>InputIterator</code>; fails 2 of 3 on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestFSTCompletionLookupExactMatchFirstFalse.java (the finder&#x27;s test)</span><span class='meta'>114 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.fst;
+
+import java.util.Iterator;
+import java.util.Set;
+import org.apache.lucene.search.suggest.InputIterator;
+import org.apache.lucene.store.ByteBuffersDataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * FSTCompletionLookup(tempDir, prefix, buckets, exactMatchFirst) documents: &quot;If true exact matches
+ * are promoted to the top of the suggestions list. Otherwise they appear in the order of discretized
+ * weight and alphabetical within the bucket.&quot; With exactMatchFirst=false and higher-weights-first
+ * lookups (onlyMorePopular=true), the exact match is still promoted after build() and after load().
+ */
+public class TestFSTCompletionLookupExactMatchFirstFalse extends LuceneTestCase {
+
+  private static InputIterator iter(String[] keys, long[] weights) {
+    Iterator&lt;Integer&gt; it = java.util.stream.IntStream.range(0, keys.length).iterator();
+    return new InputIterator() {
+      int cur = -1;
+
+      @Override
+      public BytesRef next() {
+        if (it.hasNext() == false) {
+          return null;
+        }
+        cur = it.next();
+        return new BytesRef(keys[cur]);
+      }
+
+      @Override
+      public long weight() {
+        return weights[cur];
+      }
+
+      @Override
+      public BytesRef payload() {
+        return null;
+      }
+
+      @Override
+      public boolean hasPayloads() {
+        return false;
+      }
+
+      @Override
+      public Set&lt;BytesRef&gt; contexts() {
+        return null;
+      }
+
+      @Override
+      public boolean hasContexts() {
+        return false;
+      }
+    };
+  }
+
+  // 3 inputs, 10 buckets: weight 1 -&gt; bucket 0, weight 50 -&gt; bucket 3, weight 100 -&gt; bucket 6
+  private static final String[] KEYS = {&quot;star&quot;, &quot;star wars&quot;, &quot;start&quot;};
+  private static final long[] WEIGHTS = {1, 100, 50};
+  // order of discretized weight (descending), no promotion of the exact match &quot;star&quot;
+  private static final String EXPECTED = &quot;[star wars/6, start/3, star/0]&quot;;
+
+  public void testBuildHonoursExactMatchFirstFalse() throws Exception {
+    try (Directory tempDir = newDirectory()) {
+      FSTCompletionLookup lookup = new FSTCompletionLookup(tempDir, &quot;fst&quot;, 10, false);
+      lookup.build(iter(KEYS, WEIGHTS));
+      assertEquals(EXPECTED, lookup.lookup(&quot;star&quot;, true, 3).toString());
+    }
+  }
+
+  public void testLoadHonoursExactMatchFirstFalse() throws Exception {
+    try (Directory tempDir = newDirectory()) {
+      FSTCompletionLookup lookup = new FSTCompletionLookup(tempDir, &quot;fst&quot;, 10, false);
+      lookup.build(iter(KEYS, WEIGHTS));
+      ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+      assertTrue(lookup.store(out));
+      FSTCompletionLookup loaded = new FSTCompletionLookup(tempDir, &quot;fst&quot;, 10, false);
+      assertTrue(loaded.load(out.toDataInput()));
+      assertEquals(EXPECTED, loaded.lookup(&quot;star&quot;, true, 3).toString());
+    }
+  }
+
+  /** Control: the constructor that takes a pre-built FSTCompletion honours exactMatchFirst=false. */
+  public void testPrebuiltCompletionConstructorHonoursExactMatchFirstFalse() throws Exception {
+    try (Directory tempDir = newDirectory()) {
+      FSTCompletionBuilder builder = new FSTCompletionBuilder();
+      builder.add(new BytesRef(&quot;star&quot;), 0);
+      builder.add(new BytesRef(&quot;star wars&quot;), 6);
+      builder.add(new BytesRef(&quot;start&quot;), 3);
+      FSTCompletionLookup lookup =
+          new FSTCompletionLookup(tempDir, &quot;fst&quot;, builder.build(), false);
+      assertEquals(EXPECTED, lookup.lookup(&quot;star&quot;, true, 3).toString());
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestFSTCompletionLookupExactMatchFlag.java (independent reproducer)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>{foo: 1, bar: 5, fool: 200, food: 500, foobar: 1000}: top-1 <code class='nw'>[foo/0]</code> instead of <code class='nw'>[foobar/8]</code>; a random differential over 300 dictionaries finds 1,669 mismatching lookups, 0 with <code class='nw'>true</code>; 4 controls pass.</p><figure class='code'><figcaption><span class='fname'>TestFSTCompletionLookupExactMatchFlag.java (independent reproducer)</span><span class='meta'>284 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import org.apache.lucene.search.suggest.Lookup.LookupResult;
+import org.apache.lucene.search.suggest.fst.FSTCompletion;
+import org.apache.lucene.search.suggest.fst.FSTCompletionBuilder;
+import org.apache.lucene.search.suggest.fst.FSTCompletionLookup;
+import org.apache.lucene.store.ByteArrayDataInput;
+import org.apache.lucene.store.ByteBuffersDataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Contract under test (FSTCompletionLookup 4-argument constructor javadoc): &quot;@param exactMatchFirst
+ * If true exact matches are promoted to the top of the suggestions list. Otherwise they appear in
+ * the order of discretized weight and alphabetical within the bucket.&quot;
+ *
+ * &lt;p&gt;Public API only (this test lives outside the fst package on purpose).
+ */
+public class TestFSTCompletionLookupExactMatchFlag extends LuceneTestCase {
+
+  /** Minimal InputIterator over parallel arrays (no payloads, no contexts). */
+  private static final class ArrayInput implements InputIterator {
+    private final String[] keys;
+    private final long[] weights;
+    private int upto = -1;
+
+    ArrayInput(String[] keys, long[] weights) {
+      this.keys = keys;
+      this.weights = weights;
+    }
+
+    @Override
+    public BytesRef next() {
+      upto++;
+      return upto &lt; keys.length ? new BytesRef(keys[upto]) : null;
+    }
+
+    @Override
+    public long weight() {
+      return weights[upto];
+    }
+
+    @Override
+    public BytesRef payload() {
+      return null;
+    }
+
+    @Override
+    public boolean hasPayloads() {
+      return false;
+    }
+
+    @Override
+    public Set&lt;BytesRef&gt; contexts() {
+      return null;
+    }
+
+    @Override
+    public boolean hasContexts() {
+      return false;
+    }
+  }
+
+  // Five distinct weights, ten buckets: bucket = line * 10 / 5 over the weight-ascending order,
+  // so foo -&gt; 0, bar -&gt; 2, fool -&gt; 4, food -&gt; 6, foobar -&gt; 8.
+  private static final String[] KEYS = {&quot;foo&quot;, &quot;bar&quot;, &quot;fool&quot;, &quot;food&quot;, &quot;foobar&quot;};
+  private static final long[] WEIGHTS = {1, 5, 200, 500, 1000};
+
+  private static String render(List&lt;LookupResult&gt; results) {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (LookupResult r : results) {
+      out.add(r.key + &quot;/&quot; + r.value);
+    }
+    return out.toString();
+  }
+
+  private static FSTCompletionLookup built(Directory dir, boolean exactMatchFirst)
+      throws IOException {
+    FSTCompletionLookup lookup = new FSTCompletionLookup(dir, &quot;v1&quot;, 10, exactMatchFirst);
+    lookup.build(new ArrayInput(KEYS, WEIGHTS));
+    return lookup;
+  }
+
+  /** exactMatchFirst=false, build(): the most popular completion must come first. */
+  public void testBuiltLookupWithExactMatchFirstFalseRanksByWeight() throws Exception {
+    try (Directory dir = newDirectory()) {
+      FSTCompletionLookup lookup = built(dir, false);
+      assertEquals(
+          &quot;top-1 by weight&quot;, &quot;[foobar/8]&quot;, render(lookup.lookup(&quot;foo&quot;, true, 1)));
+      assertEquals(
+          &quot;full by-weight order&quot;,
+          &quot;[foobar/8, food/6, fool/4, foo/0]&quot;,
+          render(lookup.lookup(&quot;foo&quot;, true, 10)));
+    }
+  }
+
+  /**
+   * exactMatchFirst=false, store() then load() into an instance constructed with
+   * exactMatchFirst=false: same documented order.
+   */
+  public void testLoadedLookupWithExactMatchFirstFalseRanksByWeight() throws Exception {
+    try (Directory dir = newDirectory()) {
+      FSTCompletionLookup source = built(dir, false);
+      ByteBuffersDataOutput out = new ByteBuffersDataOutput();
+      assertTrue(source.store(out));
+
+      FSTCompletionLookup loaded = new FSTCompletionLookup(dir, &quot;v1&quot;, 10, false);
+      assertTrue(loaded.load(new ByteArrayDataInput(out.toArrayCopy())));
+      assertEquals(5, loaded.getCount());
+      assertEquals(
+          &quot;full by-weight order after load&quot;,
+          &quot;[foobar/8, food/6, fool/4, foo/0]&quot;,
+          render(loaded.lookup(&quot;foo&quot;, true, 10)));
+    }
+  }
+
+  /** Control: exactMatchFirst=true promotes the exact match (documented). Expected to pass. */
+  public void testControlExactMatchFirstTrue() throws Exception {
+    try (Directory dir = newDirectory()) {
+      FSTCompletionLookup lookup = built(dir, true);
+      assertEquals(
+          &quot;[foo/0, foobar/8, food/6, fool/4]&quot;, render(lookup.lookup(&quot;foo&quot;, true, 10)));
+    }
+  }
+
+  /** Control: onlyMorePopular=false is alphabetical either way. Expected to pass. */
+  public void testControlAlphabeticalUnaffected() throws Exception {
+    try (Directory dir = newDirectory()) {
+      FSTCompletionLookup lookup = built(dir, false);
+      assertEquals(
+          &quot;[foo/0, foobar/8, food/6, fool/4]&quot;, render(lookup.lookup(&quot;foo&quot;, false, 10)));
+    }
+  }
+
+  /**
+   * Control: the constructor that takes a pre-built FSTCompletion, same terms and same buckets,
+   * honours exactMatchFirst=false. Expected to pass.
+   */
+  public void testControlPrebuiltCompletionConstructorHonoursFlag() throws Exception {
+    // Default builder: 10 buckets, in-memory sorter (portable across 9.x/10.x/main).
+    FSTCompletionBuilder builder = new FSTCompletionBuilder();
+    int[] buckets = {0, 2, 4, 6, 8};
+    for (int i = 0; i &lt; KEYS.length; i++) {
+      builder.add(new BytesRef(KEYS[i]), buckets[i]);
+    }
+    FSTCompletion completion = builder.build();
+    try (Directory dir = newDirectory()) {
+      FSTCompletionLookup lookup = new FSTCompletionLookup(dir, &quot;v1&quot;, completion, false);
+      assertEquals(
+          &quot;[foobar/8, food/6, fool/4, foo/0]&quot;, render(lookup.lookup(&quot;foo&quot;, true, 10)));
+    }
+  }
+
+  /**
+   * Reference ordering derived only from the lookup&#x27;s own outputs: take every completion of the
+   * key (lookup(key, false, MAX), which reports each completion&#x27;s bucket), order by bucket
+   * descending then by UTF-8 (ASCII here) ascending, optionally pull the exact match to the
+   * front, and keep the first num.
+   */
+  private static List&lt;String&gt; reference(
+      FSTCompletionLookup lookup, String key, int num, boolean exactFirst) throws IOException {
+    List&lt;LookupResult&gt; all = new ArrayList&lt;&gt;(lookup.lookup(key, false, Integer.MAX_VALUE));
+    all.sort(
+        Comparator.comparingLong((LookupResult r) -&gt; -r.value)
+            .thenComparing(r -&gt; r.key.toString()));
+    List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+    for (LookupResult r : all) {
+      keys.add(r.key + &quot;/&quot; + r.value);
+    }
+    if (exactFirst) {
+      for (int i = 0; i &lt; all.size(); i++) {
+        if (all.get(i).key.toString().equals(key)) {
+          keys.add(0, keys.remove(i));
+          break;
+        }
+      }
+    }
+    return keys.subList(0, Math.min(num, keys.size()));
+  }
+
+  private static List&lt;String&gt; actual(FSTCompletionLookup lookup, String key, int num)
+      throws IOException {
+    List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+    for (LookupResult r : lookup.lookup(key, true, num)) {
+      keys.add(r.key + &quot;/&quot; + r.value);
+    }
+    return keys;
+  }
+
+  /** Counts lookups whose higher-weights-first result deviates from the reference. */
+  private long mismatches(boolean exactMatchFirst, long seed, StringBuilder firstExample)
+      throws IOException {
+    Random rnd = new Random(seed);
+    String[] alphabet = {&quot;a&quot;, &quot;b&quot;};
+    long bad = 0;
+    try (Directory dir = newDirectory()) {
+      for (int d = 0; d &lt; 300; d++) {
+        int n = 2 + rnd.nextInt(7);
+        Map&lt;String, Long&gt; dict = new LinkedHashMap&lt;&gt;();
+        while (dict.size() &lt; n) {
+          int len = 1 + rnd.nextInt(4);
+          StringBuilder sb = new StringBuilder();
+          for (int i = 0; i &lt; len; i++) {
+            sb.append(alphabet[rnd.nextInt(alphabet.length)]);
+          }
+          dict.putIfAbsent(sb.toString(), (long) rnd.nextInt(21));
+        }
+        int buckets = new int[] {2, 3, 5, 10}[rnd.nextInt(4)];
+        String[] keys = dict.keySet().toArray(new String[0]);
+        long[] weights = dict.values().stream().mapToLong(Long::longValue).toArray();
+        FSTCompletionLookup lookup =
+            new FSTCompletionLookup(dir, &quot;v1r&quot;, buckets, exactMatchFirst);
+        lookup.build(new ArrayInput(keys, weights));
+        for (String key : List.of(&quot;a&quot;, &quot;b&quot;, &quot;aa&quot;, &quot;ab&quot;, &quot;ba&quot;, &quot;bb&quot;, &quot;aab&quot;, &quot;aba&quot;, &quot;bab&quot;)) {
+          for (int num = 1; num &lt;= n; num++) {
+            List&lt;String&gt; want = reference(lookup, key, num, exactMatchFirst);
+            List&lt;String&gt; got = actual(lookup, key, num);
+            if (!want.equals(got)) {
+              if (bad == 0) {
+                firstExample
+                    .append(&quot;dict=&quot;)
+                    .append(dict)
+                    .append(&quot; buckets=&quot;)
+                    .append(buckets)
+                    .append(&quot; key=&quot;)
+                    .append(key)
+                    .append(&quot; num=&quot;)
+                    .append(num)
+                    .append(&quot; expected=&quot;)
+                    .append(want)
+                    .append(&quot; actual=&quot;)
+                    .append(got)
+                    .append(&quot; input=&quot;)
+                    .append(Arrays.toString(keys));
+              }
+              bad++;
+            }
+          }
+        }
+      }
+    }
+    return bad;
+  }
+
+  /** Bounded random differential, exactMatchFirst=false: expected to fail on affected versions. */
+  public void testRandomDifferentialExactMatchFirstFalse() throws Exception {
+    StringBuilder ex = new StringBuilder();
+    long bad = mismatches(false, random().nextLong(), ex);
+    assertEquals(&quot;mismatching lookups; first: &quot; + ex, 0, bad);
+  }
+
+  /** Same differential with exactMatchFirst=true: validates the oracle. Expected to pass. */
+  public void testRandomDifferentialControlExactMatchFirstTrue() throws Exception {
+    StringBuilder ex = new StringBuilder();
+    long bad = mismatches(true, random().nextLong(), ex);
+    assertEquals(&quot;mismatching lookups; first: &quot; + ex, 0, bad);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle, clean worktree): fails, assertions on and off; release jars 10.5.2, 10.0.0, 9.12.3, 9.1.0: fail</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp TestFSTCompletionLookupExactMatchFirst.java $LUCENE/lucene/suggest/src/test/org/apache/lucene/search/suggest/fst/
+cd $LUCENE
+./gradlew :lucene:suggest:test --tests org.apache.lucene.search.suggest.fst.TestFSTCompletionLookupExactMatchFirst -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# -Ptests.asserts=false for a run without assertions (same result)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main a9779ef3c193, seed DEADBEEF, -Ptests.asserts=true (with the regression test of fix-with-test.diff in place)
+TestFSTCompletionLookupExactMatchFirst &gt; testBuild FAILED
+    org.junit.ComparisonFailure: expected:&lt;[star[ wars/6, start/3, star/0]]&gt; but was:&lt;[star[/0, star wars/6, start/3]]&gt;
+TestFSTCompletionLookupExactMatchFirst &gt; testLoad FAILED
+    org.junit.ComparisonFailure: expected:&lt;[star[ wars/6, start/3, star/0]]&gt; but was:&lt;[star[/0, star wars/6, start/3]]&gt;
+TestFSTCompletion &gt; testExactMatchFirstFalse FAILED
+    org.junit.ComparisonFailure: expected:&lt;[star[ wars/6, start/3, star/0]]&gt; but was:&lt;[star[/0, star wars/6, start/3]]&gt;
+18 tests completed, 3 failed, 1 skipped        (the same failures and totals with -Ptests.asserts=false)
+
+# classpath runner, seed DEADBEEF: tests_run=3 failures=2 on main (-ea, -da), 10.5.2 (-ea, -da), 10.0.0, 9.12.3, 9.1.0
+# main with the fix shadowed: tests_run=3 failures=0</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc: with <code class='nw'>false</code>, exact matches "appear in the order of discretized weight and alphabetical within the bucket".</li><li>The pre-built-completion constructor passes the flag to both views and returns that order; <code>TestFSTCompletion</code> asserts that <code>FSTCompletion(fst, true, false)</code> does not promote.</li><li>A regression: the replaced <code class='nw'>FSTLookup</code> honoured <code class='nw'>false</code> (3.5.0: <code>[star wars, start, star]</code>); 3.6.0 <code>FSTCompletionLookup</code> does not.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>224 words</span></summary><div class='body'><ul><li><strong>The contract.</strong> <code>FSTCompletionLookup.java:126-128</code>: "@param exactMatchFirst If &lt;code&gt;true&lt;/code&gt; exact matches are promoted to the top of the suggestions list. Otherwise they appear in the order of discretized weight and alphabetical within the bucket." "Order of discretized weight" only describes the by-weight path, the one that ignores the flag. The same text is on the pre-built-completion constructor (<code class='nw'>:142-144</code>), which honours it (<code class='nw'>:152-153</code>).</li><li><strong>The lower-level switch is documented and tested.</strong> <code class='nw'>FSTCompletion</code>'s <code class='nw'>exactFirst</code>: "Find and push an exact match to the first position of the result list if found" (<code>FSTCompletion.java:109-110</code>). <code>TestFSTCompletion.testRequestedCount</code> asserts that <code>new FSTCompletion(fst, true, false)</code> does not promote the low-weight "one" (<code>TestFSTCompletion.java:136-139</code>). The sibling <code>WFSTCompletionLookup</code> honours <code class='nw'>exactFirst=false</code> (<code>TestWFSTCompletion.testNonExactFirst</code>). No upstream test builds <code>FSTCompletionLookup</code> with <code class='nw'>false</code>.</li><li><strong>History.</strong> SOLR-2378 added exact-match promotion "(weighted mode)" to the old <code class='nw'>FSTLookup</code>, and SOLR-2762 fixed it there, so the flag was a feature of the weighted path. SOLR-2888 replaced <code class='nw'>FSTLookup</code> with <code>FSTCompletionLookup</code> and switched Solr's <code class='nw'>FSTLookupFactory</code> from <code>new FSTLookup(buckets, exactMatchFirst)</code> to <code>new FSTCompletionLookup(buckets, exactMatchFirst)</code> as a drop-in; its CHANGES entry announces no change in behaviour. Executed on the same input: 3.5.0 <code>FSTLookup(10, false)</code> returns <code>[star wars, start, star]</code>; 3.6.0 <code>FSTCompletionLookup(10, false)</code> returns <code>[star/0, star wars/6, start/3]</code>. Three days after the class was committed, its author added the "Otherwise ..." javadoc (<code class='nw'>3408defc8db</code>, "JavaDoc clarifications").</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>310 words</span></summary><div class='body'><p>The strongest works-as-designed case (built by the intended-behaviour verifier, reviews by a model from another family, OpenAI GPT-5.6, and the adjudication): <code>FSTCompletionBuilder</code>'s class javadoc says "If there is an exact match in the automaton, it is returned first on the results list (even with by-weight sorting)" (<code>FSTCompletionBuilder.java:77-78</code>), its no-argument constructor makes an <code class='nw'>FSTCompletion</code> "with default options: 10 buckets, exact match promoted to first position" (<code class='nw'>:127-131</code>), and <code>FSTCompletion(FST)</code> defaults to exact first; the class is <code>@lucene.experimental</code>; nobody complained in about 15 years; and for <code class='nw'>load()</code>, the no-argument constructor "should only be used to read a previously saved suggester" (<code>FSTCompletionLookup.java:105</code>), defaults to <code class='nw'>true</code>, and <code class='nw'>store()</code> does not record the flag. Nearby javadoc is also loose: <code class='nw'>FSTCompletion</code> says <code>higherWeightsFirst=false</code> "has no effect" (<code>FSTCompletion.java:106-108</code>), yet <code class='nw'>lookup</code> then sorts alphabetically when more than one bucket is in use (<code class='nw'>:202-206</code>), and <code class='nw'>Lookup</code> documents the by-weight switch as <code class='nw'>onlyMorePopular</code>, "return only more popular results" (<code class='nw'>Lookup.java:189</code>).</p><p>Why it fails: the builder and one-argument docs describe the <em>default</em> view, which the explicit argument exists to override, and its own javadoc says so; experimental status allows API changes, not a documented argument that does nothing; few users set <code class='nw'>false</code>, and Solr's modern suggest component uses the unaffected alphabetical path; <code class='nw'>load()</code> itself applies <code>this.exactMatchFirst</code> to <code class='nw'>normalCompletion</code>, nothing forbids loading into a configured instance, Solr does exactly that, and the <code class='nw'>build()</code> path alone proves the bug. The <code class='nw'>exactMatchFirst</code> text, unlike the loose sentences, is specific to this class and argument, was added by the class's author three days after the class, and is implemented by the pre-built-completion constructor. Every check rated the intended argument weak; the cross-model fact check of this doc rated it weak for <code class='nw'>build()</code> and moderate for <code class='nw'>load()</code>. Lead the issue with <code class='nw'>build()</code> and the 3.5.0 to 3.6.0 regression.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Build the by-weight view with the flag in build() and load()</strong></p><p class='short'>Create the by-weight view with the flag, <code>new FSTCompletion(fst, true, exactMatchFirst)</code>, in <code class='nw'>build()</code> and <code class='nw'>load()</code>, as the pre-built-completion constructor already does: two statements. Validated: the repro and a new <code>TestFSTCompletion</code> test fail on stock and pass with it, assertions on and off, and the whole suggest module passes (240 tests).</p><pre class='snippet' tabindex='0'><code>       // The two FSTCompletions share the same automaton.
+-      this.higherWeightsCompletion = builder.build();
++      this.higherWeightsCompletion =
++          new FSTCompletion(builder.build().getFST(), true, exactMatchFirst);
+ ...
+     this.higherWeightsCompletion =
+-        new FSTCompletion(new FST&lt;&gt;(readMetadata(input, NoOutputs.getSingleton()), input));
++        new FSTCompletion(
++            new FST&lt;&gt;(readMetadata(input, NoOutputs.getSingleton()), input), true, exactMatchFirst);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 538 words</span></summary><div class='body'><p>One fix was applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle (seed DEADBEEF), together with a regression test in <code>TestFSTCompletion</code>; the alternatives were not run.</p><div class="hd hd-3"><h3 id='fix-flag-to-by-weight-view'>Build the by-weight view with the flag in build() and load() <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-flag-to-by-weight-view" target="_self" aria-label="Link to this section" aria-describedby="fix-flag-to-by-weight-view"><span aria-hidden="true">#</span></a></div><p>Two statements in <code>FSTCompletionLookup.java</code> (+4/-2 lines after wrapping): create <code>higherWeightsCompletion</code> as <code>new FSTCompletion(fst, true, exactMatchFirst)</code>, as the pre-built-completion constructor already does (<code class='nw'>:153</code>). The FST and the stored format do not change.</p><pre class='snippet' tabindex='0'><code>       // The two FSTCompletions share the same automaton.
+-      this.higherWeightsCompletion = builder.build();
++      this.higherWeightsCompletion =
++          new FSTCompletion(builder.build().getFST(), true, exactMatchFirst);
+ ...
+     this.higherWeightsCompletion =
+-        new FSTCompletion(new FST&lt;&gt;(readMetadata(input, NoOutputs.getSingleton()), input));
++        new FSTCompletion(
++            new FST&lt;&gt;(readMetadata(input, NoOutputs.getSingleton()), input), true, exactMatchFirst);</code></pre><p class='k'>Trade-offs</p><ul><li>The default <code>exactMatchFirst=true</code> behaves exactly as before.</li><li>Behaviour change for users who set <code class='nw'>false</code>: by-weight lookups now follow the documented order; worth a CHANGES line. Anyone who relied on the old order can pass <code class='nw'>true</code>, which gives it for distinct keys (duplicate keys were not checked).</li><li><code class='nw'>builder.build()</code> still makes one throwaway <code class='nw'>FSTCompletion</code> (it caches at most one root arc per bucket), negligible next to building the FST.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock main <code class='nw'>a9779ef3c193</code> (gradle, seed DEADBEEF): the repro fails 2 of 3 and the new <code>TestFSTCompletion#testExactMatchFirstFalse</code> fails, with assertions on and off; the control and the 13 upstream <code>TestFSTCompletion</code> tests that run pass (<code class='nw'>testRandom</code> is <code class='nw'>@Nightly</code>).</li><li>With the fix: the repro and <code>TestFSTCompletion</code> pass (18 tests, 0 failures, 1 <code class='nw'>@Nightly</code> skipped), with assertions on and with assertions off.</li><li>With the fix, the whole <code>:lucene:suggest:test</code>: 32 classes, 240 tests, 0 failures, 7 skipped (31 upstream classes, 236 upstream tests, plus the repro and the new test); this run had no <code class='nw'>-Ptests.asserts</code>, so it ran without assertions, the default for seed DEADBEEF.</li><li><code class='nw'>ecjLint</code> and <code>checkGoogleJavaFormat</code> pass for <code class='nw'>lucene/suggest</code> with both tests in place; both diffs apply cleanly to a clean tree.</li><li>Through the classpath runner the fix shadowed onto the stock jars passes the repro 3 of 3; in the hunt, the finder's, the independent reproducer's, the cross-model reviewers' and the adjudication's tests passed with this change or with an independently written equivalent of it.</li><li>Not run: other modules (nothing outside <code class='nw'>lucene/suggest</code> uses the class); no benchmark (the change only passes a flag).</li></ul><div class="hd hd-3"><h3 id='fix-builder-javadoc'>Also say "by default" in FSTCompletionBuilder's class javadoc (with the fix; not run)</h3><a class="hlink" href="#fix-builder-javadoc" target="_self" aria-label="Link to this section" aria-describedby="fix-builder-javadoc"><span aria-hidden="true">#</span></a></div><p>"If there is an exact match in the automaton, it is returned first on the results list (even with by-weight sorting)" (<code>FSTCompletionBuilder.java:77-78</code>) describes the default <code class='nw'>FSTCompletion</code> that <code class='nw'>build()</code> returns; adding "by default" removes the only text that reads as the opposite contract.</p><p class='k'>Trade-offs</p><p>Doc-only.</p><div class="hd hd-3"><h3 id='fix-regression-test'>Add the regression test to TestFSTCompletion (with the fix; validated)</h3><a class="hlink" href="#fix-regression-test" target="_self" aria-label="Link to this section" aria-describedby="fix-regression-test"><span aria-hidden="true">#</span></a></div><p><code>fix-with-test.diff</code> adds <code>TestFSTCompletion#testExactMatchFirstFalse</code>: build and store/load with <code class='nw'>false</code>, assert <code>[star wars/6, start/3, star/0]</code>. It fails on stock main and passes with the fix.</p><p class='k'>Trade-offs</p><p>None; no upstream test builds <code>FSTCompletionLookup</code> with <code class='nw'>false</code> today.</p><div class="hd hd-3"><h3 id='fix-document-current'>Document the current behaviour instead (not recommended)</h3><a class="hlink" href="#fix-document-current" target="_self" aria-label="Link to this section" aria-describedby="fix-document-current"><span aria-hidden="true">#</span></a></div><p>Change the javadoc to say that <code class='nw'>false</code> only affects alphabetical lookups.</p><p class='k'>Trade-offs</p><p>Makes the argument a no-op on distinct keys and keeps the regression from <code class='nw'>FSTLookup</code>. Note also open #11576, which proposes removing the alphabetical mode: without the fix, the flag would then reach no view at all.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>By code reading only, Solr's <code class='nw'>FSTLookupFactory</code> passes its <code class='nw'>exactMatchFirst</code> setting into this constructor, but Solr's <code class='nw'>SuggestComponent</code> asks for alphabetical lookups, which the bug does not reach.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive differential check ran the suggester <code class='nw'>Lookup</code> implementations (all except <code>FreeTextSuggester</code>) on the real jars against a reference written from each one's javadoc. For <code>FSTCompletionLookup</code> with <code>exactMatchFirst=false</code> it found 265,860 order mismatches each for 3 and 10 buckets and none with <code class='nw'>true</code>; a smaller exhaustive run with the fix found none. Reading <code class='nw'>build()</code> and <code class='nw'>load()</code> gave the cause.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>190 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive differential translation validation on the stock jars</strong> (semi-formal tier), in a hunt unit that compared the suggest module's <code class='nw'>Lookup</code> implementations (all except <code>FreeTextSuggester</code>).</p><ul><li>The harness builds every implementation from the same dictionary and compares each lookup with an independent reference written from that class's javadoc; for <code>FSTCompletionLookup</code>: bucket descending, then UTF-8 order, the exact match first only when <code class='nw'>exactMatchFirst</code> is true.</li><li>Scope: every set of 1-3 distinct keys over the 39 strings of length 1-3 over {a, b, c}, with weights {0, 1, 2, 2^31-1}: 596,908 dictionaries, 7,759,804 builds and 4,763,325,840 lookups, assertions off. The class "exact=false, order" appeared 265,860 times for 3 buckets and as often for 10, never for <code class='nw'>true</code> or 1 bucket. With the fix shadowed onto the jar (141,904 dictionaries including 4-key sets, about 1.13 billion lookups) it appeared 0 times.</li><li>The class was reduced to a public-API JUnit (found 2026-10-27 on main <code class='nw'>ea57360912ed</code>, whose <code class='nw'>lucene/suggest</code> equals <code class='nw'>a9779ef3c193</code>), then checked by an independent reproducer, an intended-behaviour devil's advocate, two executed reviews by a model from another family (OpenAI GPT-5.6), an adjudication, a history and prior-report follow-up and a credibility audit.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27) in GitHub issues, PRs and commits, the LUCENE and SOLR JIRA archives, the Lucene and Solr lists, downstream repositories, Stack Overflow and the web, nor in the changed files of all 409 open PRs. The file is unchanged on upstream main and branch_10x.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: no report by anyone, none by the owner. Keyword search cannot prove absence; GitHub search does not index every review comment, and private reports are invisible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; downstream repositories; Lucene and Solr lists; JIRA archive; the web</th><td class='when'>2026-10-27</td><td>two runs of the hunt's prior-report tool, 76 queries</td><td>no report; related only: #11328, #4788</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR), lists, downstream GitHub, Stack Overflow</th><td class='when'>2026-10-27</td><td>9 JQL queries and the comments of 14 issues; 7 list searches, 72 mails read; 11 searches in apache/solr, apache/lucene-solr, Lucene.NET, Elasticsearch, OpenSearch; 3 Stack Overflow searches</td><td>background only: SOLR-2378, SOLR-2762, SOLR-2888 (the introducing change), PR #844; solr-user@ threads about the flag set to true</td></tr><tr><th scope='row'>all 409 open apache/lucene PRs</th><td class='when'>2026-10-27</td><td>changed-file lists</td><td>none touches FSTCompletionLookup, FSTCompletion or FSTCompletionBuilder; open issue #11576 matters for the fix design</td></tr><tr><th scope='row'>registry re-check</th><td class='when'>2026-10-27</td><td>GitHub search for exactMatchFirst and FSTCompletionLookup, issues since 2026-10-20, the owner's handle</td><td>nothing new</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Born with the class in SOLR-2888 (<code class='nw'>92de7e88486</code>, 2011-12-01; branch_3x <code class='nw'>d3e380f824a</code>, first release 3.6.0), which replaced <code class='nw'>FSTLookup</code>, a class that honoured the flag. Executed: 3.6.0 to 10.5.2 (23 releases) and main fail; 3.5.0 has no such class. Never fixed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> SOLR-2888, "FSTSuggester refactoring: utf8 storage, external sorts (OOM prevention), code cleanups" (svn era, no PR): trunk <code class='nw'>92de7e884868</code> (svn r1209265, 2011-12-01) and the branch_3x backport <code class='nw'>d3e380f824a5</code> (svn r1232289, 2012-01-17), which shipped first, in 3.6.0. The commit created <code>FSTCompletionLookup</code>; both defect sites are in its first version; its 21 JIRA comments never mention exact-match handling. The <code>exactMatchFirst=false</code> javadoc followed three days later in <code class='nw'>3408defc8db</code> ("JavaDoc clarifications"), so no release has the code without the contract.</p><p>It is a regression of that refactoring: <code class='nw'>FSTLookup</code>, deprecated in 3.6 and removed in 4.0, applied the flag on the by-weight path. All 126 release tags with the class build the by-weight view the same faulty way (the surrounding lines differ between versions), the 9 untagged 8.x releases 8.8.2 to 8.11.4 were executed instead (135 releases counting the 4.0.0-alpha and 4.0.0-beta prereleases, 133 final releases), and <code>FSTCompletionLookup.java</code> is byte-identical on upstream main <code class='nw'>a95c754ee003</code>, branch_10x and branch_10_6 (fetched 2026-10-26).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the compact JUnit fails 2 of 3 through gradle, assertions on and off, and through the classpath runner with -ea and -da</td></tr><tr><th scope='row'>10.5.2, 10.0.0, 9.12.3, 9.1.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the compact JUnit fails 2 of 3 (10.5.2 also with -da); 9.1.0 is before the 9.2 stream rewrite of FSTCompletion</td></tr><tr><th scope='row'>9.0.0, 8.8.2-8.11.4, 7.7.3, 6.6.6, 6.0.0, 5.5.5, 4.10.4, 4.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>main() repro: build and load return [star/0, star wars/6, start/3]; the control passes</td></tr><tr><th scope='row'>3.6.0, 3.6.1, 3.6.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release</span></td><td>FSTCompletionLookup(10, false) returns [star/0, star wars/6, start/3]</td></tr><tr><th scope='row'>3.5.0, 3.6.0, 3.6.2 FSTLookup</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> predecessor class</span></td><td>FSTLookup(10, false) returns [star wars, start, star]: the flag is honoured</td></tr><tr><th scope='row'>3.5.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no class</span></td><td>compile error: FSTCompletionLookup does not exist</td></tr><tr><th scope='row'>fix (scratch worktree at <code class='nw'>a9779ef3c193</code>)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro and the new TestFSTCompletion test pass, assertions on and off; the whole suggest module passes (240 tests, 0 failures)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and an intended-behaviour devil's advocate reproduced it with their own tests, controls passing; two executed reviews by a model from another family (OpenAI GPT-5.6) rated it real with a weak intended argument; an adjudication re-ran it with new seeds; this doc's gradle runs reproduce it on <code class='nw'>a9779ef3c193</code> and validate the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>296 words</span></summary><div class='body'><p>Every executing check wrote or re-ran its own JUnit on stock main; every control passed, and every fix check passed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Exhaustive differential, then a public-API JUnit: fails 2 of 3 on main (-ea, -da), 10.5.2 and 9.12.3; 40 of 60 over 20 iterations; passes with the fix.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high</span></td><td>Its own JUnit fails 2 of 4 on main (-ea, -da), its 2 controls pass, the fix passes; noted the load-path wrinkle.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit from the claim only, another dictionary: fails 3 of 7 on main, 10.5.2 and 9.12.3; a random differential finds 1,669 mismatches, 0 with true; its own fix passes 7 of 7.</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, high; intended argument weak</span></td><td>Its own JUnit fails 2 of 5 on a9779ef3c193 (-ea, -da) and 10.5.2, 3 controls pass, passes 5 of 5 with the fix.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high for build, moderate-to-high for load)</span></td><td>Built and rejected the works-as-designed case; showed true and false give identical results on stock; executed the 3.5.0 to 3.6.0 regression.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the reproducer's and the finder's tests with new seeds (3 of 7 and 2 of 3 fail) and the fix check (7 of 7 pass).</td></tr><tr><th scope='row'>Follow-up and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> new; not security-sensitive; keep</span></td><td>History <code class='nw'>main()</code> runs on 22 releases (23 releases executed in all, with 9.1.0 by JUnit) and the predecessor class, prior-report searches, a security screen, and fresh-seed re-runs on a9779ef3c193.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>Compact JUnit fails through gradle and the classpath runner on main and 4 releases; the fix passes it, the new regression test and the suggest module.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-706/bug.png' download='fstcompletionlookup-ignores-exactmatchfirst-false-bug.png' target='_self'>PNG</a> <span class='n'>504 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,393 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-706, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>FSTCompletionLookup ignores exactMatchFirst=false for by-weight lookups after build() and load(), so an exact match is always ranked first</dd></div><div><dt>Area</dt><dd>suggest / FST completion suggester (FSTCompletionLookup build/load exactMatchFirst wiring)</dd></div><div><dt>Priority</dt><dd>Medium, rank 313: Ranking-only with a correct result set: FSTCompletionLookup ignores a non-default exactMatchFirst=false flag, rarely hit and unreported since 3.6, so it joins the suggester ranking rows after LFV-479 and LFV-689 and before LFV-641.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that build the opt-in, @lucene.experimental FSTCompletionLookup with the non-default exactMatchFirst=false (for example to rank suggestions purely by popularity) and then call lookup(key, true, num) after build() or after load() get the exact match first whatever its weight bucket, with no error: when num covers all completions only the order is wrong, and when num is small the exact match pushes out the lowest-ranked correct entry (top-1 can be the least popular entry); alphabetical lookups and the default exactMatchFirst=true are unaffected, no scale is needed, and every release from 3.6.0 through 10.5.2 and main is affected (by code reading, Solr's FSTLookupFactory exposes the setting, but its SuggestComponent calls the alphabetical lookup(token, false, count), which the bug does not reach).</dd></div><div><dt>Summary</dt><dd>You build an FSTCompletionLookup(dir, "fst", 10, false) from star (weight 1), star wars (100) and start (50) and ask lookup("star", true, 3) for the most popular completions first. You expect [star wars/6, start/3, star/0], because the constructor javadoc says that with exactMatchFirst=false exact matches 'appear in the order of discretized weight and alphabetical within the bucket'. Instead you get [star/0, star wars/6, start/3], with no error, after build() and equally after store() and load(): both paths create the internal by-weight FSTCompletion with its exact-first default, and the flag reaches only the alphabetical completion, where it changes nothing.</dd></div><div><dt>Introduced</dt><dd>92de7e884868f91b42689aa344c51b1b8aa8fdbb (trunk, svn r1209265, 2011-12-01) and its branch_3x backport d3e380f824a59857c3cd72e7f789e6f5682e7853 (svn r1232289, 2012-01-17; the backport shipped first, in 3.6.0), SOLR-2888 'FSTSuggester refactoring: utf8 storage, external sorts (OOM prevention), code cleanups' (an svn-era JIRA change, no pull request; its 21 comments never mention exact-match handling). The commit created FSTCompletionLookup with build() keeping higherWeightsCompletion = builder.build() and load() using the one-argument new FSTCompletion(fst), both exact-first by default, while only normalCompletion received exactMatchFirst; the pre-built-completion constructor of the same commit passes the flag to both [read: git log --follow, git log -L on the build() line (only 92de7e88486), git blame -w -M -C; both defect sites are in the class's first version, so no commit-level bisection was needed] [exec: release boundary, the predecessor FSTLookup honours exactMatchFirst=false on 3.5.0, 3.6.0 and 3.6.2, FSTCompletionLookup ignores it on 3.6.0]. The exactMatchFirst=false javadoc followed three days later in 3408defc8db (2011-12-04, 'JavaDoc clarifications'), so no release has the code without the contract (2011-12-01 (trunk); 2012-01-17 (branch_3x backport))</dd></div><div><dt>First affected version</dt><dd>3.6.0 [exec], the first release that contains FSTCompletionLookup at all (3.5.0: class absent, compile error [exec]); the class it replaced, FSTLookup (deprecated in 3.6, removed in 4.0), honours exactMatchFirst=false on the same input [exec on 3.5.0, 3.6.0 and 3.6.2], so this is a regression of the refactoring, and no release of FSTCompletionLookup ever honoured the flag on this path</dd></div><div><dt>Affected versions</dt><dd>every release that ships FSTCompletionLookup: 3.6.0-3.6.2 and 4.0.0-alpha through 10.5.2 (135 releases, including 8.8.2-8.11.4 from branch_8x), plus main a9779ef3c193; never fixed. Executed, all failing with the control passing: 3.6.0, 3.6.1, 3.6.2, 4.0.0, 4.10.4, 5.5.5, 6.0.0, 6.6.6, 7.7.3, 8.8.2, 8.9.0, 8.10.0, 8.10.1, 8.11.0-8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2 (follow-up main() repros, 10.5.2 also -da), 9.1.0 (the intended-behaviour check, before the 9.2 stream rewrite of FSTCompletion), main with -ea and -da [exec]; the other releases by reading every release tag of the history clone [read]. FSTCompletionLookup.java is byte-identical on upstream origin/main a95c754ee003, branch_10x and branch_10_6 (fetched 2026-10-26) [read]. Executed only on aarch64 Linux with JDK 25.0.3; the defect is pure-Java wiring, so the platform does not matter</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, read-only; the prior-report record, verdict new): two scripted prior-report searches (76 queries over GitHub issues, PRs and commits, downstream repositories, the Lucene and Solr mailing lists, the JIRA archive and the web), 9 JQL queries over LUCENE and SOLR, 7 list searches with 72 mails read, 11 downstream GitHub searches (apache/solr, apache/lucene-solr, Lucene.NET, Elasticsearch, OpenSearch), 3 Stack Overflow searches, the changed-file lists of all 409 open apache/lucene PRs (none touches FSTCompletionLookup.java, FSTCompletion.java or FSTCompletionBuilder.java) and the file history; the finder, the independent reproduction and the intended-behaviour check searched with other phrasings and found nothing either; re-check (2026-10-27, gh read-only): repo:apache/lucene exactMatchFirst still gives only #11328 and #4788, no open PR mentions FSTCompletionLookup, and no issue naming it was created since 2026-10-20. Not fixed upstream: origin/main a95c754ee003 and branch_10x still create the by-weight completion with the defaults. Related, none a report of this bug: #11328 (LUCENE-10292) quotes the build() lines only in a thread-safety comment; #4788 (LUCENE-3714) mentions exactMatchFirst only as a benchmark setting; SOLR-2378 added exact-match promotion for the weighted mode to the old FSTLookup; SOLR-2762 and a review remark on PR #844 were exact-match promotion bugs with the flag true in other code (fixed in 3.5 and 9.2); SOLR-2888 is the introducing change (21 comments, none on the flag); open #11576 (LUCENE-10540) proposes removing the alphabetical completion, the only one that receives the flag today; solr-user threads about exactMatchFirst concern the flag true with other suggesters or SolrCloud shard merging. Not filed by the owner</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26): the compact JUnit and a regression test added to <code>TestFSTCompletion</code>, through gradle in a clean worktree, stock and with the fix, assertions on and off, plus the whole <code class='nw'>lucene/suggest</code> module with the fix (2026-10-28); through the hunt's classpath runner, the compact JUnit on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>, fix shadowed, 10 iterations), 10.5.2 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.0.0, 9.12.3 and 9.1.0. The hunt's checks ran its own repros on main <code class='nw'>ea57360912ed</code> (identical <code class='nw'>lucene/suggest</code>), on <code class='nw'>a9779ef3c193</code>, and <code class='nw'>main()</code> repros on 22 releases from 3.6.0 to 10.5.2 (23 releases executed in all, with 9.1.0 by JUnit), plus the predecessor <code class='nw'>FSTLookup</code> on 3.5.0, 3.6.0 and 3.6.2.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java:71 (at a9779ef3c193) (@lucene.experimental), :105 (no-arg constructor &#x27;should only be used to read a previously saved suggester&#x27;), :110-118 (two-argument constructor: exact matches promoted), :120-136 (four-argument constructor; :126-128 &#x27;@param exactMatchFirst If true exact matches are promoted to the top of the suggestions list. Otherwise they appear in the order of discretized weight and alphabetical within the bucket.&#x27;), :138-154 (pre-built-completion constructor, same javadoc, passes exactMatchFirst to both completions at :152-153), :241-244 (build: higherWeightsCompletion = builder.build(); only normalCompletion gets exactMatchFirst), :262-272 (lookup uses higherWeightsCompletion when higherWeightsFirst), :303-309 (load: one-argument FSTCompletion constructor at :305-306)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletion.java:102-122 (at a9779ef3c193) (three-argument constructor: exactFirst &#x27;Find and push an exact match to the first position of the result list if found&#x27;), :124-131 (one-argument constructor &#x27;Defaults to higher weights first and exact first&#x27;, this(automaton, true, true))</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionBuilder.java:77-78 (at a9779ef3c193) (class javadoc: an exact match &#x27;is returned first on the results list (even with by-weight sorting)&#x27;, describing the builder&#x27;s default), :190-197 (build() returns new FSTCompletion(automaton))</code></li><li><code>lucene/suggest/src/test/org/apache/lucene/search/suggest/fst/TestFSTCompletion.java:116-140 (at a9779ef3c193) (testRequestedCount: FSTCompletion(fst, true, false) does not promote a low-weight exact match); TestWFSTCompletion.java:154-157 (testNonExactFirst, sibling honours false); no upstream test constructs FSTCompletionLookup with exactMatchFirst=false (grep of lucene/suggest/src/test)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java:96-100, 130-136, 152-153, 222-227, 241-244, 262-281, 303-310</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletion.java:102-131, 197-210, 233-283; lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionBuilder.java:190-198; lucene/suggest/src/java/org/apache/lucene/search/suggest/Lookup.java:193-195</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java:71, 116-118, 287-290</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java:105, 126-128, 142-144, 152-153; lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletion.java:109-110; lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionBuilder.java:77-78</code></li><li><code>lucene/suggest/src/test/org/apache/lucene/search/suggest/fst/TestFSTCompletion.java:116-144; lucene/suggest/src/test/org/apache/lucene/search/suggest/fst/TestWFSTCompletion.java:154-179</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionLookup.java:146-154; lucene/suggest/src/java/org/apache/lucene/search/suggest/fst/FSTCompletionBuilder.java:77-78</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestFSTCompletionLookupExactMatchFirst.java (suggest, 2 tests + 1 control): <a href='../repro/LFV-706/TestFSTCompletionLookupExactMatchFirst.java'><code>repro/LFV-706/TestFSTCompletionLookupExactMatchFirst.java</code></a> (64 lines)</li><li>fix-with-test.diff (the fix plus TestFSTCompletion#testExactMatchFirstFalse): <a href='../repro/LFV-706/fix-with-test.diff'><code>repro/LFV-706/fix-with-test.diff</code></a> (60 lines)</li><li>TestFSTCompletionLookupExactMatchFirstFalse.java (the finder&#x27;s test): <a href='../repro/LFV-706/TestFSTCompletionLookupExactMatchFirstFalse.java'><code>repro/LFV-706/TestFSTCompletionLookupExactMatchFirstFalse.java</code></a> (114 lines)</li><li>TestFSTCompletionLookupExactMatchFlag.java (independent reproducer): <a href='../repro/LFV-706/TestFSTCompletionLookupExactMatchFlag.java'><code>repro/LFV-706/TestFSTCompletionLookupExactMatchFlag.java</code></a> (284 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from a probe run on main <code class='nw'>a9779ef3c193</code> and 10.5.2 (stock, and main with the fix); the values on screen come from the probe, which uses the same three entries as the repro.</p><ul class='paths'><li><a href='../assets/LFV-706/bug.png'><code>assets/LFV-706/bug.png</code></a> (504 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -1,0 +1,723 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Intervals.ordered(a, a) reports a minimum width of 1, so an Intervals.or under phrase or maxgaps silently drops the two-word match</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-805 &middot; repeating-intervals-minextent-underreported</p><h1 id='top'>Intervals.ordered(a, a) reports a minimum width of 1, so an Intervals.or under phrase or maxgaps silently drops the two-word match</h1><p class='tldr'><code>phrase(x, or(ordered(a, a), a), c)</code> finds nothing in <code>x a a c</code>, though <code>phrase(x, ordered(a, a), c)</code> finds it: <code>ordered(a, a)</code> claims a minimum width of 1, so the OR is not split and drops the match <code>a a</code>. Since 8.5.0; a one-line fix, best landed with two related fixes.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 231</span><span class='sub'>A new silent missed-match sibling in the same RepeatingIntervalsSource since 8.5, but it needs the unusual ordered(a,a) shape as an OR alternative under phrase or maxgaps.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>8.5.0 (LUCENE-9099, 2020)<span class='sub'>introduced 2020-02-06 &middot; about 6 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>8.5.0 to 10.5.2 (all 52 releases run) and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>a check of the default disjunction rewrites, then a bounded-exhaustive comparison against a reference semantics</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Interval queries match runs of positions. <code class='nw'>minExtent()</code> is the smallest width a source can match. Under <code class='nw'>phrase</code> and <code class='nw'>maxgaps</code>, Lucene splits an <code class='nw'>or()</code> whose alternatives have different widths into separate phrases, because inside one OR a wider match that contains a narrower one is dropped. Alternatives of width 1 stay together.</p><figure class='visual' id='repeating-intervals-minextent-underreported-short-visual'><div class='frame'><a class='still' href='../assets/LFV-805/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-805/bug.png' alt='Diagram of the bug: the document x a c at positions 0 to 3 and the query phrase(x, or(ordered(a, a), a), c), which should find it, as phrase(x, ordered(a, a), c) does. ordered(a, a) is one repeated source whose minExtent() is 1, the width of a single a, so the disjunction rewrite keeps or(ordered(a, a), a) as one OR instead of splitting it into or(phrase(x, ordered(a, a), c), phrase(x, a, c)). At search time the OR returns [1,1] and [2,2] and drops [1,2], which contains them, so the phrase finds no interval between x and c: 0 hits instead of 1. With two different words, or(ordered(a, b), a) has minExtent 2 and 1, is split, and matches x a b c.' width='1920' height='1080'></a></div><figcaption>Step by step through the executed example: the document <code>x a a c</code> and the query <code>phrase(x, or(ordered(a, a), a), c)</code>, the rewrite that keeps one OR, the OR dropping [1,2] at search time, the phrase finding no match, why (<code>ordered(a, a)</code> reports the width of one <code class='nw'>a</code>), and what the user gets. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You index <code>x a a c</code> (positions 0 to 3) and search <code>phrase(x, or(ordered(a, a), a), c)</code>: x, then either <code>a a</code> or <code class='nw'>a</code>, then c. You expect 1 hit: <code>phrase(x, ordered(a, a), c)</code> alone finds this document, and <code class='nw'>or()</code> is documented to rewrite itself under <code class='nw'>phrase</code> so that alternatives of different lengths are not lost.</span></li><li><span>You get 0 hits, with no error. With two different words it works: <code>phrase(x, or(ordered(a, b), a), c)</code> finds <code>x a b c</code>, because Lucene rewrites it into <code>or(phrase(x, ordered(a, b), c), phrase(x, a, c))</code>.</span></li><li><span>Why: the rewrite splits out only alternatives whose <code class='nw'>minExtent()</code>, the smallest width they can match, is above 1. <code>ordered(a, a)</code> is built as one repeated source that reports the width of a single <code class='nw'>a</code>, 1, although it spans 2 positions here. So the OR stays whole.</span></li><li><span>Inside the OR, the one-word matches [1,1] and [2,2] lie inside the two-word match [1,2], and minimal-interval semantics drops [1,2]. The phrase needs exactly [1,2] between x (0) and c (3), so it finds nothing.</span></li><li><span>The same with <code>unordered(a, a)</code>, under <code>maxgaps(0, ...)</code>, <code class='nw'>containedBy</code> and <code class='nw'>containing</code>, with any other width-1 alternative inside the copies' span (<code>or(ordered(a, a), b)</code> misses <code>x a b a c</code>; <code>or(ordered(a, a, a), ordered(a, a))</code> misses <code>x a a a c</code>) and from the query string <code>fn:phrase(x fn:or(fn:ordered(a a) a) c)</code>. Since 8.5.0.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Anyone whose interval query (the <code class='nw'>Intervals</code> factories, the query parser's <code class='nw'>fn:</code> functions, or <code>Intervals.analyzedText</code> over text that repeats a word) puts a clause made only of copies of one word inside the default <code class='nw'>or()</code> under <code class='nw'>phrase</code>, <code class='nw'>maxgaps</code>, <code class='nw'>containedBy</code> or <code class='nw'>containing</code>, next to a one-word or shorter repeated alternative. Default settings, any index size, no error: matches disappear.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>970 words</span></summary><div class='body'><p>Under a gap-sensitive parent (<code class='nw'>phrase</code>, <code class='nw'>maxgaps</code>), <code class='nw'>Intervals.or</code> is documented to rewrite itself so that alternatives of different lengths are not minimized away. The rewrite decides "one position or longer" with <code>minExtent() == 1</code>. Since LUCENE-9099 (8.5.0), <code>Intervals.ordered(a, a)</code> and <code>Intervals.unordered(a, a)</code> are a <code>RepeatingIntervalsSource</code> whose <code class='nw'>minExtent()</code> returns the inner source's value, 1 for a term, although on ordinary text each interval it returns spans at least 2 positions. So <code>or(ordered(a, a), a)</code> stays one OR; on <code>x a a c</code> that OR returns [1,1] and [2,2] and drops [1,2], and <code>phrase(x, or(ordered(a, a), a), c)</code> finds nothing, while <code>phrase(x, ordered(a, a), c)</code> alone and <code>phrase(x, or(ordered(a, b), a), c)</code> on <code>x a b c</code> match. The same happens with <code>unordered(a, a)</code>, under <code>maxgaps(0, ...)</code> and on the big side of <code class='nw'>containedBy</code>/<code class='nw'>containing</code>, with any other alternative that also reports <code class='nw'>minExtent()</code> 1 and falls inside the copies' span (a word between them, or a shorter repeat such as <code>ordered(a, a)</code> next to <code>ordered(a, a, a)</code>), through the flexible query parser's <code class='nw'>fn:</code> functions and through <code>Intervals.analyzedText("a a", ...)</code> with gaps. Silent wrong results with the default writer, codec and searcher, in every release from 8.5.0 to 10.5.2 and on main. Counting the copies in <code class='nw'>minExtent()</code> (<code>in.minExtent() + childCount - 1</code>, saturated) makes the repro pass with the whole <code class='nw'>lucene/queries</code> module green; applied alone it widens two separate bugs (LFV-291, LFV-810), so it should land with or after their fixes.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Interval query</strong>: matches runs of positions. <code>Intervals.term("a")</code> gives one-position intervals such as [1,1]; <code>ordered(a, b)</code> gives [start, end] of an <code class='nw'>a</code> followed by a <code class='nw'>b</code>; <code>phrase(x, s, c)</code> needs <code class='nw'>x</code>, then <code class='nw'>s</code>, then <code class='nw'>c</code> back to back.</li><li><strong>Minimal intervals</strong>: most operators, and <code class='nw'>or()</code> in particular, keep only intervals that contain no other interval they found (the repeated source below is documented as "avoiding minimization" of its own copies). If one alternative matches [2,2] and another [1,2], the OR keeps [2,2] and drops [1,2].</li><li><strong>The disjunction rewrite</strong> (LUCENE-8477, 8.1.0): because of that, <code class='nw'>phrase</code> and <code class='nw'>maxgaps</code> rewrite an inner <code class='nw'>or()</code> whose alternatives have different widths into an OR of separate queries, so <code>phrase(x, or(ordered(a, b), a), c)</code> becomes <code>or(phrase(x, ordered(a, b), c), phrase(x, a, c))</code>. <code>or(false, ...)</code> turns this off and is documented to "miss valid hits due to minimization".</li><li><strong>minExtent()</strong>: "the minimum possible width of an interval returned by this source". The rewrite keeps every alternative with <code>minExtent() == 1</code> together in one OR, as one-position alternatives.</li><li><strong>Repeated source</strong> (LUCENE-9099, 8.5.0): <code>ordered(a, a)</code> and <code>unordered(a, a)</code> are built as one <code>RepeatingIntervalsSource(a, 2)</code>, which joins two consecutive <code class='nw'>a</code> intervals into one.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>Intervals.ordered</code> and <code class='nw'>unordered</code> merge equal arguments into a <code>RepeatingIntervalsSource</code> and return it as the whole query when nothing else is left (<code>OrderedIntervalsSource.java:29-57</code>, <code>UnorderedIntervalsSource.java:33-57</code>).</li><li>Its <code class='nw'>minExtent()</code> is <code>return in.minExtent();</code> (<code>RepeatingIntervalsSource.java:93-96</code>): 1 for a term. On distinct positions its intervals are never narrower than 2 (all 510 documents of 1 to 8 positions over {a, b}, executed).</li><li><code>Disjunctions.splitDisjunctions</code> (<code>Disjunctions.java:75-95</code>) groups every alternative with <code>minExtent() == 1</code> into one OR, citing "we know that all combinatorial sources have a minExtent &gt; 1". <code>or(ordered(a, a), a)</code> therefore stays one OR inside the phrase. <code class='nw'>phrase</code>, <code class='nw'>maxgaps</code>, <code class='nw'>containedBy</code>, <code class='nw'>containing</code>, <code class='nw'>notContainedBy</code> and <code class='nw'>notContaining</code> run this rewrite when they are built.</li><li>The OR's iterator orders intervals by end, then by start descending, and drops every interval that contains the one it just returned (<code>DisjunctionIntervalsSource.java:171-175</code>, <code class='nw'>:230-247</code>). On <code>x a a c</code> it returns [1,1] and [2,2] and drops [1,2] of <code>ordered(a, a)</code>. The phrase needs [1,2] between <code class='nw'>x</code> (0) and <code class='nw'>c</code> (3): 0 hits.</li><li><code>ordered(a, b)</code> sums its parts (<code>OrderedIntervalsSource.java:69-75</code>), 2, so it is split out and matches. A clause that merely contains a repeat, <code>ordered(a, a, b)</code>, reports 2 (true minimum 3), so it is split out too; there only the score is affected.</li><li>Side effect: <code class='nw'>IntervalScorer</code> computes the sloppy frequency as <code>1 / max(length - minExtent + 1, 1)</code> (<code>IntervalScorer.java:66</code>), so an exact <code>a a</code> match of <code>ordered(a, a)</code> scores 0.333 where <code>ordered(a, b)</code> on <code>a b</code> scores 0.5.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-main-a9779ef3c193-executed'>The numbers (main <code class='nw'>a9779ef3c193</code>, executed)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-main-a9779ef3c193-executed" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-main-a9779ef3c193-executed"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>query on document</th><th>expected</th><th>stock</th><th>with the fix</th></tr></thead><tbody><tr><td><code>ordered(a, a).minExtent()</code>, <code>unordered(a, a).minExtent()</code></td><td>2</td><td><strong>1</strong></td><td>2</td></tr><tr><td><code>phrase(x, ordered(a, a), c)</code> on <code>x a a c</code> (control)</td><td>1</td><td>1</td><td>1</td></tr><tr><td><code>phrase(x, or(ordered(a, b), a), c)</code> on <code>x a b c</code> (control)</td><td>1</td><td>1</td><td>1</td></tr><tr><td><code>phrase(x, or(ordered(a, a), a), c)</code> on <code>x a a c</code></td><td>1</td><td><strong>0</strong>, query stays <code>BLOCK(x,or(ORDERED(a,a),a),c)</code></td><td>1, <code>or(BLOCK(x,ORDERED(a,a),c),BLOCK(x,a,c))</code></td></tr><tr><td><code>phrase(x, or(unordered(a, a), a), c)</code> on <code>x a a c</code></td><td>1</td><td><strong>0</strong></td><td>1</td></tr><tr><td><code>phrase(x, or(ordered(a, a), b), c)</code> on <code>x a b a c</code></td><td>1</td><td><strong>0</strong></td><td>1</td></tr><tr><td><code>maxgaps(0, ordered(x, or(ordered(a, a), a), c))</code> on <code>x a a c</code></td><td>1</td><td><strong>0</strong></td><td>1</td></tr><tr><td><code>phrase(x, or(false, ordered(a, b), a), c)</code> on <code>x a b c</code> (documented opt-out)</td><td>0</td><td>0</td><td>0</td></tr><tr><td>score: <code>ordered(a, a)</code> on <code>a a</code> / <code>ordered(a, b)</code> on <code>a b</code></td><td>equal</td><td><strong>0.333</strong> / 0.5</td><td>0.5 / 0.5</td></tr></tbody></table></div><p>With a repeated source, the default <code class='nw'>or()</code> behaves like the opt-out <code>or(false, ...)</code> (the last-but-one row). Also executed with the default <code>IndexWriterConfig</code> and <code class='nw'>StandardAnalyzer</code>: <code>ordered(a, a, a)</code> on <code>x a a a c</code>, the operands swapped (<code>or(a, ordered(a, a))</code>), <code>Intervals.analyzedText("a a", analyzer, field, 1, true)</code> as the alternative, and the <code>StandardQueryParser</code> string <code>fn:phrase(x fn:or(fn:ordered(a a) a) c)</code>: 0 hits each, controls 1. Added after the fact checks (main and 10.5.2), 0 hits on stock and 1 with the fix each: <code>phrase(x, or(ordered(a, a, a), ordered(a, a)), c)</code> on <code>x a a a c</code> (two repeats, neither one position wide), and <code>containedBy(b, or(ordered(a, a), a))</code> and <code>containing(or(ordered(a, a), a), b)</code> on <code>a b a</code> (controls with <code>ordered(a, c)</code> on <code>a b c</code>: 1).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>282 words</span></summary><div class='body'><ul><li><strong>Who.</strong> Applications that build interval queries with the <code class='nw'>Intervals</code> factories, the flexible <code>StandardQueryParser</code>'s <code class='nw'>fn:</code> functions, or <code>Intervals.analyzedText</code> over query text that repeats a word, where a clause made only of copies of one source (<code>ordered(a, a)</code>, <code>unordered(a, a)</code>, <code>ordered(a, a, a)</code>, or a filter over one such as <code>maxgaps(1, ordered(a, a))</code>) is an alternative of the default <code class='nw'>or()</code> under <code class='nw'>phrase</code> or <code class='nw'>maxgaps</code> (or on the big side of <code class='nw'>containedBy</code>/<code class='nw'>containing</code>), next to another alternative that reports <code class='nw'>minExtent()</code> 1 (a word, or a shorter repeat). A natural shape is "the word doubled, or the word once".</li><li><strong>Effect.</strong> Documents in which that other alternative falls inside the copies' span are missed, silently and every time, with assertions on or off. Exact repeated matches also score lower than comparable two-word matches (0.333 against 0.5). Nothing is written to the index.</li><li><strong>Default vs opt-in.</strong> Default writer, codec, analyzer and searcher; the rewrite that should protect the match is the default (<code class='nw'>or()</code> means <code>or(true, ...)</code>). The intervals package is documented as experimental.</li><li><strong>Scale.</strong> None: one tiny document triggers it, deterministically, at any index size.</li><li><strong>How likely.</strong> Uncommon: it needs a repeated-only clause as an OR alternative under a parent that rewrites. A clause that merely contains a repeat (<code>ordered(a, a, b)</code>) matches correctly. No report was found in the six and a half years since 8.5.0.</li><li><strong>Related, separate reports in the same class</strong> (each with its own fix line): the <code class='nw'>width()</code> sign of the same iterator (LFV-306), a repeated disjunction that is never pulled up (LFV-809), overlapping copies in <code>ordered(X, X)</code> (LFV-807), nested repeats leaking inner gaps (LFV-810), and <code class='nw'>notContainedBy</code> over the same rewrite (LFV-291).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code class='nw'>lucene/queries</code>, public API only: five tiny tests on one-document indexes, each asserting a control first (the same query without <code class='nw'>or()</code>, or with two different words). All five fail on main, 10.5.2 and 9.12.3 with assertions on and off; all pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestRepeatedSourceRewrite.java (lucene/queries, public API, 5 tests)</span><span class='meta'>98 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.intervals;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * ordered(a, a) and unordered(a, a) report minExtent() 1, so the gap-sensitive disjunction rewrite
+ * keeps or(ordered(a, a), a) as one OR, which minimizes the two-position match away. Public API
+ * only. Each test checks a control first: the same query without or(), or with two different words.
+ */
+public class TestRepeatedSourceRewrite extends LuceneTestCase {
+
+  private static final String FIELD = &quot;body&quot;;
+  private static final IntervalsSource A = Intervals.term(&quot;a&quot;);
+  private static final IntervalsSource B = Intervals.term(&quot;b&quot;);
+  private static final IntervalsSource C = Intervals.term(&quot;c&quot;);
+  private static final IntervalsSource X = Intervals.term(&quot;x&quot;);
+
+  /** Hits of the source on a one-document index holding text. */
+  private static int count(IntervalsSource source, String text) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+        Document doc = new Document();
+        doc.add(new TextField(FIELD, text, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        return new IndexSearcher(reader).count(new IntervalQuery(FIELD, source));
+      }
+    }
+  }
+
+  /** IntervalsSource#minExtent: &quot;the minimum possible width of an interval returned&quot;. */
+  public void testMinExtent() {
+    assertEquals(2, Intervals.ordered(A, B).minExtent()); // control: two different words
+    assertEquals(&quot;ordered(a, a)&quot;, 2, Intervals.ordered(A, A).minExtent());
+    assertEquals(&quot;unordered(a, a)&quot;, 2, Intervals.unordered(A, A).minExtent());
+  }
+
+  /** &quot;x, then either &#x27;a a&#x27; or &#x27;a&#x27;, then c&quot; on &#x27;x a a c&#x27;. */
+  public void testPhraseOverOrWithOrderedRepeat() throws IOException {
+    assertEquals(1, count(Intervals.phrase(X, Intervals.ordered(A, A), C), &quot;x a a c&quot;));
+    assertEquals(
+        1, count(Intervals.phrase(X, Intervals.or(Intervals.ordered(A, B), A), C), &quot;x a b c&quot;));
+    IntervalsSource query = Intervals.phrase(X, Intervals.or(Intervals.ordered(A, A), A), C);
+    assertEquals(query.toString(), 1, count(query, &quot;x a a c&quot;));
+  }
+
+  public void testPhraseOverOrWithUnorderedRepeat() throws IOException {
+    assertEquals(1, count(Intervals.phrase(X, Intervals.unordered(A, A), C), &quot;x a a c&quot;));
+    assertEquals(
+        1, count(Intervals.phrase(X, Intervals.or(Intervals.unordered(A, B), A), C), &quot;x a b c&quot;));
+    IntervalsSource query = Intervals.phrase(X, Intervals.or(Intervals.unordered(A, A), A), C);
+    assertEquals(query.toString(), 1, count(query, &quot;x a a c&quot;));
+  }
+
+  /** The other alternative need not be the repeated word: any single word between the copies. */
+  public void testOtherWordBetweenTheCopies() throws IOException {
+    assertEquals(1, count(Intervals.phrase(X, Intervals.ordered(A, A), C), &quot;x a b a c&quot;));
+    IntervalsSource query = Intervals.phrase(X, Intervals.or(Intervals.ordered(A, A), B), C);
+    assertEquals(query.toString(), 1, count(query, &quot;x a b a c&quot;));
+  }
+
+  /** maxgaps(0, ...) is the other gap-sensitive parent that rewrites its disjunctions. */
+  public void testMaxGapsOverOrWithOrderedRepeat() throws IOException {
+    assertEquals(
+        1,
+        count(Intervals.maxgaps(0, Intervals.ordered(X, Intervals.ordered(A, A), C)), &quot;x a a c&quot;));
+    IntervalsSource query =
+        Intervals.maxgaps(0, Intervals.ordered(X, Intervals.or(Intervals.ordered(A, A), A), C));
+    assertEquals(query.toString(), 1, count(query, &quot;x a a c&quot;));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestRepeatedSourceRewrite.java $LUCENE/lucene/queries/src/test/org/apache/lucene/queries/intervals/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:queries:test --tests org.apache.lucene.queries.intervals.TestRepeatedSourceRewrite -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED0805): the same 5 failures
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>phrase(x, or(ordered(a, a), a), c)</code> finds <code>x a a c</code> (1 hit), as <code>phrase(x, ordered(a, a), c)</code> does, and <code>ordered(a, a).minExtent()</code> is 2.</dd></div><div class='got'><dt>Observed</dt><dd>0 hits (<code>BLOCK(x,or(ORDERED(a,a),a),c) expected:&lt;1&gt; but was:&lt;0&gt;</code>), and <code>ordered(a, a).minExtent()</code> is 1; the same for <code class='nw'>unordered</code>, <code class='nw'>maxgaps</code> and <code>or(ordered(a, a), b)</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-805/'>repro/LFV-805/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (286 lines) · 1,625 words</span></summary><div class='body'><p><code>TestRepeatedSourceRewrite</code> (package <code>org.apache.lucene.queries.intervals</code>, <code class='nw'>LuceneTestCase</code> like its neighbours, public API only: the <code class='nw'>Intervals</code> factories, <code>IntervalsSource#minExtent</code> and <code class='nw'>IntervalQuery</code>; passes <code>checkGoogleJavaFormat</code>). Each test indexes one document with <code class='nw'>MockAnalyzer</code> and counts hits:</p><ul><li><code class='nw'>testMinExtent</code>: <code>ordered(a, b)</code> is 2 (control); <code>ordered(a, a)</code> and <code>unordered(a, a)</code> must be 2.</li><li><code>testPhraseOverOrWithOrderedRepeat</code>, <code>testPhraseOverOrWithUnorderedRepeat</code>: the controls without <code class='nw'>or()</code> and with <code>ordered(a, b)</code> / <code>unordered(a, b)</code>, then <code>phrase(x, or(repeat, a), c)</code> on <code>x a a c</code>.</li><li><code>testOtherWordBetweenTheCopies</code>: <code>phrase(x, or(ordered(a, a), b), c)</code> on <code>x a b a c</code>.</li><li><code>testMaxGapsOverOrWithOrderedRepeat</code>: <code>maxgaps(0, ordered(x, or(ordered(a, a), a), c))</code> on <code>x a a c</code>.</li></ul><p>Every failing line is the bug assertion; every control before it passes. For the PR, a 14-line structural test for <code>TestDisjunctionRewrites</code> asserts the rewrite itself; the finder's original 3-test repro and the independent reproducer's 8-test class are below.</p><div class="hd hd-3"><h3 id='code-2-h'>Structural test for TestDisjunctionRewrites (diff, +14 lines)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Asserts that <code>phrase(x, or(ordered(a, a), a), c)</code> and its <code class='nw'>unordered</code> twin rewrite to <code>or(phrase(x, repeat, c), phrase(x, a, c))</code>. On stock: <code>expected:&lt;or(BLOCK(x,ORDERED(a,a),c),BLOCK(x,a,c))&gt; but was:&lt;BLOCK(x,or(ORDERED(a,a),a),c)&gt;</code>.</p><figure class='code'><figcaption><span class='fname'>Structural test for TestDisjunctionRewrites (diff, +14 lines)</span><span class='meta'>25 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/queries/src/test/org/apache/lucene/queries/intervals/TestDisjunctionRewrites.java b/lucene/queries/src/test/org/apache/lucene/queries/intervals/TestDisjunctionRewrites.java
+index ef85a9ca651..d7ddb99a72d 100644
+--- a/lucene/queries/src/test/org/apache/lucene/queries/intervals/TestDisjunctionRewrites.java
++++ b/lucene/queries/src/test/org/apache/lucene/queries/intervals/TestDisjunctionRewrites.java
+@@ -226,6 +226,20 @@ public class TestDisjunctionRewrites extends LuceneTestCase {
+     assertEquals(expected, actual);
+   }
+ 
++  public void testDisjunctionWithRepeatedSource() {
++    // On distinct positions ordered(a, a) and unordered(a, a) span 2+ positions, so the rewrite
++    // must split them out: BLOCK(x, or(REPEAT, a), c) =&gt; or(BLOCK(x, REPEAT, c), BLOCK(x, a, c))
++    for (IntervalsSource repeat :
++        new IntervalsSource[] {
++          ordered(term(&quot;a&quot;), term(&quot;a&quot;)), Intervals.unordered(term(&quot;a&quot;), term(&quot;a&quot;))
++        }) {
++      IntervalsSource actual = phrase(term(&quot;x&quot;), or(repeat, term(&quot;a&quot;)), term(&quot;c&quot;));
++      IntervalsSource expected =
++          or(phrase(term(&quot;x&quot;), repeat, term(&quot;c&quot;)), phrase(term(&quot;x&quot;), term(&quot;a&quot;), term(&quot;c&quot;)));
++      assertEquals(expected, actual);
++    }
++  }
++
+   public void testBlockedRewrites() {
+     IntervalsSource actual = phrase(term(&quot;a&quot;), or(false, phrase(&quot;b&quot;, &quot;c&quot;), term(&quot;c&quot;)));
+     IntervalsSource ifRewritten = or(phrase(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;), phrase(&quot;a&quot;, &quot;c&quot;));
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestRepeatedSourceMinExtent.java (the finder&#x27;s original 3-test repro)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Fails 3 of 3 on main (assertions on and off), 10.5.2, 9.12.3 and every release run from 8.5.0; passes with the fix.</p><figure class='code'><figcaption><span class='fname'>TestRepeatedSourceMinExtent.java (the finder&#x27;s original 3-test repro)</span><span class='meta'>82 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.queries.intervals;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Intervals.ordered(a, a) and Intervals.unordered(a, a) report minExtent() 1 although every
+ * interval they return covers two positions, so the disjunction rewrite treats them as
+ * single-position clauses and phrase(x, or(ordered(a, a), a), c) misses &#x27;x a a c&#x27;. Public API only.
+ */
+public class TestRepeatedSourceMinExtent extends LuceneTestCase {
+
+  private static final String FIELD = &quot;f&quot;;
+
+  private static int count(IntervalsSource source, String... docs) throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(new MockAnalyzer(random())))) {
+        for (String text : docs) {
+          Document doc = new Document();
+          doc.add(new TextField(FIELD, text, Field.Store.NO));
+          w.addDocument(doc);
+        }
+      }
+      try (IndexReader reader = DirectoryReader.open(dir)) {
+        return new IndexSearcher(reader).count(new IntervalQuery(FIELD, source));
+      }
+    }
+  }
+
+  private static final IntervalsSource A = Intervals.term(&quot;a&quot;);
+  private static final IntervalsSource B = Intervals.term(&quot;b&quot;);
+  private static final IntervalsSource C = Intervals.term(&quot;c&quot;);
+  private static final IntervalsSource X = Intervals.term(&quot;x&quot;);
+
+  /** IntervalsSource#minExtent: &quot;the minimum possible width of an interval returned by this source&quot;. */
+  public void testMinExtentOfRepeatedTerm() {
+    assertEquals(2, Intervals.ordered(A, B).minExtent()); // control: two different terms
+    assertEquals(2, Intervals.ordered(A, A).minExtent());
+    assertEquals(2, Intervals.unordered(A, A).minExtent());
+  }
+
+  /** Adding an alternative to a phrase clause must not lose the hit of the first alternative. */
+  public void testPhraseOverDisjunctionWithOrderedRepeat() throws IOException {
+    assertEquals(1, count(Intervals.phrase(X, Intervals.ordered(A, A), C), &quot;x a a c&quot;));
+    assertEquals(1, count(Intervals.phrase(X, Intervals.or(Intervals.ordered(A, B), A), C), &quot;x a b c&quot;));
+    // on main: 0, because or(ordered(a, a), a) is not rewritten and minimizes ordered(a, a) away
+    assertEquals(1, count(Intervals.phrase(X, Intervals.or(Intervals.ordered(A, A), A), C), &quot;x a a c&quot;));
+  }
+
+  public void testPhraseOverDisjunctionWithUnorderedRepeat() throws IOException {
+    assertEquals(1, count(Intervals.phrase(X, Intervals.unordered(A, A), C), &quot;x a a c&quot;));
+    assertEquals(
+        1, count(Intervals.phrase(X, Intervals.or(Intervals.unordered(A, B), A), C), &quot;x a b c&quot;));
+    assertEquals(
+        1, count(Intervals.phrase(X, Intervals.or(Intervals.unordered(A, A), A), C), &quot;x a a c&quot;));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestRepeatMinExtent.java (independent reproducer, package outside the intervals package)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only. 5 of 8 fail on main (assertions on and off), 10.5.2 and 9.12.3; its 3 controls pass; it added the <code>maxgaps(0, ...)</code> shape.</p><figure class='code'><figcaption><span class='fname'>TestRepeatMinExtent.java (independent reproducer, package outside the intervals package)</span><span class='meta'>179 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>package repro.v1;
+
+import java.io.IOException;
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.queries.intervals.IntervalIterator;
+import org.apache.lucene.queries.intervals.IntervalQuery;
+import org.apache.lucene.queries.intervals.Intervals;
+import org.apache.lucene.queries.intervals.IntervalsSource;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check (public API only, outside the intervals package) of the claim that
+ * Intervals.ordered(a, a) / Intervals.unordered(a, a) report minExtent() 1 although none of their
+ * intervals is narrower than 2 positions, and that a gap-sensitive parent (phrase, maxgaps) then
+ * fails to pull up a disjunction that contains them.
+ */
+public class TestRepeatMinExtent extends LuceneTestCase {
+
+  private static final String F = &quot;body&quot;;
+  private static final String[] DOCS = {
+    &quot;x a a c&quot;, // 0: target for the repeated source
+    &quot;x a b c&quot;, // 1: target for the unequal control
+    &quot;x a c&quot;, //   2: single-position alternative
+    &quot;a a a a b a b&quot; // 3: many repeats, for measuring interval widths
+  };
+
+  private static Directory dir;
+  private static DirectoryReader reader;
+  private static IndexSearcher searcher;
+
+  private static IntervalsSource t(String s) {
+    return Intervals.term(s);
+  }
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    dir = newDirectory();
+    IndexWriterConfig iwc =
+        new IndexWriterConfig(new MockAnalyzer(random(), MockTokenizer.WHITESPACE, false));
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int i = 0; i &lt; DOCS.length; i++) {
+        Document d = new Document();
+        d.add(new StoredField(&quot;id&quot;, i));
+        d.add(new TextField(F, DOCS[i], Field.Store.NO));
+        w.addDocument(d);
+      }
+    }
+    reader = DirectoryReader.open(dir);
+    searcher = new IndexSearcher(reader);
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    reader.close();
+    dir.close();
+    reader = null;
+    searcher = null;
+    dir = null;
+    super.tearDown();
+  }
+
+  /** Ids (DOCS index) of documents matched by an IntervalQuery over the source. */
+  private static Set&lt;Integer&gt; hits(IntervalsSource src) throws IOException {
+    Set&lt;Integer&gt; ids = new TreeSet&lt;&gt;();
+    for (ScoreDoc sd : searcher.search(new IntervalQuery(F, src), 100).scoreDocs) {
+      ids.add(searcher.storedFields().document(sd.doc).getField(&quot;id&quot;).numericValue().intValue());
+    }
+    return ids;
+  }
+
+  /** Smallest end - start + 1 over every interval the source returns in the whole index. */
+  private static int observedMinWidth(IntervalsSource src) throws IOException {
+    int min = Integer.MAX_VALUE;
+    for (LeafReaderContext ctx : reader.leaves()) {
+      IntervalIterator it = src.intervals(F, ctx);
+      if (it == null) {
+        continue;
+      }
+      while (it.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+        while (it.nextInterval() != IntervalIterator.NO_MORE_INTERVALS) {
+          min = Math.min(min, it.end() - it.start() + 1);
+        }
+      }
+    }
+    return min;
+  }
+
+  private static Set&lt;Integer&gt; set(Integer... ids) {
+    return new TreeSet&lt;&gt;(java.util.Arrays.asList(ids));
+  }
+
+  // --- 1. minExtent contract: &quot;the minimum possible width of an interval returned by this source&quot;
+
+  public void testMinExtentControlsUnequalArgs() throws IOException {
+    assertEquals(2, observedMinWidth(Intervals.ordered(t(&quot;a&quot;), t(&quot;b&quot;))));
+    assertEquals(2, Intervals.ordered(t(&quot;a&quot;), t(&quot;b&quot;)).minExtent());
+    assertEquals(2, Intervals.unordered(t(&quot;a&quot;), t(&quot;b&quot;)).minExtent());
+  }
+
+  public void testMinExtentOrderedRepeat() throws IOException {
+    IntervalsSource src = Intervals.ordered(t(&quot;a&quot;), t(&quot;a&quot;));
+    // premise: no interval of ordered(a, a) is narrower than 2 positions
+    assertEquals(&quot;observed minimum width of &quot; + src, 2, observedMinWidth(src));
+    assertEquals(&quot;minExtent() of &quot; + src, 2, src.minExtent());
+  }
+
+  public void testMinExtentUnorderedRepeat() throws IOException {
+    IntervalsSource src = Intervals.unordered(t(&quot;a&quot;), t(&quot;a&quot;));
+    assertEquals(&quot;observed minimum width of &quot; + src, 2, observedMinWidth(src));
+    assertEquals(&quot;minExtent() of &quot; + src, 2, src.minExtent());
+  }
+
+  // --- 2. consequence: the gap-sensitive disjunction rewrite (Intervals class javadoc) is skipped
+
+  public void testControlsPhraseWithoutOr() throws IOException {
+    assertEquals(set(0), hits(Intervals.phrase(t(&quot;x&quot;), Intervals.ordered(t(&quot;a&quot;), t(&quot;a&quot;)), t(&quot;c&quot;))));
+    assertEquals(
+        set(0), hits(Intervals.phrase(t(&quot;x&quot;), Intervals.unordered(t(&quot;a&quot;), t(&quot;a&quot;)), t(&quot;c&quot;))));
+    assertEquals(set(2), hits(Intervals.phrase(t(&quot;x&quot;), t(&quot;a&quot;), t(&quot;c&quot;))));
+  }
+
+  public void testControlsPhraseOrUnequalArgs() throws IOException {
+    assertEquals(
+        set(1, 2),
+        hits(
+            Intervals.phrase(
+                t(&quot;x&quot;), Intervals.or(Intervals.ordered(t(&quot;a&quot;), t(&quot;b&quot;)), t(&quot;a&quot;)), t(&quot;c&quot;))));
+    assertEquals(
+        set(1, 2),
+        hits(
+            Intervals.phrase(
+                t(&quot;x&quot;), Intervals.or(Intervals.unordered(t(&quot;a&quot;), t(&quot;b&quot;)), t(&quot;a&quot;)), t(&quot;c&quot;))));
+  }
+
+  public void testPhraseOrOrderedRepeat() throws IOException {
+    IntervalsSource q =
+        Intervals.phrase(t(&quot;x&quot;), Intervals.or(Intervals.ordered(t(&quot;a&quot;), t(&quot;a&quot;)), t(&quot;a&quot;)), t(&quot;c&quot;));
+    // doc 0 &#x27;x a a c&#x27; matches phrase(x, ordered(a, a), c); doc 2 &#x27;x a c&#x27; matches phrase(x, a, c)
+    assertEquals(q.toString(), set(0, 2), hits(q));
+  }
+
+  public void testPhraseOrUnorderedRepeat() throws IOException {
+    IntervalsSource q =
+        Intervals.phrase(
+            t(&quot;x&quot;), Intervals.or(Intervals.unordered(t(&quot;a&quot;), t(&quot;a&quot;)), t(&quot;a&quot;)), t(&quot;c&quot;));
+    assertEquals(q.toString(), set(0, 2), hits(q));
+  }
+
+  public void testMaxGapsOrOrderedRepeat() throws IOException {
+    // control: without the or(), ordered(x, ordered(a, a), c) has a 0-gap interval on doc 0
+    assertEquals(
+        set(0),
+        hits(
+            Intervals.maxgaps(
+                0, Intervals.ordered(t(&quot;x&quot;), Intervals.ordered(t(&quot;a&quot;), t(&quot;a&quot;)), t(&quot;c&quot;)))));
+    IntervalsSource q =
+        Intervals.maxgaps(
+            0,
+            Intervals.ordered(
+                t(&quot;x&quot;), Intervals.or(Intervals.ordered(t(&quot;a&quot;), t(&quot;a&quot;)), t(&quot;a&quot;)), t(&quot;c&quot;)));
+    assertEquals(q.toString(), set(0, 2), hits(q));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT), 10.5.2 and 9.12.3 release jars: reproduced; all 52 releases 8.5.0-10.5.2: reproduced with the portable main(); 8.2.0-8.4.1: not affected</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64, the only platform run (a pure-Java code path)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestRepeatedSourceRewrite.java $LUCENE/lucene/queries/src/test/org/apache/lucene/queries/intervals/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:queries:test --tests org.apache.lucene.queries.intervals.TestRepeatedSourceRewrite -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED0805): the same 5 failures
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, -Ptests.seed=DEADBEEF -Ptests.asserts=true (codec Asserting(Lucene104));
+# the same 5 failures with -Ptests.seed=5EED0805 -Ptests.asserts=false, and on 10.5.2 and 9.12.3
+TestRepeatedSourceRewrite &gt; testPhraseOverOrWithUnorderedRepeat FAILED
+    java.lang.AssertionError: BLOCK(x,or(UNORDERED(a,a),a),c) expected:&lt;1&gt; but was:&lt;0&gt;
+TestRepeatedSourceRewrite &gt; testMaxGapsOverOrWithOrderedRepeat FAILED
+    java.lang.AssertionError: MAXGAPS/0(ORDERED(x,or(ORDERED(a,a),a),c)) expected:&lt;1&gt; but was:&lt;0&gt;
+TestRepeatedSourceRewrite &gt; testPhraseOverOrWithOrderedRepeat FAILED
+    java.lang.AssertionError: BLOCK(x,or(ORDERED(a,a),a),c) expected:&lt;1&gt; but was:&lt;0&gt;
+TestRepeatedSourceRewrite &gt; testMinExtent FAILED
+    java.lang.AssertionError: ordered(a, a) expected:&lt;2&gt; but was:&lt;1&gt;
+TestRepeatedSourceRewrite &gt; testOtherWordBetweenTheCopies FAILED
+    java.lang.AssertionError: BLOCK(x,or(ORDERED(a,a),b),c) expected:&lt;1&gt; but was:&lt;0&gt;
+5 tests completed, 5 failed
+
+# with the fix: 5 tests completed, 0 failed (and the whole lucene/queries module, 518 tests, 0 failed)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>minExtent()</code> is "the minimum possible width"; <code>ordered(a, a)</code> is never 1 wide on distinct positions.</li><li>The rewrite exists "to ensure that documents ... are matched"; only <code>or(false, ...)</code> may "miss valid hits", and the bug makes <code class='nw'>or()</code> act like it.</li><li>The rewrite assumes "all combinatorial sources have a minExtent &gt; 1"; LUCENE-9099 broke that ten months later, unremarked.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>268 words</span></summary><div class='body'><ul><li><strong>The contract is a minimum width.</strong> <code>IntervalsSource#minExtent</code>: "Return the minimum possible width of an interval returned by this source" (<code>IntervalsSource.java:63</code>).</li><li><strong>The rewrite promises this match.</strong> The <code class='nw'>Intervals</code> class javadoc: gap-sensitive sources "will rewrite their sub-sources so that disjunctions of different lengths are pulled up to the top of the interval tree ... to ensure that documents containing "b c" are matched" (<code>Intervals.java:47-54</code>); <code class='nw'>or()</code>: "Automatically rewrites if wrapped by an interval source that is sensitive to internal gaps" (<code class='nw'>:118-125</code>). Only <code>or(false, ...)</code> "can miss valid hits due to minimization" (<code class='nw'>:127-136</code>). LUCENE-8477, a bug fix in 8.1.0: "Interval disjunctions could miss valid hits if some of the clauses of the disjunction are minimized away. We now rewrite ..." (<code>lucene/CHANGES.txt:6502-6506</code>).</li><li><strong>The code states the invariant the repeated source breaks</strong>: "we know that all combinatorial sources have a minExtent &gt; 1" (<code>Disjunctions.java:76-78</code>).</li><li><strong>Two changes that never met.</strong> LUCENE-8477 (2019, 8.1.0) added the grouping when it was sound: <code>ordered(a, a)</code> summed to 2, as executed on 8.2.0 to 8.4.1. LUCENE-9099 (2020, 8.5.0) added the repeated source with <code>return in.minExtent();</code>; its issue, commit message, CHANGES entry (<code>lucene/CHANGES.txt:5996-6001</code>) and its one approving review never mention <code class='nw'>minExtent()</code> or the rewrite.</li><li><strong>No upstream test asserts the current value.</strong> <code class='nw'>TestIntervals</code> asserts <code class='nw'>minExtent()</code> 20 times (for example 2 for <code>unordered(pease, hot)</code>, <code>TestIntervals.java:380-402</code>); none of its repeat tests checks it, and <code>TestDisjunctionRewrites</code> has no repeated shape.</li><li><strong>Legal input.</strong> Repeated arguments are supported since LUCENE-9099, <code class='nw'>analyzedText</code> builds them from plain query text, and <code class='nw'>or()</code> under <code class='nw'>phrase</code> is the canonical LUCENE-8477 shape.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>287 words</span></summary><div class='body'><p>The strongest case for "works as designed" (the cross-model review, reading only, rated it moderate; the intended-behaviour check built it and rejected it): <code class='nw'>minExtent()</code> is only a lower bound and 1 is a valid one; for identical tokens stacked at one position (position increment 0) <code>ordered(a, a)</code> really returns [p, p], so 1 is then exact and the fix over-reports; and minimal-interval semantics drop containing intervals by design, in an experimental package.</p><p>Two more points a maintainer may raise: in the LUCENE-8477 issue discussion (a JIRA comment, now on #9523; not in the PR review) jimczi warned that minimization would keep producing pathological cases; and the flexible query parser's docs say, for <code class='nw'>fn:ordered</code>/<code class='nw'>fn:unordered</code> over an <code class='nw'>fn:or</code>, that "the algorithm is not required to return or highlight all matching interval alternatives" (<code>intervalfn/package-info.java:347-349</code>, <code class='nw'>:381-383</code>).</p><p>Why it fails: the only consumer that affects matching, <code>splitDisjunctions</code>, reads <code>minExtent() == 1</code> as "every interval is one position", and the documented default promises the rewrite. On the stacked document every query keeps its hit with and without the fix, and the fix leaves its score unchanged (0.5), because the scorer clamps at 1 (executed). The sibling <code>UnorderedIntervalsSource</code> already over-reports the same way (<code>unordered(a, b)</code> returns [0,0] on stacked <code class='nw'>a</code>/<code class='nw'>b</code>, <code class='nw'>minExtent()</code> 2, the value upstream asserts). LUCENE-8477 chose to rewrite rather than document such misses. The query parser note is about which intervals of a matching document are returned or highlighted (in its examples <code class='nw'>fn:ordered</code>/<code class='nw'>fn:unordered</code> do not rewrite and the document still matches); here the whole document is missed under a parent whose rewrite the <code class='nw'>Intervals</code> note promises "to ensure that documents ... are matched". File the claim for distinct positions.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Count the copies in RepeatingIntervalsSource.minExtent()</strong></p><p class='short'>Count the copies in <code>RepeatingIntervalsSource.minExtent()</code>: <code>in.minExtent() + childCount - 1</code>, saturated (+4/-1). The OR is then split as for two different words. The repro, a new rewrite test and the whole <code class='nw'>lucene/queries</code> module pass. Applied alone it widens two separate bugs, so land it with or after the LFV-291 and LFV-810 fixes.</p><pre class='snippet' tabindex='0'><code>  @Override
+  public int minExtent() {
+-    return in.minExtent();
++    // On distinct positions each copy ends after the previous one, so the copies together span at
++    // least in.minExtent() + childCount - 1 positions (stacked tokens, or an `in` whose own
++    // minExtent() over-reports, can be narrower). Saturate: extend() can report MAX_VALUE.
++    return (int) Math.min((long) in.minExtent() + childCount - 1, Integer.MAX_VALUE);
+  }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 1,262 words</span></summary><div class='body'><p>One fix was applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle; the alternative was not run.</p><p><strong>Two couplings, to state in the PR.</strong> Land the fix with or after the fixes of LFV-291 and LFV-810, or say so.</p><ul><li><strong>LFV-291</strong> (<code class='nw'>notContainedBy</code> over the same rewrite): applied alone, the fix lets more queries reach it. <code>notContainedBy(x, or(ordered(a, a), b))</code> on <code>a x a b</code> goes from 0 hits (correct) to 1 (wrong), because the OR is now split the way <code>or(ordered(a, b), b)</code> already is (that control gives 1 on stock). Executed by the devil's advocate and re-run with this fix.</li><li><strong>LFV-810</strong> (a nested repeat passes its inner gap up to its parent): applied alone, the fix pulls the repeat out of the OR, so it then sits directly inside an <code class='nw'>ordered</code>/<code class='nw'>unordered</code> under <code>maxgaps(n &gt;= 1)</code>, where LFV-810 loses correct hits. <code>maxgaps(1, unordered(x, or(unordered(a, a), b)))</code> on <code>x a c c a x</code> and <code>maxgaps(1, ordered(x, or(ordered(a, a), b), c))</code> on <code>x a x x a c</code> give 1 hit on stock and 0 with the fix; stock is right, because <code>IntervalIterator#gaps</code> counts only "the gaps between the immediate sub-intervals" (<code>IntervalIterator.java:62-71</code>). Over all 5,460 documents of 1 to 6 positions over {x, a, b, c} and 26 query shapes, these two queries lose 87 and 10 hits and 30 documents score lower; with the LFV-810 candidate fix applied as well, 0 hits are lost, no score falls and every gain is kept (the fact check's probe; the two queries re-run for this doc).</li></ul><p><strong>Workarounds today (executed, also on 10.5.2):</strong> build the rewritten form by hand, <code>or(phrase(x, ordered(a, a), c), phrase(x, a, c))</code> (1 hit on <code>x a a c</code> and on <code>x a c</code>); or, when the copies must be adjacent anyway, write the repeat as <code>phrase(a, a)</code>, whose <code class='nw'>minExtent()</code> is 2, so <code>phrase(x, or(phrase(a, a), a), c)</code> is rewritten and finds <code>x a a c</code>.</p><div class="hd hd-3"><h3 id='fix-count-copies'>Count the copies in RepeatingIntervalsSource.minExtent() <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-count-copies" target="_self" aria-label="Link to this section" aria-describedby="fix-count-copies"><span aria-hidden="true">#</span></a></div><p>In <code>RepeatingIntervalsSource.minExtent()</code> (<code>RepeatingIntervalsSource.java:93-96</code>) return <code>in.minExtent() + childCount - 1</code>, computed in <code class='nw'>long</code> and saturated at <code>Integer.MAX_VALUE</code> (+4/-1 in one file). The iterator joins <code class='nw'>childCount</code> consecutive intervals of <code class='nw'>in</code>; on distinct positions each copy ends after the previous one, so the joined interval spans at least <code>in.minExtent() + childCount - 1</code> positions when the first copy is at least <code class='nw'>in.minExtent()</code> wide. Tight for <code class='nw'>unordered</code>, whose copies may overlap. Not a universal bound (executed): stacked identical tokens give [p, p], and <code class='nw'>extend()</code> clamps starts at 0, so <code>ordered(extend(a, 2, 0), extend(a, 2, 0))</code> returns [0,1] on <code>a a</code> while reporting 3 on stock and 4 with the fix. The saturation is local: <code>ExtendedIntervalsSource.minExtent()</code> returns <code>Integer.MAX_VALUE</code> on overflow (<code>ExtendedIntervalsSource.java:126-132</code>) and <code>ordered(extend(a, 0, MAX), extend(a, 0, MAX)).minExtent()</code> stays <code>Integer.MAX_VALUE</code>, but the enclosing sums in <code>OrderedIntervalsSource</code>, <code>UnorderedIntervalsSource</code> and <code>BlockIntervalsSource</code> are unchecked: <code>ordered(extend(a, 0, MAX), b).minExtent()</code> already wraps to <code>Integer.MIN_VALUE</code> on stock, and with the fix so does <code>ordered(ordered(h, h), b)</code> for <code>h = extend(a, 0, MAX - 2)</code> (stock: <code class='nw'>MAX_VALUE</code>). Add the structural test to <code>TestDisjunctionRewrites</code> (no upstream test covers a repeated shape).</p><pre class='snippet' tabindex='0'><code>  @Override
+  public int minExtent() {
+-    return in.minExtent();
++    // On distinct positions each copy ends after the previous one, so the copies together span at
++    // least in.minExtent() + childCount - 1 positions (stacked tokens, or an `in` whose own
++    // minExtent() over-reports, can be narrower). Saturate: extend() can report MAX_VALUE.
++    return (int) Math.min((long) in.minExtent() + childCount - 1, Integer.MAX_VALUE);
+  }</code></pre><p class='k'>Trade-offs</p><ul><li>Query size and the clause limit: the rewrite now splits alternatives it grouped before, and <code>Disjunctions.pullUp</code> expands them as a Cartesian product, as it already does for different words (the cost the <code class='nw'>Intervals</code> class note describes). A phrase of 10 clauses <code>or(ordered(ti, ti), ti)</code> grows from 1 <code class='nw'>BLOCK</code> to 1,024; 11 such clauses build on stock but throw <code>IllegalArgumentException: Too many disjunctions to expand</code> with the fix (<code>Disjunctions.java:43-45</code>, default max clause count 1024), as 11 clauses <code>or(ordered(ti, ui), ti)</code> already do on stock (executed). The rewritten query's <code class='nw'>toString()</code>, <code class='nw'>equals</code>/<code class='nw'>hashCode</code> (so query-cache keys) and the number of iterators change too. <code class='nw'>minExtent()</code> itself is one addition, called when the query is built and once per segment when the scorer is created (<code>IntervalQuery.java:189-196</code>). No benchmark was run.</li><li>Hits and scores: the queries shown here start matching. Where the rewrite does not change the query's shape, scores can only rise, because the sloppy frequency uses <code class='nw'>minExtent()</code> (<code>ordered(a, a)</code> on <code>a a</code>: 0.333 to 0.5). Queries that the rewrite now splits can lose hits and score lower through LFV-810 until that fix lands, and LFV-291 gains wrong hits (above). Broader monotonicity was not established.</li><li>For identical tokens stacked at one position the new value over-reports, as <code>UnorderedIntervalsSource</code> already does; in every executed stacked case the hits and scores stayed the same.</li><li>Not covered by any validation: custom <code class='nw'>IntervalsSource</code> implementations, payload-filtered terms at one position, and <code class='nw'>extend()</code> near position 0 or <code>Integer.MAX_VALUE</code> beyond the executed cases. A CHANGES entry under Bug Fixes is the owner's call.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: stock + the new test, 5 of 5 fail with assertions on and off; stock + the <code>TestDisjunctionRewrites</code> test, it fails and the other 12 pass.</li><li>+ the fix: the whole <code class='nw'>lucene/queries</code> module, 52 suites, 518 tests (123 in the intervals package, 6 of them new), 0 failures with assertions on and off (5 and 6 skipped); <code>TestStandardQPEnhancements</code> (23), <code>TestUnifiedHighlighterTermIntervals</code> (116), <code>TestMatchHighlighter</code> (6) and <code>TestMatchRegionRetriever</code> (22), 0 failures; <code>:lucene:queries:check -x test</code> (checkGoogleJavaFormat, ecjLint, forbiddenApis) passes.</li><li>Standalone runner: 5 of 5 pass with assertions on and off; the probe shows the rewrite now splits the OR.</li><li>After the fact checks the two code comments were reworded (comments only) and re-run in a new scratch worktree: <code>checkGoogleJavaFormat</code> passes; the intervals package passes with the fix (8 suites, 123 tests, assertions on and off); on stock the structural test and the 5 repro tests fail as before; the standalone runner passes 5 of 5.</li><li>Earlier, the same change: the finder (3 of 3; 404 of 412 upstream tests, the same 8 <code class='nw'>testCambridgeMA</code> highlighter failures under every fix configuration it ran, with no stock row recorded; this doc's gradle run of <code>TestUnifiedHighlighterTermIntervals</code> with the fix passed 116 of 116), the independent reproducer (8 of 8; 117 of 117 upstream interval tests) and the audit (16 of 16 probe checks).</li></ul><div class="hd hd-3"><h3 id='fix-group-single-position'>Fix the grouping in splitDisjunctions instead (not run)</h3><a class="hlink" href="#fix-group-single-position" target="_self" aria-label="Link to this section" aria-describedby="fix-group-single-position"><span aria-hidden="true">#</span></a></div><p>Preferred by the intended-lens cross-model reviewer, who places the defect here: group only alternatives known to return one-position intervals, rather than every alternative with <code>minExtent() == 1</code> (<code>Disjunctions.java:83</code>).</p><p class='k'>Trade-offs</p><p>Keeps <code class='nw'>minExtent()</code> exact for stacked tokens. A conservative "always a single position" property that defaults to false is correct without any propagation: every source not known to be single-position is split, as different words are today (with the same expansion cost). Propagating it through wrappers that keep it (<code class='nw'>maxgaps</code>, <code class='nw'>maxwidth</code>, <code class='nw'>fixField</code>, ...) only keeps more of today's grouping. It leaves the low score. A comment in <code>splitDisjunctions</code> that its grouping relies on <code class='nw'>minExtent()</code> being a true minimum would help with either option.</p><div class="hd hd-3"><h3 id='fix-rewrite-by-hand'>Workaround: write the rewritten query by hand (executed)</h3><a class="hlink" href="#fix-rewrite-by-hand" target="_self" aria-label="Link to this section" aria-describedby="fix-rewrite-by-hand"><span aria-hidden="true">#</span></a></div><p><code>or(phrase(x, ordered(a, a), c), phrase(x, a, c))</code> instead of <code>phrase(x, or(ordered(a, a), a), c)</code>; 1 hit on <code>x a a c</code> and on <code>x a c</code> on stock main and 10.5.2.</p><p class='k'>Trade-offs</p><p>Needs the application to know about the bug and to expand every such OR itself; does not fix the score.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream relevance: used as an exclusion (for example a <code class='nw'>MUST_NOT</code> clause), such a query silently keeps the documents it fails to match.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A check of Lucene's default disjunction rewrites flagged repeated sources inside an OR, and a probe on the stock jar showed the missed hit. A bounded-exhaustive comparison with an independent reference semantics (1.1 million checks on documents of up to 4 positions) then tied the missing matches to <code class='nw'>minExtent()</code>, and a public-API JUnit reproduced them.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>189 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation on the real jar</strong> (semi-formal tier).</p><ul><li>First signal (2026-10-26): a hunt unit on spans and intervals checked whether Lucene's default disjunction rewrites keep their documented intent. It was clean except for repeated-source leads, and a probe on the stock jar showed <code>phrase(x, or(ordered(a, a), a), c)</code> missing <code>x a a c</code> while the <code>ordered(a, b)</code> control matched.</li><li>A follow-up unit (2026-10-27, main <code class='nw'>a9779ef3c193</code>) wrote a reference semantics from the javadoc and compared it with the real classes on every document of 1 to 4 positions over three letters and 6,856 expressions of depth up to 3 (1,100,295 checks; 23,911 failures on stock, spread over several separate bugs). Switchable shadow fixes attributed them: adding only this <code class='nw'>minExtent()</code> fix to the two known fixes removed the missing-interval failures under <code class='nw'>phrase</code> and <code class='nw'>maxgaps</code> over <code>or(.. ordered(a, a) ..)</code>; with all seven fixes there were 0 failures at up to 6 positions (11,287,592 checks).</li><li>Then a public-API JUnit on the stock jar, checked by an independent reproducer, reading-only reviews by a model from another family (OpenAI GPT-5.6), an intended-behaviour devil's advocate, an adjudication and a credibility audit.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): 207 logged queries over GitHub issues, PRs and commits, downstream repositories, the mailing lists, the JIRA archive and the web, plus the changed files of 426 PRs. The nearest items are the two changes that together created the bug, LUCENE-8477 (#9523) and LUCENE-9099 (#10141); neither discusses the interaction.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>, high confidence, none by the owner. Nearest: #9523 / LUCENE-8477 / lucene-solr#620 (added the rewrite and the grouping before repeated sources existed; a reviewer asked why one-position clauses are separated, and the answer is the comment this bug falsifies) and #10141 / LUCENE-9099 / lucene-solr#1097 (added the repeated source; about matching and maxgaps only). Also read, other code or other symptoms: #9679 (LUCENE-8633, added <code class='nw'>minExtent()</code> for scoring), #11177, #11442 / #11443, #10244, #9243, #9872, #13819, #10458, #12213 and elastic/elasticsearch#58576. The only open PRs in the intervals package (#16851, #16, #16847) change other code. By source the 207 logged queries are GitHub 99, mailing lists 52, web 27, JIRA archive 15, commit messages 9, downstream repositories 4 and code history 1; by method, 138 through the hunt's tool and 69 manual. Keyword search cannot prove absence; re-run a quick GitHub search before filing.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs: apache/lucene, the archived apache/lucene-solr, Elasticsearch, OpenSearch, Solr</th><td class='when'>2026-10-27</td><td>the hunt's prior-report tool, two runs: 60 issue/PR queries, 6 commit-message and 4 downstream queries; 31 manual GitHub searches; 7 reads of related issue comments and PR reviews</td><td>no report; only the two introducing changes and unrelated intervals items</td></tr><tr><th scope='row'>Open and recently updated apache/lucene PRs</th><td class='when'>2026-10-27</td><td>changed files of 426 PRs (all 409 open ones and every PR updated since 2026-10-25)</td><td>none touches RepeatingIntervalsSource.java or Disjunctions.java</td></tr><tr><th scope='row'>Mailing lists (dev@, java-user@, issues@, commits@) and the JIRA archive</th><td class='when'>2026-10-27</td><td>40 list and 12 JIRA-archive queries through the tool; 12 manual list-archive searches; 3 JIRA REST lookups</td><td>no report</td></tr><tr><th scope='row'>The web</th><td class='when'>2026-10-27</td><td>16 queries through the tool and 11 manual searches</td><td>documentation and unrelated issues only</td></tr><tr><th scope='row'>Full local history</th><td class='when'>2026-10-27</td><td>1 <code>git log -L</code> / <code class='nw'>-S</code> query over the history clone (<code class='nw'>minExtent()</code> of the repeated source; <code>minExtent() == 1</code> in <code class='nw'>Disjunctions</code>)</td><td>2 commits: the LUCENE-9099 and LUCENE-8477 changes</td></tr><tr><th scope='row'>Upstream branches</th><td class='when'>2026-10-27</td><td>file history (2 GitHub API listings) and current source (1 raw-file read) of both files on upstream main 20ced71c1e6e, branch_10x and branch_10_6</td><td>not fixed: same minExtent() body and grouping</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-9099 (<code class='nw'>aa916bac3c3</code> on branch_8x, <code class='nw'>7c1ba1aebee</code> on master, 2020-02-06), first released in 8.5.0, which broke the assumption of the older LUCENE-8477 rewrite (8.1.0). A portable probe fails on all 52 releases from 8.5.0 to 10.5.2 and on main, and shows 8.2.0 to 8.4.1 unaffected.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-9099 "Correctly handle repeats in ORDERED and UNORDERED intervals" (apache/lucene-solr#1097 by romseygeek, one approving review by jimczi, no inline comments; the JIRA issue is now apache/lucene#10141): <code class='nw'>aa916bac3c3</code> on branch_8x and <code class='nw'>7c1ba1aebee</code> on master, both 2020-02-06; first released in 8.5.0. <code>git blame</code> and <code>git log -L</code> of <code class='nw'>minExtent()</code> name only <code class='nw'>7c1ba1aebee</code>.</p><p><strong>Precondition:</strong> LUCENE-8477 (<code class='nw'>f1782d0dd119</code> master, <code class='nw'>2571bf355f8</code> branch_8x, apache/lucene-solr#620, 2019-03-27, first in 8.1.0) added the <code>minExtent() == 1</code> grouping when it was sound.</p><p><strong>Bisection is commit-exact without building:</strong> between the 8.4.1 and 8.5.0 tags only two commits touch the intervals package, LUCENE-9099 and LUCENE-9212 (<code class='nw'>90028a7b935</code>, only new <code>Intervals.multiterm</code> overloads). On 8.2.0 to 8.4.1 the unordered shape also gives 0, for the older reason LUCENE-9099 fixed (<code>unordered(a, a)</code> matched a single <code class='nw'>a</code>), so the ordered shape settles those releases. Not fixed: <code class='nw'>branch_10_6</code>, <code class='nw'>branch_10x</code> and upstream main <code class='nw'>20ced71c1e6e</code> (2026-10-27) have the same code (read, not run), so 10.6.0 ships it unless fixed.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the doc's test: 5 of 5 fail (gradle and the standalone runner, assertions on and off); the finder's 3 of 3</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the doc's test: 5 of 5 fail (assertions on and off); the probe gives the same output as main</td></tr><tr><th scope='row'>9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the doc's test: 5 of 5 fail with assertions on, and with assertions off in the fact check's run; the finder's and the reproducer's tests fail</td></tr><tr><th scope='row'>8.5.0 to 10.5.2 (all 52 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> probe</span></td><td><code>ordered(a, a)</code> is a <code>RepeatingIntervalsSource</code> with <code class='nw'>minExtent()</code> 1; 5 of 5 bug checks fail, controls pass</td></tr><tr><th scope='row'>8.2.0, 8.3.0, 8.3.1, 8.4.0, 8.4.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td><code>ordered(a, a)</code> is an <code>OrderedIntervalsSource</code> with <code class='nw'>minExtent()</code> 2; the ordered shape finds its hit</td></tr><tr><th scope='row'>8.1.0 and earlier</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> read</span></td><td>8.1.0 has the grouping and no repeated source; before it, no automatic rewrite (sandbox package, not executed)</td></tr><tr><th scope='row'>fix on <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the doc's 5 tests and the new rewrite test pass; <code class='nw'>lucene/queries</code> 518 tests pass, assertions on and off</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and a devil's advocate reproduced it; an adjudication confirmed it (high); an audit re-ran it with the default analyzer and the query parser. Reading-only cross-model reviews: one agreed on the root cause; the other called it real but blamed the grouping and the patch. Fact checks then added the LFV-810 coupling.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>518 words</span></summary><div class='body'><p>Every executing check wrote or re-ran its own test on stock main; every control passed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Rewrite-intent lead, then the bounded-exhaustive harness and shadow-fix attribution; the 3-test public-API JUnit fails 3 of 3 on main (assertions on and off), 10.5.2 and 9.12.3; with the other hunt fixes shadowed 2 of 3 still fail; with this fix 3 of 3 pass.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> procedural not_real (low)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) ran read-only and could not run Java, so its rubric required not_real; it agreed on the root cause, found the inputs in contract and the intended case weak. Its overflow point was applied to the fix.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit from the claim only, outside the intervals package: 5 of 8 fail on main (assertions on and off), 10.5.2 and 9.12.3; 3 controls pass; added the <code>maxgaps(0, ...)</code> shape; a <code class='nw'>minExtent()</code>-only shadow fix turns all green and keeps 117 of 117 upstream interval tests green.</td></tr><tr><th scope='row'>Cross-model review, intended lens (premises executed)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> real (medium); root cause and fix disputed</span></td><td>Read-only reviewer: the miss is a real, unintended bug, but it did not agree on the root cause or the fix (<code>root_cause_agrees</code> false, <code class='nw'>fix_fixes_it</code> false). It places the defect in <code>splitDisjunctions</code>, which "wrongly assumes a source whose minimum is one can only emit singleton intervals", and called the <code class='nw'>minExtent()</code> patch "not a generally sound fix", because identical tokens stacked at one position make width 1 legal. That stacked case was then executed: no hit is lost and no score changes there, with or without the fix.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Built the strongest intended case and rejected it; probe over all 510 documents of 1 to 8 positions over {a, b}; found the <code>or(ordered(a, a), b)</code> trigger, the <code class='nw'>analyzedText</code> route and the coupling with the <code class='nw'>notContainedBy</code> rewrite bug.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test with seed 1A2B3C4D (8 run, 5 fail, assertions on and off). Corrections applied: claim limited to distinct positions, the alternative fix site named, the coupling stated.</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Own probe with the default <code>IndexWriterConfig</code> and <code class='nw'>StandardAnalyzer</code>: 8 bug shapes (including <code class='nw'>analyzedText</code> and the <code class='nw'>fn:</code> query string) miss their hit, 0 of 8 controls fail, on main (assertions on and off) and 10.5.2; 16 of 16 pass with the fix.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>A 5-test repro and a structural test, both failing on stock; with the fix the whole <code class='nw'>lucene/queries</code> module and the interval tests of <code class='nw'>queryparser</code> and <code class='nw'>highlighter</code> pass, assertions on and off; the coupling re-run with this fix.</td></tr><tr><th scope='row'>fact checks</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug confirmed; fix side effects added</span></td><td>A fact check re-ran the doc's commands (gradle and the runner, 9.12.3 also with assertions off) and found the LFV-810 coupling with its own probe over 5,460 documents. A second, reading-only fact check by the other model family flagged the clause-limit cost, the non-universal bound, the wider trigger and local saturation. Each point was executed before the doc was changed.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-805/bug.png' download='repeating-intervals-minextent-underreported-bug.png' target='_self'>PNG</a> <span class='n'>481 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,392 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-805, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Intervals.ordered(a, a) and Intervals.unordered(a, a) report minExtent() 1, so the default disjunction rewrite under phrase/maxgaps leaves or(ordered(a, a), a) unsplit and phrase(x, or(ordered(a, a), a), c) misses 'x a c'</dd></div><div><dt>Area</dt><dd>queries / intervals (RepeatingIntervalsSource.minExtent for ordered/unordered of equal sub-sources; Disjunctions rewrite under phrase/maxgaps)</dd></div><div><dt>Priority</dt><dd>Medium, rank 231: A new silent missed-match sibling in the same RepeatingIntervalsSource since 8.5, but it needs the unusual ordered(a,a) shape as an OR alternative under phrase or maxgaps.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications whose interval queries (Intervals factories, StandardQueryParser fn: functions such as fn:phrase(x fn:or(fn:ordered(a a) a) c), or Intervals.analyzedText over text such as 'a a') put a clause made only of copies of one source, ordered(a, a) or unordered(a, a), as an alternative of a default rewriting Intervals.or under a gap-sensitive parent (phrase or maxgaps) silently miss documents in which a single-position alternative falls on or between the copies (phrase(x, or(ordered(a, a), a), c) misses 'x a c'; phrase(x, or(ordered(a, a), b), c) misses 'x a b a c'), with the default writer, codec, analyzer and searcher, -ea and -da, at any index size, in every release from 8.5.0 to 10.5.2 and on main; nothing is written to the index, and as a side effect an exact repeated match scores lower (observed 0.33 for ordered(a, a) on 'x a c' against 0.5 for ordered(a, b) on 'a b').</dd></div><div><dt>Summary</dt><dd>You search with Intervals.phrase(x, Intervals.or(Intervals.ordered(a, a), a), c), meaning 'x, then either a or a, then c', on the text 'x a c' and expect a hit, because phrase(x, ordered(a, a), c) alone matches it and Intervals.or is documented to rewrite itself under gap-sensitive parents so that alternatives of different lengths are not lost. Instead it finds nothing: ordered(a, a) and unordered(a, a) are built as a RepeatingIntervalsSource whose minExtent() returns the minExtent of a single 'a' (1) instead of 2, the rewrite assumes that only single-position sources report 1 and so keeps or(ordered(a, a), a) as one OR, and inside that OR the interval of 'a a' contains the interval of a single 'a' and is minimized away. The same query with two different words, phrase(x, or(ordered(a, b), a), c) on 'x a b c', matches as expected.</dd></div><div><dt>Introduced</dt><dd>aa916bac3c3369a461afa06e384e070657c32973 (branch_8x, the commit first released, in 8.5.0) and 7c1ba1aebeea540b67ae304deee60162baee2e12 (master, the same patch on the same day): 'LUCENE-9099: Correctly handle repeats in ORDERED and UNORDERED intervals' (apache/lucene-solr#1097, the JIRA issue is now apache/lucene#10141; author romseygeek; one approving review by jimczi, no inline review comments), which made Intervals.ordered(a, a) and Intervals.unordered(a, a) deduplicate into a RepeatingIntervalsSource whose minExtent() is 'return in.minExtent();' [read: blame at 7cecf795236 and git log -L of minExtent() list only 7c1ba1aebee] [exec: 8.4.1 not affected, 8.5.0 affected; only two commits touch the intervals package between them and the other, LUCENE-9212 90028a7b935, changes only the multiterm factory, so the bisection is commit-exact]. It broke the stated assumption of the older LUCENE-8477 rewrite (f1782d0dd119 master / 2571bf355f8 branch_8x, apache/lucene-solr#620, 2019-03-27, first released in 8.1.0) that 'all combinatorial sources have a minExtent &gt; 1', which held when written (ordered(a, a) reported 2 on 8.2.0 to 8.4.1 [exec]) (2020-02-06 (aa916bac3c3 and 7c1ba1aebee); precondition 2019-03-27 (LUCENE-8477, f1782d0dd119))</dd></div><div><dt>First affected version</dt><dd>8.5.0 [exec] (8.4.1, the last release before LUCENE-9099, is not affected [exec]: ordered(a, a).minExtent() is 2 there and the ordered shape finds its hit; its unordered shape already returns 0 there for the older reason LUCENE-9099 fixed, unordered(a, a) matching a single 'a')</dd></div><div><dt>Affected versions</dt><dd>every release from 8.5.0 through 10.5.2 (52 releases: 8.5.0-8.11.4 (19), 9.0.0-9.12.3 (21), 10.0.0-10.5.2 (12)) and main a9779ef3c193 [exec: the follow-up history probe MinExtentHistoryProbe (5 bug checks, 0 control failures) on all 52 releases with -ea and on main with -ea and -da; the finder's JUnit fails 3 of 3 on 8.5.0, 8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea, main also -da); the independent reproduction's JUnit 5 of 8 on main (-ea and -da), 10.5.2 and 9.12.3; the intended-behaviour check's probe on main (-ea and -da), 10.5.2 and 9.12.3]. Not affected [exec]: 8.2.0, 8.3.0, 8.3.1, 8.4.0, 8.4.1. Not affected [read]: 8.1.x (rewrite present, no RepeatingIntervalsSource; sandbox package, not executed) and earlier releases (no automatic rewrite). Not fixed [read]: branch_10_6 head 4ae946e5a9b, branch_10x and upstream main 20ced71c1e6e have the same minExtent() body and splitDisjunctions grouping, so 10.6.0 ships it unless fixed</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (follow-up prior-report record verdict new, confidence high, searched 2026-10-27, read-only): 207 logged queries, from a scripted prior-report search in two runs (60 GitHub issue/PR queries over apache/lucene, the archived apache/lucene-solr and the downstream Elasticsearch, OpenSearch and Solr repositories, 6 commit-message, 4 downstream, 40 mailing-list queries over dev@, java-user@, issues@ and commits@, 12 JIRA-archive and 16 web queries) and manual searches (31 GitHub REST searches, reads of issue and PR comments and reviews, 12 list-archive, 3 JIRA REST and 11 web searches, local git history); the changed files of 426 apache/lucene PRs (all 409 open ones and every PR updated since 2026-10-25) were checked and none touches RepeatingIntervalsSource.java or Disjunctions.java. Follow-up re-check 2026-10-27 (5 GitHub searches, the 51 PRs updated since 2026-10-25 including the files of #16904, #16913 and #16919, intervals issues updated since then, 2 web searches): nothing new. Not fixed: upstream main 20ced71c1e6e, branch_10x and branch_10_6 keep both lines. Nearest items, none the same bug: LUCENE-8477 / #9523 / lucene-solr#620 (2019, introduced the rewrite and the minExtent()==1 grouping, before repeated sources existed); LUCENE-9099 / #10141 / lucene-solr#1097 / 7c1ba1aebee (2020, introduced the repeated source; discusses matching and maxgaps of repeats only); LUCENE-8633 / #9679 (added minExtent for scoring); LUCENE-10140 / #11177, LUCENE-10406 / #11442 (dup of #11443), #13819, #10244, #9243, #9872 and the interleaved-terms items #10458, #12213 and elastic/elasticsearch#58576 (other code or other symptoms); open PRs #16851, #16 and #16847 touch other intervals code</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27 and 28) through gradle in a scratch worktree, stock and with the fix, assertions on and off, and through the standalone JUnit runner; the 10.5.2 (assertions on and off) and 9.12.3 release jars. A portable <code class='nw'>main()</code> probe ran on all 52 releases from 8.5.0 to 10.5.2, on 8.2.0 to 8.4.1 and on main (2026-10-27). The fix was validated in the scratch worktree: the new test, a new <code>TestDisjunctionRewrites</code> test, the whole <code class='nw'>lucene/queries</code> module (52 suites, 518 tests) with assertions on and off, the interval tests of <code>lucene/queryparser</code> and <code>lucene/highlighter</code>, and <code>:lucene:queries:check -x test</code>. After the fact checks (2026-10-28), a probe ran each point they raised on stock main, on 10.5.2, with the fix, and with the fix plus the LFV-810 candidate fix; the fix with reworded comments was re-run in a new scratch worktree.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/RepeatingIntervalsSource.java:93-96 (minExtent returns in.minExtent()); Disjunctions.java:74-95 (splitDisjunctions and its comment); IntervalsSource.java:63-64 (minExtent javadoc); Intervals.java:47-54 and 118-132 (rewrite note, or() and or(false, ...) javadoc); IntervalScorer.java:66 (sloppy frequency 1/max(length - minExtent + 1, 1))</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/ContainedByIntervalsSource.java:28-30; ContainingIntervalsSource.java:31-33; NotContainedByIntervalsSource.java:27-30; NotContainingIntervalsSource.java:27-30; RepeatingIntervalsSource.java:34</code></li><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/RepeatingIntervalsSource.java:93-96; OrderedIntervalsSource.java:29-57, 69-75; UnorderedIntervalsSource.java:33-57; Disjunctions.java:75-95; DisjunctionIntervalsSource.java:146-152, 171-175, 222-247; IntervalScorer.java:60-69; IntervalsSource.java:63-64; Intervals.java:47-54, 118-136</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/Intervals.java:123-125; package-info.java:21; FilteredIntervalsSource.java:128-130</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/IntervalsSource.java:63-64; Intervals.java:47-54, 118-136; Disjunctions.java:75-78</code></li><li><code>lucene/CHANGES.txt:5996-6001, 6502-6506</code></li><li><code>lucene/queries/src/test/org/apache/lucene/queries/intervals/TestIntervals.java:380-402, 407, 425, 729, 739 (20 minExtent asserts, none on a repeat); TestDisjunctionRewrites.java</code></li><li><code>lucene/queryparser/src/java/org/apache/lucene/queryparser/flexible/standard/nodes/intervalfn/package-info.java:347-349, 381-383</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/queries/src/java/org/apache/lucene/queries/intervals/ExtendedIntervalsSource.java:126-132; ExtendedIntervalIterator.java:53-76; IntervalIterator.java:62-71; Disjunctions.java:33-62; OrderedIntervalsSource.java:69-75; UnorderedIntervalsSource.java:69-75; BlockIntervalsSource.java:59-66; IntervalQuery.java:72, 189-196; IntervalScorer.java:66; Intervals.java:47-54</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestRepeatedSourceRewrite.java (lucene/queries, public API, 5 tests): <a href='../repro/LFV-805/TestRepeatedSourceRewrite.java'><code>repro/LFV-805/TestRepeatedSourceRewrite.java</code></a> (98 lines)</li><li>Structural test for TestDisjunctionRewrites (diff, +14 lines): <a href='../repro/LFV-805/regression-test-TestDisjunctionRewrites.diff'><code>repro/LFV-805/regression-test-TestDisjunctionRewrites.diff</code></a> (25 lines)</li><li>TestRepeatedSourceMinExtent.java (the finder&#x27;s original 3-test repro): <a href='../repro/LFV-805/TestRepeatedSourceMinExtent.java'><code>repro/LFV-805/TestRepeatedSourceMinExtent.java</code></a> (82 lines)</li><li>TestRepeatMinExtent.java (independent reproducer, package outside the intervals package): <a href='../repro/LFV-805/TestRepeatMinExtent.java'><code>repro/LFV-805/TestRepeatMinExtent.java</code></a> (179 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel with this doc from the code at main <code class='nw'>a9779ef3c193</code> and an executed probe (stock, assertions on and off, and with the fix shadowed in); the PNG is the summary still. The alt text describes the intended content.</p><ul class='paths'><li><a href='../assets/LFV-805/bug.png'><code>assets/LFV-805/bug.png</code></a> (481 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

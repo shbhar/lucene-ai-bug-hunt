@@ -2,6 +2,8 @@
 
 Bug LFV-777 · Area: spatial-extras / PointVectorStrategy distance value source (vector/DistanceValueSource missing-document value; makeDistanceValueSource, makeRecipDistanceValueSource) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-777.html](../../bugs/LFV-777.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index points with PointVectorStrategy in a non-geo SpatialContext (for examp
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It gets distance 180.0, so with a document at (500, 0) and the query point (0, 0) the ascending order is none,far instead of far,none, and makeRecipDistanceValueSource over the query box -1000..1000 scores it 0.440 against 0.220 for a real document 500 units away.
+- Expected: Ascending distance: near=100, far=500, none=Double.MAX_VALUE; recip score, descending: near, far, none.
+- Actual: Ascending distance: near=100, none=180, far=500; recip score: near 0.586, none 0.440, far 0.220.
 
 ## Files
 
@@ -45,6 +47,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestPointVectorStrategyMissingDistance.java](TestPointVectorStrategyMissingDistance.java)
+- [TestPointVectorMissingDistanceNonGeo.java](TestPointVectorMissingDistanceNonGeo.java)
+- [TestPointVectorNonGeoMissingDistance.java](TestPointVectorNonGeoMissingDistance.java)
+- [TestPvReachProbe.java](TestPvReachProbe.java)
+- [PointVectorMissingDistanceNonGeoMain.java](PointVectorMissingDistanceNonGeoMain.java)
 
 ## Feedback
 

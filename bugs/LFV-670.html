@@ -1,0 +1,815 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Spatial heatmaps count big indexed shapes in cells outside a circle or polygon input</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-670 &middot; heatmap-ancestor-counts-outside-nonrect-input</p><h1 id='top'>Spatial heatmaps count big indexed shapes in cells outside a circle or polygon input</h1><p class='tldr'>A heatmap of a circle should be 0 in every grid cell outside the circle, but a large shape indexed as one coarse grid cell is counted in every cell under it, outside the circle too: in the repro 8 such cells report 1 instead of 0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 238</span><span class='sub'>Heatmap cells outside a non-rectangular input shape get wrong counts with no error in every release since 5.1, but only in the opt-in experimental spatial-extras heatmap API with circle or polygon input over coarse non-point shapes.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>5.1.0 (LUCENE-6191, 2015)<span class='sub'>introduced 2015-02-09 &middot; over 11 years</span></dd></div><div><dt>Affected</dt><dd>5.1.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>a cell-by-cell check of heatmaps against a reference built from the index</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>A heatmap splits the input's bounding box into grid cells and counts the documents in each. For an input that is not a rectangle, the javadoc promises 0 in every cell the shape does not touch.</p><figure class='visual' id='heatmap-ancestor-counts-outside-nonrect-input-short-visual'><div class='frame'><a class='still' href='../assets/LFV-670/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-670/bug.png' alt='Summary card: spatial heatmap cells outside a circle input count a large indexed shape. Left, the top-right quarter of the repro&#x27;s 16 x 16 heatmap for circle(0, 0, 89) at level 4: the square document [45, 90]² is one level-2 cell; all 16 heatmap cells under it report 1, and the 8 of them outside the circle are marked red with a cross; the point (88, 88) is not counted. Middle, at map scale: the expected heatmap of a 3-degree circle is a disc; the actual one over a single large rectangle is almost filled, with 164 of the 184 cells outside the circle reporting 1. Right: why (the coarse cell&#x27;s count is added to every cell under it without checking the input shape), who is affected, and the fix.' width='1920' height='1080'></a></div><figcaption>Left: the repro's top-right quarter, where the square's one coarse cell puts a 1 in all 16 heatmap cells under it, 8 of them outside the circle (red). Middle: at map scale, a small circle over one large rectangle should give a disc but comes back almost filled. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index the point (88, 88) and the square [45, 90] x [45, 90] in a non-geo world [-90, 90]², with a 4-level <code class='nw'>QuadPrefixTree</code> and the default <code>RecursivePrefixTreeStrategy</code>. The square is stored as one coarse (level-2) cell.</span></li><li><span>Ask <code class='nw'>calcFacets</code> for the level-4 heatmap of <code>circle(0, 0, 89)</code>: a 16 x 16 grid of 11.25° cells over the circle's bounding box. The javadoc says the cells the circle does not touch are 0.</span></li><li><span>You expect the square to count only in the 8 of its 16 heatmap cells that touch the circle, and the point, which is outside the circle, not at all.</span></li><li><span>Instead the square counts in all 16: the 8 corner cells outside the circle report 1. The point is correctly 0, so the same corner cell leaves out the point but counts the square.</span></li><li><span>Why: Lucene walks only into grid cells that touch the circle, so the point's cell is never counted. The square's one coarse cell does touch the circle, and its count is then added to every heatmap cell under it, with no check against the circle.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that compute heatmaps (<code>PrefixTreeStrategy.calcFacets</code>, an experimental API of the opt-in spatial-extras module) with a circle, polygon or shape-collection input over non-point shapes, which default settings index with coarse cells. Ordinary rectangle inputs, the usual map viewport, and point data are not affected. One document is enough; no error is raised.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>832 words</span></summary><div class='body'><p><code>HeatmapFacetCounter.calcFacets</code> (also reached through <code>PrefixTreeStrategy.calcFacets</code>) takes any shape as its input and promises, for one that is not a rectangle, that "the non-intersecting cells will all be 0" (<code>HeatmapFacetCounter.java:86-90</code>). The term walk visits heatmap-level cells only when they intersect the input, so points come out right. But a non-point document that <code>RecursivePrefixTreeStrategy</code> indexed as a leaf cell coarser than the heatmap level reaches the visitor once, as an "ancestor", and <code class='nw'>calcFacets</code> adds its count to every heatmap cell under that leaf, or to every cell when the leaf contains the whole heatmap, without checking those cells against the input (<code class='nw'>:216-235</code>, <code class='nw'>:246-286</code>). With a circle, polygon or shape-collection input, cells inside its bounding box but outside the shape report counts. In the repro (the setup of upstream <code class='nw'>testQueryCircle</code> plus one square document) 8 cells that do not touch <code>circle(0, 0, 89)</code> report 1 instead of 0; one country-sized rectangle under a 3° circle lights up 164 cells outside it. Ordinary rectangle inputs and point data are not affected, and no error is raised. It has been there since the heatmap was added in 5.1.0 (LUCENE-6191, 2015). The recommended fix gives ancestor counts only to cells whose grid cell intersects a non-rectangular input.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Heatmap</strong>: <code>calcFacets(context, topAcceptDocs, inputShape, facetLevel, maxCells)</code> returns a grid of <code>columns x rows</code> counts. Each heatmap cell is one prefix-tree cell at <code class='nw'>facetLevel</code>, and the grid covers the input's bounding box. For the input the javadoc says: "We always return a rectangle of integers even if the inputShape isn't a rectangle -- the non-intersecting cells will all be 0." (<code>HeatmapFacetCounter.java:86-90</code>). Both classes involved are <code>@lucene.experimental</code> (<code>HeatmapFacetCounter.java:38</code>, <code>PrefixTreeFacetCounter.java:45</code>).</li><li><strong>Prefix-tree indexing</strong>: <code>RecursivePrefixTreeStrategy</code> stores a shape as grid cells of several sizes (one term each). A point is a chain of cells down to the finest level. A larger shape gets big "leaf" cells where a cell lies inside it (<code>tree/FilterCellIterator.java:51</code>; <code>pruneLeafyBranches</code>, on by default, replaces four leaf siblings by their parent, <code>RecursivePrefixTreeStrategy.java:56</code>, <code class='nw'>:162-174</code>) and small cells along its boundary.</li><li><strong>Ancestor</strong>: an indexed leaf coarser than <code class='nw'>facetLevel</code>. The facet walk reports it once, and "the count can be considered to be added to all cells below" (<code>PrefixTreeFacetCounter.java:54-59</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>PrefixTreeFacetCounter.compute</code> walks the terms with an <code>AbstractVisitingPrefixTreeQuery</code> over the input (<code>PrefixTreeFacetCounter.java:131-136</code>) and descends only into the children that intersect it, <code>cell.getNextLevelCells(queryShape)</code> (<code>AbstractVisitingPrefixTreeQuery.java:244-245</code>). A cell at <code class='nw'>facetLevel</code> is counted directly (<code>HeatmapFacetCounter.java:198-214</code>), so point documents outside the input give 0.</li><li>A coarser leaf that intersects the input is passed to the visitor once (<code>PrefixTreeFacetCounter.java:185-191</code>). If it contains the whole heatmap region it goes to <code>allCellsAncestorCount</code> (<code>HeatmapFacetCounter.java:216-217</code>), otherwise to the <code class='nw'>ancestors</code> map (<code class='nw'>:218-224</code>).</li><li><code class='nw'>calcFacets</code> adds <code>allCellsAncestorCount</code> to every heatmap cell (<code class='nw'>:230-235</code>) and each ancestor's count to every heatmap cell under its rectangle through <code>intersectInterval</code>/<code class='nw'>incrementRange</code> (<code class='nw'>:246-286</code>, <code class='nw'>:291-338</code>). Neither path tests a cell against <code class='nw'>inputShape</code>.</li><li>For an ordinary <code class='nw'>Rectangle</code> input every heatmap cell intersects the input, so this puts nothing outside it. For a circle, polygon or shape collection, the bounding box's corners lie outside the shape, and the cells there get the count. What matters is the input shape, not the indexed data: a point input is not a <code class='nw'>Rectangle</code> either (in the harness, point inputs at longitude +180 got such counts too).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><p>Non-geo world [-90, 90]², <code class='nw'>QuadPrefixTree</code> with 4 levels, default strategy settings (the setup of upstream <code class='nw'>testQueryCircle</code>). Doc 0 is the point (88, 88); doc 1 is the square [45, 90]², indexed as one level-2 leaf plus level-4 leaves in the cells that only touch its left and bottom edges. <code class='nw'>calcFacets</code> with <code>circle(0, 0, 89)</code> at level 4 returns a 16 x 16 heatmap of 11.25° cells. The square covers 4 x 4 of them. The 8 that do not touch the circle, the top row [45, 90] x [78.75, 90], the right column [78.75, 90] x [45, 78.75] and [67.5, 78.75]², each report 1. The point, in the corner cell [78.75, 90]², is correctly not counted: that cell reports 1 with the circle input and 2 with the circle's bounding box as input. The cells that intersect the circle (17 non-zero) are the same with and without the fix. With assertions on and off alike, and on every release run from 5.1.0 to 10.5.2 (as a <code class='nw'>main()</code> port before 9.0).</p><p>Bigger shapes give bigger errors: one rectangle of about 40° x 25° (geo, <code>GeohashPrefixTree</code> with 11 levels) under <code>circle(0, 40, 3)</code> at level 4 gives a 24 x 35 heatmap in which 164 of the 184 cells outside the circle report 1: an almost filled rectangle instead of a disc. The same was seen with geohash circles, a shape-collection input (15 of 62 cells outside it), a leaf that covers the whole heatmap (4 of 4 corner cells) and a rectangle that is not grid-aligned (48 of 84 cells).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>244 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Applications that compute a spatial heatmap with <code>PrefixTreeStrategy.calcFacets</code> or <code>HeatmapFacetCounter.calcFacets</code> (opt-in <code>lucene/spatial-extras</code> module, <code>@lucene.experimental</code>) with a non-rectangular input (circle, polygon, shape collection, buffered geometry) over a field that holds non-point shapes indexed with leaves coarser than the heatmap level, which default <code>RecursivePrefixTreeStrategy</code> settings commonly produce for large non-point shapes. Downstream, Solr's heatmap facet takes its input shape as WKT (<code>facet.heatmap.geom</code>), and its own circle test shows the wrong cells (see Why it is a bug).</li><li><strong>Who is not hit.</strong> Ordinary rectangular inputs (the usual map viewport), a null input (the whole world) and point-only data.</li><li><strong>What goes wrong.</strong> Cells inside the input's bounding box but outside the shape report non-zero counts: each gets the count of every coarse document whose leaf covers it. No error. The document filter (<code class='nw'>topAcceptDocs</code>) and deletions are still honoured, and no document is counted only outside the shape: in an executed probe (3,715 random trials over three prefix-tree configurations, one indexed shape per document) the error only moves where an already-counted document's count lands.</li><li><strong>Scale.</strong> One document is enough. The error grows with the size of the indexed shapes relative to the heatmap cells: 8 cells in the minimal repro, 164 for one country-sized shape under a small circle.</li><li><strong>How likely.</strong> Rare: it needs both a non-rectangular heatmap input and coarse non-point documents, and the searches found no prior report since 5.1.0, although a downstream golden test encodes the wrong values.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A 1-test JUnit for <code>lucene/spatial-extras</code> on the public API: the setup of upstream <code class='nw'>testQueryCircle</code> (non-geo world [-90, 90]², <code class='nw'>QuadPrefixTree</code> with 4 levels, <code>circle(0, 0, 89)</code>, facetLevel 4) plus one square document. It asserts that no heatmap cell disjoint from the circle is non-zero and prints each one that is.</p><figure class='code'><figcaption><span class='fname'>TestHeatmapAncestorCellsOutsideInputShape.java (lucene/spatial-extras, public API)</span><span class='meta'>112 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.context.SpatialContextFactory;
+import org.locationtech.spatial4j.shape.Circle;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.SpatialRelation;
+import org.locationtech.spatial4j.shape.impl.RectangleImpl;
+
+/**
+ * HeatmapFacetCounter.calcFacets documents for its inputShape: &quot;We always return a rectangle of
+ * integers even if the inputShape isn&#x27;t a rectangle -- the non-intersecting cells will all be 0.&quot;
+ *
+ * &lt;p&gt;Same setup as TestHeatmapFacetCounter#testQueryCircle (non-geo world, quad tree with 4 levels,
+ * a circle input), but one document is a square that the strategy indexes as a single coarse
+ * (level-2) leaf cell. Its count is spread over every heatmap cell under that leaf cell, including
+ * the cells outside the circle.
+ */
+public class TestHeatmapAncestorCellsOutsideInputShape extends LuceneTestCase {
+
+  public void testCoarseLeafCountedOutsideCircleInput() throws Exception {
+    SpatialContextFactory factory = new SpatialContextFactory();
+    factory.geo = false;
+    factory.worldBounds = new RectangleImpl(-90, 90, -90, 90, null);
+    SpatialContext ctx = factory.newSpatialContext();
+    final int level = 4;
+    RecursivePrefixTreeStrategy strategy =
+        new RecursivePrefixTreeStrategy(new QuadPrefixTree(ctx, level), &quot;geo&quot;);
+
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        // doc 0: a point inside the circle&#x27;s bounding box but outside the circle (as upstream)
+        Document d0 = new Document();
+        for (Field f : strategy.createIndexableFields(ctx.getShapeFactory().pointXY(88, 88))) {
+          d0.add(f);
+        }
+        w.addDocument(d0);
+        // doc 1: the square [45,90]x[45,90], exactly one level-2 quad cell (indexed as a leaf)
+        Document d1 = new Document();
+        for (Field f : strategy.createIndexableFields(ctx.getShapeFactory().rect(45, 90, 45, 90))) {
+          d1.add(f);
+        }
+        w.addDocument(d1);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        Circle circle = ctx.getShapeFactory().circle(0, 0, 89);
+        HeatmapFacetCounter.Heatmap heatmap =
+            strategy.calcFacets(reader.getContext(), null, circle, level, 1000);
+        assertEquals(16, heatmap.columns);
+        assertEquals(16, heatmap.rows);
+
+        // the top-right heatmap cell [78.75,90]x[78.75,90] does not intersect the circle
+        double cellW = heatmap.region.getWidth() / heatmap.columns;
+        double cellH = heatmap.region.getHeight() / heatmap.rows;
+        int col = heatmap.columns - 1;
+        int row = heatmap.rows - 1;
+        Rectangle cell =
+            ctx.getShapeFactory()
+                .rect(
+                    heatmap.region.getMinX() + col * cellW,
+                    heatmap.region.getMinX() + (col + 1) * cellW,
+                    heatmap.region.getMinY() + row * cellH,
+                    heatmap.region.getMinY() + (row + 1) * cellH);
+        assertEquals(SpatialRelation.DISJOINT, cell.relate(circle));
+
+        int nonZeroOutside = 0;
+        StringBuilder detail = new StringBuilder();
+        for (int c = 0; c &lt; heatmap.columns; c++) {
+          for (int r = 0; r &lt; heatmap.rows; r++) {
+            Rectangle hc =
+                ctx.getShapeFactory()
+                    .rect(
+                        heatmap.region.getMinX() + c * cellW,
+                        heatmap.region.getMinX() + (c + 1) * cellW,
+                        heatmap.region.getMinY() + r * cellH,
+                        heatmap.region.getMinY() + (r + 1) * cellH);
+            if (hc.relate(circle) == SpatialRelation.DISJOINT &amp;&amp; heatmap.getCount(c, r) != 0) {
+              nonZeroOutside++;
+              detail.append(&#x27; &#x27;).append(hc).append(&#x27;=&#x27;).append(heatmap.getCount(c, r));
+            }
+          }
+        }
+        assertEquals(
+            &quot;cells that do not intersect the circle must be 0, got:&quot; + detail, 0, nonZeroOutside);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestHeatmapAncestorCellsOutsideInputShape.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestHeatmapAncestorCellsOutsideInputShape -Ptests.seed=5EED0670 -Ptests.asserts=true
+# also with -Ptests.seed=5EED0671 -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Every heatmap cell that does not intersect the circle is 0; the square counts only in the 8 of its 16 cells that touch the circle.</dd></div><div class='got'><dt>Observed</dt><dd>The square's 8 cells outside the circle report 1 (<code>expected:&lt;0&gt; but was:&lt;8&gt;</code>); the point at (88, 88) is correctly 0.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-670/'>repro/LFV-670/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (347 lines) · 2,400 words</span></summary><div class='body'><p>The test indexes the point (88, 88) and the square [45, 90]² with <code>RecursivePrefixTreeStrategy.createIndexableFields</code> (default settings, plain <code>IndexWriterConfig</code>, <code class='nw'>newDirectory()</code>), calls <code>PrefixTreeStrategy.calcFacets</code> with <code>circle(0, 0, 89)</code> at level 4, checks that the top-right heatmap cell is DISJOINT from the circle (so the check is not vacuous) and asserts that every cell DISJOINT from the circle is 0. The result does not depend on the seed; it fails the same way with assertions on and off, on 10.5.2 and on every release run back to 5.1.0 (as a <code class='nw'>main()</code> port before 9.0). It is the finder's test, reformatted with the build's <code>applyGoogleJavaFormat</code>.</p><p>The other files: the same check as a 40-line test method for the existing <code>TestHeatmapFacetCounter</code> (next to <code class='nw'>testQueryCircle</code>, with a positive check that the square is still counted inside the circle), the form to use in a PR; an independent reproducer's 6-test JUnit (circle, a leaf covering the whole heatmap, a shape-collection input, a geohash circle, and two controls); and a <code class='nw'>main()</code> probe that prints the heatmap's top-right 6 x 6 cells.</p><div class="hd hd-3"><h3 id='code-2-h'>testQueryCircleCoarseIndexedShape for TestHeatmapFacetCounter (test-only.diff, +40 lines)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails on main with assertions on and off (<code>cell Rect(minX=45.0,maxX=56.25,minY=78.75,maxY=90.0) does not intersect the circle expected:&lt;0&gt; but was:&lt;1&gt;</code>); passes with the recommended fix.</p><figure class='code'><figcaption><span class='fname'>testQueryCircleCoarseIndexedShape for TestHeatmapFacetCounter (test-only.diff, +40 lines)</span><span class='meta'>51 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java b/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java
+index 8afe91822c7..e4f338e4717 100644
+--- a/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java
++++ b/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java
+@@ -131,6 +131,46 @@ public class TestHeatmapFacetCounter extends StrategyTestCase {
+     assertTrue(foundOne);
+   }
+ 
++  public void testQueryCircleCoarseIndexedShape() throws IOException {
++    // like testQueryCircle, but the document is a square indexed as one coarse (level 2) leaf cell
++    final SpatialContextFactory spatialContextFactory = new SpatialContextFactory();
++    spatialContextFactory.geo = false;
++    spatialContextFactory.worldBounds = new RectangleImpl(-90, 90, -90, 90, null);
++    ctx = spatialContextFactory.newSpatialContext();
++    shapeFactory = ctx.getShapeFactory();
++    final int LEVEL = 4;
++    grid = new QuadPrefixTree(ctx, LEVEL);
++    strategy = new RecursivePrefixTreeStrategy(grid, getTestClass().getSimpleName());
++    Circle circle = shapeFactory.circle(0, 0, 89);
++    adoc(&quot;0&quot;, shapeFactory.rect(45, 90, 45, 90)); // top-right, partly outside the circle
++    commit();
++    final HeatmapFacetCounter.Heatmap heatmap =
++        HeatmapFacetCounter.calcFacets(
++            (PrefixTreeStrategy) strategy,
++            indexSearcher.getTopReaderContext(),
++            null,
++            circle,
++            LEVEL,
++            1000);
++    assertEquals(16, heatmap.columns);
++    assertEquals(16, heatmap.rows);
++    final double cellWidth = heatmap.region.getWidth() / heatmap.columns;
++    final double cellHeight = heatmap.region.getHeight() / heatmap.rows;
++    for (int c = 0; c &lt; heatmap.columns; c++) {
++      for (int r = 0; r &lt; heatmap.rows; r++) {
++        final double minX = heatmap.region.getMinX() + c * cellWidth;
++        final double minY = heatmap.region.getMinY() + r * cellHeight;
++        final Rectangle cell = shapeFactory.rect(minX, minX + cellWidth, minY, minY + cellHeight);
++        if (cell.relate(circle).intersects() == false) {
++          assertEquals(
++              &quot;cell &quot; + cell + &quot; does not intersect the circle&quot;, 0, heatmap.getCount(c, r));
++        }
++      }
++    }
++    // the square is still counted where it is inside the circle, e.g. in [45,56.25]x[45,56.25]
++    assertEquals(1, heatmap.getCount(12, 12));
++  }
++
+   /**
+    * Recursively facet &amp; validate at higher resolutions until we&#x27;ve seen enough. We assume there are
+    * some non-zero cells.
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cd $LUCENE &amp;&amp; git apply $REPRO/test-only.diff
+./gradlew :lucene:spatial-extras:test --tests TestHeatmapFacetCounter -Ptests.seed=5EED0670 -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestHeatmapZeroOutsideInputShape.java (independent reproducer, 6 tests)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only. 4 of 6 fail on main (assertions on and off), 10.5.2 and 9.12.3; its 2 controls (points only; the circle's bounding box as a rectangle input) pass; 6 of 6 pass with the recommended fix.</p><figure class='code'><figcaption><span class='fname'>TestHeatmapZeroOutsideInputShape.java (independent reproducer, 6 tests)</span><span class='meta'>208 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.spatial.prefix;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.context.SpatialContextFactory;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.ShapeCollection;
+import org.locationtech.spatial4j.shape.SpatialRelation;
+import org.locationtech.spatial4j.shape.impl.RectangleImpl;
+
+/**
+ * Independent check of the HeatmapFacetCounter.calcFacets contract for a non-rectangular input
+ * shape: &quot;We always return a rectangle of integers even if the inputShape isn&#x27;t a rectangle -- the
+ * non-intersecting cells will all be 0.&quot;
+ *
+ * &lt;p&gt;Uses only public API: RecursivePrefixTreeStrategy (default settings), createIndexableFields,
+ * PrefixTreeStrategy.calcFacets.
+ */
+public class TestHeatmapZeroOutsideInputShape extends LuceneTestCase {
+
+  private static SpatialContext nonGeo(double half) {
+    SpatialContextFactory f = new SpatialContextFactory();
+    f.geo = false;
+    f.worldBounds = new RectangleImpl(-half, half, -half, half, null);
+    return f.newSpatialContext();
+  }
+
+  /** Indexes one document per shape and returns the heatmap for the input shape. */
+  private static HeatmapFacetCounter.Heatmap heatmap(
+      SpatialPrefixTree grid, List&lt;Shape&gt; docs, Shape input, int facetLevel) throws IOException {
+    RecursivePrefixTreeStrategy strategy = new RecursivePrefixTreeStrategy(grid, &quot;geo&quot;);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        for (Shape s : docs) {
+          Document d = new Document();
+          for (Field f : strategy.createIndexableFields(s)) {
+            d.add(f);
+          }
+          w.addDocument(d);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        return strategy.calcFacets(r.getContext(), null, input, facetLevel, 100_000);
+      }
+    }
+  }
+
+  private static Rectangle cellRect(SpatialContext ctx, HeatmapFacetCounter.Heatmap hm, int c, int r) {
+    double w = hm.region.getWidth() / hm.columns;
+    double h = hm.region.getHeight() / hm.rows;
+    double minX = hm.region.getMinX() + c * w;
+    double minY = hm.region.getMinY() + r * h;
+    return ctx.getShapeFactory().rect(minX, minX + w, minY, minY + h);
+  }
+
+  /**
+   * Asserts the documented contract: every heatmap cell that is DISJOINT from the input shape has
+   * count 0. Also asserts the check is not vacuous (some cell is disjoint, some count is non-zero).
+   */
+  private static void assertDisjointCellsZero(
+      SpatialContext ctx, HeatmapFacetCounter.Heatmap hm, Shape input) {
+    assertFalse(&quot;heatmap region must not cross the dateline here&quot;, hm.region.getCrossesDateLine());
+    int disjoint = 0;
+    int nonZero = 0;
+    StringBuilder bad = new StringBuilder();
+    int badCount = 0;
+    for (int c = 0; c &lt; hm.columns; c++) {
+      for (int r = 0; r &lt; hm.rows; r++) {
+        int count = hm.getCount(c, r);
+        if (count != 0) nonZero++;
+        Rectangle cell = cellRect(ctx, hm, c, r);
+        if (input.relate(cell) == SpatialRelation.DISJOINT) {
+          disjoint++;
+          if (count != 0) {
+            badCount++;
+            if (badCount &lt;= 6) bad.append(&quot;\n  &quot;).append(cell).append(&quot; count=&quot;).append(count);
+          }
+        }
+      }
+    }
+    assertTrue(&quot;vacuous: no heatmap cell is disjoint from the input shape&quot;, disjoint &gt; 0);
+    assertTrue(&quot;vacuous: heatmap is all zeros&quot;, nonZero &gt; 0);
+    assertEquals(
+        hm
+            + &quot;: &quot;
+            + badCount
+            + &quot; of &quot;
+            + disjoint
+            + &quot; cells disjoint from the input shape have a non-zero count; first ones:&quot;
+            + bad,
+        0,
+        badCount);
+  }
+
+  /** Non-geo world [-128,128]^2, quad tree; doc = the grid-aligned square [0,64]^2; input circle. */
+  public void testCircleInputCoarseLeafDoc() throws IOException {
+    SpatialContext ctx = nonGeo(128);
+    SpatialPrefixTree grid = new QuadPrefixTree(ctx, 6);
+    Shape doc = ctx.getShapeFactory().rect(0, 64, 0, 64);
+    Shape input = ctx.getShapeFactory().circle(0, 0, 60);
+    HeatmapFacetCounter.Heatmap hm = heatmap(grid, List.of(doc), input, 5);
+    assertDisjointCellsZero(ctx, hm, input);
+  }
+
+  /**
+   * The indexed leaf cell contains the whole heatmap region (the &quot;all cells&quot; ancestor path): input
+   * circle(64,64,20) lies inside the doc [0,128]^2, a level-1 quad cell.
+   */
+  public void testCircleInputLeafCoversWholeHeatmap() throws IOException {
+    SpatialContext ctx = nonGeo(128);
+    SpatialPrefixTree grid = new QuadPrefixTree(ctx, 6);
+    Shape doc = ctx.getShapeFactory().rect(0, 128, 0, 128);
+    Shape input = ctx.getShapeFactory().circle(64, 64, 20);
+    HeatmapFacetCounter.Heatmap hm = heatmap(grid, List.of(doc), input, 4);
+    assertDisjointCellsZero(ctx, hm, input);
+  }
+
+  /** Same world; input = a collection of two small rectangles in opposite corners. */
+  public void testShapeCollectionInputCoarseLeafDoc() throws IOException {
+    SpatialContext ctx = nonGeo(128);
+    SpatialPrefixTree grid = new QuadPrefixTree(ctx, 6);
+    Shape doc = ctx.getShapeFactory().rect(0, 128, 0, 128); // one quarter of the world
+    Shape input =
+        new ShapeCollection&lt;&gt;(
+            Arrays.asList(
+                ctx.getShapeFactory().rect(-120, -100, -120, -100),
+                ctx.getShapeFactory().rect(100, 120, 100, 120)),
+            ctx);
+    HeatmapFacetCounter.Heatmap hm = heatmap(grid, List.of(doc), input, 3);
+    assertDisjointCellsZero(ctx, hm, input);
+  }
+
+  /** Geo context, geohash tree (a common heatmap configuration); input = geodesic circle. */
+  public void testGeoCircleInputGeohash() throws IOException {
+    SpatialContext ctx = SpatialContext.GEO;
+    SpatialPrefixTree grid = new GeohashPrefixTree(ctx, 4);
+    // exactly one level-1 geohash cell (45 x 45 degrees): indexed as a leaf coarser than facetLevel
+    Shape doc = ctx.getShapeFactory().rect(0, 45, 0, 45);
+    Shape input = ctx.getShapeFactory().circle(0, 0, 18);
+    HeatmapFacetCounter.Heatmap hm = heatmap(grid, List.of(doc), input, 2);
+    assertDisjointCellsZero(ctx, hm, input);
+  }
+
+  /** Control: the same circle with point documents only; disjoint cells are 0 (passes). */
+  public void testControlPointsOnly() throws IOException {
+    SpatialContext ctx = nonGeo(128);
+    SpatialPrefixTree grid = new QuadPrefixTree(ctx, 6);
+    List&lt;Shape&gt; docs =
+        List.of(
+            ctx.getShapeFactory().pointXY(61, 61), // inside the circle&#x27;s bbox, outside the circle
+            ctx.getShapeFactory().pointXY(5, 5)); // inside the circle
+    Shape input = ctx.getShapeFactory().circle(0, 0, 60);
+    HeatmapFacetCounter.Heatmap hm = heatmap(grid, docs, input, 5);
+    assertDisjointCellsZero(ctx, hm, input);
+  }
+
+  /**
+   * Control: with the circle&#x27;s bounding box (a rectangle) as input, the square document is counted
+   * in exactly the heatmap cells it intersects (closed shapes, so cells touching its edges count
+   * too) (passes). Shows where the counts in the circle case come from.
+   */
+  public void testControlRectangleInputCountsSquareCells() throws IOException {
+    SpatialContext ctx = nonGeo(128);
+    SpatialPrefixTree grid = new QuadPrefixTree(ctx, 6);
+    Shape doc = ctx.getShapeFactory().rect(0, 64, 0, 64);
+    Shape input = ctx.getShapeFactory().circle(0, 0, 60).getBoundingBox();
+    HeatmapFacetCounter.Heatmap hm = heatmap(grid, List.of(doc), input, 5);
+    int ones = 0;
+    for (int c = 0; c &lt; hm.columns; c++) {
+      for (int r = 0; r &lt; hm.rows; r++) {
+        Rectangle cell = cellRect(ctx, hm, c, r);
+        int expected = doc.relate(cell) == SpatialRelation.DISJOINT ? 0 : 1;
+        assertEquals(cell.toString(), expected, hm.getCount(c, r));
+        ones += expected;
+      }
+    }
+    assertEquals(8 * 8 + 8 + 8 + 1, ones); // interior 8x8 + the cells touching x=0, y=0, (0,0)
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>HeatmapGridProbe.java (main(), prints the top-right 6 x 6 cells)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Public API, <code>ByteBuffersDirectory</code>; prints each cell's count and whether it intersects the circle.</p><figure class='code'><figcaption><span class='fname'>HeatmapGridProbe.java (main(), prints the top-right 6 x 6 cells)</span><span class='meta'>88 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package heatmapprobe;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.spatial.prefix.HeatmapFacetCounter;
+import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
+import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.context.SpatialContextFactory;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.impl.RectangleImpl;
+
+/**
+ * Prints the heatmap of the repro (non-geo world [-90,90]^2, QuadPrefixTree with 4 levels, the
+ * point (88,88) and the square [45,90]^2, circle(0,0,89) input, facetLevel 4) as a grid of the
+ * top-right 6 x 6 cells, each cell marked with its relation to the circle, plus totals.
+ */
+public class HeatmapGridProbe {
+  public static void main(String[] args) throws Exception {
+    String label = args.length &gt; 0 ? args[0] : &quot;run&quot;;
+    SpatialContextFactory factory = new SpatialContextFactory();
+    factory.geo = false;
+    factory.worldBounds = new RectangleImpl(-90, 90, -90, 90, null);
+    SpatialContext ctx = factory.newSpatialContext();
+    RecursivePrefixTreeStrategy strategy =
+        new RecursivePrefixTreeStrategy(new QuadPrefixTree(ctx, 4), &quot;geo&quot;);
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        Shape[] docs = {ctx.getShapeFactory().pointXY(88, 88), ctx.getShapeFactory().rect(45, 90, 45, 90)};
+        for (Shape s : docs) {
+          Document d = new Document();
+          for (Field f : strategy.createIndexableFields(s)) {
+            d.add(f);
+          }
+          w.addDocument(d);
+        }
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        Shape circle = ctx.getShapeFactory().circle(0, 0, 89);
+        HeatmapFacetCounter.Heatmap hm = strategy.calcFacets(reader.getContext(), null, circle, 4, 1000);
+        double cw = hm.region.getWidth() / hm.columns;
+        double ch = hm.region.getHeight() / hm.rows;
+        System.out.println(&quot;PROBE &quot; + label + &quot; heatmap &quot; + hm);
+        System.out.println(&quot;PROBE &quot; + label + &quot; top-right 6x6 cells, x from 22.5 to 90 (columns 10-15), y from 90 down to 22.5; count + (D = cell disjoint from the circle, i = intersects)&quot;);
+        int nonZeroDisjoint = 0, nonZeroIntersecting = 0, sumIntersecting = 0;
+        for (int r = hm.rows - 1; r &gt;= 0; r--) {
+          StringBuilder sb = new StringBuilder();
+          for (int c = 0; c &lt; hm.columns; c++) {
+            double minX = hm.region.getMinX() + c * cw, minY = hm.region.getMinY() + r * ch;
+            Rectangle cell = ctx.getShapeFactory().rect(minX, minX + cw, minY, minY + ch);
+            boolean disjoint = !cell.relate(circle).intersects();
+            int n = hm.getCount(c, r);
+            if (n != 0 &amp;&amp; disjoint) nonZeroDisjoint++;
+            if (n != 0 &amp;&amp; !disjoint) nonZeroIntersecting++;
+            if (!disjoint) sumIntersecting += n;
+            if (c &gt;= 10 &amp;&amp; r &gt;= 10) sb.append(&#x27; &#x27;).append(n).append(disjoint ? &#x27;D&#x27; : &#x27;i&#x27;);
+          }
+          if (r &gt;= 10) {
+            System.out.println(&quot;PROBE &quot; + label + &quot; y=[&quot; + (hm.region.getMinY() + r * ch) + &quot;,&quot; + (hm.region.getMinY() + (r + 1) * ch) + &quot;]&quot; + sb);
+          }
+        }
+        System.out.println(&quot;PROBE &quot; + label + &quot; nonZeroDisjointCells=&quot; + nonZeroDisjoint + &quot; nonZeroIntersectingCells=&quot; + nonZeroIntersecting + &quot; sumIntersecting=&quot; + sumIntersecting);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also the 10.5.2 release jars and 10 older releases from 5.1.0</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java; no platform-dependent code)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestHeatmapAncestorCellsOutsideInputShape.java $LUCENE/lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:spatial-extras:test --tests TestHeatmapAncestorCellsOutsideInputShape -Ptests.seed=5EED0670 -Ptests.asserts=true
+# also with -Ptests.seed=5EED0671 -Ptests.asserts=false
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestHeatmapAncestorCellsOutsideInputShape &gt; testCoarseLeafCountedOutsideCircleInput FAILED
+    java.lang.AssertionError: cells that do not intersect the circle must be 0, got:
+      Rect(minX=45.0,maxX=56.25,minY=78.75,maxY=90.0)=1 Rect(minX=56.25,maxX=67.5,minY=78.75,maxY=90.0)=1
+      Rect(minX=67.5,maxX=78.75,minY=67.5,maxY=78.75)=1 Rect(minX=67.5,maxX=78.75,minY=78.75,maxY=90.0)=1
+      Rect(minX=78.75,maxX=90.0,minY=45.0,maxY=56.25)=1 Rect(minX=78.75,maxX=90.0,minY=56.25,maxY=67.5)=1
+      Rect(minX=78.75,maxX=90.0,minY=67.5,maxY=78.75)=1 Rect(minX=78.75,maxX=90.0,minY=78.75,maxY=90.0)=1
+      expected:&lt;0&gt; but was:&lt;8&gt;
+(line breaks added; the same with assertions on and off, and on 10.5.2)
+
+# HeatmapGridProbe: top-right 6 x 6 cells, x from 22.5 to 90, y from 90 down to 22.5;
+# count, then D = cell disjoint from the circle, i = intersects
+               stock                  recommended fix
+y=[78.75,90]   0i 1i 1D 1D 1D 1D      0i 1i 0D 0D 0D 0D
+y=[67.5,78.75] 0i 1i 1i 1i 1D 1D      0i 1i 1i 1i 0D 0D
+y=[56.25,67.5] 0i 1i 1i 1i 1i 1D      0i 1i 1i 1i 1i 0D
+y=[45,56.25]   0i 1i 1i 1i 1i 1D      0i 1i 1i 1i 1i 0D
+y=[33.75,45]   0i 1i 1i 1i 1i 1i      0i 1i 1i 1i 1i 1i
+y=[22.5,33.75] 0i 0i 0i 0i 0i 0i      0i 0i 0i 0i 0i 0i
+# the square is the right 4 x 4 block; the 1s in x=[33.75,45] and y=[33.75,45] are cells that only touch
+# its edges (indexed at the finest level, counted directly, unchanged by the fix, not part of the bug)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc promises "the non-intersecting cells will all be 0" for a non-rectangular input (<code>HeatmapFacetCounter.java:86-90</code>).</li><li>In the same corner cell a point outside the circle is left out, but the coarse square is counted.</li><li>The wrong cells lie outside the circle even by the grid's own cell relation, so grid approximation does not explain them.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>319 words</span></summary><div class='body'><ul><li><strong>The contract is specific and unqualified.</strong> "We always return a rectangle of integers even if the inputShape isn't a rectangle -- the non-intersecting cells will all be 0." (<code>HeatmapFacetCounter.java:86-90</code>). It names the non-rectangular case. It came in the feature's first commit (<code class='nw'>248121bb3f7</code>, LUCENE-6191) with the <code class='nw'>Shape</code> parameter and the circle test; on LUCENE-6191 (#7253) the author posted this exact text when they switched the input from <code class='nw'>Rectangle</code> to <code class='nw'>Shape</code>.</li><li><strong>The upstream test only uses points.</strong> <code class='nw'>testQueryCircle</code> (<code>TestHeatmapFacetCounter.java:94-132</code>) asserts the promise with two point documents, which never produce coarse leaves; <code class='nw'>testRandom</code> uses rectangle inputs only (<code class='nw'>:160-291</code>).</li><li><strong>Internally inconsistent.</strong> In the corner cell [78.75, 90]² the point (88, 88) is excluded and the square is included: the cell reports 1 with the circle input and 2 with the circle's bounding box as input.</li><li><strong>Not grid approximation.</strong> "The shape's boundary is approximated to a grid precision" (<code>PrefixTreeStrategy.java:50-51</code>) does not explain it: in the downstream circle case the two wrong cells are DISJOINT from the circle by the tree's own cell relation at the heatmap level, and an independent reproducer's documents are exactly grid-aligned.</li><li><strong>Nothing relaxes it.</strong> No CHANGES entry, MIGRATE note, test, commit or issue changes the promise; none of the later commits on <code class='nw'>calcFacets</code> (LUCENE-6650, LUCENE-7291, LUCENE-7787, LUCENE-9394, reformatting) adds a check of the ancestor cells against the input.</li><li><strong>Precedent.</strong> LUCENE-7291 (#8346), a different wrong ancestor-count accumulation in the same method (dateline-crossing heatmaps), was called "a real bug" by the author and released in 6.1.0 and 5.5.2 (its JIRA fix versions also list 6.0.2 and 5.6, which were never released).</li><li><strong>The author called the sibling pattern a bug.</strong> On LUCENE-5735 (#6797), on 2015-02-05, four days before the heatmap commit: "There's a bug in NumberRangePrefixTreeStrategy.calcFacets in which all cells above the parent are counted as topLeaves, when really that can only be done if the leaf cell _contains_ the facet range."</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>243 words</span></summary><div class='body'><p>The strongest case for intended behaviour (the cross-model reviews rated it moderate; the independent reproducer rated it weak, and the devil's advocate found that none of the arguments holds): prefix-tree faceting counts grid-approximated indexed cells; the visitor javadoc says an ancestor's count "can be considered to be added to all cells below" (<code>PrefixTreeFacetCounter.java:54-59</code>); on LUCENE-6191 the author accepted "blocky effects (e.g. all cells on one side of the heatmap could be +1 due to matching an adjacent country)"; the API is experimental; and Solr's <code>SpatialHeatmapFacetsTest</code> circle case expects <code>[0, 1, 1, 1, 1, 1, 1, 0] // curved; we have a 0</code> in its top row, where columns 1 and 6 do not touch the circle, so a golden output already encodes the behaviour.</p><p>Why it fails: the <code class='nw'>calcFacets</code> promise is about the input shape and names the non-rectangular case; the visitor wording describes the visitor's stream, which <code class='nw'>calcFacets</code> must map onto its own documented output; "blocky effects" are about indexed shapes inside the heatmap region, not about cells outside the input; experimental status lowers impact, not validity; and the downstream test's own comment is consistent with zeros where the circle curves away, so its two uncommented 1s look like an unnoticed artifact (a reading of the comment, not proof). With the fix its top row becomes <code>[0, 0, 1, 1, 1, 1, 0, 0]</code>. <strong>Verdict: not intended, a defect</strong>; a filing should mention the downstream test up front.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Give ancestor counts only to cells that intersect a non-rectangular input (recommended, validated)</strong></p><p class='short'>Give an ancestor's count only to heatmap cells whose grid cell intersects a non-rectangular input, relating each such cell once and only when a coarse leaf was found (+78/-6 in <code>HeatmapFacetCounter.java</code>). The repro and the whole spatial-extras module pass with assertions on and off.</p><pre class='snippet' tabindex='0'><code>final InputShapeCells inputCells =
+    inputShape instanceof Rectangle || (allCellsAncestorCount[0] == 0 &amp;&amp; ancestors.isEmpty())
+        ? null
+        : new InputShapeCells(heatmap, inputShape, grid, facetLevel, cellWidth, cellHeight);
+// in the allCellsAncestorCount loop and in incrementRange:
+if (inputCells == null || inputCells.intersects(cBase + r)) {
+  heatmap.counts[cBase + r] += count;
+}
+// InputShapeCells.intersects(index), once per cell (condensed): the grid&#x27;s cell at
+// facetLevel under the heatmap cell&#x27;s center, related to the input
+Cell cell = null;
+for (CellIterator it = grid.getTreeCellIterator(center, facetLevel); it.hasNext(); ) cell = it.next();
+relation[index] = cell.getShape().relate(inputShape).intersects() ? (byte) 1 : (byte) 2;</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 1,054 words</span></summary><div class='body'><p>Fix A was built and validated in a scratch worktree and with the finder's harness, together with a simpler variant of it. Fixes B and C were built and checked by the finder and an independent reproducer; D and E were not built. Any code fix changes two cells of Solr's circle-input heatmap test.</p><div class="hd hd-3"><h3 id='fix-clip-grid-cell'>Give ancestor counts only to cells that intersect a non-rectangular input (recommended, validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-clip-grid-cell" target="_self" aria-label="Link to this section" aria-describedby="fix-clip-grid-cell"><span aria-hidden="true">#</span></a></div><p>When the input is not a <code class='nw'>Rectangle</code> and at least one coarse leaf was found, a small helper (<code class='nw'>InputShapeCells</code>) decides, the first time an ancestor's count would be added to a heatmap cell, whether the cell intersects the input, and caches the answer in a <code class='nw'>byte[]</code>. It looks up the grid's own cell at <code class='nw'>facetLevel</code> under the heatmap cell's center and relates its shape to the input, the relation the term walk uses for the cells it visits (<code>AbstractVisitingPrefixTreeQuery.java:244-245</code>). Both ancestor paths (the <code>allCellsAncestorCount</code> loop and <code class='nw'>incrementRange</code>) skip cells that do not intersect; counts made directly at the heatmap level are untouched. +78/-6 in <code>HeatmapFacetCounter.java</code>; with the new test method, +40 in <code>TestHeatmapFacetCounter.java</code>.</p><pre class='snippet' tabindex='0'><code>final InputShapeCells inputCells =
+    inputShape instanceof Rectangle || (allCellsAncestorCount[0] == 0 &amp;&amp; ancestors.isEmpty())
+        ? null
+        : new InputShapeCells(heatmap, inputShape, grid, facetLevel, cellWidth, cellHeight);
+// in the allCellsAncestorCount loop and in incrementRange:
+if (inputCells == null || inputCells.intersects(cBase + r)) {
+  heatmap.counts[cBase + r] += count;
+}
+// InputShapeCells.intersects(index), once per cell (condensed): the grid&#x27;s cell at
+// facetLevel under the heatmap cell&#x27;s center, related to the input
+Cell cell = null;
+for (CellIterator it = grid.getTreeCellIterator(center, facetLevel); it.hasNext(); ) cell = it.next();
+relation[index] = cell.getShape().relate(inputShape).intersects() ? (byte) 1 : (byte) 2;</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Cost:</strong> no extra per-cell lookup or relate and no mask for rectangle inputs, a null input, point data, or when no coarse leaf intersects the input (only a few conditionals). Otherwise at most one grid-cell lookup (<code class='nw'>facetLevel</code> steps) and one relate per heatmap cell that an ancestor touches (bounded by <code class='nw'>maxCells</code>), and a <code class='nw'>byte[]</code> the size of the heatmap. For a complex polygon the relate is the main cost; a refinement could skip the per-cell check for an ancestor that lies WITHIN the input. No benchmark was run.</li><li><strong>A simpler variant</strong> relates a cell rectangle rebuilt from the heatmap region (dateline-wrapped, clamped to the world bounds) instead of the grid's cell (+66/-6). It passes every test too, but in the harness it drops 18 counts in cells that touch a circle at exactly one point in a Web Mercator world, where the rebuilt rectangle and the grid's cell differ in the last digits. Fix A has none.</li><li><strong>Downstream:</strong> the top row of Solr's circle-input heatmap test changes from <code>[0, 1, 1, 1, 1, 1, 1, 0]</code> to <code>[0, 0, 1, 1, 1, 1, 0, 0]</code>.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree at <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: stock with the new test, the standalone repro and verifier suites: 16 tests, 9 fail, with assertions on and off.</li><li>With fix A whole <code>lucene/spatial-extras</code> module passes: 30 suites, 129 tests (12 of them added: the repro, the new test method and the verifiers' 10), 5 skipped, 0 failed, with assertions on (together with <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code>, <code>forbiddenApisMain</code>, <code>forbiddenApisTest</code>) and off.</li><li>Standalone runner with fix A shadowed: the repro 1 of 1 and the independent reproducer's suite 6 of 6, assertions on and off; the devil's advocate's probes 4 of 4.</li><li>The finder's harness (3,125,522 heatmaps, 262,910,034 cells), stock against fix A: cells outside a circle or point input with a count go from 224,179 to 0 in the geo and the plain non-geo worlds and from 24,548 to 43 in a Web Mercator world (which stock already gets wrong for rectangle inputs too, from separate bugs); no cell loses a count it should keep; exceptions unchanged; every other category identical.</li></ul><div class="hd hd-3"><h3 id='fix-zero-after'>Zero the non-intersecting cells after the fact (the finder's sketch) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-zero-after" target="_self" aria-label="Link to this section" aria-describedby="fix-zero-after"><span aria-hidden="true">#</span></a></div><p>After all ancestor counts are applied, if the input is not a <code class='nw'>Rectangle</code> and there were ancestors, rebuild the rectangle of every non-zero cell, relate it to the input and set the cell to 0 if it does not intersect (+25 lines).</p><p class='k'>Trade-offs</p><p>Smallest diff, but it relates every non-zero cell, not only those under coarse leaves, and can also zero a count made at the heatmap level. In the harness's Web Mercator world its rectangles, not clamped to the world bounds, throw 459 more <code>InvalidShapeException</code>s than stock for circle inputs, and it drops 50 counts it should keep. Not recommended as it is.</p><p class='k'>What the checks validated</p><p>The repro passes (the finder); upstream <code>TestHeatmapFacetCounter</code> passes 20 of 20 (assertions on, 5 iterations; the cross-model reviews) and 12 of 12 (off, 3 iterations; the review); in the harness's earlier revision, without the Web Mercator world, all 245,020 cells outside the input with a count go to 0.</p><div class="hd hd-3"><h3 id='fix-eager-mask'>An eager mask of intersecting cells</h3><a class="hlink" href="#fix-eager-mask" target="_self" aria-label="Link to this section" aria-describedby="fix-eager-mask"><span aria-hidden="true">#</span></a></div><p>Whenever the input is not a <code class='nw'>Rectangle</code>, relate every heatmap cell up front and let both ancestor paths skip the masked cells (the independent reproducer's fix).</p><p class='k'>Trade-offs</p><p>Pays one relate per cell for every non-rectangular heatmap, even for point-only data, and its rebuilt rectangles are not clamped to the world bounds. Its 6 tests and the finder's test pass with it; not run through the harness.</p><div class="hd hd-3"><h3 id='fix-tree-expansion'>Expand an ancestor through the tree (not built)</h3><a class="hlink" href="#fix-tree-expansion" target="_self" aria-label="Link to this section" aria-describedby="fix-tree-expansion"><span aria-hidden="true">#</span></a></div><p>For an ancestor that is not WITHIN the input, walk its sub-cells down to <code class='nw'>facetLevel</code> with <code>getNextLevelCells(inputShape)</code> and count only the cells reached, as the term walk would for a finely indexed shape.</p><p class='k'>Trade-offs</p><p>Reuses the walk's pruning (sub-trees WITHIN the input need no per-cell relate), but it is more code than A and changes how ancestors flow through <code class='nw'>calcFacets</code>. It may be the cleaner design, and it is the approach the author described for the sibling defect on LUCENE-5735 ("walk the sub-cells").</p><div class="hd hd-3"><h3 id='fix-javadoc'>Qualify the javadoc (not built)</h3><a class="hlink" href="#fix-javadoc" target="_self" aria-label="Link to this section" aria-describedby="fix-javadoc"><span aria-hidden="true">#</span></a></div><p>For example: cells that do not intersect a non-rectangular input are 0, except for documents indexed with cells coarser than <code class='nw'>facetLevel</code>.</p><p class='k'>Trade-offs</p><p>No behaviour or downstream change, a credible compatibility choice for an experimental API, but it keeps the inconsistency: a point in a cell outside the shape is left out, a coarse shape in the same cell is counted.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream, Solr's own heatmap test with a circle input (<code>SpatialHeatmapFacetsTest</code>) expects 1 in two cells that do not touch its circle, so a fix changes that expected matrix.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A harness compared every cell of 2.4 million stock heatmaps (229 million cells) with a reference built from the indexed cells read back from the index. Rectangle inputs with area never differed; circle inputs had non-zero cells outside the circle, all from coarsely indexed shapes, which led to the ancestor code and the javadoc promise.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>196 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation</strong> (the hunt's semi-formal tier).</p><ul><li>The hunt unit checked <code>HeatmapFacetCounter.calcFacets</code> against a reference: a document is counted in a heatmap cell if it has a term at that cell or below it, or a leaf term above it whose cell contains it; only accepted documents; and 0 for cells that do not intersect the input shape, as the javadoc says.</li><li>On the stock main jars: 2,446,632 heatmaps, 228,939,474 cells, over geo and non-geo quad, packed-quad and geohash trees (2-5 levels), 30 index seeds of 1-10 point, rectangle and circle documents per configuration, deletions and several segments; rectangle, point and circle inputs. Rectangle inputs with positive area gave 0 mismatches; circle (and some point) inputs gave non-zero cells outside the input, all from documents indexed with coarse leaves. A separate effect for zero-area inputs at longitude +180 with the packed quad tree (2,523 cells) is not this bug. Four planted mutants were all detected.</li><li>The finder then read the ancestor code and the javadoc line and reduced it to a public-API JUnit on the stock main jars. A review by another model family (OpenAI GPT-5.6) ran its own tests before the candidate was filed.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-27: 224 recorded queries, 57 of them by hand (43 GitHub searches), over Lucene and Solr GitHub, JIRA, the mailing lists and the web). Closest: LUCENE-5735, an analogous, still-open remark about <code>NumberRangePrefixTreeStrategy.calcFacets</code>, and LUCENE-7291, a different, fixed ancestor bug in the same method.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No issue, PR, JIRA ticket, list thread, commit or web page reports heatmap cells outside a non-rectangular input that get counts from coarse leaves. <code>HeatmapFacetCounter</code> is functionally unchanged on upstream main, branch_10x and branch_10_6, and no open PR touches it in a related way.</p><p><strong>Closest, not this bug:</strong> LUCENE-5735 (#6797, open): in 2015 the original author noted that <code>NumberRangePrefixTreeStrategy.calcFacets</code> counts coarser leaves as <code class='nw'>topLeaves</code> without checking that they contain the facet range, an analogous defect in a different class with a different fix site, never fixed; if read as a partial report, the novelty would be "known". LUCENE-7291 (#8346, released in 6.1.0 and 5.5.2): a different ancestor-count bug in the same method, on the dateline path. LUCENE-6191 (#7253): the feature issue, which discusses "blocky effects" of coarse indexed shapes inside the region, not cells outside the input. Solr's <code>SpatialHeatmapFacetsTest</code> encodes the wrong values in two cells of its circle case without remarking on them.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits, downstream repositories, mailing lists, JIRA archive, web</th><td class='when'>2026-10-27</td><td>a scripted prior-report search, 3 runs plus the finder's, 167 queries: 56 GitHub issue/PR, 9 commit, 2 downstream, 75 mailing-list (dev@, java-user@, issues@, commits@, solr-user@), 14 JIRA and 11 web queries, 0 errors</td><td>only the feature issue #7253 rated high; no report of this defect</td></tr><tr><th scope='row'>GitHub, by hand (apache/lucene, apache/solr, elastic/elasticsearch, opensearch-project, all of GitHub)</th><td class='when'>2026-10-27</td><td>43 read-only searches (part of the 57 queries recorded by hand): heatmap, non-rectangular, non-intersecting, topLeaves, facet.heatmap.geom with circle or polygon</td><td>no report; LUCENE-5735 (#6797) is the closest</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>the changed files of all 409 open apache/lucene PRs</td><td>#16847 (long doc ids) and #11873 (logging) list the heatmap files; #16911 deletes branch_10x wholesale and lists only 3,000 of its 7,630 files, so it probably touches them too; all unrelated</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR) and the Solr lists</th><td class='when'>2026-10-27</td><td>45 SOLR heatmap issues, 8 read with all comments; 14 LUCENE heatmap issues; the Solr user and dev lists</td><td>usage questions and unrelated fixes only</td></tr><tr><th scope='row'>History</th><td class='when'>2026-10-27</td><td>git log --follow of HeatmapFacetCounter, PrefixTreeFacetCounter and TestHeatmapFacetCounter; CHANGES.txt and MIGRATE.md; LUCENE-6191 with all 21 comments</td><td>no change or note relaxes the promise</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with the heatmap itself by LUCENE-6191 (<code class='nw'>248121bb3f7</code>, 2015-02-09), together with the promise and the circle input; first released in 5.1.0. Executed: 5.0.0 has no heatmap; 11 releases from 5.1.0 to 10.5.2 (as <code class='nw'>main()</code> ports before 9.0) and main fail with the same 8 cells. Never fixed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-6191 "Spatial 2D heatmap for PrefixTreeStrategy" (@dsmiley, <code class='nw'>248121bb3f7</code>, 2015-02-09; svn r1658298, a JIRA patch, no PR; mirrored as #7253), with the same logic in the branch_5x backport <code class='nw'>b1c673bcca4</code>. It created <code>HeatmapFacetCounter</code> with the <code>Shape inputShape</code> parameter, the "will all be 0" javadoc, <code class='nw'>testQueryCircle</code> (points only) and the ancestor-spreading code. Later commits on <code class='nw'>calcFacets</code> changed other things only: LUCENE-6650 (<code class='nw'>Filter</code> to <code class='nw'>Bits</code>), LUCENE-7291 (the dateline split), LUCENE-7787 (<code class='nw'>MatchNoBits</code> short-circuit), LUCENE-9394 (shape-factory calls) and reformatting; on the ancestor block itself only LUCENE-7291 and the reformatting. The 6.0 module and package moves touched the file, not the logic. Releases 5.1.0-5.5.5, 6.0.0-8.8.1 and 9.0.0-10.5.2 contain it by tag containment (8.8.2-8.11.4 are not in the history clone; 8.11.2 and 8.11.4 were run). Not a regression.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the repro fails with the same 8 cells, assertions on and off (gradle and the standalone runner)</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the same 8 cells; the independent reproducer fails 4 of 6</td></tr><tr><th scope='row'>9.0.0, 9.12.3, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the same 8 cells</td></tr><tr><th scope='row'>6.0.0, 6.6.6, 7.7.3, 8.11.2, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the same 8 cells (main() ports)</td></tr><tr><th scope='row'>5.1.0, 5.5.5</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the same 8 cells (main() port); 5.1.0 is the first release with the heatmap</td></tr><tr><th scope='row'>5.1.0 and 6.0.0, points only</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> control</span></td><td>correct: no cell outside the circle is counted</td></tr><tr><th scope='row'>5.0.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>no heatmap API: the repro does not compile</td></tr><tr><th scope='row'>main + recommended fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro passes; the whole <code>lucene/spatial-extras</code> module (129 tests, 12 of them added) passes, assertions on and off</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, reviews by another model family (OpenAI GPT-5.6, each running its own tests), an intended-behaviour devil's advocate and an adjudication call it real; a registry re-run and an audit reproduced it on main. The brief re-ran the repro on main and 10.5.2 and validated the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>477 words</span></summary><div class='body'><p>The independent reproducer, the devil's advocate, the adjudication, the registry re-run and the audit ran tests on the stock main jars <code class='nw'>a9779ef3c193</code> with assertions on and off. The cross-model reviews ran their own tests on main <code class='nw'>ea57360912ed</code>, whose <code>lucene/spatial-extras</code> is identical; the intended-lens review's tests were re-run on <code class='nw'>a9779ef3c193</code> at the review stage, and the review's test at the fact check (1 of 2 fails, its control passes). Not done: a polygon-input test (JTS is on the module's test classpath, but none was written), a run of a downstream server, a benchmark of the fix.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Harness over 2.4 million heatmaps (rectangle inputs with area exact; circle and some point inputs wrong outside the input), then a 1-test JUnit failing on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2, 9.12.3, and as a <code class='nw'>main()</code> port on 8.11.2 and 7.7.3; passes with fix B.</td></tr><tr><th scope='row'>cross-model review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high); intended argument moderate</span></td><td>OpenAI GPT-5.6, executed: its own test finds count 1 in a cell disjoint from the circle (three seeds, <code class='nw'>-ea</code> and <code class='nw'>-da</code>); an outside-point control passes; a visitor trace shows the level-2 leaf reaching level-4 faceting; passes with fix B, and upstream <code>TestHeatmapFacetCounter</code> too.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 6-test JUnit written from the claim fails 4 of 6 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3; 2 controls pass; its own fix (C) passes 6 of 6.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high); intended argument moderate</span></td><td>OpenAI GPT-5.6, executed: own test fails with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, point control passes, passes with fix B; a geo rectangle that is not grid-aligned gives 48 of 84 disjoint cells non-zero (review-stage re-run).</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium-high)</span></td><td>Probes A-E on main (probe D also on 10.5.2), including a Lucene-level copy of Solr's circle-input heatmap test (reproduces its matrix exactly) and the tree-relation check that its two 1s are disjoint from the circle.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's tests with a fresh seed (4 of 6 fail, <code class='nw'>-ea</code> and <code class='nw'>-da</code>) and with fix C (6 of 6 pass); read the root cause.</td></tr><tr><th scope='row'>Follow-up</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> history, prior art new, security none</span></td><td>Release sweep 5.0.0 to main, 224-query prior-report search, security probe (3,715 random trials).</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> downgraded: still confirmed, likelihood rare</span></td><td>The finder's JUnit fails on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>) and passes with fix B; the independent reproduction's JUnit fails 4 of 6; impact 70 to 60.</td></tr><tr><th scope='row'>this doc's brief</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix A validated</span></td><td>Gradle in a scratch worktree (stock 9 of 16 focused tests fail; the whole module passes with fix A, assertions on and off, with format and lint checks), the standalone runner, a grid probe and the finder's harness against stock and fixes A, its simpler variant and B.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-670/bug.png' download='heatmap-ancestor-counts-outside-nonrect-input-bug.png' target='_self'>PNG</a> <span class='n'>415 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,492 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-670, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Spatial heatmap: HeatmapFacetCounter gives non-zero counts to cells outside a non-rectangular input shape when documents are indexed with coarse leaf cells, although the javadoc says those cells are always 0</dd></div><div><dt>Area</dt><dd>spatial-extras / prefix-tree heatmap faceting (HeatmapFacetCounter.calcFacets, also reached through PrefixTreeStrategy.calcFacets; coarse 'ancestor' leaf cells reported by PrefixTreeFacetCounter)</dd></div><div><dt>Priority</dt><dd>Medium, rank 238: Heatmap cells outside a non-rectangular input shape get wrong counts with no error in every release since 5.1, but only in the opt-in experimental spatial-extras heatmap API with circle or polygon input over coarse non-point shapes.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Wrong heatmap cell counts with no error, for applications that compute a spatial heatmap (HeatmapFacetCounter.calcFacets or PrefixTreeStrategy.calcFacets, an @lucene.experimental API of the opt-in spatial-extras module; downstream, for example, a heatmap facet request with a WKT geometry) with a non-rectangular input shape (circle, polygon, shape collection, buffered geometry) over a field that holds non-point documents, which default RecursivePrefixTreeStrategy settings index with leaf cells coarser than facetLevel once a shape is larger than a few facet cells: every heatmap cell under such a leaf that lies inside the input's bounding box but outside the shape gets that document's count (a country-sized shape under a small circle input shows as a filled square instead of a disc), while point-only data and rectangular inputs (the usual map viewport) are never affected; no scale is needed, -ea and -da behave the same, the document filter and deletions are still honoured, and every release since 5.1.0 is affected.</dd></div><div><dt>Summary</dt><dd>You index non-point shapes (rectangles, polygons) with the default RecursivePrefixTreeStrategy and ask PrefixTreeStrategy.calcFacets (HeatmapFacetCounter) for a heatmap with a circle or another non-rectangular input shape; the javadoc says the grid covers the input's bounding rectangle and that 'the non-intersecting cells will all be 0'. Instead, a document whose shape was indexed as a leaf cell coarser than the heatmap level has its count added to every heatmap cell under that leaf, including cells that do not intersect the input shape at all, because the code that spreads these coarse ('ancestor') counts never checks the cells against the input shape; point documents and rectangular inputs come out right. In the minimal repro (the setup of Lucene's own testQueryCircle plus one square document), 8 cells that are disjoint from the circle report 1 instead of 0, with no error.</dd></div><div><dt>Introduced</dt><dd>248121bb3f74a8af032ccd66f903904eaa3e1c59 (LUCENE-6191 'Spatial 2D heatmap for PrefixTreeStrategy', GitHub mirror apache/lucene#7253, by dsmiley; svn trunk r1658298, SVN era, no PR), with the branch_5x backport b1c673bcca4d1d8493812121f8bb32acef3040dc (r1658302, same ancestor logic) [read: git log --follow, git log -L on the ancestor block and git blame -w --ignore-rev 2cbf261032d in the history clone]: the non-rectangular inputShape parameter, the javadoc 'the non-intersecting cells will all be 0' and the ancestor-spreading code arrived together in the feature's first commit. Not a regression: the later commits on the block (LUCENE-6650 Filter to Bits, LUCENE-7015/7060 module and package moves, LUCENE-7291 b33d7176aa3 dateline split, LUCENE-7787 7d57d63375e MatchNoBits short-circuit, LUCENE-9570 reformatting) did not change the omission. (2015-02-09 (trunk 248121bb3f7 and branch_5x b1c673bcca4 the same day; first released in 5.1.0))</dd></div><div><dt>First affected version</dt><dd>5.1.0 [exec] (the first release with HeatmapFacetCounter; the history repro fails there with the same 8 cells, and its points-only control passes). 5.0.0, the last release before it, has no heatmap API [exec: the repro does not compile], so every release that ships the heatmap is affected.</dd></div><div><dt>Affected versions</dt><dd>Every release from 5.1.0 through 10.5.2, and main a9779ef3c193; not fixed. [exec] the finder's repro (the JUnit, or a main() port of it for the 5.x, 6.x, 7.x and 8.x APIs) fails with the same 8 cells on 5.1.0, 5.5.5, 6.0.0, 6.6.6, 7.7.3, 8.11.2, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main (-ea and -da on main); the points-only control passes on 5.1.0 and 6.0.0; the independent reproduction's JUnit fails 4 of 6 on 9.12.3, 10.5.2 and main; the intended-behaviour check's downstream-scenario probe fails on 10.5.2 and main. [read] git tag --contains: 5.1.0-5.5.5 (backport), 6.0.0-8.8.1 and 9.0.0-10.5.2; the 8.8.2-8.11.4 tags are not in the history clone (8.11.2 and 8.11.4 were executed); HeatmapFacetCounter.java and PrefixTreeFacetCounter.java on a9779ef3c193 are byte-identical to the history clone HEAD, and HeatmapFacetCounter is functionally unchanged on upstream main a95c754ee003, branch_10x and branch_10_6 (read 2026-10-27).</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (searched 2026-10-27, read-only; the prior-report record, verdict new): a scripted prior-report search in 3 runs plus the finder's first run (56 GitHub issue/PR queries on apache/lucene, 9 commit queries, 2 downstream-repository queries, 75 mailing-list queries over the dev, java-user, issues, commits and solr-user lists, 14 JIRA queries, 11 web queries; 0 errors), 43 manual read-only GitHub searches (apache/lucene, apache/solr, Elasticsearch, all of GitHub), the changed files of all 409 open apache/lucene PRs (2 unrelated PRs touch the heatmap files: #16847 long doc ids and #11873 logging), the Solr JIRA (45 heatmap issues; SOLR-7005, -7591, -7702, -8197, -10499, -10526, -12398 and -13263 read with all comments), the Solr user and dev lists, and the files' full history. No issue, PR, JIRA ticket, list thread, commit or web page reports that heatmap cells outside a non-rectangular input get counts from coarse leaves. Closest prior art, not this bug: in LUCENE-5735 (gh#6797, open) the original author noted in 2015 that NumberRangePrefixTreeStrategy.calcFacets counts coarser leaves as topLeaves without checking that they contain the facet range, an analogous defect in a different class with a different fix site, never fixed (by code reading still present on main). Precedent: LUCENE-7291 (gh#8346, fixed in 6.1, 6.0.2 and 5.5.2), a different ancestor-spreading bug in the same method, on the dateline path. The feature issue gh#7253 (LUCENE-6191, 21 comments read) introduced the contract and discusses 'blocky effects' of coarse indexed shapes inside the region, not cells outside the input. Downstream golden output, not a report: apache/solr SpatialHeatmapFacetsTest expects 1 in two top-row cells of its circle case that are disjoint from the circle (the intended-behaviour check probe E). Gaps: searches cannot prove absence of private or differently worded discussions.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the standalone JUnit runner, with assertions on and off; the 10.5.2 release jars. A history sweep ran the repro on 5.0.0 (no heatmap API), 5.1.0, 5.5.5, 6.0.0, 6.6.6, 7.7.3, 8.11.2, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2. The cross-model reviews ran on main <code class='nw'>ea57360912ed</code>, whose <code>lucene/spatial-extras</code> is identical. The recommended fix was validated in the scratch worktree (the new test, the standalone repro and verifier suites; the whole <code>lucene/spatial-extras</code> module, 129 tests including 12 added ones, with assertions on and off plus format, lint and forbidden-API checks) and with the finder's harness (3,125,522 heatmaps).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/HeatmapFacetCounter.java:38 (at a9779ef3c193) (@lucene.experimental), :86-90 (calcFacets @param inputShape: &#x27;We always return a rectangle of integers even if the inputShape isn&#x27;t a rectangle -- the non-intersecting cells will all be 0&#x27;), :173-175 (MatchNoBits short-circuit), :182-184 (allCellsAncestorCount, ancestors map), :187-226 (visitor: facet-level cells counted directly :198-214; a coarser leaf that CONTAINS the heatmap region goes to allCellsAncestorCount :216-217; other coarser leaves go to ancestors :218-224), :231-235 (allCellsAncestorCount added to every cell), :246-286 (ancestor counts spread through intersectInterval/incrementRange; no inputShape check on either path)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeFacetCounter.java:45 (at a9779ef3c193) (@lucene.experimental), :54-60 (FacetVisitor.visit javadoc: &#x27;When an ancestor cell is given with non-zero count, the count can be considered to be added to all cells below&#x27;), :160-191 (facet-level and leaf visiting); PrefixTreeStrategy.java:217-229 (calcFacets delegates to HeatmapFacetCounter.calcFacets)</code></li><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java:94-132 (at a9779ef3c193) (testQueryCircle: circle input, point documents only), :160-291 (testRandom and helpers: rectangle inputs only)</code></li><li><code>GitHub and JIRA, read-only (2026-10-27): apache/lucene #7253 (LUCENE-6191), #8346 (LUCENE-7291), #6797 (LUCENE-5735), #7931 (LUCENE-6873), #8838 (LUCENE-7787); apache/solr solr/core/src/test/org/apache/solr/search/facet/SpatialHeatmapFacetsTest.java (circle-input blocks); SOLR-7005, SOLR-7591, SOLR-12398, SOLR-13263</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/HeatmapFacetCounter.java:38, (at a9779ef3c193) :86-90, :198-235, :246-338</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeFacetCounter.java:45, (at a9779ef3c193) :54-59, :131-136, :160-191</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/AbstractVisitingPrefixTreeQuery.java:212-245 (at a9779ef3c193)</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/tree/FilterCellIterator.java:51; (at a9779ef3c193) lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java:56, (at a9779ef3c193) :125-131, :162-174</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/HeatmapFacetCounter.java:38; (at a9779ef3c193) lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeFacetCounter.java:45, (at a9779ef3c193) :85-103; lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeStrategy.java:76, (at a9779ef3c193) :101-107, :220-229</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/HeatmapFacetCounter.java:86-90; (at a9779ef3c193) lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeFacetCounter.java:54-59; (at a9779ef3c193) lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/PrefixTreeStrategy.java:50-51 (at a9779ef3c193)</code></li><li><code>lucene/spatial-extras/src/test/org/apache/lucene/spatial/prefix/TestHeatmapFacetCounter.java:94-132, (at a9779ef3c193) :160-291</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestHeatmapAncestorCellsOutsideInputShape.java (lucene/spatial-extras, public API): <a href='../repro/LFV-670/TestHeatmapAncestorCellsOutsideInputShape.java'><code>repro/LFV-670/TestHeatmapAncestorCellsOutsideInputShape.java</code></a> (112 lines)</li><li>testQueryCircleCoarseIndexedShape for TestHeatmapFacetCounter (test-only.diff, +40 lines): <a href='../repro/LFV-670/test-only.diff'><code>repro/LFV-670/test-only.diff</code></a> (51 lines)</li><li>TestHeatmapZeroOutsideInputShape.java (independent reproducer, 6 tests): <a href='../repro/LFV-670/TestHeatmapZeroOutsideInputShape.java'><code>repro/LFV-670/TestHeatmapZeroOutsideInputShape.java</code></a> (208 lines)</li><li>HeatmapGridProbe.java (main(), prints the top-right 6 x 6 cells): <a href='../repro/LFV-670/HeatmapGridProbe.java'><code>repro/LFV-670/HeatmapGridProbe.java</code></a> (88 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the repro's example and a map-scale example, made in parallel with this doc from executed probes on main <code class='nw'>a9779ef3c193</code> and the code; the PNG is the final summary card. The alt text describes the intended content.</p><ul class='paths'><li><a href='../assets/LFV-670/bug.png'><code>assets/LFV-670/bug.png</code></a> (415 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

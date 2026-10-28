@@ -1,6 +1,6 @@
 # For a sloppy PhraseQuery with a repeated term (for example "very very"~1), Weight#matches reports an end position and end offset past the match, at a later occurrence of the repeated term that repeat-collision resolution has already advanced to, so Matches-based highlighting (the default UnifiedHighlighter) marks too much text
 
-Bug LFV-200 · Area: search / phrase queries (SloppyPhraseMatcher Matches support: endPosition/endOffset read after advanceRpts) · Priority: medium · Impact: silent wrong results · Novelty: new
+Bug LFV-200 · Area: search / phrase queries (SloppyPhraseMatcher Matches support: endPosition/endOffset read after advanceRpts) · Priority: medium · Impact: silent wrong results · Novelty: known upstream
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 

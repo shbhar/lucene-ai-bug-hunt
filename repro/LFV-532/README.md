@@ -2,6 +2,8 @@
 
 Bug LFV-532 · Area: analysis / common n-gram token filters (NGramTokenFilter, EdgeNGramTokenFilter: final position increment in end) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-532.html](../../bugs/LFV-532.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyse 'abc the' with a whitespace tokenizer, StopFilter and then NGramToke
 
 ## Expected vs actual
 
-- Expected: You expect end to still report 1.
-- Actual: Both filters call super.end and then replace that value with only the increments of tokens they dropped themselves, so end reports 0 ('abc x the' gives 1 instead of 2) and the trailing hole is lost.
+- Expected: Final increments 1 for `abc the` and 2 for `abc x the`; over the values `abc the` and `def`, 0 hits for the phrase `abc def` and 1 for the hole-keeping phrase, as without the n-gram filter.
+- Actual: `end=0` and `end=1` for both filters, and 1 and 0 phrase hits: 3 of 3 tests fail, assertions on and off; the two controls pass.
 
 ## Files
 
@@ -48,6 +50,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestNGramFiltersEndPositionIncrement.java](TestNGramFiltersEndPositionIncrement.java)
+- [fix.diff](fix.diff)
+- [TestNGramFiltersFinalPositionIncrement.java](TestNGramFiltersFinalPositionIncrement.java)
+- [TestNGramEndKeepsInputFinalPosInc.java](TestNGramEndKeepsInputFinalPosInc.java)
+- [NGramEndPosIncMain.java](NGramEndPosIncMain.java)
 
 ## Feedback
 

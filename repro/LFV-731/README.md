@@ -2,6 +2,8 @@
 
 Bug LFV-731 · Area: analysis / hunspell (Hunspell.spell compound checking, COMPOUNDRULE) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-731.html](../../bugs/LFV-731.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a Hunspell dictionary that joins foo/G and bar/H by 'COMPOUNDRULE GH', 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: spell returns true in all four cases, with and without -ea, in every release since 8.9.0; on the public Swedish dictionary sv_SE it accepts lower-case rule compounds such as tolvkronorsgatan that the dictionary's FORCEUCASE flag and C Hunspell reject.
+- Expected: Every rule compound whose part the dictionary restricts is rejected (`Foobar`, `FOOBAR`, `tolvkronorsgatan`, `foobar`, `foobarbaz`), as C Hunspell 1.7.2 and Lucene's flag path reject them.
+- Actual: All six tests fail: `spell` returns `true` for every one of them, for example `rule compound tolvkronorsgatan, last part gatan is FORCEUCASE`.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestCompoundRuleEntryFlags.java](TestCompoundRuleEntryFlags.java)
+- [TestCompoundRulePartChecks.java](TestCompoundRulePartChecks.java)
+- [TestRuleCompoundEntryFlagsV1.java](TestRuleCompoundEntryFlagsV1.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/hunspell-synthetic-dictionary-differential/](../../models/hunspell-synthetic-dictionary-differential/)
 

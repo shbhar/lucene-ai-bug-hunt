@@ -15,7 +15,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
 /**
- * Independent repro (verifier V1). Parent field configured; accepted documents are single
+ * Independent repro (verifier). Parent field configured; accepted documents are single
  * documents; a 2-doc block is then rejected at its child (immense term, a documented non-aborting
  * IllegalArgumentException) and is the only content of its in-memory segment; the merge policy
  * keeps that fully deleted segment. The documented outcome is that later merges keep working, and

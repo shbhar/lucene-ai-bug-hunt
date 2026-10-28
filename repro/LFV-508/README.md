@@ -2,6 +2,8 @@
 
 Bug LFV-508 · Area: join / block join Weight#matches (ParentsChildrenBlockJoinQuery; consumers BooleanWeight#matches, UnifiedHighlighter, Monitor HighlightsMatch) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-508.html](../../bugs/LFV-508.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index parent/child blocks, build a ParentsChildrenBlockJoinQuery (children t
 
 ## Expected vs actual
 
-- Expected: You expect non-null Matches exactly for the join's hits, as Weight#matches documents ('or null if the document does not match the parent query').
-- Actual: matches returns the union of the parent query's and the child query's Matches on the same document without checking the join, so it is non-null for the parent document itself, for children of parents that do not match and for children over the limit (in the finder's test the only hit is doc 0, but docs 0, 1, 2 and 3 get Matches).
+- Expected: `Weight#matches` is non-null only for the hits: docs 0 and 1 (doc 0 with a limit of 1), and doc 3 for `+text:size -join`.
+- Actual: Non-null for docs 0, 1, 2 and 3 in both join cases and null for the hit doc 3; `CheckHits` fails with "Unexpected null Matches object in doc3".
 
 ## Files
 
@@ -51,6 +53,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestParentsChildrenBlockJoinMatches.java](TestParentsChildrenBlockJoinMatches.java)
+- [TestParentsChildrenMustNotHighlight.java](TestParentsChildrenMustNotHighlight.java)
+- [TestMonitorHighlightsMatchParentsChildrenJoin.java](TestMonitorHighlightsMatchParentsChildrenJoin.java)
+- [TestParentsChildrenMatchesOracle.java](TestParentsChildrenMatchesOracle.java)
+- [TestParentsChildrenMatchesContract.java](TestParentsChildrenMatchesContract.java)
 
 ## Feedback
 

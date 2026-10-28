@@ -1,0 +1,673 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>WordDelimiterGraphFilterFactory: a types rule, even a no-op one, also changes how the unlisted characters ¹ ² ³ ¼ ½ ¾ ª º are tokenized</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-851 &middot; wdgf-types-option-reseeds-latin1-from-gettype</p><h1 id='top'>WordDelimiterGraphFilterFactory: a types rule, even a no-op one, also changes how the unlisted characters ¹ ² ³ ¼ ½ ¾ ª º are tokenized</h1><p class='tldr'>A rule in a WordDelimiterGraphFilterFactory <code class='nw'>types</code> file, even the no-op <code>- =&gt; SUBWORD_DELIM</code>, silently changes the type of 8 Latin-1 characters it does not list: <code>a-b m² 1½ ¼ ªB</code> gives <code>[a, b, m, ², 1½, ¼, ªB]</code> instead of <code>[a, b, m, 1, ª, B]</code>. Every release since 4.0.0-BETA is affected (15 releases or heads run).</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 369</span><span class='sub'>An opt-in WordDelimiterGraphFilterFactory types file silently changes how 8 uncommon Latin-1 characters are tokenized, but index and query stay consistent when they share the analyzer, so it closes the minor analysis tokenization-quality rows after LFV-703.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>4.0.0-BETA (SOLR-2059, 2010); graph factory 6.5.0<span class='sub'>introduced 2010-08-28 &middot; over 16 years</span></dd></div><div><dt>Affected</dt><dd>4.0.0-BETA to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>exhaustive comparison of two character-type tables</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>WordDelimiterGraphFilter gives every character a type and splits a token at certain type changes. A <code class='nw'>types</code> file overrides the type of the characters it lists. Adding one swaps the whole Latin-1 table for a second one that disagrees with the default on 8 characters; only the characters the file lists get its types.</p><figure class='visual' id='wdgf-types-option-reseeds-latin1-from-gettype-short-visual'><div class='frame'><a class='still' href='../assets/LFV-851/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-851/bug.png' alt='Summary card titled: An unrelated types rule in WordDelimiterGraphFilterFactory retypes 8 Latin-1 characters. Panel 1, You do (executed on main, -ea and -da): addTokenFilter(&quot;wordDelimiterGraph&quot;, &quot;types&quot;, &quot;types.txt&quot;) with types.txt holding $ =&gt; DIGIT (or the no-op - =&gt; SUBWORD_DELIM). Without and with the types file: m² x³ 1½ ¼ gives [m, x, 1] and [m, ², x, ³, 1½, ¼] (marked wrong); ªB gives [ª, B] and [ªB] (marked wrong); US$5 gives [US, 5] and [US, $5] (marked correct: the rule). Panel 2, Why: without a types file the filter uses DEFAULT_WORD_DELIM_TABLE (isLowerCase, isUpperCase, isDigit, else SUBWORD_DELIM); with one, line 184 of parseTypes sets every entry to getType(i) (category No: DIGIT, Lo: ALPHA). For ª and º: LOWER becomes ALPHA; for ² ³ ¹ ¼ ½ ¾: DELIM becomes DIGIT. Notes: only with the opt-in types option; one analyzer at index and query time keeps terms consistent; characters above U+00FF unaffected; ª and º differ on Java 8 and later; present since SOLR-2059 (2010). Fix A box (fix.diff): seed the entries below 256 from DEFAULT_WORD_DELIM_TABLE and use getType above, in both factories (executed); or build DEFAULT_WORD_DELIM_TABLE from getType, which changes the default terms and needs a reindex note.' width='1920' height='1080'></a></div><figcaption>The <code>$ =&gt; DIGIT</code> example: without a types file <code>m² x³ 1½ ¼</code> gives <code>[m, x, 1]</code>; with it, <code class='nw'>parseTypes</code> fills the 256 Latin-1 entries from <code class='nw'>getType()</code>, the 8 entries on which that differs from the default table change, and the same text gives <code>[m, ², x, ³, 1½, ¼]</code>. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You give WordDelimiterGraphFilterFactory (whitespace tokenizer, default flags) a <code class='nw'>types</code> file with one rule, <code>$ =&gt; DIGIT</code>, so that <code class='nw'>US$5</code> gives <code>[US, $5]</code> instead of <code>[US, 5]</code>.</span></li><li><span>You expect text without a <code class='nw'>$</code> to analyze as before: <code>m² x³ 1½ ¼</code> gives <code>[m, x, 1]</code>, because by default ², ³, ½ and ¼ are delimiters.</span></li><li><span>Instead it gives <code>[m, ², x, ³, 1½, ¼]</code>: ² and ³ become extra terms, <code class='nw'>1½</code> stays whole, and the lone <code class='nw'>¼</code> becomes a term.</span></li><li><span>Why: with a types file, <code class='nw'>parseTypes</code> fills all 256 Latin-1 entries from <code class='nw'>getType()</code>, the Unicode category (<code>WordDelimiterGraphFilterFactory.java:184</code>), not from the default table built with <code class='nw'>isLowerCase</code>, <code class='nw'>isUpperCase</code> and <code class='nw'>isDigit</code>. The rules are applied after that, so only the characters the file lists get its types. The two tables disagree on exactly 8 characters: ¹ ² ³ ¼ ½ ¾ become digits, and ª º become caseless letters, so <code class='nw'>ªB</code> is no longer split.</span></li><li><span>Even the no-op rule <code>- =&gt; SUBWORD_DELIM</code> does it: <code>a-b m² 1½ ¼ ªB</code> goes from <code>[a, b, m, 1, ª, B]</code> to <code>[a, b, m, ², 1½, ¼, ªB]</code>. No error, in both factories, in all 15 releases and heads run from 4.0.0-BETA to main.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Only applications that set the opt-in <code class='nw'>types</code> option (such as Solr's <code>types="wdfftypes.txt"</code>), for text with ¹ ² ³ ¼ ½ ¾ (<code class='nw'>m²</code>, <code class='nw'>1½</code>) or ª º before a capital. One analyzer for indexing and queries keeps terms consistent; hits go wrong only if index and query analyzers differ in having a types file, or a rule is added without reindexing.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>790 words</span></summary><div class='body'><p>WordDelimiterGraphFilter gives every character a type (lower-case, upper-case, digit or delimiter) and splits a token at type changes such as letter to digit or lower to upper case. Its factory, and the deprecated WordDelimiterFilterFactory, accept a <code class='nw'>types</code> file whose rules override the type of single characters. Without the option, characters below U+0100 are looked up in <code>DEFAULT_WORD_DELIM_TABLE</code>, built from <code>Character.isLowerCase</code>, <code class='nw'>isUpperCase</code> and <code class='nw'>isDigit</code>. With the option, <code class='nw'>parseTypes</code> fills every entry of a new table, including all 256 Latin-1 ones, from <code>WordDelimiterIterator.getType(i)</code>, which maps the Unicode general category, and only then applies the rules (<code>WordDelimiterGraphFilterFactory.java:179-186</code> on main <code class='nw'>a9779ef3c193</code>). The two tables disagree on exactly 8 characters: ¹ ² ³ ¼ ½ ¾ are delimiters by default and digits in any types table that does not list them, and ª º are lower-case letters by default and caseless letters (ALPHA) in any types table that does not list them (on Java 8 and later). So a types file whose only rule is <code>- =&gt; SUBWORD_DELIM</code>, the type <code class='nw'>-</code> already has, changes <code>a-b m² 1½ ¼ ªB</code> from <code>[a, b, m, 1, ª, B]</code> to <code>[a, b, m, ², 1½, ¼, ªB]</code>, with no error. Only applications that set the opt-in option are hit; with one analyzer at index and query time the terms stay consistent. Every Lucene release from 4.0.0-BETA to 10.5.2 is affected (the graph factory from 6.5.0; 15 releases or heads run, the rest inferred from unchanged code), and seeding the Latin-1 entries from the default table fixes both factories without changing default tokenization.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Character type</strong>: <code class='nw'>LOWER</code>, <code class='nw'>UPPER</code>, <code class='nw'>ALPHA</code> (= LOWER | UPPER), <code class='nw'>DIGIT</code>, <code class='nw'>ALPHANUM</code> or <code class='nw'>SUBWORD_DELIM</code> (a delimiter). The filter splits a token at type changes such as letter to digit or lower to upper case, unless the two types share a bit or a flag turns that split off (<code class='nw'>isBreak</code>, <code>WordDelimiterIterator.java:227-245</code>), and it drops delimiters.</li><li><strong>Default table</strong>: <code>WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE</code>, 256 entries for U+0000-U+00FF: <code class='nw'>LOWER</code> if <code>Character.isLowerCase</code>, else <code class='nw'>UPPER</code> if <code class='nw'>isUpperCase</code>, else <code class='nw'>DIGIT</code> if <code class='nw'>isDigit</code>, else <code class='nw'>SUBWORD_DELIM</code> (<code>WordDelimiterIterator.java:88-105</code>). Above U+00FF the filter calls <code class='nw'>getType</code> (<code class='nw'>:302-307</code>).</li><li><strong><code class='nw'>getType</code></strong>: a switch on <code>Character.getType</code>, the Unicode general category: <code class='nw'>OTHER_LETTER</code> -&gt; <code class='nw'>ALPHA</code> (<code class='nw'>:322-328</code>), <code class='nw'>OTHER_NUMBER</code> -&gt; <code class='nw'>DIGIT</code> (<code class='nw'>:330-333</code>) (<code class='nw'>:315-360</code>).</li><li><strong><code class='nw'>types</code> option</strong>: <code>types="wdfftypes.txt"</code> names files of rules such as <code>$ =&gt; DIGIT</code> (the factory javadoc example, <code>WordDelimiterGraphFilterFactory.java:62</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#what-the-bug-is-the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>inform</code> reads the types files and calls <code>typeTable = parseTypes(wlist)</code> (<code>WordDelimiterGraphFilterFactory.java:139-147</code>). <code class='nw'>create</code> passes <code>typeTable == null ? DEFAULT_WORD_DELIM_TABLE : typeTable</code> (<code class='nw'>:155</code>).</li><li><code class='nw'>parseTypes</code> (<code class='nw'>:164-188</code>) allocates a table of at least 256 entries ("ensure the table is always at least as big as DEFAULT_WORD_DELIM_TABLE for performance", <code class='nw'>:179</code>), fills <strong>every</strong> entry with <code>WordDelimiterIterator.getType(i)</code> (<code class='nw'>:184</code>), then writes the rules (<code class='nw'>:185-186</code>).</li><li>Below U+0100, <code class='nw'>getType</code> and the default table disagree on 8 characters (exhaustive check):</li></ol><div class="tbl"><table><thead><tr><th>characters</th><th>Unicode category (JDK 25)</th><th>default table</th><th>in a types table that does not list them</th></tr></thead><tbody><tr><td>¹ ² ³ ¼ ½ ¾ (U+00B9, U+00B2, U+00B3, U+00BC-U+00BE)</td><td>No (other number); <code class='nw'>isDigit</code> false</td><td><code class='nw'>SUBWORD_DELIM</code></td><td><code class='nw'>DIGIT</code></td></tr><tr><td>ª º (U+00AA, U+00BA)</td><td>Lo (other letter); <code class='nw'>isLowerCase</code> true</td><td><code class='nw'>LOWER</code></td><td><code class='nw'>ALPHA</code></td></tr></tbody></table></div><ol><li>So the terms change. A trailing delimiter is dropped (<code class='nw'>m²</code> -&gt; <code class='nw'>[m]</code>, <code class='nw'>1½</code> -&gt; <code class='nw'>[1]</code>, a lone <code class='nw'>¼</code> -&gt; nothing); as a digit, <code class='nw'>²</code> is a new number part after a letter (<code>[m, ²]</code>) and <code class='nw'>½</code> joins the digit before it (<code class='nw'>[1½]</code>). Two characters whose types share a bit are never split (<code>WordDelimiterIterator.java:228-230</code>): <code class='nw'>ALPHA</code> shares the upper-case bit with <code class='nw'>B</code>, so <code class='nw'>ªB</code> stays one term, while <code class='nw'>LOWER</code> then <code class='nw'>UPPER</code> is a case change (<code>[ª, B]</code>). That is also why ª and º change only directly before an upper-case letter (<code class='nw'>1ª</code> is <code>[1, ª]</code> and <code class='nw'>Bª</code> is unchanged either way).</li><li>The deprecated <code>WordDelimiterFilterFactory</code> has the same code (<code>WordDelimiterFilterFactory.java:151</code>, <code class='nw'>:160-184</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-whitespace-tokenizer-default-flags-ea-and-da'>The numbers (whitespace tokenizer, default flags, <code class='nw'>-ea</code> and <code class='nw'>-da</code>)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-whitespace-tokenizer-default-flags-ea-and-da" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-whitespace-tokenizer-default-flags-ea-and-da"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>text</th><th>no types file</th><th><code>- =&gt; SUBWORD_DELIM</code> (a no-op)</th><th><code>$ =&gt; DIGIT</code></th></tr></thead><tbody><tr><td><code>a-b m² 1½ ¼ ªB</code></td><td><code>[a, b, m, 1, ª, B]</code></td><td><code>[a, b, m, ², 1½, ¼, ªB]</code></td><td>-</td></tr><tr><td><code>m² x³ 1½ ¼</code></td><td><code>[m, x, 1]</code></td><td><code>[m, ², x, ³, 1½, ¼]</code></td><td><code>[m, ², x, ³, 1½, ¼]</code></td></tr><tr><td><code class='nw'>US$5</code> (the <code class='nw'>$</code> rule works)</td><td><code>[US, 5]</code></td><td><code>[US, 5]</code></td><td><code>[US, $5]</code></td></tr><tr><td><code class='nw'>x⁴</code>, <code class='nw'>1⅓</code> (above U+00FF)</td><td><code>[x, ⁴]</code>, <code class='nw'>[1⅓]</code></td><td><code>[x, ⁴]</code>, <code class='nw'>[1⅓]</code></td><td><code>[x, ⁴]</code>, <code class='nw'>[1⅓]</code></td></tr></tbody></table></div><p>With the no-op rule, an exhaustive sweep of U+0000-U+00FF (each character alone and between letters) finds exactly the 8 characters changed, in both factories. Code that builds the filter directly with <code>DEFAULT_WORD_DELIM_TABLE</code> plus its own entries is not affected; only the factory path is.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>234 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Users of WordDelimiterGraphFilterFactory or the deprecated WordDelimiterFilterFactory with a <code class='nw'>types</code> file that has any rule; only the characters the file lists keep the type it gives them. The option is off by default, and no built-in Lucene analyzer uses these filters.</li><li><strong>What they get.</strong> Different terms for the same text, deterministic and silent, the same with assertions on and off: <code class='nw'>m²</code> gains the term <code class='nw'>²</code>, <code class='nw'>1½</code> is indexed as <code class='nw'>1½</code> instead of <code class='nw'>1</code>, a lone <code class='nw'>¼</code> becomes a term, <code class='nw'>ªB</code> is no longer split. Mostly an unannounced tokenization change when the first rule is added, even a rule unrelated to these characters.</li><li><strong>Search results.</strong> With the same analyzer (with the types file) at index and query time, terms match either way. Missed or extra hits need analyzers that differ in having a types file (index with types: <code class='nw'>1½</code> -&gt; <code class='nw'>[1½]</code>; query without: <code class='nw'>[1]</code>), or a rule added without reindexing.</li><li><strong>Which characters.</strong> Superscript one to three, the fractions ¼ ½ ¾ (on every JDK), and the ordinal indicators ª º (on Java 8 and later, whose Unicode data, 6.1 and later, makes them category Lo; on Java 5 to 7 they were Ll and unaffected; Lucene 6.0 and later require Java 8). Characters above U+00FF are not affected.</li><li><strong>Severity.</strong> Minor: opt-in configuration, uncommon characters, consistent terms in the usual setup; registry priority low. No prior report was found.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit in <code>lucene/analysis/common</code>, public API only: <code class='nw'>CustomAnalyzer</code> with the whitespace tokenizer and the filter by SPI name, with and without a one-line types file. Four tests compare the terms: the no-op rule in both factories, a <code class='nw'>$</code> rule, and a sweep of every character below U+0100. All four fail on stock main, assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestWordDelimiterTypesOption.java (analysis-common, 4 tests)</span><span class='meta'>120 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.miscellaneous;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * The &quot;types&quot; option of WordDelimiterGraphFilterFactory (and of the deprecated
+ * WordDelimiterFilterFactory) should change the type of the characters it lists and nothing else.
+ * Public API only: a whitespace tokenizer plus the filter with default flags, built with
+ * CustomAnalyzer with and without a types file.
+ */
+public class TestWordDelimiterTypesOption extends BaseTokenStreamTestCase {
+
+  private Analyzer analyzer(String filter, String typesRule) throws IOException {
+    if (typesRule == null) {
+      return CustomAnalyzer.builder().withTokenizer(&quot;whitespace&quot;).addTokenFilter(filter).build();
+    }
+    Path dir = createTempDir();
+    Files.writeString(dir.resolve(&quot;types.txt&quot;), typesRule + &quot;\n&quot;, StandardCharsets.UTF_8);
+    return CustomAnalyzer.builder(dir)
+        .withTokenizer(&quot;whitespace&quot;)
+        .addTokenFilter(filter, &quot;types&quot;, &quot;types.txt&quot;)
+        .build();
+  }
+
+  private static List&lt;String&gt; terms(Analyzer a, String text) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    return out;
+  }
+
+  /** Asserts that each text gives the same terms with and without the types rule. */
+  private void assertSameTerms(String filter, String typesRule, String... texts)
+      throws IOException {
+    try (Analyzer plain = analyzer(filter, null);
+        Analyzer typed = analyzer(filter, typesRule)) {
+      for (String text : texts) {
+        assertEquals(
+            &quot;text &#x27;&quot; + text + &quot;&#x27;, types rule &#x27;&quot; + typesRule + &quot;&#x27;&quot;,
+            terms(plain, text),
+            terms(typed, text));
+      }
+    }
+  }
+
+  /** &#x27;-&#x27; already is SUBWORD_DELIM, so this rule restates the default and must change nothing. */
+  public void testNoOpRule() throws IOException {
+    // without a types file: [a, b, m, 1, ª, B]
+    assertSameTerms(&quot;wordDelimiterGraph&quot;, &quot;- =&gt; SUBWORD_DELIM&quot;, &quot;a-b m² 1½ ¼ ªB&quot;);
+  }
+
+  /** The deprecated factory has the same code. */
+  @SuppressWarnings(&quot;deprecation&quot;)
+  public void testNoOpRuleDeprecatedFactory() throws IOException {
+    assertSameTerms(&quot;wordDelimiter&quot;, &quot;- =&gt; SUBWORD_DELIM&quot;, &quot;a-b m² 1½ ¼ ªB&quot;);
+  }
+
+  /** A rule for &#x27;$&#x27; must not change text that has no &#x27;$&#x27;. */
+  public void testRuleForAnotherCharacter() throws IOException {
+    try (Analyzer typed = analyzer(&quot;wordDelimiterGraph&quot;, &quot;$ =&gt; DIGIT&quot;)) {
+      // control: the rule itself takes effect (without it: [US, 5])
+      assertEquals(List.of(&quot;US&quot;, &quot;$5&quot;), terms(typed, &quot;US$5&quot;));
+    }
+    // without a types file: [m, x, 1]
+    assertSameTerms(&quot;wordDelimiterGraph&quot;, &quot;$ =&gt; DIGIT&quot;, &quot;m² x³ 1½ ¼&quot;);
+  }
+
+  /** With the no-op rule, no character below U+0100 may be tokenized differently. */
+  public void testNoOpRuleChangesNoLatin1Character() throws IOException {
+    List&lt;String&gt; changed = new ArrayList&lt;&gt;();
+    try (Analyzer plain = analyzer(&quot;wordDelimiterGraph&quot;, null);
+        Analyzer typed = analyzer(&quot;wordDelimiterGraph&quot;, &quot;- =&gt; SUBWORD_DELIM&quot;)) {
+      for (char c = 0; c &lt; 256; c++) {
+        if (c == &#x27;-&#x27; || Character.isWhitespace(c) || Character.isISOControl(c)) {
+          continue;
+        }
+        for (String probe : new String[] {&quot;&quot; + c, &quot;a&quot; + c + &quot;b&quot;, &quot;A&quot; + c + &quot;B&quot;}) {
+          if (terms(plain, probe).equals(terms(typed, probe)) == false) {
+            changed.add(String.format(Locale.ROOT, &quot;U+%04X&quot;, (int) c));
+            break;
+          }
+        }
+      }
+    }
+    assertEquals(List.of(), changed);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.miscellaneous.TestWordDelimiterTypesOption -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Every text gives the same terms with and without the rule (<code>a-b m² 1½ ¼ ªB</code> gives <code>[a, b, m, 1, ª, B]</code>), and no character below U+0100 changes.</dd></div><div class='got'><dt>Observed</dt><dd>All four tests fail: the no-op rule gives <code>[a, b, m, ², 1½, ¼, ªB]</code>, and the sweep lists U+00AA, U+00B2, U+00B3, U+00B9, U+00BA, U+00BC, U+00BD and U+00BE.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-851/'>repro/LFV-851/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (209 lines) · 1,496 words</span></summary><div class='body'><p><code>TestWordDelimiterTypesOption</code> (package <code>org.apache.lucene.analysis.miscellaneous</code>; only <code class='nw'>CustomAnalyzer</code>, <code>Analyzer.tokenStream</code> and a temp-dir types file).</p><ul><li><code class='nw'>testNoOpRule</code>: <code>- =&gt; SUBWORD_DELIM</code> through <code>wordDelimiterGraph</code>; <code>a-b m² 1½ ¼ ªB</code> must give the same terms as without the file.</li><li><code>testNoOpRuleDeprecatedFactory</code>: the same through <code class='nw'>wordDelimiter</code>.</li><li><code>testRuleForAnotherCharacter</code>: <code>$ =&gt; DIGIT</code>; a control checks that <code class='nw'>US$5</code> gives <code>[US, $5]</code>, then <code>m² x³ 1½ ¼</code> must give the same terms as without the file.</li><li><code>testNoOpRuleChangesNoLatin1Character</code>: every character below U+0100 (except <code class='nw'>-</code>, whitespace and controls), alone and between letters, must give the same terms with the no-op rule.</li></ul><p>Each test compares with and without the file instead of fixed lists, so it passes with either fix. Through the hunt's classpath runner it fails 4 of 4 on main (<code class='nw'>-ea</code> and <code class='nw'>-da</code>), 10.5.2 and 9.12.3, and passes 4 of 4 with fix A or fix B. It needs the <code>org.apache.lucene.tests</code> test framework, which exists from 9.1.0 (LUCENE-10301), so it does not compile on 9.0.0; older releases were checked with the hunt's <code class='nw'>main()</code> probes. The hunt's other tests are attached below.</p><div class="hd hd-3"><h3 id='code-2-h'>TestWdgfTypesOptionLatin1Defaults.java (the finder&#x27;s test, 2 tests)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>The <code>$ =&gt; DIGIT</code> example plus a control that counts the 8 table disagreements (it reads the <code class='nw'>@lucene.internal</code> <code>WordDelimiterIterator</code> table). Fails 1 of 2 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2, 9.12.3 and branch_10_6.</p><figure class='code'><figcaption><span class='fname'>TestWdgfTypesOptionLatin1Defaults.java (the finder&#x27;s test, 2 tests)</span><span class='meta'>85 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.miscellaneous;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * WordDelimiterGraphFilterFactory&#x27;s &quot;types&quot; option is meant to override the character types of the
+ * listed characters only. It builds its table by calling WordDelimiterIterator.getType(i) for every
+ * i, but the table the filter uses without the option (DEFAULT_WORD_DELIM_TABLE) is computed
+ * differently for U+0000-U+00FF. The two disagree on 8 Latin-1 characters, so a rule for an unrelated
+ * character (here the factory&#x27;s own example &quot;$ =&gt; DIGIT&quot;) changes how SUPERSCRIPT TWO/THREE/ONE and
+ * the vulgar fractions are tokenized. Uses public API only.
+ */
+public class TestWdgfTypesOptionLatin1Defaults extends BaseTokenStreamTestCase {
+
+  private static List&lt;String&gt; terms(Analyzer a, String text) throws Exception {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute t = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) out.add(t.toString());
+      ts.end();
+    }
+    return out;
+  }
+
+  /** Control: the table without the option and getType agree on every other char below 256. Passes. */
+  public void testDefaultTableAgreesWithGetTypeOutsideTheEightChars() {
+    int disagreements = 0;
+    for (int c = 0; c &lt; WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE.length; c++) {
+      if (WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE[c] != WordDelimiterIterator.getType(c)) {
+        disagreements++;
+      }
+    }
+    // U+00AA, U+00B2, U+00B3, U+00B9, U+00BA, U+00BC, U+00BD, U+00BE
+    assertEquals(8, disagreements);
+  }
+
+  /** Fails on main: a &quot;$&quot; rule changes the tokens of text that contains no &quot;$&quot;. */
+  public void testUnrelatedTypesRuleDoesNotChangeOtherCharacters() throws Exception {
+    Path dir = createTempDir();
+    Files.writeString(dir.resolve(&quot;types.txt&quot;), &quot;$ =&gt; DIGIT\n&quot;, StandardCharsets.UTF_8);
+    String text = &quot;m² x³ 1½ ¼&quot;;
+    try (Analyzer defaults =
+            CustomAnalyzer.builder()
+                .withTokenizer(&quot;whitespace&quot;)
+                .addTokenFilter(&quot;wordDelimiterGraph&quot;)
+                .build();
+        Analyzer withTypes =
+            CustomAnalyzer.builder(dir)
+                .withTokenizer(&quot;whitespace&quot;)
+                .addTokenFilter(&quot;wordDelimiterGraph&quot;, &quot;types&quot;, &quot;types.txt&quot;)
+                .build()) {
+      // control: the rule itself works (&quot;$&quot; is no longer a delimiter)
+      assertEquals(List.of(&quot;US&quot;, &quot;5&quot;), terms(defaults, &quot;US$5&quot;));
+      assertEquals(List.of(&quot;US&quot;, &quot;$5&quot;), terms(withTypes, &quot;US$5&quot;));
+      // text without &quot;$&quot;: should analyze identically with and without the rule
+      assertEquals(terms(defaults, text), terms(withTypes, text));
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestTypesRuleKeepsOtherCharTypes.java (independent reproducer, 4 tests)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Factory API with <code>StringMockResourceLoader</code>, both factories, an exhaustive sweep with six probes per character. Fails 3 of 4 (the control passes) on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestTypesRuleKeepsOtherCharTypes.java (independent reproducer, 4 tests)</span><span class='meta'>124 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.miscellaneous;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.lucene.analysis.TokenFilterFactory;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.WhitespaceTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.tests.util.StringMockResourceLoader;
+import org.apache.lucene.util.ResourceLoaderAware;
+
+/**
+ * A &quot;types&quot; mapping for one character should only change how that character is treated. Every
+ * other character should be tokenized as it is without the option.
+ *
+ * &lt;p&gt;Uses only the public factory API (Map args + inform + create).
+ */
+public class TestTypesRuleKeepsOtherCharTypes extends BaseTokenStreamTestCase {
+
+  private static List&lt;String&gt; terms(TokenFilterFactory factory, String text) throws IOException {
+    WhitespaceTokenizer tokenizer = new WhitespaceTokenizer();
+    tokenizer.setReader(new StringReader(text));
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = factory.create(tokenizer)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    return out;
+  }
+
+  @SuppressWarnings(&quot;deprecation&quot;)
+  private static TokenFilterFactory factory(boolean graph, String typesFileContent)
+      throws IOException {
+    Map&lt;String, String&gt; args = new HashMap&lt;&gt;();
+    if (typesFileContent != null) {
+      args.put(&quot;types&quot;, &quot;types.txt&quot;);
+    }
+    TokenFilterFactory f =
+        graph ? new WordDelimiterGraphFilterFactory(args) : new WordDelimiterFilterFactory(args);
+    ((ResourceLoaderAware) f)
+        .inform(new StringMockResourceLoader(typesFileContent == null ? &quot;&quot; : typesFileContent));
+    return f;
+  }
+
+  /** Probes for character c; each places c next to lower, upper and digit neighbours. */
+  private static String[] probes(char c) {
+    return new String[] {&quot;&quot; + c, &quot;a&quot; + c + &quot;b&quot;, &quot;A&quot; + c + &quot;B&quot;, c + &quot;B&quot;, &quot;1&quot; + c + &quot;2&quot;, &quot;x&quot; + c};
+  }
+
+  /**
+   * Returns a description of every character below U+0100 (other than ruleChar and whitespace)
+   * whose tokenization changes when the types file is present.
+   */
+  private static List&lt;String&gt; changedChars(boolean graph, String typesFile, char ruleChar)
+      throws IOException {
+    TokenFilterFactory plain = factory(graph, null);
+    TokenFilterFactory withRule = factory(graph, typesFile);
+    List&lt;String&gt; changed = new ArrayList&lt;&gt;();
+    for (int i = 0; i &lt; 256; i++) {
+      char c = (char) i;
+      if (c == ruleChar || Character.isWhitespace(c) || Character.isISOControl(c)) {
+        continue;
+      }
+      for (String p : probes(c)) {
+        List&lt;String&gt; a = terms(plain, p);
+        List&lt;String&gt; b = terms(withRule, p);
+        if (!a.equals(b)) {
+          changed.add(String.format(&quot;U+%04X &#x27;%s&#x27;: without=%s with=%s&quot;, i, p, a, b));
+          break;
+        }
+      }
+    }
+    return changed;
+  }
+
+  /** Sanity control: the rule itself takes effect, so the option is actually wired in. */
+  public void testRuleItselfTakesEffect() throws IOException {
+    assertEquals(List.of(&quot;US&quot;, &quot;5&quot;), terms(factory(true, null), &quot;US$5&quot;));
+    assertEquals(List.of(&quot;US&quot;, &quot;$5&quot;), terms(factory(true, &quot;$ =&gt; DIGIT&quot;), &quot;US$5&quot;));
+  }
+
+  /** The concrete example: an unrelated rule for &#x27;$&#x27; changes how &quot;m² x³ 1½ ¼&quot; is tokenized. */
+  public void testUnrelatedRuleGraph() throws IOException {
+    String text = &quot;m² x³ 1½ ¼ NºA ªB&quot;;
+    assertEquals(terms(factory(true, null), text), terms(factory(true, &quot;$ =&gt; DIGIT&quot;), text));
+  }
+
+  /** A rule that restates the default type of &#x27;-&#x27; (a no-op) still changes other characters. */
+  public void testNoOpRuleGraphExhaustiveLatin1() throws IOException {
+    List&lt;String&gt; changed = changedChars(true, &quot;- =&gt; SUBWORD_DELIM&quot;, &#x27;-&#x27;);
+    assertTrue(&quot;characters whose tokenization changed: &quot; + changed, changed.isEmpty());
+  }
+
+  /** Same check for the older (deprecated) WordDelimiterFilterFactory. */
+  public void testNoOpRuleWdfExhaustiveLatin1() throws IOException {
+    List&lt;String&gt; changed = changedChars(false, &quot;- =&gt; SUBWORD_DELIM&quot;, &#x27;-&#x27;);
+    assertTrue(&quot;characters whose tokenization changed: &quot; + changed, changed.isEmpty());
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle, a scratch worktree with only the test added): affected; through a classpath runner also 10.5.2 and 9.12.3; the hunt&#x27;s probes: every release from 4.0.0-BETA to 10.5.2</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cd $LUCENE    # apache/lucene at a9779ef3c193 (or another 9.1+ or 10.x checkout)
+cp $REPRO/TestWordDelimiterTypesOption.java lucene/analysis/common/src/test/org/apache/lucene/analysis/miscellaneous/
+./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.miscellaneous.TestWordDelimiterTypesOption -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# with -Ptests.asserts=false: the same 4 failures
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># stock main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF, -Ptests.asserts=true (=false: the same 4 failures)
+TestWordDelimiterTypesOption &gt; testNoOpRuleChangesNoLatin1Character FAILED
+    java.lang.AssertionError: expected:&lt;[]&gt; but was:&lt;[U+00AA, U+00B2, U+00B3, U+00B9, U+00BA, U+00BC, U+00BD, U+00BE]&gt;
+TestWordDelimiterTypesOption &gt; testRuleForAnotherCharacter FAILED
+    java.lang.AssertionError: text &#x27;m² x³ 1½ ¼&#x27;, types rule &#x27;$ =&gt; DIGIT&#x27; expected:&lt;[m, x, 1]&gt; but was:&lt;[m, ², x, ³, 1½, ¼]&gt;
+TestWordDelimiterTypesOption &gt; testNoOpRuleDeprecatedFactory FAILED
+    java.lang.AssertionError: text &#x27;a-b m² 1½ ¼ ªB&#x27;, types rule &#x27;- =&gt; SUBWORD_DELIM&#x27; expected:&lt;[a, b, m, 1, ª, B]&gt; but was:&lt;[a, b, m, ², 1½, ¼, ªB]&gt;
+TestWordDelimiterTypesOption &gt; testNoOpRule FAILED
+    java.lang.AssertionError: text &#x27;a-b m² 1½ ¼ ªB&#x27;, types rule &#x27;- =&gt; SUBWORD_DELIM&#x27; expected:&lt;[a, b, m, 1, ª, B]&gt; but was:&lt;[a, b, m, ², 1½, ¼, ªB]&gt;
+4 tests completed, 4 failed
+
+# the same file through the classpath runner: 4 of 4 fail with the same messages on main (-ea and -da), 10.5.2 and 9.12.3;
+# with fix A or fix B: 4 tests completed, 0 failed</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>A rule that restates a default (<code>- =&gt; SUBWORD_DELIM</code>) still changes 8 other characters; nothing documents that.</li><li>The only code comment says the 256-entry table is there "for performance" (<code>WordDelimiterGraphFilterFactory.java:179</code>).</li><li>The option's author called it a way to "customize the defaults" (SOLR-2059) and to adjust splitting "on a per-character basis" (SOLR-3102).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>345 words</span></summary><div class='body'><ul><li><strong>No written contract either way.</strong> Lucene documents the option only as an attribute in the factory javadoc example (<code>WordDelimiterGraphFilterFactory.java:54-64</code>), and no Lucene test sets it. The filter class javadoc says only that delimiters are "by default, all non alpha-numeric characters" (<code>WordDelimiterGraphFilter.java:47</code>, <code>WordDelimiterFilter.java:40</code>), which does not say whether ² or ½ count as numeric. So this is an inconsistency, not a broken documented promise; the issue should say so.</li><li><strong>The code comment.</strong> "ensure the table is always at least as big as DEFAULT_WORD_DELIM_TABLE for performance" (<code>WordDelimiterGraphFilterFactory.java:179</code>; <code>WordDelimiterFilterFactory.java:175</code>): the full-size table is for speed, which implies the author treated <code class='nw'>getType(i)</code> and the default table as interchangeable below 256. They are not, for 8 characters.</li><li><strong>The author's description.</strong> SOLR-2059 (2010, added the option): "By default, WordDelimiterFilter assigns 'types' to each character (computed from Unicode Properties) ... I think you should be able to customize the defaults with a configuration file". Its CHANGES entry: it "allows you to customize how WordDelimiterFilter tokenizes text with a configuration file". SOLR-3102 (2012), the same author quoting the wiki: "In some cases you might want to adjust how WordDelimiterFilter splits on a per-character basis".</li><li><strong>A no-op rule.</strong> <code>- =&gt; SUBWORD_DELIM</code> restates the type <code class='nw'>-</code> already has, and still changes 8 other characters. The SOLR-2059 test (<code class='nw'>testCustomTypes</code>) checked a sentence of letters, digits and <code class='nw'>interest-rate</code> whose only special characters were the mapped <code>$ % . ,</code>, plus U+200D; it has none of the 8 characters, and no test, CHANGES entry or discussion records a change of unlisted Latin-1 characters.</li><li><strong>The ª º half came from Unicode data.</strong> In Unicode 4.0 to 6.0 (Java 5 to 7, the JDKs of 2010) ª and º are category Ll, so the two tables agreed on them; Unicode 6.1 made them Lo (Java 8 and later) while <code class='nw'>isLowerCase</code> stays true (unicode.org UnicodeData; no old JDK was run). The 6 number characters differed already in 2010. Lucene 6.0 and later require Java 8, so on every JDK they support, and so for the graph factory, all 8 differ.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>243 words</span></summary><div class='body'><p>Strongest case: the types path is the consistent one. The Solr Reference Guide says "The default for any character without a customized mapping is computed from Unicode character properties" (the option's sample file says the same), which is what <code class='nw'>getType</code> does; <code class='nw'>getType</code> is already the filter's classifier above U+00FF; and by default the filter disagrees with itself (<code class='nw'>x²</code> gives <code class='nw'>[x]</code> but <code class='nw'>x⁴</code> gives <code>[x, ⁴]</code>; <code class='nw'>1½</code> gives <code class='nw'>[1]</code> but <code class='nw'>1⅓</code> gives <code class='nw'>[1⅓]</code>). Reviews from another model family (OpenAI GPT-5.6) rated this strong: one from the record alone, without reading the code (its verdict: not real, low confidence), and the read-only fact check of this doc, which still called the 8-character side effect a legitimate consistency defect, though not conclusively.</p><p>Our answer: the default table is computed from Unicode properties too (Lowercase, Uppercase, Nd), so that sentence does not pick a side. Whichever table is right, a rule for <code class='nw'>$</code>, or a rule that changes nothing, that switches 8 other characters from one table to the other is hard to read as intended. We treat it as a consistency defect; maintainers may still prefer the complete <code class='nw'>getType</code> table as the intended meaning, and that choice is fix B (change the default table, with a reindex note), not "no change". Every reviewer that read the code rated it real (the source-reading cross-model review had seen verifiers' verdicts; the adjudication's confidence is medium). <strong>Verdict: a consistency defect with a weak written contract.</strong></p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A. Seed the Latin-1 entries from DEFAULT_WORD_DELIM_TABLE</strong></p><p class='short'>Seed the Latin-1 entries of the custom table from <code>DEFAULT_WORD_DELIM_TABLE</code> instead of <code class='nw'>getType()</code> in both factories' <code class='nw'>parseTypes</code>, and compute <code class='nw'>getType</code> only above U+00FF. Default tokenization does not change. Validated: the repro passes 4 of 4 with assertions on and off, and the <code>lucene/analysis/common</code> tests run 1,913 tests with 0 failures.</p><pre class='snippet' tabindex='0'><code>// parseTypes in both factories (WordDelimiterGraphFilterFactory.java:180-184); comment lines omitted
+-    byte[] types =
+-        new byte
+-            [Math.max(
+-                typeMap.lastKey() + 1, WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE.length)];
+-    for (int i = 0; i &lt; types.length; i++) types[i] = WordDelimiterIterator.getType(i);
++    byte[] defaults = WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE;
++    byte[] types = new byte[Math.max(typeMap.lastKey() + 1, defaults.length)];
++    System.arraycopy(defaults, 0, types, 0, defaults.length);
++    for (int i = defaults.length; i &lt; types.length; i++) {
++      types[i] = WordDelimiterIterator.getType(i);
++    }</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 670 words</span></summary><div class='body'><p>Two fixes were applied in a scratch worktree at <code class='nw'>a9779ef3c193</code> and run through gradle, and shadowed onto the stock jars for every repro of the hunt. A keeps default tokenization; B changes it. C is not a fix.</p><div class="hd hd-3"><h3 id='fix-seed-from-default-table'>A. Seed the Latin-1 entries from DEFAULT_WORD_DELIM_TABLE <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-seed-from-default-table" target="_self" aria-label="Link to this section" aria-describedby="fix-seed-from-default-table"><span aria-hidden="true">#</span></a></div><p>Both factories' <code class='nw'>parseTypes</code>, +18/-12 lines in total: copy the default table into the new one and compute <code class='nw'>getType</code> only above it, then apply the rules as before. The same behaviour as the finder's fix (<code>i &lt; 256 ? DEFAULT_WORD_DELIM_TABLE[i] : getType(i)</code>), written as a copy. The comment now says why the table starts from the defaults. Recommended if keeping default tokenization matters most.</p><pre class='snippet' tabindex='0'><code>// parseTypes in both factories (WordDelimiterGraphFilterFactory.java:180-184); comment lines omitted
+-    byte[] types =
+-        new byte
+-            [Math.max(
+-                typeMap.lastKey() + 1, WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE.length)];
+-    for (int i = 0; i &lt; types.length; i++) types[i] = WordDelimiterIterator.getType(i);
++    byte[] defaults = WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE;
++    byte[] types = new byte[Math.max(typeMap.lastKey() + 1, defaults.length)];
++    System.arraycopy(defaults, 0, types, 0, defaults.length);
++    for (int i = defaults.length; i &lt; types.length; i++) {
++      types[i] = WordDelimiterIterator.getType(i);
++    }</code></pre><p class='k'>Trade-offs</p><ul><li>A types file now changes exactly the characters it lists; default tokenization (no types file) does not change.</li><li>Users who already have a types file see ¹ ² ³ ¼ ½ ¾ ª º go back to their default types, a one-time tokenization change for those characters that a CHANGES note should mention (reindex if they matter).</li><li>No runtime cost: the table is built once per factory.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock main <code class='nw'>a9779ef3c193</code>, gradle: the repro fails 4 of 4 with assertions on and off.</li><li>With fix A, gradle: the repro passes 4 of 4 with assertions on and off; the whole <code>lucene/analysis/common</code> test task with assertions on, repro included, runs 340 classes, 1,913 tests, 0 failures, 18 skipped (among them <code>TestWordDelimiterGraphFilter</code> 28, <code>TestWordDelimiterFilter</code> 16 and <code>TestCustomAnalyzer</code> 26 tests); with the test in place <code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code>, <code>checkGoogleJavaFormat</code> and <code>forbiddenApisMain</code> ran and passed, and <code>forbiddenApisTest</code>, which had passed in the first fix A run, was <code class='nw'>UP-TO-DATE</code> in the final one. A first version with <code class='nw'>Arrays.copyOf</code> failed <code>forbiddenApisMain</code> ("Prefer using ArrayUtil"), hence <code class='nw'>System.arraycopy</code>.</li><li>With fix A shadowed onto the stock jars: the finder's test 2 of 2, the independent reproducer's 4 of 4, the cross-model reviewer's probe 3 of 3 and the audit's probe 2 of 2 pass.</li><li>Not run: the full Lucene suite, a benchmark (the change only runs when a factory is initialized).</li></ul><div class="hd hd-3"><h3 id='fix-default-table-from-gettype'>B. Build DEFAULT_WORD_DELIM_TABLE from getType <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-default-table-from-gettype" target="_self" aria-label="Link to this section" aria-describedby="fix-default-table-from-gettype"><span aria-hidden="true">#</span></a></div><p><code>WordDelimiterIterator.java</code> only: the static block becomes <code>tab[i] = getType(i)</code> for <code>i &lt; 256</code>. Both paths then agree, and the default also matches how the filter treats characters above U+00FF (<code class='nw'>x²</code> like <code class='nw'>x⁴</code>, <code class='nw'>1½</code> like <code class='nw'>1⅓</code>).</p><p class='k'>Trade-offs</p><ul><li>Changes default tokenization of the 8 characters for every user of the filter, with or without the factory (<code>DEFAULT_WORD_DELIM_TABLE</code> is a public array, though of the <code class='nw'>@lucene.internal</code> class <code>WordDelimiterIterator</code>; after a Lucene upgrade also the downstream default paths): <code class='nw'>m²</code> gains the term <code class='nw'>²</code>, <code class='nw'>1½</code> becomes one term, <code class='nw'>ªB</code> is no longer split. Needs a reindex note in CHANGES and MIGRATE, so probably only for a major release.</li><li>Keeps the ª º behaviour tied to the JDK's Unicode data, as it already is above U+00FF.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle: the repro passes 4 of 4 (assertions on), and the whole <code>lucene/analysis/common</code> test task runs 340 classes, 1,913 tests, 0 failures, 18 skipped, so no existing test pins the default tokenization of the 8 characters. Lint was not run.</li><li>Shadowed onto the stock jars: the independent reproducer's test, the reviewer's probe and the audit's probe pass; the finder's control fails as it must (it asserts 8 table disagreements, and B leaves 0).</li></ul><div class="hd hd-3"><h3 id='fix-document'>C. Document the current behaviour</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>Say in the factory javadoc that a types file switches every Latin-1 character it does not list to <code class='nw'>getType</code>.</p><p class='k'>Trade-offs</p><p>Not a fix: a no-op rule would still change 8 other characters.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Elasticsearch's and OpenSearch's <code class='nw'>word_delimiter</code> <code class='nw'>type_table</code> settings build their tables with their own copy of this loop but use Lucene's <code>WordDelimiterIterator</code> (its default table without <code class='nw'>type_table</code>, its <code class='nw'>getType</code> in the loop; read, not run). Fix A would need separate downstream patches; fix B would reach them through a Lucene upgrade.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An exhaustive comparison of Lucene's analysis character tables: <code>DEFAULT_WORD_DELIM_TABLE[c]</code> against <code>WordDelimiterIterator.getType(c)</code> for every character below 256 gave exactly 8 disagreements. Reading <code class='nw'>parseTypes</code>, which switches from one to the other, gave the hypothesis; a public-API JUnit through <code class='nw'>CustomAnalyzer</code> then reproduced it on the stock jar.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>182 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (an exhaustive table comparison after code reading; no formal tool produced the first signal).</p><ul><li>A hunt unit on the apostrophe and hyphen character tables of Lucene's analysis filters, compared with Unicode, extracted the character tables from the stock main jar and compared them over all code points.</li><li>While building that table model, reading <code class='nw'>parseTypes</code> suggested that the types path and the default path use different tables. The exhaustive comparison <code>DEFAULT_WORD_DELIM_TABLE[c]</code> versus <code class='nw'>getType(c)</code> for every c &lt; 256 found exactly 8 disagreements: U+00AA and U+00BA (LOWER versus ALPHA), U+00B2, U+00B3, U+00B9, U+00BC, U+00BD and U+00BE (SUBWORD_DELIM versus DIGIT).</li><li>A public-API JUnit through <code class='nw'>CustomAnalyzer</code>, with and without the types file <code>$ =&gt; DIGIT</code>, turned that into a failing test on the stock jar (2026-10-28, main <code class='nw'>a9779ef3c193</code>).</li><li>Then checked by an independent reproducer, a reviewer-designed probe, an intended-behaviour devil's advocate, reviews by a model from another family (OpenAI GPT-5.6), an adjudication, a history and prior-report follow-up, a security screen and a credibility audit. This doc added the compact JUnit, the gradle runs and the validation of fixes A and B.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-28): 177 queries over GitHub, JIRA (LUCENE and SOLR), the Lucene and Solr lists, downstream repositories and the web, plus the changed files of all 411 open PRs. The closest items are SOLR-2059, which added the option, and downstream copies of <code class='nw'>parseTypes</code> with other defects.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Verdict <strong>new</strong>: no report by anyone, none by the owner. The closest items are SOLR-2059 (added the option and the seeding; its 6 comments, the 2010 discussion plus the 3.1.0 bulk close, never mention the Latin-1 table), SOLR-3102 (documented the option), SOLR-1078 (2009, the <code class='nw'>getType</code> switch), two downstream defects in copies of <code class='nw'>parseTypes</code>, and #16918, which lists the deprecated factory for removal in 11.0. GitHub search cannot search the symbols ² ½ º reliably, private reports cannot be searched, and searches cannot prove absence.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; downstream repositories; dev@, java-user@, issues@ and commits@ lists; LUCENE JIRA; the web</th><td class='when'>2026-10-28</td><td>a scripted prior-report search, 51 queries</td><td>no report; 111 distinct hits, none with high overlap</td></tr><tr><th scope='row'>apache/lucene, elastic/elasticsearch, opensearch-project/OpenSearch, apache/solr</th><td class='when'>2026-10-28</td><td>45 manual searches (class names, types/type_table, superscript, fraction, ordinal, OTHER_NUMBER, isLowerCase, Character.getType, wdfftypes); file lists of all 411 open apache/lucene PRs and of the 50 closed or merged PRs updated since 2026-10-14</td><td>no report; only #202 and #16911 touch the files, and both delete files outright; elastic/elasticsearch#2145 and opensearch-project/OpenSearch#6867 are other defects in downstream copies</td></tr><tr><th scope='row'>ASF JIRA (SOLR and LUCENE), the solr-user@, solr-dev@, users@solr and dev@solr lists, the web</th><td class='when'>2026-10-28</td><td>12 JQL queries, 8 related issues read with their comments, 56 list queries, 10 web queries</td><td>only the origin (SOLR-2059, SOLR-1078) and the documentation issue SOLR-3102</td></tr><tr><th scope='row'>apache/lucene PRs and issues (registration check)</th><td class='when'>2026-10-28</td><td>the 60 PRs updated since 2026-10-26 and the 6 issues opened since 2026-10-25</td><td>nothing touches WordDelimiter code; #16918 lists the deprecated factory for removal</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since the option was added, SOLR-2059 (<code class='nw'>33cc5a041e81</code>, 2010): first in Solr 3.1.0, in Lucene from 4.0.0-BETA; LUCENE-7619 copied it into WordDelimiterGraphFilterFactory (2017, 6.5.0). Affected on Solr 3.1.0 and on 15 Lucene releases or heads run, from 4.0.0-BETA to main. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>33cc5a041e81</code> "SOLR-2059: Add types attribute to WordDelimiterFilterFactory" (Robert Muir, 2010-08-28, SVN r990451; branch_3x <code class='nw'>878a697766c0</code>): it added <code class='nw'>parseTypes</code> with the "for performance" comment and the <code class='nw'>getType(i)</code> loop, and made <code class='nw'>getType</code> public for it. <strong>Copied</strong> into <code>WordDelimiterGraphFilterFactory</code> by LUCENE-7619 (Mike McCandless, 2017-01-17; <code class='nw'>637915b890d9</code>, branch_6x <code class='nw'>4e4ec082caa7</code>). Later changes to these lines are formatting only. The two tables are older: the Latin-1 table dates from the first WordDelimiterFilter (<code class='nw'>148b4dbc923</code>, 2006), the <code class='nw'>getType</code> switch from SOLR-1078 (<code class='nw'>79414d2b726</code>, 2009), which used it only above the table. SOLR-2059 is the first change that types U+0000-U+00FF with <code class='nw'>getType</code>, so there is no regression window.</p><p><strong>JDK dependence.</strong> The 6 number characters differ on every JDK. ª and º differ on Java 8 and later, whose Unicode data (6.1 and later) gives them category Lo (JDK 25: run); on Java 5 to 7 (Unicode 4.0 to 6.0) they were Ll and the tables agreed on them (unicode.org UnicodeData; no old JDK was run). Lucene 6.0 and later require Java 8, so there all 8 differ.</p><p><strong>Upstream.</strong> Upstream main <code class='nw'>20ced71c1e6e</code> (2026-10-27) last changed the two factories in <code class='nw'>378ca8d1bbf3</code> (2026-01-15, a javadoc tag); on upstream main <code class='nw'>c5ab3e57b9ba</code> (2026-10-28) the two factories and <code>WordDelimiterIterator.java</code> are unchanged. #16918 lists the deprecated factory for removal in 11.0, which would leave the graph factory's copy.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the compact JUnit fails 4 of 4 through gradle, assertions on and off; the hunt's repros fail with -ea and -da</td></tr><tr><th scope='row'>branch_10_6 <code class='nw'>4ae946e5a9b9</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> 10.6.0 candidate</span></td><td>the finder's JUnit fails; the hunt's probe shows both factories affected</td></tr><tr><th scope='row'>9.0.0, 9.12.3, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>both factories; the compact JUnit fails 4 of 4 on 9.12.3 and 10.5.2</td></tr><tr><th scope='row'>6.5.0, 6.6.6, 7.7.3, 8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> graph factory from 6.5.0</span></td><td>both factories, the hunt's probe: 9 of 10 texts change, <code class='nw'>x⁴</code> unchanged</td></tr><tr><th scope='row'>4.0.0-BETA, 4.0.0, 4.4.0, 4.10.4, 5.0.0, 6.4.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first Lucene release 4.0.0-BETA</span></td><td>WordDelimiterFilterFactory affected; the graph factory does not exist yet</td></tr><tr><th scope='row'>Solr 3.1.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> as Solr code</span></td><td>the first release with the option: 9 of 10 texts change</td></tr><tr><th scope='row'>Lucene 4.0.0-ALPHA, Solr 1.4.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no option</span></td><td>4.0.0-ALPHA's Lucene jar has no factory (compile error); Solr 1.4.1 has no types option (jar inspection)</td></tr><tr><th scope='row'>main + fix A</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the compact JUnit passes 4 of 4; every other repro of the hunt passes</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, an intended-behaviour devil's advocate, an adjudication and a credibility audit reproduced it with their own tests on main. Reviews by a model from another family (OpenAI GPT-5.6) ran no code; the one that could read the sources rated it real. This doc's gradle runs reproduce it and validate fix A.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>408 words</span></summary><div class='body'><p>Every executing check wrote or re-ran its own JUnit on stock main and found the same 8 characters; every control (the rule itself takes effect; characters above U+00FF unchanged) passed. No cross-model review executed code: an executed review is still owed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Exhaustive table comparison (8 disagreements), then the <code>$ =&gt; DIGIT</code> JUnit: fails 1 of 2 on main (-ea, -da), 10.5.2, 9.12.3 and branch_10_6; passes with the fix.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not_real, low (procedural)</span></td><td>Every sandboxed command failed: the reviewer read no source and ran no Java; it rated the intended argument weak. A separate re-run of the finder's JUnit failed as claimed.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 4-test JUnit through the factory API: 3 fail, the control passes, on main (-ea, -da), 10.5.2 and 9.12.3; the no-op rule changes exactly the 8 characters in both factories; 4 of 4 pass with the fix.</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6, 3 attempts)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> uncertain / not_real (low), then real (medium)</span></td><td>Two attempts could not read the checkout (uncertain; not_real, rating the intended argument strong from the record alone). The third read the sources and returned real, but had seen the independent reproduction's and the intended-behaviour check's verdicts. Its designed probe (<code>+ =&gt; DIGIT</code> on <code>z¹ q¾ ªB</code>) fails 2 of 3 on main and passes with the fix.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, low impact</span></td><td>Built the strongest intended case (the getType table matches the filter above U+00FF) and rejected it as a choice of fix; reproduced on main and 10.5.2; showed only the factory path is affected.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, medium</span></td><td>Re-ran the independent reproduction's JUnit with -ea and -da (3 of 4 fail); class minor; security none; filing guidance: an inconsistency, lead with the no-op rule, offer both fixes.</td></tr><tr><th scope='row'>credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's JUnit (-ea) and an own no-op-rule probe in both factories (-da): <code>a-b m² 1½ ¼ ªB Wi-Fi</code> changes as claimed.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fixes A and B validated</span></td><td>Compact 4-test JUnit: fails 4 of 4 through gradle on stock main (assertions on and off) and through the runner on 10.5.2 and 9.12.3; passes with fix A (analysis-common 1,913 tests, 0 failures; lint passes) and with fix B (1,913 tests, 0 failures); every hunt repro passes with fix A shadowed. Also ran the side probe of a comment-only types file.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-851/bug.png' download='wdgf-types-option-reseeds-latin1-from-gettype-bug.png' target='_self'>PNG</a> <span class='n'>502 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,466 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-851, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>WordDelimiterGraphFilterFactory's types option (and the deprecated WordDelimiterFilterFactory's) refills the whole Latin-1 type table from getType() instead of the filter's default table, so any rule, even one that restates a character's own type, silently changes how 8 other characters (¹ ² ³ ¼ ½ ¾ ª º) are tokenized</dd></div><div><dt>Area</dt><dd>analysis / WordDelimiterGraphFilterFactory and WordDelimiterFilterFactory types option (parseTypes) versus the default WordDelimiterIterator character-type table</dd></div><div><dt>Priority</dt><dd>Low, rank 369: An opt-in WordDelimiterGraphFilterFactory types file silently changes how 8 uncommon Latin-1 characters are tokenized, but index and query stay consistent when they share the analyzer, so it closes the minor analysis tokenization-quality rows after LFV-703.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Only applications that set the opt-in types option of WordDelimiterGraphFilterFactory or the deprecated WordDelimiterFilterFactory (a types file, for example Solr's types="wdfftypes.txt") are hit, and only for text with superscript one to three, the fractions ¼ ½ ¾ or the ordinal indicators ª º: those characters are tokenized differently from the same chain without a types file ('m²' gives [m, ²] instead of [m], '1½' gives [1½] instead of [1], a lone '¼' gives [¼] instead of nothing, 'ªB' stays [ªB] instead of [ª, B]), with no error; when one analyzer is used at index and query time the terms stay consistent, so missed or extra hits need index and query analyzers that differ in having a types file, or a rule added without reindexing; tiny inputs, -ea and -da, every Lucene release from 4.0.0-BETA (WordDelimiterGraphFilterFactory from 6.5.0) to 10.5.2, branch_10_6 and main.</dd></div><div><dt>Summary</dt><dd>You give WordDelimiterGraphFilterFactory a types file with one rule for a character that is not in your text (for example '$ =&gt; DIGIT', or even '- =&gt; SUBWORD_DELIM', which '-' already is) and expect every other character to keep the type it has without the option. Instead parseTypes fills all 256 Latin-1 entries from WordDelimiterIterator.getType() (the Unicode general category), while the table the filter uses without the option is built from Character.isLowerCase/isUpperCase/isDigit; the two disagree on exactly 8 characters, so 'm² x³ 1½ ¼' analyzes to [m, ², x, ³, 1½, ¼] instead of [m, x, 1] and 'ªB' is no longer split. Nothing reports an error; a small change that seeds the Latin-1 entries from the default table fixes both factories.</dd></div><div><dt>Introduced</dt><dd>33cc5a041e8125a5ecf8e58c994fece4cfb03c7f (SOLR-2059 'Allow customizing how WordDelimiterFilter tokenizes text', SVN r990451 on trunk, by GitHub rmuir; SVN era, no GitHub PR) and its same-day branch_3x backport 878a697766c0 (r990456), which shipped in Solr 3.1.0: they add parseTypes with the comment 'ensure the table is always at least as big as DEFAULT_WORD_DELIM_TABLE for performance' and the loop 'types[i] = WordDelimiterIterator.getType(i)' over every entry, and make getType public for it [read: git history and blame of WordDelimiterFilterFactory.java:175-180 on main; exec: Solr 3.1.0 is affected, Solr 1.4.1 has no types option]. The WordDelimiterGraphFilterFactory copy came with LUCENE-7619 (apache/lucene#8670, by GitHub mikemccand): branch_6x 4e4ec082caa7, master 637915b890d9 [read: blame of WordDelimiterGraphFilterFactory.java:179-187; exec: 6.4.2 has no such factory, 6.5.0 is affected]. The two tables that disagree are older (Latin-1 table from the first WordDelimiterFilter, 148b4dbc923, 2006; the Character.getType switch with OTHER_NUMBER -&gt; DIGIT and OTHER_LETTER -&gt; ALPHA from SOLR-1078, 79414d2b726, 2009, used then only above the table); SOLR-2059 is the first change that types U+0000-U+00FF with getType. Later changes to these lines are formatting only (8ef6a0da5687 LUCENE-9570, 8ac26737913d LUCENE-10003). Not a regression: present since the option was added (2010-08-28 (SOLR-2059, author date 2010-08-28T21:25:44Z trunk, 22:01:10Z branch_3x); the WordDelimiterGraphFilterFactory copy 2017-01-17 (LUCENE-7619))</dd></div><div><dt>First affected version</dt><dd>Lucene 4.0.0-BETA [exec] (first Lucene artifact with WordDelimiterFilterFactory, moved from Solr into the analysis module; first GA release 4.0.0 [exec]; the 4.0.0-ALPHA Lucene jar has no factory, compile error [exec]); before that as Solr code from Solr 3.1.0 [exec]; WordDelimiterGraphFilterFactory from 6.5.0 [exec] (6.4.2 has no such factory [exec])</dd></div><div><dt>Affected versions</dt><dd>every Lucene release from 4.0.0-BETA to 10.5.2, the branch_10_6 head 4ae946e5a9b9 (10.6.0 candidate) and main a9779ef3c193; Solr 3.1.0-3.6.2 as Solr code. [exec, follow-up history sweep, JDK 25.0.3 aarch64, rule '$ =&gt; DIGIT', 9 of 10 probe texts without '$' change] Solr 3.1.0; Lucene 4.0.0-BETA, 4.0.0, 4.4.0, 4.10.4, 5.0.0 and 6.4.2 (WordDelimiterFilterFactory; the graph factory is absent), 6.5.0, 6.6.6, 7.7.3, 8.11.4, 9.0.0, 9.12.3, 10.5.2, branch_10_6 4ae946e5a9b9 and main (-ea and -da) (both factories); the candidate JUnit fails on 9.12.3, 10.5.2, branch_10_6 and main (-ea and -da); the independent reproduction's JUnit fails on main (-ea and -da), 10.5.2 and 9.12.3. [read] the key lines are identical apart from formatting at 3.1, 4.0.0-beta, 6.5.0, 8.8.1, 9.12.3, 10.5.2 and main; releases between the executed ones are inferred from tag containment and unchanged code. Not affected: Solr 1.4.1 and earlier (no types option, jar inspection). Not fixed upstream: upstream main 20ced71c1e6e (2026-10-27) last changed the two factories in 378ca8d1bbf3 (2026-01-15, javadoc tag). JDK caveat: the 6 number characters differ on every JDK; ª and º differ only where the JDK's Unicode data gives them category Lo (JDK 25: yes; Unicode 3.2 data: Ll, so on 2010-era JDKs most likely only 6 characters differed; no old JDK was run)</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check; also reached by code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-28; the prior-report record verdict new, 177 recorded queries: a scripted prior-report search over GitHub issues, PRs and commits, downstream repositories (elastic/elasticsearch, opensearch-project/OpenSearch, apache/solr), the dev@, java-user@, issues@ and commits@ lists, JIRA and the web; direct GitHub searches over apache/lucene and the three downstream repositories; JIRA JQL over the LUCENE and SOLR projects; the solr-user@, solr-dev@, users@solr and dev@solr lists; the changed files of all 411 open apache/lucene PRs and of the 50 closed or merged PRs updated since 2026-10-14 (no PR touches parseTypes or WordDelimiterIterator; #202 and #16911 only delete files wholesale); SOLR-2059, SOLR-3102, SOLR-1078, SOLR-1710, LUCENE-3410, LUCENE-8695, LUCENE-10097 and SOLR-11700 read with comments; 25 hits analysed, all same_bug false; the finder's, the independent reproduction's, the intended-behaviour check's and the adjudication's searches agree). check (2026-10-28): none of the 60 apache/lucene PRs updated since 2026-10-26 touches WordDelimiter code; none of the 6 issues opened since 2026-10-25 reports it; #16918 (by GitHub javanna, 2026-10-27, 'Deprecations slated for removal in 11.0') lists WordDelimiterFilter/WordDelimiterFilterFactory for removal, which would delete one of the two copies on main but not WordDelimiterGraphFilterFactory (not a report of this bug). Not fixed upstream: upstream main 20ced71c1e6e last changed the two factories in 378ca8d1bbf3 (2026-01-15, javadoc tag). Closest items: SOLR-2059 (added the option and the getType seeding; its 5 comments never mention the Latin-1 table), SOLR-3102 (documentation of the option, 'adjust how WordDelimiterFilter splits on a per-character basis'), SOLR-1078 (2009, the getType switch, used only above the table); downstream elastic/elasticsearch#2145 and opensearch-project/OpenSearch#6867 are other defects in those products' own copies of parseTypes. Gaps: private reports to security@lucene.apache.org cannot be searched; GitHub search is token-based and cannot search for the symbols ² ½ º reliably; searches cannot prove absence</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26): the compact JUnit through gradle in a scratch worktree of that commit with only the test added, stock and with fixes A and B, assertions on and off for fix A, plus the whole <code>lucene/analysis/common</code> test task and its lint checks with fix A and the test task with fix B; through the hunt's classpath runner, the same JUnit on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3, and every repro of the hunt with each fix shadowed (2026-10-28). Hunt runs: Solr 3.1.0 and 15 Lucene releases or heads from 4.0.0-BETA to main, on OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterGraphFilterFactory.java:50-67 (class javadoc; types example at :62), :135-147 (inform loads the types files), :155 (create uses DEFAULT_WORD_DELIM_TABLE without the option), :164-187 (parseTypes; comment :179; getType(i) loop :184) (read at a9779ef3c193)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterFilterFactory.java:56 (@Deprecated), :151 (default table), :160-183 (same parseTypes; comment :175; getType(i) loop :180)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterIterator.java:88-105 (DEFAULT_WORD_DELIM_TABLE from isLowerCase/isUpperCase/isDigit), :302-307 (charType falls back to getType above the table), :315-360 (getType; OTHER_LETTER -&gt; ALPHA :324, OTHER_NUMBER -&gt; DIGIT :332)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterGraphFilterFactory.java (lines 51-68, 139-158, 164-188 at a9779ef3c193)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterFilterFactory.java (lines 151, 160-184)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterIterator.java (lines 29-41, 88-105, 227-245, 302-307, 315-360)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterGraphFilterFactory.java (lines 54-64, 179); lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterFilterFactory.java (line 175)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/WordDelimiterGraphFilter.java (line 47), WordDelimiterFilter.java (line 40)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestWordDelimiterTypesOption.java (analysis-common, 4 tests): <a href='../repro/LFV-851/TestWordDelimiterTypesOption.java'><code>repro/LFV-851/TestWordDelimiterTypesOption.java</code></a> (120 lines)</li><li>TestWdgfTypesOptionLatin1Defaults.java (the finder&#x27;s test, 2 tests): <a href='../repro/LFV-851/TestWdgfTypesOptionLatin1Defaults.java'><code>repro/LFV-851/TestWdgfTypesOptionLatin1Defaults.java</code></a> (85 lines)</li><li>TestTypesRuleKeepsOtherCharTypes.java (independent reproducer, 4 tests): <a href='../repro/LFV-851/TestTypesRuleKeepsOtherCharTypes.java'><code>repro/LFV-851/TestTypesRuleKeepsOtherCharTypes.java</code></a> (124 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><ul class='paths'><li><a href='../assets/LFV-851/bug.png'><code>assets/LFV-851/bug.png</code></a> (502 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -2,6 +2,8 @@
 
 Bug LFV-488 · Area: analysis / common miscellaneous (ConcatenatingTokenStream#incrementToken and #end: carry-over of child final position increments) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-488.html](../../bugs/LFV-488.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build one field from several token streams with ConcatenatingTokenStream, fo
 
 ## Expected vs actual
 
-- Expected: You expect the hole left by the removed 'the' to survive, as it does when no empty value sits in between and as IndexWriter keeps it for the same values in a multi-valued field, because LUCENE-8650 (7.7.0) made the class carry each source's final position increment over to the next token.
-- Actual: Each exhausted source overwrites the pending increment instead of adding to it, and end reports only the last source's own increment, so a source with no tokens erases the hole: 'beta' is indexed directly after 'alpha', the exact phrase "alpha beta" matches this document but not the single value 'alpha the beta', and with an empty last source end reports 0 instead of 1.
+- Expected: `bar` gets increment 2 with or without the empty source, `end` reports 1 after an empty last source, and `beta` sits at position 2 as in the multi-valued field.
+- Actual: `bar` gets 1, `end` reports 0, and `beta` sits at position 1 with 1 hit for the exact phrase "alpha beta": 4 tests, 3 failed.
 
 ## Files
 
@@ -47,6 +49,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestConcatenatingTokenStreamEmptySources.java](TestConcatenatingTokenStreamEmptySources.java)
+- [TestConcatenatingEmptySourceHoles.java](TestConcatenatingEmptySourceHoles.java)
+- [TestConcatEmptySourcePositions.java](TestConcatEmptySourcePositions.java)
 
 ## Feedback
 

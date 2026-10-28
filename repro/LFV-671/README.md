@@ -2,6 +2,8 @@
 
 Bug LFV-671 · Area: spatial-extras / spatial4j bridge to spatial3d (Geo3dRectangleShape.getCrossesDateLine), read by PointVectorStrategy and BBoxStrategy · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-671.html](../../bugs/LFV-671.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You use the Geo3d spatial context (Geo3dSpatialContextFactory) with PointVectorS
 
 ## Expected vs actual
 
-- Expected: You expect getCrossesDateLine to follow the spatial4j Rectangle contract (true exactly when the box crosses the -180/180 meridian, that is minX &gt; maxX, as spatial4j's RectangleImpl and this class's own getWidth assume), so a point at longitude 175 is found inside 170..-170 and an indexed box -10..10 does not match a query box at 100..110.
-- Actual: Geo3dRectangleShape.getCrossesDateLine returns getMaxX &gt; 0 &amp;&amp; getMinX &lt; 0 ('spans longitude 0'), which is false for 170..-170 and true for -10..10: PointVectorStrategy searches the empty range 170..-170 and returns 0 hits (also for circle(180, 0, 5)), and BBoxStrategy stores xdl=F for the dateline box and misses it (0 hits instead of 1), but stores xdl=T for -10..10, reads it as [-10, 180] plus [-180, 10] and matches it against 100..110 (1 hit instead of 0).
+- Expected: Each Geo3d leg answers like the spatial4j leg: the flag true for 170..-170, 1 hit for each point or box inside a query, 0 hits for each far one.
+- Actual: 6 of 6 tests fail in the Geo3d leg: the flag false for 170..-170, 0 hits for the three inside cases, 1 hit for the two far ones; no exception.
 
 ## Files
 
@@ -45,6 +47,13 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeo3dRectangleDateLineFlag.java](TestGeo3dRectangleDateLineFlag.java)
+- [TestGeo3dRectangleCrossesDateLine.java](TestGeo3dRectangleCrossesDateLine.java)
+- [TestGeo3dDatelineFlag.java](TestGeo3dDatelineFlag.java)
+- [TestGeo3dBoundingBoxDatelineFlagBisect.java](TestGeo3dBoundingBoxDatelineFlagBisect.java)
 
 ## Feedback
 

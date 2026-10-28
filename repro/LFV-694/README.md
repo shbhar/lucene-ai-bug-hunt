@@ -2,6 +2,8 @@
 
 Bug LFV-694 · Area: analysis/stempel / egothor stemmer table serialization (Row.store vs Row(DataInput); Gener, Compile 'G', StempelStemmer.load) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-694.html](../../bugs/LFV-694.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You compile a stemmer table with the stempel Compile tool using a method string 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Row.store writes the number of all cells of a row and then skips the empty cells (no command and no reference) that Gener leaves behind, so Row(DataInput) reads too many cell records and runs into the next row: usually load fails with java.io.EOFException (Compile -0ME2G, -0M2G and -0MEG on an 11-lemma Polish table, -EG on a 20-line table, the bundled table reduced with Gener, which then has 38,322 empty cells), and sometimes the table loads without error but answers wrongly (Compile G on a 4-line dictionary: for 'walked' the expected patch is Db and the loaded table gives null).
+- Expected: Both `G` tables load and stem `ab` to `a`, like their no-reduction controls; the stored row reads back with 1 cell in use.
+- Actual: One `G` table throws `EOFException` at load, the other loads but stems `ab` to `null`; the row reads back with 2 cells.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestStoreAfterGener.java](TestStoreAfterGener.java)
+- [2-TestStoreAfterGener.java](2-TestStoreAfterGener.java)
+- [TestGenerTableRoundTrip.java](TestGenerTableRoundTrip.java)
 
 ## Feedback
 

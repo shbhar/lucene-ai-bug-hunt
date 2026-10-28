@@ -1,0 +1,789 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>OpenNLP POS, chunker and lemmatizer filters emit nothing when an earlier filter removes the whole first sentence</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-621 &middot; opennlp-sentence-extractor-first-index-zero</p><h1 id='top'>OpenNLP POS, chunker and lemmatizer filters emit nothing when an earlier filter removes the whole first sentence</h1><p class='tldr'>When a filter before the OpenNLP POS, chunker or lemmatizer filter removes every token of a value's first sentence (a stop list on <code class='nw'>Hi.</code>, a nouns-only filter on a noun-free sentence), the OpenNLP filter emits no token for the whole value. Affects every release since 9.5.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 399</span><span class='sub'>A whole field value silently indexes no terms, which is severe, but only under an OpenNLP chain that removes tokens before a sentence-aware filter, a setup no documented example or known configuration uses, so it heads the Low analysis token-graph cluster.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>9.5.0 (#11734, 2022)<span class='sub'>introduced 2022-09-23 &middot; about 4 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>9.5.0 to 10.5.2 and main (26 releases executed)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check against a reference model</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The OpenNLP tokenizer gives every token the index of its sentence (0, 1, 2, ...). The POS, chunker and lemmatizer filters collect one sentence at a time with a shared helper that assumes the first sentence is number 0.</p><figure class='visual' id='opennlp-sentence-extractor-first-index-zero-short-visual'><div class='frame'><a class='still' href='../assets/LFV-621/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-621/bug.png' alt='Diagram of an OpenNLP analysis chain: an earlier filter removes every token of the first sentence, so the first token the sentence-aware filter sees has sentence index 1, the helper that starts at 0 returns an empty sentence, and the filter emits no token for the value.' width='1920' height='1080'></a></div><figcaption>A chain where an earlier filter removes the whole first sentence: the helper starts at sentence 0, finds sentence 1, returns an empty sentence, and the OpenNLP filter ends the stream. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You keep only nouns and lemmatize them: OpenNLP tokenizer, <code class='nw'>OpenNLPPOSFilter</code>, <code class='nw'>TypeTokenFilter</code> allowing <code class='nw'>NN</code>, <code class='nw'>NNS</code>, <code class='nw'>NNP</code>, <code class='nw'>NNPS</code>, then <code>OpenNLPLemmatizerFilter</code>. <code>They sent him running in the evening.</code> gives <code>[they, evening]</code>.</span></li><li><span>You expect the same <code>[they, evening]</code> for <code>He did not come back. They sent him running in the evening.</code>: its first sentence has no noun, so the type filter removes all of it.</span></li><li><span>You get <code class='nw'>[]</code>: not a single token for the whole value. No error; the stored text is intact, but none of its terms reaches the index.</span></li><li><span>Why: the tokenizer numbers sentences 0, 1, 2. The shared helper <code>SentenceAttributeExtractor</code> starts at sentence 0, so when the first token it sees is already in sentence 1 it returns an empty sentence, and all three filters read "empty" as "end of stream".</span></li><li><span>Same with a stop list {<code class='nw'>hi</code>, <code class='nw'>.</code>} before the chunker: <code>Hi. They sent him running in the evening. He did not come back.</code> gives 0 of 12 tokens, while <code class='nw'>Hi.</code> in the middle gives all 12.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Users of the opt-in OpenNLP module whose chain removes tokens (a stop list, a minimum length, a POS type filter) before the POS, chunker or lemmatizer filter. Every value whose first sentence that filter empties, punctuation included (<code class='nw'>Hi.</code>, <code class='nw'>No.</code>, or a first sentence without nouns), indexes nothing. Silent and deterministic; existing indexes need reindexing.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>695 words</span></summary><div class='body'><p>The OpenNLP POS, chunker and lemmatizer filters read their input one sentence at a time through the shared helper <code>SentenceAttributeExtractor</code>, which starts at sentence index 0. When an earlier filter in the chain removed every token of the value's first sentence, the first token the helper sees belongs to sentence 1, the helper returns an empty first sentence, and the filter takes that as the end of the stream. The whole value then indexes no terms while its stored text stays intact: a nouns-only chain turns <code>He did not come back. They sent him running in the evening.</code> into <code class='nw'>[]</code> instead of <code>[they, evening]</code>. A removed sentence in the middle is handled correctly. Every release from 9.5.0 to 10.5.2 and main is affected; the 4-line fix in the helper was validated with the module's tests.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Sentence index</strong>: <code class='nw'>OpenNLPTokenizer</code> stores, for each token, the number of its sentence in <code>SentenceAttribute</code>: 0 for the first sentence, 1 for the second, and so on (<code>OpenNLPTokenizer.java:31-34</code>; the index starts at -1 at <code class='nw'>:45</code> and goes up by one for each detected sentence at <code class='nw'>:73</code>).</li><li><strong>Sentence-aware filters</strong>: <code class='nw'>OpenNLPPOSFilter</code>, <code>OpenNLPChunkerFilter</code> and <code>OpenNLPLemmatizerFilter</code> tag or rewrite whole sentences, so they first collect one sentence of tokens through <code>SentenceAttributeExtractor</code>, then emit its tokens one by one.</li><li><strong>Look-ahead</strong>: the helper reads one token past the end of a sentence to see that the index changed, and keeps that token for the next sentence.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#what-the-bug-is-the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol><li><code>SentenceAttributeExtractor</code> starts with <code>currSentence = 0</code> (<code>SentenceAttributeExtractor.java:40</code>; <code class='nw'>reset()</code> sets it back to 0 at <code class='nw'>:78</code>).</li><li><code>extractSentenceAttributes()</code> (<code class='nw'>:51-65</code>) reads tokens while <code>currSentence == currSentenceTmp &amp;&amp; hasNextToken</code> (<code class='nw'>:57</code>). Each token it reads is only stored as the look-ahead (<code class='nw'>:62</code>); the previous look-ahead is added to the sentence (<code class='nw'>:59-61</code>).</li><li>An earlier filter removed every token of sentence 0, so the first token the helper ever sees, <code class='nw'>They</code>, has index 1. First call: <code>0 == 1</code> is false, the loop stops after one token, there is no previous look-ahead to add, and <code class='nw'>They</code> becomes the look-ahead. The call returns an empty list.</li><li>The three filters end the stream when <code>allSentencesProcessed() || nextSentence().isEmpty()</code> is true (<code>OpenNLPPOSFilter.java:52-56</code>, <code>OpenNLPChunkerFilter.java:55-59</code>, <code>OpenNLPLemmatizerFilter.java:66-70</code>). More input is left, but the sentence is empty, so <code class='nw'>incrementToken()</code> returns false: <code class='nw'>They</code> and everything after it are lost, and the rest of the input is never read.</li><li>In the middle of a stream the look-ahead is never null and only a <em>change</em> of index is tested, so a skipped index (0, 0, 2, 2) still splits correctly. Only the initial value 0 is wrong.</li><li>The loss needs a surviving token in a later sentence: if the filter removes every token of a one-sentence value, empty output is correct. If the first two or more sentences are removed, the first index is 2 or more, with the same result.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-what-the-chains-return-main-a9779ef3c193-the-module-s-test-m'>What the chains return (main <code class='nw'>a9779ef3c193</code>, the module's test models)</h3><a class="hlink" href="#what-the-bug-is-what-the-chains-return-main-a9779ef3c193-the-module-s-test-m" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-what-the-chains-return-main-a9779ef3c193-the-module-s-test-m"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>chain (stock factories)</th><th>input</th><th>expected</th><th>actual</th></tr></thead><tbody><tr><td>tokenizer, POS, <code class='nw'>TypeTokenFilter</code> (nouns), dictionary lemmatizer</td><td><code>He did not come back. They sent him running in the evening.</code></td><td><code>[they, evening]</code></td><td><code class='nw'>[]</code></td></tr><tr><td>tokenizer, POS, <code class='nw'>StopFilter</code> {<code class='nw'>hi</code>, <code class='nw'>.</code>}, chunker</td><td><code>Hi. They sent him running in the evening. He did not come back.</code></td><td>12 tokens</td><td><code class='nw'>[]</code></td></tr><tr><td>tokenizer, <code class='nw'>StopFilter</code> {<code class='nw'>hi</code>, <code class='nw'>.</code>}, POS</td><td>the same</td><td>12 tokens</td><td><code class='nw'>[]</code></td></tr><tr><td>tokenizer, <code class='nw'>LengthFilter</code> (min 3), POS</td><td><code>No. They sent him running.</code></td><td><code>[They, sent, him, running]</code></td><td><code class='nw'>[]</code></td></tr><tr><td>the same chains, <code class='nw'>Hi.</code> in the middle, or no removed sentence</td><td></td><td>all tokens</td><td>all tokens (correct)</td></tr><tr><td>tokenizer directly followed by the filters</td><td>9 adversarial inputs, 404 generated documents</td><td>all tokens</td><td>all tokens (correct)</td></tr></tbody></table></div><p>For a value longer than the tokenizer's 1024-char buffer (<code>SegmentingTokenizerBase.java:39</code>), the blanked value is never read to its end, so <code class='nw'>end()</code> reports a premature final offset, the amount read so far (<code>SegmentingTokenizerBase.java:119-122</code>), instead of its length: 1024 instead of 1504 in the reproducer's test; the differential run also recorded 1029 and 1049. In a multi-valued field the next value's offsets shift accordingly (<code class='nw'>[1054,1061)</code> instead of <code class='nw'>[1539,1546)</code>), pointing into the earlier value's text. <code class='nw'>CheckIndex</code> stays clean.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>287 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Users of the <code>lucene-analysis-opennlp</code> module (factories <code class='nw'>opennlpPOS</code>, <code class='nw'>opennlpChunker</code>, <code>opennlplemmatizer</code>, or the classes) whose chain puts a token-removing filter before a sentence-aware OpenNLP filter: <code class='nw'>StopFilter</code>, <code class='nw'>LengthFilter</code> and a <code class='nw'>TypeTokenFilter</code> on POS tags were executed; any filter that can drop every token of a sentence works. The module is opt-in, and no documented example, upstream test or third-party configuration found uses such a chain (they keep the OpenNLP stages together and put <code class='nw'>TypeTokenFilter</code> last).</li><li><strong>What it takes.</strong> The filter must remove every token of the value's <em>first</em> sentence, punctuation included: a short opener such as <code class='nw'>Hi.</code> or <code class='nw'>No.</code> under a stop list or a minimum length, or any first sentence without a noun under a nouns-only filter. Once such a chain exists, it fires on every value of that shape.</li><li><strong>Effect.</strong> The whole value indexes no terms (as long as a later sentence keeps a token): no exception, no log line, <code class='nw'>CheckIndex</code> clean, stored text intact. Deterministic, with assertions on and off, at any size. In a differential run on 404 generated documents, the POS filter's output in the chain tokenizer, <code class='nw'>StopFilter</code>, POS differed from the library reference for 17 documents; with the fixes, for none.</li><li><strong>Query side.</strong> If the same chain analyzes queries, a query text whose first sentence is removed builds no query at all (<code class='nw'>QueryBuilder</code> returns <code class='nw'>null</code>).</li><li><strong>Offsets.</strong> Values longer than 1024 chars end with a premature final offset (1024 in the repros), which shifts the offsets of later values of a multi-valued field.</li><li><strong>Lasting.</strong> Documents indexed with an affected chain keep the empty field until reindexed.</li><li><strong>How likely.</strong> Rare: it needs a legal but undocumented chain shape, and nobody has reported it since 9.5.0 (2023).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One new test class for the OpenNLP module, public API only (<code class='nw'>CustomAnalyzer</code> with stock factories and the module's test models), 3 tests: nouns-only then lemmatize, stop filter before the chunker, stop filter before the POS filter. In each test the controls pass and only the "first sentence removed" input fails.</p><figure class='code'><figcaption><span class='fname'>TestOpenNLPFirstSentenceRemoved.java (new test class, 3 tests)</span><span class='meta'>110 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.opennlp;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
+import org.apache.lucene.analysis.util.FilesystemResourceLoader;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.util.ClasspathResourceLoader;
+
+/**
+ * The OpenNLP POS, chunker and lemmatizer filters tag or rewrite terms; they never remove tokens.
+ * When an earlier filter in the chain removes every token of the first sentence, they emit no token
+ * at all for the whole value. A removed sentence in the middle is handled correctly.
+ *
+ * &lt;p&gt;Uses the module&#x27;s test models (src/test-files).
+ */
+public class TestOpenNLPFirstSentenceRemoved extends BaseTokenStreamTestCase {
+
+  private static final String SENT = &quot;en-test-sent.bin&quot;;
+  private static final String TOK = &quot;en-test-tokenizer.bin&quot;;
+  private static final String POS = &quot;en-test-pos-maxent.bin&quot;;
+  private static final String CHUNKER = &quot;en-test-chunker.bin&quot;;
+  private static final String LEMMAS = &quot;en-test-lemmas.dict&quot;;
+
+  private static final String REST = &quot;They sent him running in the evening. He did not come back.&quot;;
+  private static final String[] REST_TERMS = {
+    &quot;They&quot;, &quot;sent&quot;, &quot;him&quot;, &quot;running&quot;, &quot;in&quot;, &quot;the&quot;, &quot;evening&quot;, &quot;He&quot;, &quot;did&quot;, &quot;not&quot;, &quot;come&quot;, &quot;back&quot;
+  };
+
+  /** Stop words &quot;hi&quot; and &quot;.&quot; (ignoreCase), and a POS allow-list that keeps only nouns. */
+  private FilesystemResourceLoader loader() throws IOException {
+    Path dir = createTempDir(&quot;opennlp-config&quot;);
+    Files.writeString(dir.resolve(&quot;stop.txt&quot;), &quot;hi\n.\n&quot;, StandardCharsets.UTF_8);
+    Files.writeString(dir.resolve(&quot;nouns.txt&quot;), &quot;NN\nNNS\nNNP\nNNPS\n&quot;, StandardCharsets.UTF_8);
+    return new FilesystemResourceLoader(dir, new ClasspathResourceLoader(getClass()));
+  }
+
+  /** &quot;Keep only nouns, then lemmatize them&quot;; the first sentence has no noun. */
+  public void testNounsOnlyThenLemmatize() throws Exception {
+    try (Analyzer a =
+        CustomAnalyzer.builder(loader())
+            .withTokenizer(&quot;opennlp&quot;, &quot;tokenizerModel&quot;, TOK, &quot;sentenceModel&quot;, SENT)
+            .addTokenFilter(&quot;opennlpPOS&quot;, &quot;posTaggerModel&quot;, POS)
+            .addTokenFilter(&quot;type&quot;, &quot;types&quot;, &quot;nouns.txt&quot;, &quot;useWhitelist&quot;, &quot;true&quot;)
+            .addTokenFilter(&quot;opennlplemmatizer&quot;, &quot;dictionary&quot;, LEMMAS)
+            .build()) {
+      // passes: the second sentence on its own
+      assertAnalyzesTo(
+          a, &quot;They sent him running in the evening.&quot;, new String[] {&quot;they&quot;, &quot;evening&quot;});
+      // fails: the same sentence after a first sentence without a noun gives no token at all
+      assertAnalyzesTo(
+          a,
+          &quot;He did not come back. They sent him running in the evening.&quot;,
+          new String[] {&quot;they&quot;, &quot;evening&quot;});
+    }
+  }
+
+  /** POS filter, then a stop filter that removes &quot;Hi&quot; and &quot;.&quot;, then the chunker. */
+  public void testChunkerAfterStopFilter() throws Exception {
+    try (Analyzer a =
+        CustomAnalyzer.builder(loader())
+            .withTokenizer(&quot;opennlp&quot;, &quot;tokenizerModel&quot;, TOK, &quot;sentenceModel&quot;, SENT)
+            .addTokenFilter(&quot;opennlpPOS&quot;, &quot;posTaggerModel&quot;, POS)
+            .addTokenFilter(&quot;stop&quot;, &quot;words&quot;, &quot;stop.txt&quot;, &quot;ignoreCase&quot;, &quot;true&quot;)
+            .addTokenFilter(&quot;opennlpChunker&quot;, &quot;chunkerModel&quot;, CHUNKER)
+            .build()) {
+      // passes: no sentence removed
+      assertAnalyzesTo(a, REST, REST_TERMS);
+      // passes: the removed sentence &quot;Hi.&quot; is in the middle
+      assertAnalyzesTo(
+          a, &quot;They sent him running in the evening. Hi. He did not come back.&quot;, REST_TERMS);
+      // fails: the removed sentence &quot;Hi.&quot; comes first, and no token comes out
+      assertAnalyzesTo(a, &quot;Hi. &quot; + REST, REST_TERMS);
+    }
+  }
+
+  /** A stop filter that removes &quot;Hi&quot; and &quot;.&quot;, then the POS filter. */
+  public void testPOSFilterAfterStopFilter() throws Exception {
+    try (Analyzer a =
+        CustomAnalyzer.builder(loader())
+            .withTokenizer(&quot;opennlp&quot;, &quot;tokenizerModel&quot;, TOK, &quot;sentenceModel&quot;, SENT)
+            .addTokenFilter(&quot;stop&quot;, &quot;words&quot;, &quot;stop.txt&quot;, &quot;ignoreCase&quot;, &quot;true&quot;)
+            .addTokenFilter(&quot;opennlpPOS&quot;, &quot;posTaggerModel&quot;, POS)
+            .build()) {
+      assertAnalyzesTo(a, REST, REST_TERMS);
+      assertAnalyzesTo(
+          a, &quot;They sent him running in the evening. Hi. He did not come back.&quot;, REST_TERMS);
+      assertAnalyzesTo(a, &quot;Hi. &quot; + REST, REST_TERMS);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:analysis:opennlp:test --tests &quot;org.apache.lucene.analysis.opennlp.TestOpenNLPFirstSentenceRemoved&quot; -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (same failures)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Each chain emits the same tokens with or without the removed first sentence: <code>[they, evening]</code>, or the 12 words of the two kept sentences.</dd></div><div class='got'><dt>Observed</dt><dd><code>AssertionError: token 0 does not exist</code>: no token at all; 3 of 3 tests fail, assertions on and off, while every control passes.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-621/'>repro/LFV-621/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (334 lines) · 2,014 words</span></summary><div class='body'><p>Copy the file into <code>lucene/analysis/opennlp/src/test/org/apache/lucene/analysis/opennlp/</code> and run the command. The test writes its two word lists (<code class='nw'>hi</code> and <code class='nw'>.</code>; <code class='nw'>NN</code>, <code class='nw'>NNS</code>, <code class='nw'>NNP</code>, <code class='nw'>NNPS</code>) to a temp directory and reads the models from the module's <code class='nw'>src/test-files</code>. Pass <code class='nw'>-Ptests.asserts</code> explicitly: by default the build picks it from the seed.</p><p>"token 0 does not exist" means the stream ended before its first token. The two older JUnit repros below are independent: the finder's (<code class='nw'>LengthFilter</code> and <code class='nw'>TypeTokenFilter</code> triggers) and the reproducer's (hand-built chains, a model-free "one token out per token in" oracle, and the long-value final-offset check).</p><div class="hd hd-3"><h3 id='code-2-h'>The recommended fix (fix-option-A.diff)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The recommended fix (fix-option-A.diff)</span><span class='meta'>14 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/SentenceAttributeExtractor.java b/lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/SentenceAttributeExtractor.java
+--- a/lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/SentenceAttributeExtractor.java
++++ b/lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/SentenceAttributeExtractor.java
+@@ -54,6 +54,10 @@ public class SentenceAttributeExtractor {
+     do {
+       hasNextToken = input.incrementToken();
+       int currSentenceTmp = sentenceAtt.getSentenceIndex();
++      if (prevAttributeSource == null) {
++        // first token of the stream: its sentence is the current one, whatever its index
++        currSentence = currSentenceTmp;
++      }
+       hasNext = (currSentence == currSentenceTmp &amp;&amp; hasNextToken);
+       currSentence = currSentenceTmp;
+       if (prevAttributeSource != null) {
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>The finder&#x27;s JUnit (TestSentenceFiltersFirstSentenceRemoved.java)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The finder&#x27;s JUnit (TestSentenceFiltersFirstSentenceRemoved.java)</span><span class='meta'>95 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.opennlp;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.custom.CustomAnalyzer;
+import org.apache.lucene.analysis.util.FilesystemResourceLoader;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.util.ClasspathResourceLoader;
+
+/**
+ * The sentence-aware OpenNLP filters (POS, chunker, lemmatizer) read their input one sentence at a
+ * time through SentenceAttributeExtractor, which assumes that the first token it sees belongs to
+ * sentence 0. When an earlier filter has removed every token of the first sentence, the first
+ * token it sees has sentence index 1 or more; the extractor then returns an empty first sentence
+ * and the filter ends the stream, so no token of the document is emitted.
+ *
+ * &lt;p&gt;Uses the test models of lucene/analysis/opennlp/src/test-files.
+ */
+public class TestSentenceFiltersFirstSentenceRemoved extends BaseTokenStreamTestCase {
+
+  private static final String SENT = &quot;en-test-sent.bin&quot;;
+  private static final String TOK = &quot;en-test-tokenizer.bin&quot;;
+  private static final String POS = &quot;en-test-pos-maxent.bin&quot;;
+
+  /** Tokenizer, LengthFilter (drops &quot;No&quot; and &quot;.&quot;), POS filter. */
+  public void testPOSFilter() throws Exception {
+    try (Analyzer a =
+        CustomAnalyzer.builder(new ClasspathResourceLoader(getClass()))
+            .withTokenizer(&quot;opennlp&quot;, &quot;tokenizerModel&quot;, TOK, &quot;sentenceModel&quot;, SENT)
+            .addTokenFilter(&quot;length&quot;, &quot;min&quot;, &quot;3&quot;, &quot;max&quot;, &quot;100&quot;)
+            .addTokenFilter(&quot;opennlpPOS&quot;, &quot;posTaggerModel&quot;, POS)
+            .build()) {
+      assertAnalyzesTo(
+          a, &quot;No. They sent him running.&quot;, new String[] {&quot;They&quot;, &quot;sent&quot;, &quot;him&quot;, &quot;running&quot;});
+    }
+  }
+
+  /** Tokenizer, POS filter, LengthFilter, chunker. */
+  public void testChunkerFilter() throws Exception {
+    try (Analyzer a =
+        CustomAnalyzer.builder(new ClasspathResourceLoader(getClass()))
+            .withTokenizer(&quot;opennlp&quot;, &quot;tokenizerModel&quot;, TOK, &quot;sentenceModel&quot;, SENT)
+            .addTokenFilter(&quot;opennlpPOS&quot;, &quot;posTaggerModel&quot;, POS)
+            .addTokenFilter(&quot;length&quot;, &quot;min&quot;, &quot;3&quot;, &quot;max&quot;, &quot;100&quot;)
+            .addTokenFilter(&quot;opennlpChunker&quot;, &quot;chunkerModel&quot;, &quot;en-test-chunker.bin&quot;)
+            .build()) {
+      assertAnalyzesTo(
+          a, &quot;No. They sent him running.&quot;, new String[] {&quot;They&quot;, &quot;sent&quot;, &quot;him&quot;, &quot;running&quot;});
+    }
+  }
+
+  /**
+   * &quot;Keep only nouns, then lemmatize them&quot;: tokenizer, POS filter, TypeTokenFilter with a noun
+   * allow-list, lemmatizer. The first sentence has no noun, so the type filter removes all of it.
+   */
+  public void testNounOnlyLemmatizer() throws Exception {
+    Path dir = createTempDir(&quot;opennlp-config&quot;);
+    Files.writeString(dir.resolve(&quot;keep.pos.txt&quot;), &quot;NN\nNNS\nNNP\nNNPS\n&quot;, StandardCharsets.UTF_8);
+    try (Analyzer a =
+        CustomAnalyzer.builder(
+                new FilesystemResourceLoader(dir, new ClasspathResourceLoader(getClass())))
+            .withTokenizer(&quot;opennlp&quot;, &quot;tokenizerModel&quot;, TOK, &quot;sentenceModel&quot;, SENT)
+            .addTokenFilter(&quot;opennlpPOS&quot;, &quot;posTaggerModel&quot;, POS)
+            .addTokenFilter(&quot;type&quot;, &quot;types&quot;, &quot;keep.pos.txt&quot;, &quot;useWhitelist&quot;, &quot;true&quot;)
+            .addTokenFilter(&quot;opennlplemmatizer&quot;, &quot;dictionary&quot;, &quot;en-test-lemmas.dict&quot;)
+            .build()) {
+      // control: without the noun-free first sentence the nouns come out lemmatized
+      assertAnalyzesTo(
+          a, &quot;They sent him running in the evening.&quot;, new String[] {&quot;they&quot;, &quot;evening&quot;});
+      // the same sentence after a first sentence without nouns: nothing comes out
+      assertAnalyzesTo(
+          a,
+          &quot;He did not come back. They sent him running in the evening.&quot;,
+          new String[] {&quot;they&quot;, &quot;evening&quot;});
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>The independent reproducer&#x27;s JUnit (TestDroppedFirstSentenceV1.java)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The independent reproducer&#x27;s JUnit (TestDroppedFirstSentenceV1.java)</span><span class='meta'>225 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.opennlp;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.StopFilter;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.opennlp.tools.OpenNLPOpsFactory;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.util.AttributeFactory;
+import org.apache.lucene.util.ClasspathResourceLoader;
+import org.junit.BeforeClass;
+
+/**
+ * OpenNLPPOSFilter, OpenNLPChunkerFilter and OpenNLPLemmatizerFilter only tag or rewrite terms:
+ * each must emit one token per token it receives. Here a StopFilter between the stages removes
+ * every token of the FIRST sentence (&quot;Hi.&quot;). The sentence-aware filter then emits nothing at all.
+ *
+ * &lt;p&gt;Oracles (no model of the expected tags needed): (1) token count out == token count in; (2)
+ * the terms and types of the surviving sentences are the same whether or not a fully removed
+ * sentence precedes them. Controls (expected to pass): the same chains on text whose removed
+ * sentence is in the middle, or with no removed sentence.
+ *
+ * &lt;p&gt;Uses the test models of the analysis/opennlp module (test-files on the classpath).
+ */
+public class TestDroppedFirstSentenceV1 extends BaseTokenStreamTestCase {
+
+  private static final String SENT = &quot;en-test-sent.bin&quot;;
+  private static final String TOK = &quot;en-test-tokenizer.bin&quot;;
+  private static final String POS = &quot;en-test-pos-maxent.bin&quot;;
+  private static final String CHUNK = &quot;en-test-chunker.bin&quot;;
+  private static final String DICT = &quot;en-test-lemmas.dict&quot;;
+
+  /** Two sentences, none of which the stop filter removes entirely. */
+  private static final String REST = &quot;They sent him running in the evening. He did not come back.&quot;;
+
+  /** &quot;Hi.&quot; is sentence 0 and the stop filter removes all of its tokens. */
+  private static final String DROPPED_FIRST = &quot;Hi. &quot; + REST;
+
+  /** Same tokens, but the fully removed sentence is in the middle. */
+  private static final String DROPPED_MIDDLE =
+      &quot;They sent him running in the evening. Hi. He did not come back.&quot;;
+
+  private static final CharArraySet STOP = new CharArraySet(Arrays.asList(&quot;hi&quot;, &quot;.&quot;), true);
+
+  @BeforeClass
+  public static void loadModels() throws IOException {
+    ClasspathResourceLoader loader = new ClasspathResourceLoader(TestDroppedFirstSentenceV1.class);
+    OpenNLPOpsFactory.getSentenceModel(SENT, loader);
+    OpenNLPOpsFactory.getTokenizerModel(TOK, loader);
+    OpenNLPOpsFactory.getPOSTaggerModel(POS, loader);
+    OpenNLPOpsFactory.getChunkerModel(CHUNK, loader);
+    OpenNLPOpsFactory.getLemmatizerDictionary(DICT, loader);
+  }
+
+  /** OpenNLPTokenizer followed by the given stages: &quot;stop&quot;, &quot;pos&quot;, &quot;chunk&quot;, &quot;lemma&quot;. */
+  private static Analyzer chain(String... stages) {
+    return new Analyzer() {
+      @Override
+      protected TokenStreamComponents createComponents(String fieldName) {
+        try {
+          Tokenizer tok =
+              new OpenNLPTokenizer(
+                  AttributeFactory.DEFAULT_ATTRIBUTE_FACTORY,
+                  OpenNLPOpsFactory.getSentenceDetector(SENT),
+                  OpenNLPOpsFactory.getTokenizer(TOK));
+          TokenStream ts = tok;
+          for (String s : stages) {
+            switch (s) {
+              case &quot;stop&quot;:
+                ts = new StopFilter(ts, STOP);
+                break;
+              case &quot;pos&quot;:
+                ts = new OpenNLPPOSFilter(ts, OpenNLPOpsFactory.getPOSTagger(POS));
+                break;
+              case &quot;chunk&quot;:
+                ts = new OpenNLPChunkerFilter(ts, OpenNLPOpsFactory.getChunker(CHUNK));
+                break;
+              case &quot;lemma&quot;:
+                ts = new OpenNLPLemmatizerFilter(ts, OpenNLPOpsFactory.getLemmatizer(DICT, null));
+                break;
+              default:
+                throw new IllegalArgumentException(s);
+            }
+          }
+          return new TokenStreamComponents(tok, ts);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    };
+  }
+
+  /** Consumes the stream; returns &quot;term/type&quot; per token, plus the final offset as last element. */
+  private static List&lt;String&gt; run(Analyzer a, String text, boolean withTypes) throws IOException {
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts = a.tokenStream(&quot;f&quot;, text)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      TypeAttribute type = ts.addAttribute(TypeAttribute.class);
+      OffsetAttribute off = ts.addAttribute(OffsetAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(withTypes ? term + &quot;/&quot; + type.type() : term.toString());
+      }
+      ts.end();
+      out.add(&quot;&lt;finalOffset=&quot; + off.endOffset() + &quot;&gt;&quot;);
+    }
+    return out;
+  }
+
+  private static List&lt;String&gt; tokens(Analyzer a, String text, boolean withTypes)
+      throws IOException {
+    List&lt;String&gt; r = run(a, text, withTypes);
+    return r.subList(0, r.size() - 1);
+  }
+
+  /** The filter under test must pass through every token it receives (same count, same order). */
+  private void assertPassThroughCount(String[] before, String filter, String text)
+      throws IOException {
+    String[] after = Arrays.copyOf(before, before.length + 1);
+    after[before.length] = filter;
+    List&lt;String&gt; in = tokens(chain(before), text, false);
+    List&lt;String&gt; out = tokens(chain(after), text, false);
+    System.out.println(
+        &quot;chain &quot; + Arrays.toString(after) + &quot; on &#x27;&quot; + text + &quot;&#x27;\n   in =&quot; + in + &quot;\n   out=&quot; + out);
+    assertTrue(&quot;sanity: input to &quot; + filter + &quot; must be non-empty&quot;, in.size() &gt; 0);
+    assertEquals(
+        filter + &quot; must emit one token per input token on &#x27;&quot; + text + &quot;&#x27;&quot;, in.size(), out.size());
+  }
+
+  // ---- bug cases: the first sentence is removed entirely by an earlier filter ----
+
+  public void testPOSFilterAfterStopFilterRemovingFirstSentence() throws Exception {
+    assertPassThroughCount(new String[] {&quot;stop&quot;}, &quot;pos&quot;, DROPPED_FIRST);
+    // terms are not changed by the POS filter
+    assertEquals(
+        tokens(chain(&quot;stop&quot;), DROPPED_FIRST, false),
+        tokens(chain(&quot;stop&quot;, &quot;pos&quot;), DROPPED_FIRST, false));
+    // tags of the surviving sentences do not depend on a removed preceding sentence
+    assertEquals(
+        tokens(chain(&quot;stop&quot;, &quot;pos&quot;), REST, true), tokens(chain(&quot;stop&quot;, &quot;pos&quot;), DROPPED_FIRST, true));
+  }
+
+  public void testChunkerFilterAfterStopFilterRemovingFirstSentence() throws Exception {
+    assertPassThroughCount(new String[] {&quot;pos&quot;, &quot;stop&quot;}, &quot;chunk&quot;, DROPPED_FIRST);
+    assertEquals(
+        tokens(chain(&quot;pos&quot;, &quot;stop&quot;, &quot;chunk&quot;), REST, true),
+        tokens(chain(&quot;pos&quot;, &quot;stop&quot;, &quot;chunk&quot;), DROPPED_FIRST, true));
+  }
+
+  public void testLemmatizerFilterAfterStopFilterRemovingFirstSentence() throws Exception {
+    assertPassThroughCount(new String[] {&quot;pos&quot;, &quot;stop&quot;}, &quot;lemma&quot;, DROPPED_FIRST);
+    assertEquals(
+        tokens(chain(&quot;pos&quot;, &quot;stop&quot;, &quot;lemma&quot;), REST, false),
+        tokens(chain(&quot;pos&quot;, &quot;stop&quot;, &quot;lemma&quot;), DROPPED_FIRST, false));
+  }
+
+  /**
+   * Secondary effect: in a field longer than the tokenizer&#x27;s 1024-char buffer the remaining input is
+   * never read, so end() reports a final offset that differs from the one the same chain without
+   * the POS filter reports.
+   */
+  public void testFinalOffsetOfLongFieldWithRemovedFirstSentence() throws Exception {
+    StringBuilder sb = new StringBuilder(&quot;Hi. &quot;);
+    while (sb.length() &lt; 1500) {
+      sb.append(REST).append(&#x27; &#x27;);
+    }
+    String text = sb.toString();
+    List&lt;String&gt; in = run(chain(&quot;stop&quot;), text, false);
+    List&lt;String&gt; out = run(chain(&quot;stop&quot;, &quot;pos&quot;), text, false);
+    System.out.println(
+        &quot;long field: length=&quot;
+            + text.length()
+            + &quot; in.tokens=&quot;
+            + (in.size() - 1)
+            + &quot; &quot;
+            + in.get(in.size() - 1)
+            + &quot; out.tokens=&quot;
+            + (out.size() - 1)
+            + &quot; &quot;
+            + out.get(out.size() - 1));
+    assertEquals(&quot;final offset&quot;, in.get(in.size() - 1), out.get(out.size() - 1));
+  }
+
+  // ---- controls: expected to pass on the current code ----
+
+  public void testControlsNoRemovedFirstSentence() throws Exception {
+    // no intermediate filter, removed sentence in the middle, or no removed sentence at all
+    for (String text : new String[] {DROPPED_FIRST, DROPPED_MIDDLE, REST}) {
+      assertPassThroughCount(new String[] {}, &quot;pos&quot;, text);
+      assertPassThroughCount(new String[] {&quot;pos&quot;}, &quot;chunk&quot;, text);
+      assertPassThroughCount(new String[] {&quot;pos&quot;}, &quot;lemma&quot;, text);
+    }
+    for (String text : new String[] {DROPPED_MIDDLE, REST}) {
+      assertPassThroughCount(new String[] {&quot;stop&quot;}, &quot;pos&quot;, text);
+      assertPassThroughCount(new String[] {&quot;pos&quot;, &quot;stop&quot;}, &quot;chunk&quot;, text);
+      assertPassThroughCount(new String[] {&quot;pos&quot;, &quot;stop&quot;}, &quot;lemma&quot;, text);
+    }
+    System.out.println(
+        &quot;lemmas REST: &quot; + tokens(chain(&quot;pos&quot;, &quot;stop&quot;, &quot;lemma&quot;), REST, false));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (gradle); 9.5.0 to 10.5.2 fail the same way (older repros and the history test)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>./gradlew :lucene:analysis:opennlp:test --tests &quot;org.apache.lucene.analysis.opennlp.TestOpenNLPFirstSentenceRemoved&quot; -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, seed DEADBEEF, -Ptests.asserts=true (identical with -Ptests.asserts=false)
+TestOpenNLPFirstSentenceRemoved &gt; testPOSFilterAfterStopFilter FAILED
+    java.lang.AssertionError: token 0 does not exist
+        at ...TestOpenNLPFirstSentenceRemoved.testPOSFilterAfterStopFilter(TestOpenNLPFirstSentenceRemoved.java:107)
+TestOpenNLPFirstSentenceRemoved &gt; testChunkerAfterStopFilter FAILED
+    java.lang.AssertionError: token 0 does not exist
+        at ...TestOpenNLPFirstSentenceRemoved.testChunkerAfterStopFilter(TestOpenNLPFirstSentenceRemoved.java:92)
+TestOpenNLPFirstSentenceRemoved &gt; testNounsOnlyThenLemmatize FAILED
+    java.lang.AssertionError: token 0 does not exist
+        at ...TestOpenNLPFirstSentenceRemoved.testNounsOnlyThenLemmatize(TestOpenNLPFirstSentenceRemoved.java:70)
+3 tests completed, 3 failed     (lines 70, 92, 107 are the removed-first-sentence assertions; every control before them passed)
+# whole module: 36 tests completed, 3 failed (only the new tests); with fix A or fix B: 36 tests, 0 failed (assertions on and off)
+
+# the independent reproducer&#x27;s oracle (stock main)
+chain [stop, pos] on &#x27;Hi. They sent him running in the evening. He did not come back.&#x27;
+   in =[They, sent, him, running, in, the, evening, He, did, not, come, back]
+   out=[]
+chain [stop, pos] on &#x27;They sent him running in the evening. Hi. He did not come back.&#x27;
+   in =[They, sent, him, running, in, the, evening, He, did, not, come, back]
+   out=[They, sent, him, running, in, the, evening, He, did, not, come, back]
+long field: length=1504 in.tokens=300 &lt;finalOffset=1504&gt; out.tokens=0 &lt;finalOffset=1024&gt;
+
+# the V2 verification test: the sentence indices the POS filter receives (stop set {it, is, the, a, .}, stock main)
+TEXT: The. They sent him running in the evening. The dog barked.
+  stop only     : [They, sent, him, running, in, evening, dog, barked] sentenceIdx=[1, 1, 1, 1, 1, 1, 2, 2]
+  stop -&gt; POS   : []</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The POS filter "Tags all terms"; the chunker and lemmatizer only annotate or rewrite terms. None removes tokens, and the chunker only requires an order, not adjacency.</li><li>A removed sentence in the middle is handled correctly; only the starting value 0 is wrong.</li><li>#11734, which added this code, fixed these same filters losing tokens or ending the stream early.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>268 words</span></summary><div class='body'><ul><li><strong>The contracts.</strong> <code>OpenNLPPOSFilter.java:32</code>: "Run OpenNLP POS tagger. Tags all terms in the TypeAttribute." <code>OpenNLPChunkerFilter.java:32-36</code>: "Prerequisite: the OpenNLPTokenizer and OpenNLPPOSFilter must precede this filter. Tags terms in the TypeAttribute, replacing the POS tags previously put there by OpenNLPPOSFilter." The lemmatizer "Runs OpenNLP dictionary-based and/or MaxEnt lemmatizers" (<code>OpenNLPLemmatizerFilter.java:34</code>) and replaces each non-keyword term by its lemma (<code class='nw'>:73-76</code>). No javadoc, CHANGES or MIGRATE entry, code comment or test restricts which filters may sit between the stages. <code>SentenceAttribute</code> only "tracks what sentence a given token belongs to" and promises nothing about index 0.</li><li><strong>Filters between the stages are expected.</strong> The lemmatizer reads <code class='nw'>KeywordAttribute</code> (<code>OpenNLPLemmatizerFilter.java:49</code>, <code class='nw'>:74</code>, <code class='nw'>:87</code>) so that keyword filters between POS and lemmatizer work. Upstream tests put <code>KeywordRepeatFilter</code> between the tokenizer and the POS filter (<code>TestOpenNLPPOSFilterFactory.java:150-160</code>) and between the POS filter and the lemmatizer (<code>TestOpenNLPLemmatizerFilterFactory.java:230-238</code>, <code class='nw'>:301-308</code>, <code class='nw'>:323-345</code>).</li><li><strong>The asymmetry.</strong> A fully removed middle sentence works, because the helper only tests for a change of index; the initial <code>currSentence = 0</code> is the only assumption that breaks. Losing the whole value is not a trade-off anyone chose.</li><li><strong>History.</strong> #11734, "Fix repeating token sentence boundary bug", added the helper and fixed the 9.5.0 CHANGES entries GITHUB#11735 "KeywordRepeatFilter + OpenNLPLemmatizer always drops last token of a stream" and GITHUB#11771 "... sometimes arbitrarily exits token stream" (<code>lucene/CHANGES.txt:3859-3863</code>). Its review did not discuss a first sentence whose index is not 0.</li><li><strong>Nothing pins the current output.</strong> No upstream test puts a token-removing filter before a sentence-aware filter; with the fix all 33 upstream tests of the module pass.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>278 words</span></summary><div class='body'><p>The checkers built the strongest case for "unsupported chain": (1) no documented or example chain triggers it; the factory javadoc, the Solr reference guide, the upstream tests and the third-party configurations found keep the OpenNLP stages next to each other and put <code class='nw'>TypeTokenFilter</code> after the last one; (2) the module overview says the tokenizer keeps punctuation because "This is required for the following taggers to operate properly" (<code>overview.html:32-36</code>), and the Solr reference guide ("OpenNLP Integration") says "the same tokenization using the same models must be used at runtime for optimal performance"; POS tagging and chunking use the sentence as context; (3) the chunker is excluded from the random-chain tests because "other filters must precede this one (see docs)" (<code>OpenNLPChunkerFilter.java:37</code>). So a maintainer could call removing tokens before the POS filter or the chunker unsupported, and lower tag quality there acceptable.</p><p>Why it fails: those notes are about tagging quality, not about losing every token, and nothing in them explains ending the stream for the whole value. For the dictionary lemmatizer the quality argument has nothing to hold on to in the repro: with fix A nouns-only chain gives the same <code>[they, evening]</code> with and without the noun-free first sentence. Nothing restricts in-between filters, upstream tests use them, and the same code handles a removed middle sentence. The cross-model fact check rated the "intended" case moderate before the POS filter and before the chunker, weak before the dictionary lemmatizer. When filing, lead with POS, a nouns-only <code class='nw'>TypeTokenFilter</code>, then the dictionary lemmatizer, and say the Solr reference guide recommends <code class='nw'>TypeTokenFilter</code> with POS lists, not that it recommends the triggering chain (it puts the filter last).</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A. Adopt the first token's sentence index in SentenceAttributeExtractor</strong></p><p class='short'>Let the first token of the stream set the current sentence: in <code>SentenceAttributeExtractor.extractSentenceAttributes()</code>, when the look-ahead is still null, take the token's sentence index as <code class='nw'>currSentence</code> (4 lines). Validated: the 3 new tests pass, as do all 36 module tests and <code class='nw'>check</code>; streams that start at sentence 0 behave as before.</p><pre class='snippet' tabindex='0'><code>       hasNextToken = input.incrementToken();
+       int currSentenceTmp = sentenceAtt.getSentenceIndex();
++      if (prevAttributeSource == null) {
++        // first token of the stream: its sentence is the current one, whatever its index
++        currSentence = currSentenceTmp;
++      }
+       hasNext = (currSentence == currSentenceTmp &amp;&amp; hasNextToken);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 568 words</span></summary><div class='body'><p>Options A and B were each applied in a scratch worktree of main <code class='nw'>a9779ef3c193</code> and run through gradle with assertions on and off; the workaround needs no code change. Indexes built with an affected chain keep the empty fields until the documents are reindexed.</p><div class="hd hd-3"><h3 id='fix-adopt-first-index'>A. Adopt the first token's sentence index in SentenceAttributeExtractor <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-adopt-first-index" target="_self" aria-label="Link to this section" aria-describedby="fix-adopt-first-index"><span aria-hidden="true">#</span></a></div><p>In <code>extractSentenceAttributes()</code> (<code>SentenceAttributeExtractor.java:54-58</code>), when <code>prevAttributeSource == null</code> (the first call after <code class='nw'>reset()</code>), set <code class='nw'>currSentence</code> to the first token's index before the comparison. This is the finder's fix.</p><p><strong>What it changes.</strong> Only that first call. Streams whose first token has index 0 behave exactly as before; an empty stream still returns an empty list, so the filters still end it. All three filters, and any other user of the public helper, are fixed at once.</p><pre class='snippet' tabindex='0'><code>       hasNextToken = input.incrementToken();
+       int currSentenceTmp = sentenceAtt.getSentenceIndex();
++      if (prevAttributeSource == null) {
++        // first token of the stream: its sentence is the current one, whatever its index
++        currSentence = currSentenceTmp;
++      }
+       hasNext = (currSentence == currSentenceTmp &amp;&amp; hasNextToken);</code></pre><p class='k'>Trade-offs</p><ul><li>The smallest change, at the root cause. Indexed terms change only for values that were losing all their tokens.</li><li>It does not touch the separate lemmatizer bug with sentence-final keyword tokens (a different fix site): in the exhaustive check fix A removes every first-sentence case and that bug's own fix removes the rest (both fixes: 0 of 55,987 lemmatizer cases).</li></ul><p class='k'>What the checks validated</p><ul><li>The 3 new tests pass with assertions on and off (stock: 3 of 3 fail).</li><li>All of <code>:lucene:analysis:opennlp:test</code>: 6 classes, 36 tests, 0 failures, assertions on and off (stock: only the 3 new tests fail).</li><li><code>:lucene:analysis:opennlp:check -x test</code> passes (google-java-format, ecjLint, forbiddenApis, licenses).</li><li>Through the repro harness with the fix shadowed: the new test 3 of 3, the finder's test 3 of 3, the independent reproducer's 5 of 5 and the cross-model review verification test pass.</li><li>The hunt's exhaustive check: no first-sentence case left (728 POS, 728 chunker and 37,324 per lemmatizer variant before).</li></ul><div class="hd hd-3"><h3 id='fix-skip-empty-sentences'>B. Skip empty sentences in the three filters instead of ending the stream <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-skip-empty-sentences" target="_self" aria-label="Link to this section" aria-describedby="fix-skip-empty-sentences"><span aria-hidden="true">#</span></a></div><p>In <code class='nw'>OpenNLPPOSFilter</code>, <code>OpenNLPChunkerFilter</code> and <code>OpenNLPLemmatizerFilter</code>, replace <code>allSentencesProcessed() || nextSentence().isEmpty()</code> by a loop that ends the stream only when <code>allSentencesProcessed()</code> is true and otherwise reads the next sentence while it is empty (<code>do { if (allSentencesProcessed()) return false; } while (nextSentence().isEmpty());</code>).</p><p class='k'>Trade-offs</p><p>Three call sites instead of one, and every other consumer of the helper must do the same; the helper still returns a misleading empty first sentence. It also retries after other empty batches, but each filter first runs its OpenNLP operation on the empty arrays (<code>OpenNLPPOSFilter.java:70-71</code>, <code>OpenNLPChunkerFilter.java:76-77</code>, <code>OpenNLPLemmatizerFilter.java:94-96</code>); that was validated only for the demonstrated case, with the bundled OpenNLP version. A and B can be combined; A alone covers every case found.</p><p class='k'>What the checks validated</p><ul><li>The 3 new tests pass with assertions on and off.</li><li>All of <code>:lucene:analysis:opennlp:test</code>: 6 classes, 36 tests, 0 failures, assertions on and off.</li><li>Not run through <code class='nw'>check</code> or the exhaustive harness.</li></ul><div class="hd hd-3"><h3 id='fix-reorder-chain'>Workaround: put token-removing filters after the last OpenNLP sentence-aware filter</h3><a class="hlink" href="#fix-reorder-chain" target="_self" aria-label="Link to this section" aria-describedby="fix-reorder-chain"><span aria-hidden="true">#</span></a></div><p>For example tokenizer, POS, lemmatizer, then <code class='nw'>TypeTokenFilter</code> or <code class='nw'>StopFilter</code>: the order the documented examples use. No code change.</p><p class='k'>Trade-offs</p><p>Not always possible: the chunker replaces the POS tags with chunk tags, so a POS-based <code class='nw'>TypeTokenFilter</code> cannot simply move after it. Existing documents still need reindexing.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream, a keyword screen or a content-based deny rule over such a field misses a document whose text starts with a sentence the chain removes: <code>MUST_NOT body:evening</code> left the example document visible (executed through Lucene's own query API; not run on a downstream product).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>While building an independent reference that calls the OpenNLP library one sentence at a time, the finder suspected the helper's starting index. A bounded-exhaustive check of the real filters then confirmed it: every sentence-index pattern up to 6 tokens, and every case whose first token was not in sentence 0 gave empty output.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>197 words</span></summary><div class='body'><ul><li><strong>Method (semi-formal): bounded-exhaustive translation validation</strong> of the stock main jar, in the hunt's unit on the OpenNLP filters against the OpenNLP library. The finder built an independent per-sentence reference that calls the OpenNLP operations directly, and formed the hypothesis by reading <code>SentenceAttributeExtractor</code> while doing so.</li><li><strong>Enumeration.</strong> Every sentence-index sequence over {0, 1, 2}^n for n &lt;= 6 (and every keyword pattern for the lemmatizer): 1,093 cases each for POS and chunker, 55,987 per lemmatizer variant. Every case whose first token had a sentence index other than 0 gave empty output: 728 for POS, 728 for the chunker, 37,324 per lemmatizer variant, 0 unexplained; with fix A, 0. These count a diagnostic model space that also enumerates gaps and non-monotone index sequences the tokenizer does not emit; they say nothing about how often real text triggers the bug.</li><li><strong>Real text.</strong> A differential run of 404 generated documents through the tokenizer and 10 chains, with the library called directly as the reference, showed the same defect (the POS stage of tokenizer, <code class='nw'>StopFilter</code>, POS differed for 17 of 404 documents); with both of the unit's fixes shadowed, 0 mismatches.</li><li>Then a public-API JUnit; independent checkers followed (see "Independent checks").</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-26: 298 queries over GitHub issues, PRs, commits and code, all 407 open PRs, JIRA, the Lucene and Solr lists and the web). Closest: #11735 and #11771, the pre-9.5 token losses that the change introducing this bug fixed.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>6 searches</span></summary><div class='body'><p>23 plausible hits were read; none describes this bug and none is by the owner. Keyword search only; StackOverflow seen only through titles and snippets; the dev@ "opennlp" mails reviewed by subject from 2022-09 on; private reports cannot be seen.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>scripted prior-report search</th><td class='when'>2026-10-26</td><td>173 queries: GitHub issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, JIRA, the web (plus the finder's earlier run of 51 queries)</td><td>no report; 1 high and 16 medium hits, none this bug</td></tr><tr><th scope='row'>GitHub (manual)</th><td class='when'>2026-10-26</td><td>14 searches: all of GitHub for the three filter names and SentenceAttributeExtractor, apache/solr, apache/lucene items since 2022-09, code search for extractSentenceAttributes; the file lists of all 407 open apache/lucene PRs</td><td>no report; only #16911 (branch_10x decommission) touches the files</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR, OPENNLP)</th><td class='when'>2026-10-26</td><td>REST searches for OpenNLP and Lucene items</td><td>nothing about sentence-aware filters losing tokens</td></tr><tr><th scope='row'>Mailing lists</th><td class='when'>2026-10-26</td><td>30 manual queries; subjects of every "opennlp" mail since 2022-09 on the Lucene and Solr lists; 3 threads read</td><td>only the #11734/#11735/#11771 threads and a thread-safety discussion</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>15 searches, 3 page fetches</td><td>no relevant hit</td></tr><tr><th scope='row'>Closest items (read)</th><td class='when'>2026-10-26</td><td>full threads</td><td>#11734 / #11802 (introduced the code; review did not discuss this case), #11735 and #11771 (pre-9.5 trigger and root cause), #14194 / #14188 (POS tag format), #11955 (thread safety), #3973 (LUCENE-2899, the module's original issue)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced in 9.5.0 by #11734 (<code class='nw'>3a04aa44c22</code>, 2022-09-23; branch_9x <code class='nw'>b253e4353f0</code>), which added the helper while fixing older token losses. Fails on all 26 releases from 9.5.0 to 10.5.2 and on main; passes on 12 releases from 7.3.0 to 9.4.2. Not fixed upstream.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> apache/lucene#11734, "Fix repeating token sentence boundary bug" (author kotman12): main <code class='nw'>3a04aa44c22</code> (2022-09-23) and the branch_9x backport <code class='nw'>b253e4353f0</code> (2022-09-24, after a first backport <code class='nw'>b79edbb54ac</code> was reverted the same day by <code class='nw'>64b124349ba</code>; the class is identical in all three). It replaced the old end-of-sentence flag with a sentence index per token, added <code>SentenceAttributeExtractor</code> with <code>currSentence = 0</code>, and moved the three filters onto it with the <code>nextSentence().isEmpty()</code> end-of-stream check. <code>git blame</code> on main attributes every line of the class and the conditions of the three checks to it (the <code>return false;</code> lines below them are older).</p><p><strong>Older releases have the mirror bug.</strong> They lose tokens when the <em>last</em> sentence is removed (the end-of-sentence-flag logic that #11734 replaced); that is a different root cause. Executed on 7.3.0, 8.11.4 and 9.4.2; inferred for the releases in between, which have the same filter code.</p><p><strong>What was executed.</strong> Each release ran on its own jars and its own release-tag test models, except 8.11.4 (the 8.8.1 test models: the local history clone has no 8.9+ tags). Of 7.3.0 to 9.4.2, 12 selected releases ran; 7.3.1, 7.4.0 to 7.7.2 and the 8.x releases other than 8.0.0, 8.8.1 and 8.11.4 did not, and their filter code matches 7.3.0 and 9.4.2 apart from formatting, javadoc and annotations (read).</p><p><strong>Not fixed upstream.</strong> On upstream main <code class='nw'>a95c754ee00</code> (2026-10-26), branch_10x and branch_10_6 the last change to <code>SentenceAttributeExtractor.java</code> is still <code class='nw'>3a04aa44c22</code>, and on upstream main <code class='nw'>c5ab3e57b9b</code> (2026-10-28) the file is byte-identical to <code class='nw'>a9779ef3c193</code> (read, not executed), so the unreleased lines are affected too.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>new test 3 of 3 fail through gradle (assertions on and off); history test fails</td></tr><tr><th scope='row'>10.0.0 to 10.5.2 (12 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>history test fails on every one; the finder's and the reproducer's JUnit fail on 10.5.2</td></tr><tr><th scope='row'>9.5.0 to 9.12.3 (14 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>history test fails on every one; the finder's and the reproducer's JUnit fail on 9.5.0 and 9.12.3</td></tr><tr><th scope='row'>7.3.0 to 9.4.2 (12 releases executed)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>history test passes on the 12 executed releases (the others read: same filter code); 7.3.0, 8.11.4 and 9.4.2 lose tokens in the mirror case instead (last sentence removed)</td></tr><tr><th scope='row'>9.4.2 jars + #11734 classes / 9.5.0 jars minus #11734</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> commit A/B</span></td><td>fails / passes: the change between the two releases is #11734 alone</td></tr><tr><th scope='row'>fix A on main <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>3 new tests and all 36 module tests pass; the exhaustive check finds no such case</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer (own test, different trigger), a works-as-designed review by a reviewer from another model family, an intended-behaviour devil's advocate, an adjudication and a credibility audit all judged it real and re-ran it on main. A read-only refute review said "not real" only because it could not run code.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>492 words</span></summary><div class='body'><p>Every verdict below that re-ran a repro did so on main <code class='nw'>a9779ef3c193</code>; the cross-model reviews could only read code. This doc's own fix validation ran on <code class='nw'>a9779ef3c193</code> through gradle.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Cross-model refute review</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real (low), procedural</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6), reading only: it could run no command, so its rubric did not allow "real"; its notes call this "not a substantive refutation". It agreed with the root cause and found the inputs within the contract (8 evidence items for real, 1 against).</td></tr><tr><th scope='row'>Works-as-designed review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>The same reviewer with an intended-behaviour lens, reading only: the "intended" argument is weak. A separate the cross-model review verification test derived from that review (<code class='nw'>StopFilter</code> {it, is, the, a, .} then POS on <code>The. They sent him running in the evening. The dog barked.</code>: 8 tokens without the POS filter, 0 with it) fails on main and passes with the fix.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Own public-API test with a different trigger (<code class='nw'>StopFilter</code> {hi, .}) and a model-free oracle: 4 of 5 fail on main (assertions on and off), 10.5.2, 9.12.3 and 9.5.0, controls pass; 5 of 5 pass with the fix. Found the final offset of 1024 instead of 1504.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>No "intended" or "misuse" argument survives; the overview's punctuation note concerns tagging quality. Its probe of 9 adversarial inputs found no input for which the tokenizer alone starts at a sentence other than 0.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the reproducer's test on main: 4 of 5 fail with assertions on and off, 5 of 5 pass with the fix. Filing advice: lead with a chain where the removing filter comes after the POS filter.</td></tr><tr><th scope='row'>Credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's test on main with a new seed: 3 of 3 fail with assertions on and off, 3 of 3 pass with the fix; score kept.</td></tr><tr><th scope='row'>Fix validation (this doc)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> fix A and fix B pass</span></td><td>Gradle in a scratch worktree of <code class='nw'>a9779ef3c193</code>: stock, the 3 new tests fail and the 33 upstream tests pass; with fix A or fix B all 36 pass, assertions on and off; <code>check -x test</code> passes with fix A.</td></tr><tr><th scope='row'>Fact checks of this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> pass after corrections</span></td><td>Independent fact checks of this doc and its brief. One re-ran the test (3 of 3 fail on main, assertions on and off; 3 of 3 also on 10.5.2 and 9.5.0 with their own test models), both fixes, and every cited line and count: no error. The reviewer from the other model family, reading only (with command outputs prepared beforehand), found the bug, its cause and its fixes sound and asked for precision fixes (the final offset is not always 1024, the plain chain is probed rather than proven safe, which releases were executed); they are applied here.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-621/bug.png' download='opennlp-sentence-extractor-first-index-zero-bug.png' target='_self'>PNG</a> <span class='n'>460 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,563 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-621, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>OpenNLP POS, chunker and lemmatizer filters emit no token for a whole field value when an earlier filter removes every token of its first sentence, because SentenceAttributeExtractor starts at sentence index 0 and reads a first token from sentence 1 as an empty sentence, which the filters take as the end of the stream</dd></div><div><dt>Area</dt><dd>analysis-opennlp / sentence-aware filters (SentenceAttributeExtractor.extractSentenceAttributes, shared by OpenNLPPOSFilter, OpenNLPChunkerFilter and OpenNLPLemmatizerFilter; factories opennlpPOS, opennlpChunker, opennlplemmatizer)</dd></div><div><dt>Priority</dt><dd>Low, rank 399: A whole field value silently indexes no terms, which is severe, but only under an OpenNLP chain that removes tokens before a sentence-aware filter, a setup no documented example or known configuration uses, so it heads the Low analysis token-graph cluster.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits only applications that use the opt-in analysis-opennlp module with a chain that puts a token-removing filter (StopFilter, LengthFilter or a TypeTokenFilter on POS tags, all executed) before an OpenNLP POS, chunker or lemmatizer filter, a legal chain that the documented examples and upstream tests do not use; for them every field value whose first sentence that filter empties completely, punctuation included (a short opener such as 'Hi.' or 'No.', or under a nouns-only filter any first sentence without a noun), silently indexes no terms at all while its stored text stays intact, deterministically, with -ea and -da, at any size, in every release from 9.5.0 to 10.5.2 and main; values longer than 1024 chars also end with a wrong final offset (1024), which shifts the offsets of later values of a multi-valued field; chains with the OpenNLP stages directly after each other are not affected.</dd></div><div><dt>Summary</dt><dd>You build an OpenNLP chain that removes some tokens before a sentence-aware filter, for example tokenizer -&gt; POS tagger -&gt; TypeTokenFilter keeping only nouns -&gt; lemmatizer, and analyze 'He did not come back. They sent him running in the evening.', expecting the lemmatized nouns of the second sentence, [they, evening], as you get for that sentence alone. Instead the whole value yields no token: SentenceAttributeExtractor starts with currSentence = 0, so when the first token it receives already belongs to sentence 1 it returns an empty first sentence, and the POS, chunker and lemmatizer filters all treat an empty sentence as the end of the stream. A fully removed sentence in the middle of the text is handled correctly; only the first one is not.</dd></div><div><dt>Introduced</dt><dd>3a04aa44c22aad7c63f806b436a79515285c6ea9 on main ('Fix repeating token sentence boundary bug (#11734)', apache/lucene#11734 by kotman12, co-authored and merged by dweiss), which added SentenceAttributeExtractor with 'private int currSentence = 0;' (line 40, and 'currSentence = 0;' in reset() at line 78) and moved the three filters onto it with the nextSentence().isEmpty() end-of-stream check; the 9.x line got it through the branch_9x backport b253e4353f091dc53d2167985ba09fd40954d0c3 (an earlier backport b79edbb54ac was reverted the same day by 64b124349ba and re-applied as b253e4353f0; the class is identical in all three). A regression introduced by a fix: #11734 fixed GITHUB#11735 and #11771 (tokens lost when the last token of a sentence was repeated or removed). [read: git log --follow and git blame on main attribute every line of the class and the three end-of-stream checks to 3a04aa44c22; the file is byte-identical in 3a04aa44c22, 9.5.0, 9.12.3, 10.0.0, 10.5.2 and main. exec: commit-level A/B without a gradle build, shadowing the #11734 files over the 9.4.2 jars makes 9.4.2 fail like 9.5.0, and shadowing the pre-#11734 files of its parent 8f41b3fe853 over the 9.5.0 jars makes 9.5.0 pass like 9.4.2] (2022-09-23 (main, 3a04aa44c22, PR merged 10:59:46Z); 2022-09-24 (branch_9x backport b253e4353f0); first release 9.5.0, tagged 2023-01-30)</dd></div><div><dt>First affected version</dt><dd>9.5.0 [exec: the follow-up's history test fails 3 of 3 with -ea and -da]; last unaffected: 9.4.2 [exec: passes 3 of 3 with -ea and -da]. 7.3.0 (the module's first release, LUCENE-2899) to 9.4.2 used the older end-of-sentence-flag logic and do not have this bug [exec on 12 releases]; they lose tokens in the mirror case instead (the last sentence removed), a different root cause that #11734 fixed</dd></div><div><dt>Affected versions</dt><dd>Every release from 9.5.0 through 10.5.2 (9.5.0-9.12.3 and 10.0.0-10.5.2, 26 releases) and main a9779ef3c193; never fixed. [exec] the follow-up's history test (oracle: chain(FIRST + ' ' + SECOND) equals chain(SECOND) in terms and types, with its preconditions asserted) fails 3 of 3 on all 26 releases, each with its own jars and its own release-tag test models (-ea; 9.5.0 also -da), and on main (-ea and -da); it passes on 7.3.0, 7.7.3, 8.0.0, 8.8.1, 8.11.4, 9.0.0, 9.1.0, 9.2.0, 9.3.0, 9.4.0, 9.4.1 and 9.4.2 and on main with the fix shadowed. The finder's JUnit fails 3 of 3 on main (-ea and -da), 10.5.2, 9.12.3 and 9.5.0 (it also fails on 9.4.2, but only through the older trailing-removal mechanism, because its inputs end with a removed '.'); the independent reproduction's JUnit fails 4 of 5 on main (-ea and -da), 10.5.2, 9.12.3 and 9.5.0 and fails differently on 9.4.2. [read] on upstream main (a95c754ee00, 2026-10-26), branch_10x and branch_10_6 the last change to SentenceAttributeExtractor.java is still 3a04aa44c22, so the unreleased 10.6 and 11.0 lines are affected (branch heads not executed); the 7 commits ea57360912ed..a9779ef3c193 do not touch lucene/analysis/opennlp. Not executed: x86 (pure Java logic). JDK 25.0.3, aarch64</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check, code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only). Follow-up prior-art step (verdict new: 298 logged query records, including the finder's scripted prior-report search of 51 queries, and 23 hits read, none the same bug): a scripted prior-report search over apache/lucene issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web (163 live queries plus a cached run with 10 ingested web queries); 14 manual GitHub searches (all of GitHub for the three filter names and SentenceAttributeExtractor, apache/solr, apache/lucene items since 2022-09, code search for extractSentenceAttributes); the file lists of all 407 open apache/lucene PRs; upstream commit history and CHANGES.txt; LUCENE, SOLR and OPENNLP JIRA; 30 manual mailing-list queries with 3 threads read; 15 web searches. Closest items, not this bug: #11734 and its duplicate #11802 (the change that introduced the code; the review asked for a run over a larger text base and nobody discussed a first sentence whose index is not 0), #11735 and #11771 (KeywordRepeatFilter plus the lemmatizer dropping the last token or exiting early: same symptom family, but a different trigger and the pre-9.5 root cause that #11734 fixed). Not fixed upstream: SentenceAttributeExtractor.java is unchanged since 3a04aa44c22 on main (a95c754ee00), branch_10x and branch_10_6, and no open PR changes it or the filters' sentence loop (only #16911, the branch_10x decommission, touches the files, by deleting every file). Nothing by the owner (shbhar)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26) through gradle in a scratch worktree: the new 3-test class with assertions on and off (stock: 3 of 3 fail; fix A and fix B: 0), all 36 tests of <code>:lucene:analysis:opennlp:test</code> (stock: only the 3 new tests fail; fix A and fix B: 0), and <code>:lucene:analysis:opennlp:check -x test</code> with fix A; the worktree was removed afterwards. The same class through the repro harness on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>; 0 failures with fix A shadowed). The finder's and the independent reproducer's tests on main, 10.5.2, 9.12.3 and 9.5.0; the follow-up's history test on all 26 releases from 9.5.0 to 10.5.2 (fail), 12 releases from 7.3.0 to 9.4.2 (pass) and main. JDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/SentenceAttributeExtractor.java:40 (at a9779ef3c193) (&#x27;private int currSentence = 0;&#x27;), :51-65 (extractSentenceAttributes: compare with currSentence, add the previous look-ahead, store the new one), :75-80 (reset() sets currSentence = 0 and clears the look-ahead)</code></li><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPPOSFilter.java:32 (at a9779ef3c193) (javadoc &#x27;Run OpenNLP POS tagger. Tags all terms in the TypeAttribute.&#x27;), :48-60 (incrementToken returns false when nextSentence() is empty)</code></li><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPChunkerFilter.java:33-35 (at a9779ef3c193) (javadoc: &#x27;the OpenNLPTokenizer and OpenNLPPOSFilter must precede this filter. Tags terms in the TypeAttribute&#x27;), :50-64 (same end-of-stream check)</code></li><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPLemmatizerFilter.java:62-71 (at a9779ef3c193) (same end-of-stream check)</code></li><li><code>lucene/analysis/opennlp/src/java/overview.html:33-36 (at a9779ef3c193) (punctuation is tokenized, &#x27;required for the following taggers to operate properly&#x27;)</code></li><li><code>lucene/analysis/opennlp/src/test/org/apache/lucene/analysis/opennlp/TestOpenNLPPOSFilterFactory.java:150-160 (at a9779ef3c193) (testNoBreakWithRepeatKeywordFilter: KeywordRepeatFilter between the tokenizer and the POS filter); lucene/analysis/opennlp/src/test/org/apache/lucene/analysis/opennlp/TestOpenNLPLemmatizerFilterFactory.java:323 (testPreventEarlyExit)</code></li><li><code>lucene/CHANGES.txt:3682 (at a9779ef3c193) (Lucene 9.5.0 section), :3859-3863 (GITHUB#11735 and GITHUB#11771, both fixed by #11734)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/util/SegmentingTokenizerBase.java:39 (at a9779ef3c193) (BUFFERMAX = 1024: why a blanked long value ends with finalOffset 1024)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/SentenceAttributeExtractor.java:40, :51-65, :75-80 @ a9779ef3c193</code></li><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPPOSFilter.java:47-61; lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPChunkerFilter.java:50-64; lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPLemmatizerFilter.java:62-78 @ a9779ef3c193</code></li><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPTokenizer.java:31-34, :45, :73, :87, :97 @ a9779ef3c193; lucene/analysis/common/src/java/org/apache/lucene/analysis/util/SegmentingTokenizerBase.java:39, :119-122 @ a9779ef3c193</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPPOSFilter.java:32; lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPChunkerFilter.java:32-36, :37; lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPLemmatizerFilter.java:34, :49, :73-76, :87 @ a9779ef3c193</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/tokenattributes/SentenceAttribute.java:22-25 @ a9779ef3c193</code></li><li><code>lucene/analysis/opennlp/src/test/org/apache/lucene/analysis/opennlp/TestOpenNLPPOSFilterFactory.java:150-160; lucene/analysis/opennlp/src/test/org/apache/lucene/analysis/opennlp/TestOpenNLPLemmatizerFilterFactory.java:230-238, :301-308, :323-345 @ a9779ef3c193</code></li><li><code>lucene/CHANGES.txt:3682 (Lucene 9.5.0), :3859-3863 (GITHUB#11735, GITHUB#11771) @ a9779ef3c193</code></li><li><code>lucene/analysis/opennlp/src/java/overview.html:32-36 @ a9779ef3c193</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/SentenceAttributeExtractor.java:51-65; lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPPOSFilter.java:52-56; lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPChunkerFilter.java:55-59; lucene/analysis/opennlp/src/java/org/apache/lucene/analysis/opennlp/OpenNLPLemmatizerFilter.java:66-70 @ a9779ef3c193</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestOpenNLPFirstSentenceRemoved.java (new test class, 3 tests): <a href='../repro/LFV-621/TestOpenNLPFirstSentenceRemoved.java'><code>repro/LFV-621/TestOpenNLPFirstSentenceRemoved.java</code></a> (110 lines)</li><li>The recommended fix (fix-option-A.diff): <a href='../repro/LFV-621/fix-option-A.diff'><code>repro/LFV-621/fix-option-A.diff</code></a> (14 lines)</li><li>The finder&#x27;s JUnit (TestSentenceFiltersFirstSentenceRemoved.java): <a href='../repro/LFV-621/TestSentenceFiltersFirstSentenceRemoved.java'><code>repro/LFV-621/TestSentenceFiltersFirstSentenceRemoved.java</code></a> (95 lines)</li><li>The independent reproducer&#x27;s JUnit (TestDroppedFirstSentenceV1.java): <a href='../repro/LFV-621/TestDroppedFirstSentenceV1.java'><code>repro/LFV-621/TestDroppedFirstSentenceV1.java</code></a> (225 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><ul class='paths'><li><a href='../assets/LFV-621/bug.png'><code>assets/LFV-621/bug.png</code></a> (460 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

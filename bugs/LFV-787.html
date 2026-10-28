@@ -1,0 +1,1611 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Mixing SuggestField and ContextSuggestField under one field name closes the IndexWriter at flush and at every merge that combines the two types</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-787 &middot; completion-mixed-suggest-field-types-close-writer-at-flush-and-merge</p><h1 id='top'>Mixing SuggestField and ContextSuggestField under one field name closes the IndexWriter at flush and at every merge that combines the two types</h1><p class='tldr'>Lucene accepts a <code class='nw'>SuggestField</code> and a <code>ContextSuggestField</code> under one field name and compares their types only while writing segments, inside flush and merge. The resulting <code>IllegalArgumentException</code> closes the <code class='nw'>IndexWriter</code>: uncommitted documents are lost, and two cleanly committed segments of the two types close every writer that merges them.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 179</span><span class='sub'>Mixing SuggestField and ContextSuggestField under one name closes the IndexWriter at flush and breaks later merges like LFV-760, but it lives in the opt-in document suggester.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>index unusable</span></dd></div><div><dt>Since</dt><dd>5.3.0 (LUCENE-6459, 2015)<span class='sub'>introduced 2015-05-28 &middot; over 11 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>5.3.0 to 10.5.2 and main (8 versions run)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading and probes, then a bounded-exhaustive model-based test</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The document suggester stores a one-byte type per suggest field: 0 for <code class='nw'>SuggestField</code>, 1 for <code>ContextSuggestField</code>. The two must not share a field name, but <code class='nw'>addDocument</code> does not check that. Only the completion postings writer does, while a flush or a merge writes the segment.</p><figure class='visual' id='completion-mixed-suggest-field-types-close-writer-at-flush-and-merge-short-visual'><div class='frame'><a class='still' href='../assets/LFV-787/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-787/bug.png' alt='Diagram of the bug: segment A holds document 1 with a SuggestField (type 0) and segment B document 2 with a ContextSuggestField (type 1) under the same field name; both were committed and CheckIndex is clean. forceMerge(1) combines them, the completion postings writer sees type 0 and then type 1 and throws &#x27;single field name has mixed types&#x27;, and the IndexWriter closes itself, so uncommitted document 3 is lost; a new writer fails the same way. A buffered segment holding both types fails the same way at commit.' width='1920' height='1080'></a></div><figcaption>Two committed segments of one suggest field, one per class, both clean: the merge that combines them hits the type check and the IndexWriter closes itself, losing the uncommitted document. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Route field <code class='nw'>suggest_field</code> to the completion postings format, as the document suggester requires. Commit document 1 with a <code class='nw'>SuggestField</code> ("apple"), then document 2 with a <code>ContextSuggestField</code> ("apricot") under the same name. Both commits succeed and <code class='nw'>CheckIndex</code> is clean: 2 segments, 2 documents.</span></li><li><span>Add document 3 and call <code class='nw'>forceMerge(1)</code>. Mixing the two classes is not supported, so an error is fair, but you expect the writer to stay open and documents 1, 2 and 3 to survive.</span></li><li><span>Instead the merge throws <code>IllegalArgumentException: single field name has mixed types</code> and the <code class='nw'>IndexWriter</code> closes itself; the index still has 2 documents, so document 3 is lost. A new writer, or the merge policy's own merge after a commit, closes the same way until one type has no live documents left (deleted, rewritten or reindexed).</span></li><li><span>Why: every posting carries a type byte (0 for <code class='nw'>SuggestField</code>, 1 for <code>ContextSuggestField</code>). <code class='nw'>addDocument</code> never compares it; only the completion postings writer does, during flush and merge, where Lucene treats any exception as a disaster.</span></li><li><span>With both types in one buffered segment, the next commit closes the writer: of 3 uncommitted documents none survive, an unrelated one included. Every release tag checked since 5.3.0 (2015) has it.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that use the document suggester directly (lucene/suggest, opt-in through a per-field codec) and index both classes under one field name: by mistake, or by adding contexts to an existing suggest field without reindexing. One document of each type is enough. Nothing is corrupted, but the writer closes and those segments cannot be merged while both types have live documents.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>651 words</span></summary><div class='body'><p>The document suggester has two field classes: <code class='nw'>SuggestField</code> writes type byte 0 and <code>ContextSuggestField</code> type byte 1 into every completion posting payload. One field name may not mix them; the design (LUCENE-6459) was that a mix is rejected with an <code>IllegalArgumentException</code> "upon indexing". But <code class='nw'>addDocument</code> never compares the types. The only check is in <code>CompletionFieldsConsumer</code>, while the completion postings are written at flush and at merge, and core treats any exception there as aborting (flush) or tragic (merge). So the <code class='nw'>IndexWriter</code> closes itself and drops every uncommitted document, unrelated ones included. If the two types landed in different segments, both commit cleanly and CheckIndex passes, but every merge that combines them closes the writer, in every new writer too, until one type has no live documents left. Present since 5.3.0 (2015); executed on 5.3.0 through 10.5.2 and main. A 4-file fix that marks the field as mixed instead of throwing, and lets <code class='nw'>CompletionQuery</code> reject queries on it as it already does across segments, keeps the writer open; it passes the repro and the whole suggest module.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Document suggester</strong>: <code class='nw'>SuggestField</code> and <code>ContextSuggestField</code> (lucene/suggest, <code>@lucene.experimental</code>) index suggestions that <code>SuggestIndexSearcher</code> serves from a per-segment FST. The field must be routed to a completion postings format (for example <code>Completion104PostingsFormat</code>) through a per-field codec.</li><li><strong>Type byte</strong>: each class writes its type into every posting payload, after the surface form and the weight: 0 for <code class='nw'>SuggestField</code> (<code>SuggestField.java:64</code>, <code class='nw'>:123-124</code>, <code class='nw'>:133</code>), 1 for <code>ContextSuggestField</code> (<code>ContextSuggestField.java:51</code>, <code class='nw'>:106-107</code>). Both use the same <code class='nw'>FieldType</code> (<code>SuggestField.java:53-62</code>, <code class='nw'>:79</code>), so the indexing chain's per-field schema checks cannot tell them apart.</li><li><strong>Aborting and tragic exceptions</strong>: an exception while a flush writes a segment aborts it and fires a tragic event; any exception in a merge is tragic. A tragic event rolls the writer back: it closes, and everything since the last commit is gone.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><strong>The only comparison is at write time.</strong> <code>CompletionFieldsConsumer.write</code> writes the delegate postings, then one <code>CompletionTermWriter</code> per field (<code class='nw'>:85-113</code>). <code>CompletionTermWriter.write</code> reads every posting's type byte; the first sets the field's type and a different one throws <code>IllegalArgumentException("single field name has mixed types")</code> (<code class='nw'>:214-220</code>, throw at <code class='nw'>:219</code>).</li><li><strong>It runs inside flush and merge.</strong> <code>DocumentsWriterPerThread.flush</code> catches every <code class='nw'>Throwable</code> as the aborting exception (<code class='nw'>:585-589</code>), and <code class='nw'>maybeAbort</code> aborts and fires the tragic event (<code class='nw'>:594-605</code>). <code>IndexWriter.merge</code> catches every <code class='nw'>Throwable</code> and calls <code>tragicEvent(t, "merge")</code> (<code class='nw'>:5109-5113</code>).</li><li><strong>Each segment stores one type.</strong> The type is saved per field and segment (<code>CompletionFieldsConsumer.java:105-110</code>, <code class='nw'>:149</code>), so a segment of each type flushes and commits cleanly. A merge re-reads the live postings of its input segments; if they hold both types it hits the check again, in every writer, until one type has no live documents left. Same-type merges work.</li><li><strong>The query side already copes.</strong> <code>CompletionQuery.rewrite</code> compares the segments' types and throws <code>IllegalStateException("... has values of multiple types")</code> (<code>CompletionQuery.java:87-103</code>), added in the same commit as the write-time check.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-example-step-by-step'>The example, step by step</h3><a class="hlink" href="#what-the-bug-is-the-example-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-example-step-by-step"><span aria-hidden="true">#</span></a></div><p>Commit doc 1 (<code class='nw'>SuggestField</code> "apple"): segment A, type 0. Commit doc 2 (<code>ContextSuggestField</code> "apricot"): segment B, type 1. Both commits succeed; CheckIndex is clean. Add doc 3 (no suggest field) and call <code class='nw'>forceMerge(1)</code>: the merge sees type 0 then type 1 and throws; the writer closes; reopening the index finds 2 documents. A new writer's <code class='nw'>forceMerge(1)</code> closes it too. Deleting doc 2 lets the merge succeed.</p><p>Also affected: a buffered segment holding both types (the next commit, NRT reopen, or <code class='nw'>close()</code> with the default <code>commitOnClose=true</code>, closes the writer and loses all uncommitted documents), upstream's own input of one document with both fields, a natural merge picked by the merge policy, and <code>addIndexes(Directory)</code>, which imports a segment of the other type with no check. <code>addIndexes(CodecReader)</code> over both types throws but leaves the writer open (the finder's probe and the fact checks executed it).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>281 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Direct users of <code class='nw'>SuggestField</code> / <code>ContextSuggestField</code> with a field routed to a completion postings format. Triggers: adding contexts to an existing suggest field without reindexing, two code paths (one with contexts, one without), or one document with both fields (upstream's own test input).</li><li><strong>Buffered mix.</strong> The next flush (commit, NRT reopen, <code class='nw'>close()</code> with the default <code>commitOnClose=true</code>, or an automatic flush) closes the writer and loses every document added since the last commit, unrelated ones included: in the repro the index keeps only the 1 previously committed document.</li><li><strong>Committed mix.</strong> Both commits succeed, CheckIndex is clean and suggest queries already fail with the designed <code>IllegalStateException</code>. Every merge whose input holds live documents of both types then closes the writer: <code class='nw'>forceMerge</code>, a natural merge, any new writer. Each time the uncommitted documents are lost. It ends once one type has no live documents left: delete them, hard-update them to the other class (executed), or reindex.</li><li><strong>Default settings.</strong> Beyond the per-field codec the suggester needs anyway, nothing unusual is required: an independent probe closed the writer through a natural merge with <code>TieredMergePolicy</code> and <code>ConcurrentMergeScheduler</code> after 8 alternating commits.</li><li><strong>Bounded.</strong> The committed index stays readable and CheckIndex-clean. No scale is needed.</li><li><strong>Soft-update migrations stay stuck.</strong> With <code>SoftDeletesRetentionMergePolicy</code>, the retained soft-deleted old version keeps the other type in the merge: after a <code>softUpdateDocument</code> from <code class='nw'>SuggestField</code> to <code>ContextSuggestField</code>, <code class='nw'>forceMerge(1)</code> closes the writer, while a hard <code class='nw'>updateDocument</code> does not (the finder's exploratory probe; re-run by the cross-model fact check's probe with assertions on and off).</li><li><strong>How likely.</strong> Rare: both classes under one name, Elasticsearch's completion mapping does not allow changing a field's contexts, and no report found since 5.3.0 (2015).</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit class for <code class='nw'>lucene/suggest</code> on the public API: the default codec with one field routed to <code>Completion104PostingsFormat</code>, a <code>SerialMergeScheduler</code>. Six tests let the mixing step throw, then check that the writer stays open and the named documents survive; two controls mix nothing. 6 of 8 fail on main and 10.5.2; all 8 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestMixedSuggestFieldTypes.java (lucene/suggest, public API)</span><span class='meta'>273 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.document;
+
+import java.io.IOException;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.FilterCodec;
+import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * SuggestField and ContextSuggestField must not be mixed under one field name, and {@link
+ * TestContextSuggestField#testMixedSuggestFields} expects an IllegalArgumentException for it. These
+ * tests check that the rejection behaves like input validation: the IndexWriter stays open, the
+ * other documents survive, and segments that flushed and committed without error can be merged.
+ */
+public class TestMixedSuggestFieldTypes extends LuceneTestCase {
+
+  private static final String FIELD = &quot;suggest_field&quot;;
+
+  /** The default codec with FIELD routed to the completion postings format. */
+  private static IndexWriterConfig iwc(MergePolicy mergePolicy) {
+    Codec codec =
+        new FilterCodec(TestUtil.getDefaultCodec().getName(), TestUtil.getDefaultCodec()) {
+          final PostingsFormat completion = new Completion104PostingsFormat();
+
+          @Override
+          public PostingsFormat postingsFormat() {
+            return new PerFieldPostingsFormat() {
+              @Override
+              public PostingsFormat getPostingsFormatForField(String field) {
+                return FIELD.equals(field)
+                    ? completion
+                    : ((PerFieldPostingsFormat) delegate.postingsFormat())
+                        .getPostingsFormatForField(field);
+              }
+            };
+          }
+        };
+    IndexWriterConfig iwc = new IndexWriterConfig(new MockAnalyzer(random()));
+    iwc.setCodec(codec);
+    iwc.setMergePolicy(mergePolicy);
+    iwc.setMergeScheduler(new SerialMergeScheduler());
+    return iwc;
+  }
+
+  private static Document plain(String id) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.NO));
+    return doc;
+  }
+
+  private static Document suggest(String id, String value) {
+    Document doc = plain(id);
+    doc.add(new SuggestField(FIELD, value, 1));
+    return doc;
+  }
+
+  private static Document contextSuggest(String id, String value) {
+    Document doc = plain(id);
+    doc.add(new ContextSuggestField(FIELD, value, 1, &quot;ctx&quot;));
+    return doc;
+  }
+
+  private static void assertOpen(IndexWriter w, String step) {
+    assertNull(step + &quot; closed the IndexWriter: &quot; + w.getTragicException(), w.getTragicException());
+    assertTrue(step + &quot; closed the IndexWriter&quot;, w.isOpen());
+  }
+
+  private static void assertIds(Directory dir, String... ids) throws IOException {
+    try (DirectoryReader reader = DirectoryReader.open(dir)) {
+      IndexSearcher searcher = new IndexSearcher(reader);
+      for (String id : ids) {
+        assertEquals(&quot;document &quot; + id, 1, searcher.count(new TermQuery(new Term(&quot;id&quot;, id))));
+      }
+    }
+  }
+
+  /** Two segments, one per type, flush and commit without error; merging them closes the writer. */
+  public void testForceMergeOfCommittedSegments() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, iwc(new LogDocMergePolicy()));
+      w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      w.addDocument(contextSuggest(&quot;2&quot;, &quot;apricot&quot;));
+      w.commit(); // no error: two committed segments, and CheckIndex finds no problem
+      TestUtil.checkIndex(dir);
+      w.addDocument(plain(&quot;3&quot;));
+      try {
+        w.forceMerge(1);
+      } catch (IOException | IllegalArgumentException _) {
+        // a rejected merge would be acceptable; a closed writer is not
+      }
+      assertOpen(w, &quot;forceMerge(1)&quot;);
+      w.close();
+      assertIds(dir, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;);
+    }
+  }
+
+  /** The committed two-segment index stays unmergeable: a new writer&#x27;s merge closes it too. */
+  public void testNewWriterCannotMergeCommittedIndex() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, iwc(new LogDocMergePolicy()))) {
+        w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+        w.commit();
+        w.addDocument(contextSuggest(&quot;2&quot;, &quot;apricot&quot;));
+      } // close() commits the second segment without error
+      TestUtil.checkIndex(dir);
+      IndexWriter w2 = new IndexWriter(dir, iwc(new LogDocMergePolicy()));
+      w2.addDocument(plain(&quot;3&quot;));
+      try {
+        w2.forceMerge(1);
+      } catch (IOException | IllegalArgumentException _) {
+        // a rejected merge would be acceptable; a closed writer is not
+      }
+      assertOpen(w2, &quot;forceMerge(1) in a new writer&quot;);
+      w2.close();
+      assertIds(dir, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;);
+    }
+  }
+
+  /** No merge call: the merge that the merge policy picks after the second commit closes it. */
+  public void testNaturalMergeAfterCommit() throws Exception {
+    LogDocMergePolicy mergePolicy = new LogDocMergePolicy();
+    mergePolicy.setMergeFactor(2); // two segments are enough for a merge
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, iwc(mergePolicy));
+      w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      w.addDocument(contextSuggest(&quot;2&quot;, &quot;apricot&quot;));
+      try {
+        w.commit();
+      } catch (IllegalArgumentException _) {
+        // reported below
+      }
+      assertOpen(w, &quot;the merge after commit()&quot;);
+      w.close();
+      assertIds(dir, &quot;1&quot;, &quot;2&quot;);
+    }
+  }
+
+  /** Two accepted documents, one per type, buffered next to an unrelated document. */
+  public void testOneBufferedSegment() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, iwc(NoMergePolicy.INSTANCE));
+      w.addDocument(plain(&quot;0&quot;));
+      w.commit();
+      w.addDocument(plain(&quot;1&quot;));
+      w.addDocument(suggest(&quot;2&quot;, &quot;apple&quot;));
+      try {
+        w.addDocument(contextSuggest(&quot;3&quot;, &quot;apricot&quot;));
+        w.commit();
+      } catch (IllegalArgumentException _) {
+        // rejecting the conflicting document would be acceptable
+      }
+      assertOpen(w, &quot;commit()&quot;);
+      w.close();
+      assertIds(dir, &quot;0&quot;, &quot;1&quot;, &quot;2&quot;);
+    }
+  }
+
+  /** Upstream&#x27;s input in testMixedSuggestFields: one document with both types. */
+  public void testOneDocumentWithBothTypes() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, iwc(NoMergePolicy.INSTANCE));
+      w.addDocument(plain(&quot;0&quot;));
+      w.commit();
+      w.addDocument(plain(&quot;1&quot;));
+      Document both = plain(&quot;2&quot;);
+      both.add(new SuggestField(FIELD, &quot;suggestion1&quot;, 4));
+      both.add(new ContextSuggestField(FIELD, &quot;suggestion2&quot;, 3));
+      try {
+        w.addDocument(both);
+        w.commit();
+      } catch (IllegalArgumentException _) {
+        // expected by testMixedSuggestFields
+      }
+      assertOpen(w, &quot;commit()&quot;);
+      w.close();
+      assertIds(dir, &quot;0&quot;, &quot;1&quot;);
+    }
+  }
+
+  /** addIndexes(Directory) imports a segment of the other type; the next merge fails. */
+  public void testAddIndexesDirectoryThenMerge() throws Exception {
+    try (Directory other = newDirectory();
+        Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(other, iwc(new LogDocMergePolicy()))) {
+        w.addDocument(contextSuggest(&quot;2&quot;, &quot;apricot&quot;));
+      }
+      IndexWriter w = new IndexWriter(dir, iwc(new LogDocMergePolicy()));
+      w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      try {
+        w.addIndexes(other);
+      } catch (IllegalArgumentException _) {
+        // rejecting the import would be acceptable
+      }
+      assertOpen(w, &quot;addIndexes(Directory)&quot;);
+      try {
+        w.forceMerge(1);
+      } catch (IOException | IllegalArgumentException _) {
+        // a rejected merge would be acceptable; a closed writer is not
+      }
+      assertOpen(w, &quot;forceMerge(1) after addIndexes(Directory)&quot;);
+      w.close();
+      assertIds(dir, &quot;1&quot;);
+    }
+  }
+
+  /** Control: the same two-segment merge with ContextSuggestField only. */
+  public void testControlSingleType() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, iwc(new LogDocMergePolicy()));
+      w.addDocument(contextSuggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      w.addDocument(contextSuggest(&quot;2&quot;, &quot;apricot&quot;));
+      w.commit();
+      w.addDocument(plain(&quot;3&quot;));
+      w.forceMerge(1);
+      assertOpen(w, &quot;forceMerge(1)&quot;);
+      w.close();
+      assertIds(dir, &quot;1&quot;, &quot;2&quot;, &quot;3&quot;);
+    }
+  }
+
+  /** Control: once every document of one type is deleted, the two segments merge again. */
+  public void testControlMergeAfterDeletingOneType() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, iwc(new LogDocMergePolicy()));
+      w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      w.addDocument(contextSuggest(&quot;2&quot;, &quot;apricot&quot;));
+      w.commit();
+      w.deleteDocuments(new Term(&quot;id&quot;, &quot;2&quot;));
+      w.forceMerge(1);
+      assertOpen(w, &quot;forceMerge(1) after deleting the ContextSuggestField document&quot;);
+      w.close();
+      assertIds(dir, &quot;1&quot;);
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestMixedSuggestFieldTypes.java $LUCENE/lucene/suggest/src/test/org/apache/lucene/search/suggest/document/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:suggest:test --tests TestMixedSuggestFieldTypes -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED0787)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>forceMerge(1)</code> of the two committed segments leaves the writer open (or rejects the merge), and documents 1, 2 and 3 stay in the index.</dd></div><div class='got'><dt>Observed</dt><dd><code>IllegalArgumentException: single field name has mixed types</code> closes the <code class='nw'>IndexWriter</code> and document 3 is lost; 6 of 8 tests fail this way, at commit, forceMerge, a natural merge and in a new writer.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-787/'>repro/LFV-787/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>4 more files (981 lines) · 4,664 words</span></summary><div class='body'><p>Each of the six behaviour tests allows an <code>IllegalArgumentException</code> at the step that introduces or merges the mix (a rejection would be fine), then asserts <code>getTragicException() == null</code>, <code class='nw'>isOpen()</code>, and that the documents it names are in the index. The two controls mix nothing, catch nothing and expect every step to succeed. The codec, merge scheduler and merge policies are fixed; the seed picks only the directory wrapper, locale, time zone and the analyzer's random payloads (which the suggest field overrides), so for a fixed seed the result is deterministic, and it was the same under all 11 seeds used.</p><div class="tbl"><table><thead><tr><th>test</th><th>what it does</th><th>on main</th></tr></thead><tbody><tr><td>force merge</td><td>commit doc 1 (<code class='nw'>SuggestField</code>), commit doc 2 (<code>ContextSuggestField</code>), CheckIndex, add doc 3, <code class='nw'>forceMerge(1)</code></td><td>fails: forceMerge(1) closed the writer</td></tr><tr><td>new writer</td><td>the same index, closed cleanly; a new writer adds doc 3 and calls <code class='nw'>forceMerge(1)</code></td><td>fails</td></tr><tr><td>natural merge</td><td><code>LogDocMergePolicy</code> with mergeFactor 2; the second commit triggers the policy's merge</td><td>fails</td></tr><tr><td>one buffered segment</td><td>commit doc 0; add doc 1 (plain), 2 (<code class='nw'>SuggestField</code>), 3 (<code>ContextSuggestField</code>); commit</td><td>fails: commit() closed the writer</td></tr><tr><td>one document, both types</td><td>upstream's input, next to a plain document</td><td>fails</td></tr><tr><td>addIndexes(Directory)</td><td>import a <code>ContextSuggestField</code> index into a <code class='nw'>SuggestField</code> index, then <code class='nw'>forceMerge(1)</code></td><td>fails</td></tr><tr><td>control: one type</td><td>two <code>ContextSuggestField</code> segments, <code class='nw'>forceMerge(1)</code></td><td>passes</td></tr><tr><td>control: delete one type</td><td>the two-type index, delete doc 2, <code class='nw'>forceMerge(1)</code></td><td>passes</td></tr></tbody></table></div><p>The class passes <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLint</code> and <code class='nw'>forbiddenApis</code>. The other files: the finder's 4-test JUnit, an independent reproducer's 6-test JUnit (adds a natural merge on <code>ConcurrentMergeScheduler</code>), the portable <code class='nw'>main()</code> that ran on 5.3.0 through main and prints how many documents survive, and a probe of the fixed code.</p><p>The gradle runs on the stock tree used the test's first draft, which differs only in the names of seven unused catch parameters (<code class='nw'>e</code> became <code class='nw'>_</code> for <code class='nw'>ecjLint</code>); the final file was re-run through the standalone runner on main (assertions on and off) and on 10.5.2, and an independent fact check re-ran it through gradle (assertions on and off) and on 10.5.2 with assertions off.</p><div class="hd hd-3"><h3 id='code-2-h'>TestCompletionMixedTypesClosesWriter.java (the finder&#x27;s 4-test repro)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>One segment, one document with both types, two committed segments, addIndexes(Directory). Fails 4 of 4 on main (assertions on and off); its 6-test version-portable copy (plus the sibling's 2 tests) fails 6 of 6 on 10.5.2, 10.0.0, 9.12.3, 9.0.0 and 8.11.2. Its fresh-writer half never runs, because the first assertion fails first.</p><figure class='code'><figcaption><span class='fname'>TestCompletionMixedTypesClosesWriter.java (the finder&#x27;s 4-test repro)</span><span class='meta'>213 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.document;
+
+import java.io.IOException;
+import java.util.Arrays;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.codecs.lucene104.Lucene104Codec;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * A SuggestField / ContextSuggestField mix under one field name may be rejected with
+ * IllegalArgumentException (upstream&#x27;s TestContextSuggestField#testMixedSuggestFields expects one),
+ * but the rejection must not close the IndexWriter, drop other accepted documents, or leave
+ * segments that can never be merged. Each test lets the operation that introduces the mix throw.
+ */
+public class TestCompletionMixedTypesClosesWriter extends LuceneTestCase {
+
+  private static final PostingsFormat COMPLETION = new Completion104PostingsFormat();
+
+  private static IndexWriterConfig config() {
+    IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer());
+    iwc.setCodec(
+        new Lucene104Codec() {
+          @Override
+          public PostingsFormat getPostingsFormatForField(String field) {
+            return &quot;suggest&quot;.equals(field) ? COMPLETION : super.getPostingsFormatForField(field);
+          }
+        });
+    iwc.setMergePolicy(new LogDocMergePolicy());
+    iwc.setMergeScheduler(new SerialMergeScheduler());
+    return iwc;
+  }
+
+  private static Document plain(String id) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    return doc;
+  }
+
+  private static Document suggest(String id, String value) {
+    Document doc = plain(id);
+    doc.add(new SuggestField(&quot;suggest&quot;, value, 1));
+    return doc;
+  }
+
+  private static Document contextSuggest(String id, String value) {
+    Document doc = plain(id);
+    doc.add(new ContextSuggestField(&quot;suggest&quot;, value, 1, &quot;ctx&quot;));
+    return doc;
+  }
+
+  private static void assertWriterOpen(IndexWriter w, String step) {
+    Throwable tragic = w.getTragicException();
+    assertNull(step + &quot; closed the IndexWriter with tragic exception: &quot; + tragic, tragic);
+    assertTrue(step + &quot;: IndexWriter is closed&quot;, w.isOpen());
+  }
+
+  private static void assertHasIds(Directory dir, String... ids) throws IOException {
+    try (DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      for (String id : ids) {
+        assertEquals(
+            &quot;document &quot; + id + &quot; lost; committed ids must include &quot; + Arrays.toString(ids),
+            1,
+            s.count(new TermQuery(new Term(&quot;id&quot;, id))));
+      }
+    }
+  }
+
+  /**
+   * Two accepted documents, one SuggestField and one ContextSuggestField, in one in-memory segment:
+   * the conflict surfaces only at flush and takes every other buffered document with it.
+   */
+  public void testTwoDocumentsInOneSegment() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config());
+      w.addDocument(plain(&quot;committed&quot;));
+      w.commit();
+      w.addDocument(plain(&quot;1&quot;));
+      w.addDocument(suggest(&quot;2&quot;, &quot;apple&quot;));
+      try {
+        w.addDocument(contextSuggest(&quot;3&quot;, &quot;banana&quot;));
+        w.commit();
+      } catch (IllegalArgumentException e) {
+        // an up-front rejection of the conflicting document would be fine
+      }
+      assertWriterOpen(w, &quot;commit&quot;);
+      w.commit();
+      w.close();
+      assertHasIds(dir, &quot;committed&quot;, &quot;1&quot;, &quot;2&quot;);
+    }
+  }
+
+  /**
+   * Upstream&#x27;s single-document case (testMixedSuggestFields expects IllegalArgumentException from
+   * addDocument or commit): the exception comes from the flush, which closes the writer and drops
+   * the unrelated buffered document.
+   */
+  public void testOneDocumentWithBothTypesDropsOtherBufferedDocuments() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config());
+      w.addDocument(plain(&quot;committed&quot;));
+      w.commit();
+      w.addDocument(plain(&quot;1&quot;));
+      Document both = plain(&quot;2&quot;);
+      both.add(new SuggestField(&quot;suggest&quot;, &quot;apple&quot;, 4));
+      both.add(new ContextSuggestField(&quot;suggest&quot;, &quot;banana&quot;, 3));
+      try {
+        w.addDocument(both);
+        w.commit();
+      } catch (IllegalArgumentException e) {
+        // expected by upstream&#x27;s testMixedSuggestFields
+      }
+      assertWriterOpen(w, &quot;commit of the mixed document&quot;);
+      w.commit();
+      w.close();
+      assertHasIds(dir, &quot;committed&quot;, &quot;1&quot;);
+    }
+  }
+
+  /**
+   * Two segments that each flushed cleanly, one SuggestField and one ContextSuggestField: every
+   * merge of the pair closes the writer, and a new writer on the same index fails the same way.
+   */
+  public void testTwoCleanSegmentsPoisonEveryMerge() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config());
+      w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      try {
+        w.addDocument(contextSuggest(&quot;2&quot;, &quot;banana&quot;));
+        w.commit();
+      } catch (IllegalArgumentException e) {
+        // an up-front rejection of the conflicting document would be fine
+      }
+      assertWriterOpen(w, &quot;commit of the second segment&quot;);
+      w.addDocument(plain(&quot;3&quot;));
+      try {
+        w.forceMerge(1);
+      } catch (IOException | IllegalArgumentException e) {
+        // reported below
+      }
+      assertWriterOpen(w, &quot;forceMerge(1) of two cleanly flushed segments&quot;);
+      w.close();
+      assertHasIds(dir, &quot;1&quot;, &quot;3&quot;);
+      // a new writer must be able to merge the committed index
+      try (IndexWriter w2 = new IndexWriter(dir, config())) {
+        try {
+          w2.forceMerge(1);
+        } catch (IOException | IllegalArgumentException e) {
+          // reported below
+        }
+        assertWriterOpen(w2, &quot;forceMerge(1) in a new writer&quot;);
+      }
+    }
+  }
+
+  /** addIndexes(Directory) imports a segment of the other type without a check; the next merge fails. */
+  public void testAddIndexesDirectoryThenMerge() throws Exception {
+    try (Directory src = newDirectory();
+        Directory dir = newDirectory()) {
+      try (IndexWriter ws = new IndexWriter(src, config())) {
+        ws.addDocument(contextSuggest(&quot;s1&quot;, &quot;banana&quot;));
+      }
+      IndexWriter w = new IndexWriter(dir, config());
+      w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      try {
+        w.addIndexes(src);
+      } catch (IllegalArgumentException e) {
+        // an up-front rejection would be fine
+      }
+      assertWriterOpen(w, &quot;addIndexes(Directory)&quot;);
+      w.addDocument(plain(&quot;3&quot;));
+      try {
+        w.forceMerge(1);
+      } catch (IOException | IllegalArgumentException e) {
+        // reported below
+      }
+      assertWriterOpen(w, &quot;forceMerge(1) after addIndexes(Directory)&quot;);
+      w.close();
+      assertHasIds(dir, &quot;1&quot;, &quot;3&quot;);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestCompletionMixedTypes.java (independent reproducer)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>Written from the claim only; adds a natural merge on ConcurrentMergeScheduler and a new writer, and prints the query-time error and the recovery after deleting one type. Fails 5 of 6 on main, 10.5.2 and 9.12.3.</p><figure class='code'><figcaption><span class='fname'>TestCompletionMixedTypes.java (independent reproducer)</span><span class='meta'>313 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.document;
+
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.FilterCodec;
+import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.ConcurrentMergeScheduler;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Independent verifier repro. A SuggestField and a ContextSuggestField under one field name are
+ * both accepted by addDocument. The type conflict is detected only while the completion postings
+ * are written (flush or merge). Asserted contract: a rejected (invalid) input must not close the
+ * IndexWriter, and an index that committed cleanly must stay mergeable.
+ */
+@LuceneTestCase.SuppressSysoutChecks(bugUrl = &quot;diagnostic output only&quot;)
+public class TestCompletionMixedTypes extends LuceneTestCase {
+
+  private static final String FIELD = &quot;suggest&quot;;
+
+  /** Production default codec, with FIELD routed to the matching completion postings format. */
+  private static Codec completionCodec() {
+    final Codec base = TestUtil.getDefaultCodec();
+    final PostingsFormat basePf = TestUtil.getDefaultPostingsFormat();
+    String suffix = basePf.getName().replaceAll(&quot;[^0-9]&quot;, &quot;&quot;);
+    Set&lt;String&gt; available = new HashSet&lt;&gt;(PostingsFormat.availablePostingsFormats());
+    String name = &quot;Completion&quot; + suffix;
+    assertTrue(&quot;no completion format &quot; + name + &quot; in &quot; + available, available.contains(name));
+    final PostingsFormat completion = PostingsFormat.forName(name);
+    final PerFieldPostingsFormat perField =
+        new PerFieldPostingsFormat() {
+          @Override
+          public PostingsFormat getPostingsFormatForField(String field) {
+            return FIELD.equals(field) ? completion : basePf;
+          }
+        };
+    // Same name as the base codec, so the index is readable through SPI.
+    return new FilterCodec(base.getName(), base) {
+      @Override
+      public PostingsFormat postingsFormat() {
+        return perField;
+      }
+    };
+  }
+
+  private static IndexWriterConfig config(boolean merges) {
+    Analyzer analyzer = new StandardAnalyzer();
+    IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+    iwc.setCodec(completionCodec());
+    iwc.setMergeScheduler(new SerialMergeScheduler());
+    iwc.setMaxBufferedDocs(1000);
+    iwc.setRAMBufferSizeMB(64);
+    if (merges) {
+      LogDocMergePolicy mp = new LogDocMergePolicy();
+      mp.setMergeFactor(10); // two segments never trigger a natural merge
+      iwc.setMergePolicy(mp);
+    } else {
+      iwc.setMergePolicy(NoMergePolicy.INSTANCE);
+    }
+    return iwc;
+  }
+
+  private static Document doc(String id, Field extra) {
+    Document d = new Document();
+    d.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    if (extra != null) {
+      d.add(extra);
+    }
+    return d;
+  }
+
+  private static boolean chainHas(Throwable t, String text) {
+    for (Throwable c = t; c != null; c = c.getCause()) {
+      if (c.getMessage() != null &amp;&amp; c.getMessage().contains(text)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static int committedDocs(Directory dir) throws Exception {
+    try (DirectoryReader r = DirectoryReader.open(dir)) {
+      return r.numDocs();
+    }
+  }
+
+  private static void assertWriterSurvived(String what, IndexWriter w, Throwable thrown) {
+    System.out.println(
+        &quot;V1 &quot;
+            + what
+            + &quot;: thrown=&quot;
+            + thrown
+            + &quot; isOpen=&quot;
+            + w.isOpen()
+            + &quot; tragic=&quot;
+            + w.getTragicException());
+    if (thrown != null) {
+      for (StackTraceElement e : thrown.getStackTrace()) {
+        String s = e.toString();
+        if (s.contains(&quot;CompletionFieldsConsumer&quot;)
+            || s.contains(&quot;IndexWriter.merge(&quot;)
+            || s.contains(&quot;SegmentMerger.mergeTerms&quot;)
+            || s.contains(&quot;DocumentsWriterPerThread.flush&quot;)) {
+          System.out.println(&quot;V1   origin frame: &quot; + s);
+        }
+      }
+    }
+    assertNull(
+        what + &quot; closed the IndexWriter with tragic exception: &quot; + w.getTragicException(),
+        w.getTragicException());
+    assertTrue(what + &quot; closed the IndexWriter&quot;, w.isOpen());
+  }
+
+  /** Two accepted documents (one per type) in one in-memory segment. */
+  public void testMixInOneBufferedSegment() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config(false));
+      w.addDocument(doc(&quot;committed&quot;, null));
+      w.commit();
+      // all three are accepted by addDocument
+      w.addDocument(doc(&quot;unrelated&quot;, null));
+      w.addDocument(doc(&quot;plain-suggest&quot;, new SuggestField(FIELD, &quot;apple&quot;, 1)));
+      w.addDocument(doc(&quot;context-suggest&quot;, new ContextSuggestField(FIELD, &quot;apricot&quot;, 2, &quot;ctx&quot;)));
+      Throwable t = expectThrows(Throwable.class, w::commit);
+      assertTrue(&quot;unexpected exception: &quot; + t, chainHas(t, &quot;mixed types&quot;));
+      try {
+        assertWriterSurvived(&quot;commit of a buffered SuggestField+ContextSuggestField mix&quot;, w, t);
+      } finally {
+        System.out.println(&quot;V1 committed docs after failure: &quot; + committedDocs(dir));
+        w.close();
+      }
+    }
+  }
+
+  /** Two segments, one type each, that flushed and committed cleanly; then forceMerge. */
+  public void testMixAcrossCommittedSegmentsMerge() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config(true));
+      w.addDocument(doc(&quot;plain-suggest&quot;, new SuggestField(FIELD, &quot;apple&quot;, 1)));
+      w.commit();
+      w.addDocument(doc(&quot;context-suggest&quot;, new ContextSuggestField(FIELD, &quot;apricot&quot;, 2, &quot;ctx&quot;)));
+      w.commit(); // both commits succeed
+      TestUtil.checkIndex(dir); // the committed index is valid
+      w.addDocument(doc(&quot;unrelated-uncommitted&quot;, null));
+      Throwable t = expectThrows(Throwable.class, () -&gt; w.forceMerge(1));
+      assertTrue(&quot;unexpected exception: &quot; + t, chainHas(t, &quot;mixed types&quot;));
+      try {
+        assertWriterSurvived(&quot;forceMerge(1) of two cleanly committed segments&quot;, w, t);
+      } finally {
+        System.out.println(&quot;V1 committed docs after merge failure: &quot; + committedDocs(dir));
+        w.close();
+      }
+    }
+  }
+
+  /** The committed two-segment state persists: a brand-new writer fails the same way. */
+  public void testNewWriterCannotMergeCommittedIndex() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config(true))) {
+        w.addDocument(doc(&quot;plain-suggest&quot;, new SuggestField(FIELD, &quot;apple&quot;, 1)));
+        w.commit();
+        w.addDocument(doc(&quot;context-suggest&quot;, new ContextSuggestField(FIELD, &quot;apricot&quot;, 2, &quot;ctx&quot;)));
+      } // clean close: commit on close succeeds
+      TestUtil.checkIndex(dir);
+      assertEquals(2, committedDocs(dir));
+
+      // query side reports the mix as a clean IllegalStateException (by design)
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        SuggestIndexSearcher s = new SuggestIndexSearcher(r);
+        Throwable q =
+            expectThrows(
+                Throwable.class,
+                () -&gt;
+                    s.suggest(
+                        new PrefixCompletionQuery(new StandardAnalyzer(), new Term(FIELD, &quot;ap&quot;)),
+                        3,
+                        false));
+        System.out.println(&quot;V1 query on two-segment index: &quot; + q);
+      }
+
+      IndexWriter w2 = new IndexWriter(dir, config(true));
+      Throwable t = expectThrows(Throwable.class, () -&gt; w2.forceMerge(1));
+      assertTrue(&quot;unexpected exception: &quot; + t, chainHas(t, &quot;mixed types&quot;));
+      try {
+        assertWriterSurvived(&quot;forceMerge(1) in a new writer on the committed index&quot;, w2, t);
+      } finally {
+        w2.close();
+        // diagnostic: only deleting every document of one type makes the index mergeable again
+        try (IndexWriter w3 = new IndexWriter(dir, config(true))) {
+          w3.deleteDocuments(new Term(&quot;id&quot;, &quot;context-suggest&quot;));
+          w3.forceMerge(1);
+          System.out.println(&quot;V1 merge after deleting the ContextSuggestField doc: ok&quot;);
+        } catch (Throwable e) {
+          System.out.println(&quot;V1 merge after deleting the ContextSuggestField doc: &quot; + e);
+        }
+      }
+    }
+  }
+
+  /** No explicit merge: a natural merge on a ConcurrentMergeScheduler thread after two commits. */
+  public void testNaturalMergeOnMergeThread() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      final Throwable[] mergeFailure = new Throwable[1];
+      ConcurrentMergeScheduler cms =
+          new ConcurrentMergeScheduler() {
+            @Override
+            protected void handleMergeException(Throwable exc) {
+              mergeFailure[0] = exc; // keep the merge thread&#x27;s exception out of the test runner
+            }
+          };
+      IndexWriterConfig iwc = config(true);
+      LogDocMergePolicy mp = new LogDocMergePolicy();
+      mp.setMergeFactor(2); // two segments trigger a natural merge
+      mp.setMinMergeDocs(1);
+      iwc.setMergePolicy(mp);
+      iwc.setMergeScheduler(cms);
+      IndexWriter w = new IndexWriter(dir, iwc);
+      w.addDocument(doc(&quot;plain-suggest&quot;, new SuggestField(FIELD, &quot;apple&quot;, 1)));
+      w.commit();
+      w.addDocument(doc(&quot;context-suggest&quot;, new ContextSuggestField(FIELD, &quot;apricot&quot;, 2, &quot;ctx&quot;)));
+      try {
+        w.commit(); // flushes the second segment and schedules a natural merge of the two
+      } catch (Throwable t) {
+        System.out.println(&quot;V1 second commit raced with the merge failure: &quot; + t);
+      }
+      cms.sync();
+      System.out.println(&quot;V1 natural merge thread exception: &quot; + mergeFailure[0]);
+      try {
+        assertWriterSurvived(&quot;a natural background merge of two committed segments&quot;, w, null);
+      } finally {
+        w.close();
+      }
+    }
+  }
+
+  /** Upstream&#x27;s own case (one document holding both types), plus a check of the writer state. */
+  public void testOneDocumentWithBothTypes() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config(false));
+      w.addDocument(doc(&quot;unrelated&quot;, null));
+      Document d = doc(&quot;both&quot;, new SuggestField(FIELD, &quot;apple&quot;, 1));
+      d.add(new ContextSuggestField(FIELD, &quot;apricot&quot;, 2, &quot;ctx&quot;));
+      w.addDocument(d); // accepted
+      Throwable t = expectThrows(Throwable.class, w::commit);
+      assertTrue(&quot;unexpected exception: &quot; + t, chainHas(t, &quot;mixed types&quot;));
+      try {
+        assertWriterSurvived(&quot;commit of one document holding both types&quot;, w, t);
+      } finally {
+        w.close();
+      }
+    }
+  }
+
+  /** Control: the same shapes with a single type must work (vacuity check of the harness). */
+  public void testControlSingleTypeMerges() throws Exception {
+    try (Directory dir = new ByteBuffersDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, config(true))) {
+        w.addDocument(doc(&quot;a&quot;, new ContextSuggestField(FIELD, &quot;apple&quot;, 1, &quot;ctx&quot;)));
+        w.commit();
+        w.addDocument(doc(&quot;b&quot;, new ContextSuggestField(FIELD, &quot;apricot&quot;, 2, &quot;ctx&quot;)));
+        w.addDocument(doc(&quot;c&quot;, new ContextSuggestField(FIELD, &quot;avocado&quot;, 3, &quot;ctx2&quot;)));
+        w.commit();
+        w.forceMerge(1);
+        assertNull(w.getTragicException());
+        assertTrue(w.isOpen());
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(1, r.leaves().size());
+        SuggestIndexSearcher s = new SuggestIndexSearcher(r);
+        TopSuggestDocs hits =
+            s.suggest(
+                new ContextQuery(
+                    new PrefixCompletionQuery(new StandardAnalyzer(), new Term(FIELD, &quot;a&quot;))),
+                10,
+                false);
+        assertEquals(3, hits.scoreDocs.length);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>CompletionMixedTypesMain.java (portable main(), 5.3.0 to main)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>No test framework; runs the four scenarios, reopens the committed index after each failure and counts the documents that survive. The argument <code class='nw'>control</code> replaces every ContextSuggestField by a SuggestField.</p><figure class='code'><figcaption><span class='fname'>CompletionMixedTypesMain.java (portable main(), 5.3.0 to main)</span><span class='meta'>316 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.document;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.FilterCodec;
+import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+
+/**
+ * Release-portable main() version of TestCompletionMixedTypesClosesWriter (same four scenarios),
+ * for every Lucene release that has ContextSuggestField. Uses only public API, the default codec
+ * and the newest completion postings format the release registers. Prints one line per step and
+ * exits 1 when any scenario closes the IndexWriter or loses an accepted document, 0 otherwise.
+ * With the argument &quot;control&quot; every ContextSuggestField becomes a SuggestField (expected exit 0).
+ */
+public class CompletionMixedTypesMain {
+
+  private static final PostingsFormat COMPLETION = completionFormat();
+  private static final List&lt;String&gt; problems = new ArrayList&lt;&gt;();
+  private static Path root;
+  // &quot;control&quot; argument: every ContextSuggestField is replaced by a SuggestField (no type mix)
+  private static boolean control;
+
+  private static PostingsFormat completionFormat() {
+    String[] names = {
+      &quot;Completion104&quot;, &quot;Completion101&quot;, &quot;Completion912&quot;, &quot;Completion99&quot;, &quot;Completion90&quot;,
+      &quot;Completion84&quot;, &quot;completion&quot;
+    };
+    for (String name : names) {
+      if (PostingsFormat.availablePostingsFormats().contains(name)) {
+        return PostingsFormat.forName(name);
+      }
+    }
+    throw new AssertionError(&quot;no completion postings format&quot;);
+  }
+
+  private static IndexWriterConfig config() {
+    IndexWriterConfig iwc = new IndexWriterConfig(new StandardAnalyzer());
+    final Codec base = Codec.getDefault();
+    iwc.setCodec(
+        new FilterCodec(base.getName(), base) {
+          @Override
+          public PostingsFormat postingsFormat() {
+            return new PerFieldPostingsFormat() {
+              @Override
+              public PostingsFormat getPostingsFormatForField(String field) {
+                return &quot;suggest&quot;.equals(field)
+                    ? COMPLETION
+                    : ((PerFieldPostingsFormat) base.postingsFormat())
+                        .getPostingsFormatForField(field);
+              }
+            };
+          }
+        });
+    iwc.setMergePolicy(new LogDocMergePolicy());
+    iwc.setMergeScheduler(new SerialMergeScheduler());
+    return iwc;
+  }
+
+  private static Directory newDir(String name) throws IOException {
+    return FSDirectory.open(Files.createDirectory(root.resolve(name)));
+  }
+
+  private static Document plain(String id) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.YES));
+    return doc;
+  }
+
+  private static Document suggest(String id, String value) {
+    Document doc = plain(id);
+    doc.add(new SuggestField(&quot;suggest&quot;, value, 1));
+    return doc;
+  }
+
+  private static Document contextSuggest(String id, String value) {
+    Document doc = plain(id);
+    doc.add(control ? new SuggestField(&quot;suggest&quot;, value, 1) : new ContextSuggestField(&quot;suggest&quot;, value, 1, &quot;ctx&quot;));
+    return doc;
+  }
+
+  private static String describe(Throwable t) {
+    return t == null ? &quot;none&quot; : t.getClass().getName() + &quot;: &quot; + t.getMessage();
+  }
+
+  private static void step(String scenario, String step, Throwable thrown) {
+    System.out.println(&quot;  [&quot; + scenario + &quot;] &quot; + step + &quot; -&gt; threw &quot; + describe(thrown));
+  }
+
+  private static void checkOpen(String scenario, IndexWriter w, String step) {
+    Throwable tragic = w.getTragicException();
+    boolean open = w.isOpen();
+    System.out.println(
+        &quot;  [&quot; + scenario + &quot;] after &quot; + step + &quot;: isOpen=&quot; + open + &quot; tragic=&quot; + describe(tragic));
+    if (tragic != null || !open) {
+      problems.add(scenario + &quot;: &quot; + step + &quot; closed the IndexWriter (tragic=&quot; + describe(tragic) + &quot;)&quot;);
+    }
+  }
+
+  private static void closeQuietly(String scenario, IndexWriter w) {
+    try {
+      w.close();
+    } catch (Throwable t) {
+      step(scenario, &quot;close()&quot;, t);
+    }
+  }
+
+  private static void checkIds(String scenario, Directory dir, String... ids) throws IOException {
+    try (DirectoryReader r = DirectoryReader.open(dir)) {
+      IndexSearcher s = new IndexSearcher(r);
+      StringBuilder sb = new StringBuilder();
+      for (String id : ids) {
+        int c = s.count(new TermQuery(new Term(&quot;id&quot;, id)));
+        sb.append(id).append(&#x27;=&#x27;).append(c).append(&#x27; &#x27;);
+        if (c != 1) {
+          problems.add(scenario + &quot;: accepted document id=&quot; + id + &quot; is not in the committed index&quot;);
+        }
+      }
+      System.out.println(
+          &quot;  [&quot; + scenario + &quot;] committed index: maxDoc=&quot; + r.maxDoc() + &quot; ids &quot; + sb.toString().trim());
+    }
+  }
+
+  /** Scenario 1: two accepted documents, one per type, in one in-memory segment. */
+  static void twoDocumentsInOneSegment() throws IOException {
+    String sc = &quot;S1 two docs one segment&quot;;
+    try (Directory dir = newDir(&quot;s1&quot;)) {
+      IndexWriter w = new IndexWriter(dir, config());
+      w.addDocument(plain(&quot;committed&quot;));
+      w.commit();
+      w.addDocument(plain(&quot;1&quot;));
+      w.addDocument(suggest(&quot;2&quot;, &quot;apple&quot;));
+      Throwable thrown = null;
+      try {
+        w.addDocument(contextSuggest(&quot;3&quot;, &quot;banana&quot;));
+        w.commit();
+      } catch (Throwable t) {
+        thrown = t;
+      }
+      step(sc, &quot;addDocument(ContextSuggestField) + commit()&quot;, thrown);
+      checkOpen(sc, w, &quot;commit&quot;);
+      if (w.isOpen()) {
+        w.commit();
+      }
+      closeQuietly(sc, w);
+      checkIds(sc, dir, &quot;committed&quot;, &quot;1&quot;, &quot;2&quot;);
+    }
+  }
+
+  /** Scenario 2: upstream&#x27;s one-document mix (testMixedSuggestFields) plus an unrelated document. */
+  static void oneDocumentWithBothTypes() throws IOException {
+    String sc = &quot;S2 one doc both types&quot;;
+    try (Directory dir = newDir(&quot;s2&quot;)) {
+      IndexWriter w = new IndexWriter(dir, config());
+      w.addDocument(plain(&quot;committed&quot;));
+      w.commit();
+      w.addDocument(plain(&quot;1&quot;));
+      Document both = plain(&quot;2&quot;);
+      both.add(new SuggestField(&quot;suggest&quot;, &quot;apple&quot;, 4));
+      both.add(control ? new SuggestField(&quot;suggest&quot;, &quot;banana&quot;, 3) : new ContextSuggestField(&quot;suggest&quot;, &quot;banana&quot;, 3));
+      Throwable thrown = null;
+      try {
+        w.addDocument(both);
+        w.commit();
+      } catch (Throwable t) {
+        thrown = t;
+      }
+      step(sc, &quot;addDocument(both) + commit()&quot;, thrown);
+      checkOpen(sc, w, &quot;commit of the mixed document&quot;);
+      if (w.isOpen()) {
+        w.commit();
+      }
+      closeQuietly(sc, w);
+      checkIds(sc, dir, &quot;committed&quot;, &quot;1&quot;);
+    }
+  }
+
+  /** Scenario 3: two cleanly flushed segments, one per type; every merge of the pair. */
+  static void twoCleanSegmentsPoisonEveryMerge() throws IOException {
+    String sc = &quot;S3 two clean segments + merge&quot;;
+    try (Directory dir = newDir(&quot;s3&quot;)) {
+      IndexWriter w = new IndexWriter(dir, config());
+      w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      Throwable thrown = null;
+      try {
+        w.addDocument(contextSuggest(&quot;2&quot;, &quot;banana&quot;));
+        w.commit();
+      } catch (Throwable t) {
+        thrown = t;
+      }
+      step(sc, &quot;addDocument(ContextSuggestField) + commit() (second segment)&quot;, thrown);
+      checkOpen(sc, w, &quot;commit of the second segment&quot;);
+      if (w.isOpen()) {
+        w.addDocument(plain(&quot;3&quot;));
+        thrown = null;
+        try {
+          w.forceMerge(1);
+        } catch (Throwable t) {
+          thrown = t;
+        }
+        step(sc, &quot;addDocument(plain 3) + forceMerge(1)&quot;, thrown);
+        checkOpen(sc, w, &quot;forceMerge(1) of two cleanly flushed segments&quot;);
+      }
+      closeQuietly(sc, w);
+      checkIds(sc, dir, &quot;1&quot;, &quot;3&quot;);
+      IndexWriter w2 = new IndexWriter(dir, config());
+      thrown = null;
+      try {
+        w2.forceMerge(1);
+      } catch (Throwable t) {
+        thrown = t;
+      }
+      step(sc, &quot;new IndexWriter on the committed index + forceMerge(1)&quot;, thrown);
+      checkOpen(sc, w2, &quot;forceMerge(1) in a new writer&quot;);
+      closeQuietly(sc, w2);
+    }
+  }
+
+  /** Scenario 4: addIndexes(Directory) imports a segment of the other type; the next merge. */
+  static void addIndexesDirectoryThenMerge() throws IOException {
+    String sc = &quot;S4 addIndexes(Directory) + merge&quot;;
+    try (Directory src = newDir(&quot;s4src&quot;);
+        Directory dir = newDir(&quot;s4&quot;)) {
+      IndexWriter ws = new IndexWriter(src, config());
+      ws.addDocument(contextSuggest(&quot;s1&quot;, &quot;banana&quot;));
+      ws.close();
+      IndexWriter w = new IndexWriter(dir, config());
+      w.addDocument(suggest(&quot;1&quot;, &quot;apple&quot;));
+      w.commit();
+      Throwable thrown = null;
+      try {
+        w.addIndexes(src);
+      } catch (Throwable t) {
+        thrown = t;
+      }
+      step(sc, &quot;addIndexes(Directory)&quot;, thrown);
+      checkOpen(sc, w, &quot;addIndexes(Directory)&quot;);
+      if (w.isOpen()) {
+        w.addDocument(plain(&quot;3&quot;));
+        thrown = null;
+        try {
+          w.forceMerge(1);
+        } catch (Throwable t) {
+          thrown = t;
+        }
+        step(sc, &quot;addDocument(plain 3) + forceMerge(1)&quot;, thrown);
+        checkOpen(sc, w, &quot;forceMerge(1) after addIndexes(Directory)&quot;);
+      }
+      closeQuietly(sc, w);
+      checkIds(sc, dir, &quot;1&quot;, &quot;3&quot;);
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    control = args.length &gt; 0 &amp;&amp; &quot;control&quot;.equals(args[0]);
+    root = Files.createTempDirectory(Paths.get(System.getProperty(&quot;java.io.tmpdir&quot;)), &quot;cmix&quot;);
+    System.out.println(
+        &quot;lucene=&quot;
+            + org.apache.lucene.util.Version.LATEST
+            + &quot; codec=&quot;
+            + Codec.getDefault().getName()
+            + &quot; completionFormat=&quot;
+            + COMPLETION.getName()
+            + &quot; mode=&quot;
+            + (control ? &quot;control (SuggestField only)&quot; : &quot;mixed&quot;));
+    twoDocumentsInOneSegment();
+    oneDocumentWithBothTypes();
+    twoCleanSegmentsPoisonEveryMerge();
+    addIndexesDirectoryThenMerge();
+    if (problems.isEmpty()) {
+      System.out.println(&quot;RESULT: no scenario closed the writer or lost a document&quot;);
+      System.exit(0);
+    }
+    System.out.println(&quot;RESULT: &quot; + problems.size() + &quot; contract violations&quot;);
+    for (String p : problems) {
+      System.out.println(&quot;  VIOLATION &quot; + p);
+    }
+    System.exit(1);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>TestMixedMarkerFixProbe.java (behaviour of the fixed code)</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>Run with the fix only; passes when the stated facts hold: queries on a mixed field are rejected until one type is deleted and merged away, and a segment with a deleted posting of the other type is marked mixed until a merge.</p><figure class='code'><figcaption><span class='fname'>TestMixedMarkerFixProbe.java (behaviour of the fixed code)</span><span class='meta'>139 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.suggest.document;
+
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.FilterCodec;
+import org.apache.lucene.codecs.PostingsFormat;
+import org.apache.lucene.codecs.perfield.PerFieldPostingsFormat;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Behaviour of the &quot;mixed marker&quot; fix (run with the fix only): what queries see after a mix, and
+ * when the field becomes queryable again. Each test passes when the stated facts hold.
+ */
+public class TestMixedMarkerFixProbe extends LuceneTestCase {
+
+  private static final String FIELD = &quot;suggest_field&quot;;
+
+  private static IndexWriterConfig iwc(MergePolicy mergePolicy) {
+    Codec codec =
+        new FilterCodec(TestUtil.getDefaultCodec().getName(), TestUtil.getDefaultCodec()) {
+          final PostingsFormat completion = new Completion104PostingsFormat();
+
+          @Override
+          public PostingsFormat postingsFormat() {
+            return new PerFieldPostingsFormat() {
+              @Override
+              public PostingsFormat getPostingsFormatForField(String field) {
+                return FIELD.equals(field)
+                    ? completion
+                    : ((PerFieldPostingsFormat) delegate.postingsFormat())
+                        .getPostingsFormatForField(field);
+              }
+            };
+          }
+        };
+    IndexWriterConfig iwc = new IndexWriterConfig(new MockAnalyzer(random()));
+    iwc.setCodec(codec);
+    iwc.setMergePolicy(mergePolicy);
+    iwc.setMergeScheduler(new SerialMergeScheduler());
+    return iwc;
+  }
+
+  private static Document doc(String id, Field suggest) {
+    Document doc = new Document();
+    doc.add(new StringField(&quot;id&quot;, id, Field.Store.NO));
+    doc.add(suggest);
+    return doc;
+  }
+
+  /** Returns the number of suggestions, or -1 if the query is rejected as &quot;multiple types&quot;. */
+  private static int suggestions(Directory dir) throws Exception {
+    try (DirectoryReader reader = DirectoryReader.open(dir)) {
+      SuggestIndexSearcher searcher = new SuggestIndexSearcher(reader);
+      try {
+        return searcher.suggest(
+                new PrefixCompletionQuery(new MockAnalyzer(random()), new Term(FIELD, &quot;ap&quot;)),
+                10,
+                false)
+            .scoreLookupDocs()
+            .length;
+      } catch (IllegalStateException e) {
+        assertTrue(e.getMessage(), e.getMessage().contains(&quot;has values of multiple types&quot;));
+        return -1;
+      }
+    }
+  }
+
+  /** Two committed segments: the merge succeeds; queries are rejected until one type is gone. */
+  public void testMergedSegmentsRejectQueriesUntilOneTypeIsDeleted() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, iwc(new LogDocMergePolicy()));
+      w.addDocument(doc(&quot;1&quot;, new SuggestField(FIELD, &quot;apple&quot;, 1)));
+      w.commit();
+      w.addDocument(doc(&quot;2&quot;, new ContextSuggestField(FIELD, &quot;apricot&quot;, 1, &quot;ctx&quot;)));
+      w.commit();
+      assertEquals(&quot;two segments of different types&quot;, -1, suggestions(dir));
+      w.forceMerge(1);
+      w.commit();
+      assertTrue(w.isOpen());
+      assertEquals(&quot;one merged, mixed segment&quot;, -1, suggestions(dir));
+      w.deleteDocuments(new Term(&quot;id&quot;, &quot;2&quot;));
+      w.forceMerge(1);
+      w.commit();
+      assertEquals(&quot;after deleting the ContextSuggestField document and merging&quot;, 1, suggestions(dir));
+      w.close();
+    }
+  }
+
+  /**
+   * The sibling shape (a buffered SuggestField document updated to a ContextSuggestField one): the
+   * flush no longer closes the writer, but the deleted SuggestField posting still counts, so the
+   * segment is marked mixed until a merge drops it.
+   */
+  public void testUpdatedDocumentMarksSegmentMixedUntilMerged() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, iwc(NoMergePolicy.INSTANCE));
+      w.addDocument(doc(&quot;1&quot;, new SuggestField(FIELD, &quot;apple&quot;, 1)));
+      w.updateDocument(
+          new Term(&quot;id&quot;, &quot;1&quot;), doc(&quot;1&quot;, new ContextSuggestField(FIELD, &quot;apple&quot;, 1, &quot;ctx&quot;)));
+      w.commit();
+      assertTrue(w.isOpen());
+      assertEquals(&quot;flushed segment with a deleted SuggestField posting&quot;, -1, suggestions(dir));
+      w.close();
+      try (IndexWriter w2 = new IndexWriter(dir, iwc(new LogDocMergePolicy()))) {
+        w2.forceMerge(1);
+      }
+      assertEquals(&quot;after a merge drops the deleted posting&quot;, 1, suggestions(dir));
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT) and the 10.5.2 release jars: reproduced; 5.3.0, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.12.3: reproduced with the portable main()</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64, the only platform run (a pure-Java code path)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestMixedSuggestFieldTypes.java $LUCENE/lucene/suggest/src/test/org/apache/lucene/search/suggest/document/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:suggest:test --tests TestMixedSuggestFieldTypes -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false (the recorded run used -Ptests.seed=5EED0787)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestMixedSuggestFieldTypes &gt; testNewWriterCannotMergeCommittedIndex FAILED
+    java.lang.AssertionError: forceMerge(1) in a new writer closed the IndexWriter: java.lang.IllegalArgumentException: single field name has mixed types ...
+TestMixedSuggestFieldTypes &gt; testForceMergeOfCommittedSegments FAILED
+    java.lang.AssertionError: forceMerge(1) closed the IndexWriter: java.lang.IllegalArgumentException: single field name has mixed types ...
+TestMixedSuggestFieldTypes &gt; testOneDocumentWithBothTypes FAILED
+    java.lang.AssertionError: commit() closed the IndexWriter: java.lang.IllegalArgumentException: single field name has mixed types ...
+TestMixedSuggestFieldTypes &gt; testAddIndexesDirectoryThenMerge FAILED
+    java.lang.AssertionError: forceMerge(1) after addIndexes(Directory) closed the IndexWriter: java.lang.IllegalArgumentException: single field name has mixed types ...
+TestMixedSuggestFieldTypes &gt; testOneBufferedSegment FAILED
+    java.lang.AssertionError: commit() closed the IndexWriter: java.lang.IllegalArgumentException: single field name has mixed types ...
+TestMixedSuggestFieldTypes &gt; testNaturalMergeAfterCommit FAILED
+    java.lang.AssertionError: the merge after commit() closed the IndexWriter: java.lang.IllegalArgumentException: single field name has mixed types ...
+8 tests completed, 6 failed
+
+# the same with -Ptests.asserts=false, through the standalone runner (assertions on and off)
+# and on the 10.5.2 release jars; with the fix: 8 tests, 0 failed
+
+# portable main() on main: documents left in the committed index after each failure
+[S1 two docs one segment] committed index: maxDoc=1 ids committed=1 1=0 2=0
+[S3 two clean segments + merge] committed index: maxDoc=2 ids 1=1 3=0
+[S3 two clean segments + merge] after forceMerge(1) in a new writer: isOpen=false tragic=java.lang.IllegalArgumentException: single field name has mixed types</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The suggest module's design rejects a mix with an <code>IllegalArgumentException</code> (LUCENE-6459), an input error.</li><li><code class='nw'>IndexWriter</code> documents closing itself for an Error or a disaster during a checkpoint, as a guard against corrupted state (<code>IndexWriter.java:162-165</code>); a type mismatch corrupts nothing.</li><li>In the merge case nothing is rejected: both segments committed cleanly and pass CheckIndex, yet every merge closes the writer.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>367 words</span></summary><div class='body'><ul><li><strong>The design chose input validation.</strong> In the LUCENE-6459 review (#7518) a reviewer asked "Are you allowed to mix ContextSuggestField and SuggestField even for the same field name, within one suggester?"; the author answered "No you are not. If mixed, CompletionFieldsConsumer will throw IllegalArgumentException upon indexing.", and the reviewer replied "OK, excellent." Nothing in the thread mentions the writer closing, lost documents or merges.</li><li><strong>IndexWriter's contract.</strong> The class NOTE: the writer closes itself "if you hit an Error, or disaster strikes during a checkpoint", as "a defensive measure in case any internal state (buffered documents, deletions, reference counts) were corrupted" (<code>IndexWriter.java:162-165</code>). <code class='nw'>addDocument</code>: on an exception "the index will be consistent, but this document may not have been added" (<code class='nw'>:1465-1466</code>). Design intent in the package-private <code class='nw'>DocumentsWriter</code> (<code class='nw'>:67-79</code>): aborting exceptions are the "certain limited times when an exception can corrupt this state"; "All other exceptions" only mark the document deleted.</li><li><strong>The merge case rejects no input.</strong> Both segments were accepted and committed, CheckIndex is clean and the query side reports the state cleanly (<code>CompletionQuery.java:87-103</code>). Failing every merge in every writer is not validation.</li><li><strong>The only test never looks at the writer.</strong> <code>TestContextSuggestField#testMixedSuggestFields</code> (<code class='nw'>:158-176</code>) expects the exception from <code class='nw'>addDocument</code> or <code class='nw'>commit(false)</code> and stops there. No test covers two documents, separate segments, merges or <code class='nw'>addIndexes</code>.</li><li><strong>No user-facing documentation</strong> of the rule in the javadoc of <code class='nw'>SuggestField</code>, <code>ContextSuggestField</code>, <code>CompletionPostingsFormat</code>, <code class='nw'>CompletionQuery</code> or the package.</li><li><strong>Precedents.</strong> LUCENE-5662 (#6724, "Missing Field null checks can result in aborted segments", fixed in 4.8.1) and LUCENE-8441 (#9487, a wrong index-sort field type now fails the document when it is added, 7.5) moved validation out of aborting steps as bug fixes. LUCENE-7562 (#8613) fixed a different merge-time exception in this same file, one that made merges fail again and again, as a Lucene bug. A design precedent, not a fix: #15584 (2026), an enhancement that added a new indexing-time validation, made it non-aborting from the start (<code>IndexingChain.java:2095-2101</code>), and its test says "ensure IndexWriter remains open and doc was skipped" (<code>TestCustomTermFreq.java:125</code>).</li><li><strong>Timeline.</strong> LUCENE-6579 (#7637), which made every merge exception tragic, was resolved on 2015-07-14, after the design answer; both shipped in 5.3.0.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>280 words</span></summary><div class='body'><p>The strongest case for "works as designed" (built by the devil's advocate; risk moderate): mixing is invalid by design (the review answer); upstream's test expects an exception from its add-and-commit block, and a 2019 commit (<code class='nw'>ad457d188e5</code>, "Improve RIW exception handling and opt out of concurrent flushing if exception is expected") adjusted that test for a flush-time exception; core makes every flush or merge exception aborting by design (LUCENE-5987, LUCENE-6579, <code>TestIndexWriterExceptions#testDocumentsWriterAbort</code>); the classes and the codec API are <code>@lucene.experimental</code>, and the codec API cannot reject a document without aborting; the module already calls the cross-segment state invalid at query time; a major downstream server blocks the mix in its mapping.</p><p>Why it fails: it explains why an exception is thrown, not why the writer must close and lose unrelated documents; no document, test or discussion accepts that. For the merge case it offers only the generic rules (one schema per field name, every merge exception tragic); it does not say why an index that accepted and committed both segments and passes CheckIndex should close every writer that merges them, while the query side already reports the state as a clean error. The way out is rewriting data. The <code class='nw'>IndexWriter</code> contract describes self-closing as a guard against corrupted state, upstream fixed this shape as a bug before (LUCENE-5662, LUCENE-8441, LUCENE-7562), and #15584 made a new validation non-aborting by design. <strong>Verdict: a defect</strong> (adjudication: confirmed, medium confidence). A maintainer may still call the one-segment flush case expected, or file the whole as an improvement (validate earlier, document the rule); the cross-model fact check rates the "works as designed" case strong for that flush case and moderate for the merge.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Mark the field as mixed instead of throwing, and let CompletionQuery reject it</strong></p><p class='short'>Stop throwing in the completion writer: mark the field as mixed (type 2) and let <code class='nw'>CompletionQuery</code>, which already rejects a field whose segments differ, reject queries on it. Flushes and merges then succeed and nothing is lost; suggest queries on a mixed field fail until one type is deleted. 4 files, +17/-3; the whole suggest module passes.</p><pre class='snippet' tabindex='0'><code>--- CompletionFieldsConsumer.java (CompletionTermWriter.write)
+           } else if (this.type != type) {
+-            throw new IllegalArgumentException(&quot;single field name has mixed types&quot;);
++            // SuggestField and ContextSuggestField values under one field name. Throwing here would
++            // abort the flush or merge and close the IndexWriter, so mark the field instead and let
++            // CompletionQuery reject queries on it.
++            this.type = CompletionPostingsFormat.MIXED_TYPE;
+           }
+--- CompletionQuery.java (rewrite)
+         byte t = completionTerms.getType();
++        if (t == CompletionPostingsFormat.MIXED_TYPE) {
++          throw new IllegalStateException(getField() + &quot; has values of multiple types&quot;);
++        }
+--- CompletionPostingsFormat.java: + static final byte MIXED_TYPE = 2; (with javadoc)</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 748 words</span></summary><div class='body'><p>Only option A was built and validated. It moves the error from indexing time to query time, so upstream's <code>testMixedSuggestFields</code> must change; a maintainer may prefer to keep the rejection at indexing time (option B), which needs a core hook because nothing at <code class='nw'>addDocument</code> knows the field's type in the rest of the index. Until a fix ships, using <code>ContextSuggestField</code> (with zero contexts where none apply) for every document of the field avoids the mix.</p><div class="hd hd-3"><h3 id='fix-mixed-marker'>Mark the field as mixed instead of throwing, and let CompletionQuery reject it <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-mixed-marker" target="_self" aria-label="Link to this section" aria-describedby="fix-mixed-marker"><span aria-hidden="true">#</span></a></div><p><code>CompletionTermWriter.write</code> records <code class='nw'>MIXED_TYPE</code> (2) instead of throwing; <code>CompletionQuery.rewrite</code> throws its existing <code>IllegalStateException("... has values of multiple types")</code> for a mixed segment; <code>CompletionTerms.getType()</code> and the format javadoc mention the new value. Merges re-derive the type from live postings, so deleting every document of one type and merging makes the field queryable again (probe executed). <code>testMixedSuggestFields</code> changes from "commit throws" to "a suggest query throws".</p><pre class='snippet' tabindex='0'><code>--- CompletionFieldsConsumer.java (CompletionTermWriter.write)
+           } else if (this.type != type) {
+-            throw new IllegalArgumentException(&quot;single field name has mixed types&quot;);
++            // SuggestField and ContextSuggestField values under one field name. Throwing here would
++            // abort the flush or merge and close the IndexWriter, so mark the field instead and let
++            // CompletionQuery reject queries on it.
++            this.type = CompletionPostingsFormat.MIXED_TYPE;
+           }
+--- CompletionQuery.java (rewrite)
+         byte t = completionTerms.getType();
++        if (t == CompletionPostingsFormat.MIXED_TYPE) {
++          throw new IllegalStateException(getField() + &quot; has values of multiple types&quot;);
++        }
+--- CompletionPostingsFormat.java: + static final byte MIXED_TYPE = 2; (with javadoc)</code></pre><p class='k'>Trade-offs</p><ul><li>The error moves from indexing time (today the commit throws and the writer dies) to query time, so users learn about the mix later.</li><li><code>CompletionTerms.getType()</code> (public, experimental) can return 2 and the <code class='nw'>.cmp</code> file can store 2. The reader does not validate the byte, so nothing else changes; an older release reading such a segment would run any completion query on the mixed FST without an error. Making old readers refuse it needs a format version bump, and today <code>COMPLETION_CODEC_VERSION</code> is both the minimum and the current version (<code>CompletionPostingsFormat.java:102-103</code>, <code>CompletionFieldsProducer.java:88-89</code>): a plain bump would make the patched reader reject existing segments too, so it needs separate minimum and current values and back-compatibility tests. Not done here.</li><li><code>addIndexes(CodecReader)</code> over both types, today the one path that rejects cleanly, succeeds and marks the result mixed; a suggest query then throws (executed by the fact checks).</li><li>Soft-update migrations: with <code>SoftDeletesRetentionMergePolicy</code> the merge succeeds (executed), but while the old soft-deleted versions are retained the merge input still holds both types, so the merged segment is marked mixed and suggest queries stay rejected until retention drops them (read, not queried). Upstream would have to decide whether that is acceptable.</li><li>The sibling bug (deleted or rejected postings counted at flush): its 3 tests also pass, but such a segment is marked mixed until a merge drops the deleted posting, so its own live-postings fix is still worth having.</li><li>Not benchmarked; one assignment replaces a throw, and rewrite adds one byte comparison per segment.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree of <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: stock + the new test, 6 of 8 fail with assertions on and off; + the fix and the updated <code>testMixedSuggestFields</code>, <code>:lucene:suggest:check</code> passes (ecjLint, forbiddenApis, checkGoogleJavaFormat; 32 suites, 244 tests, 7 skipped, 0 failures, including the new test 8 of 8 and <code>TestContextSuggestField</code> 6 of 6), and the module's tests pass with assertions off.</li><li>Standalone runner: the new test 8 of 8 with assertions on and off; the finder's 4 tests pass; the fix probe passes 2 of 2.</li></ul><div class="hd hd-3"><h3 id='fix-reject-at-add'>Reject the conflicting document in addDocument (needs a core hook)</h3><a class="hlink" href="#fix-reject-at-add" target="_self" aria-label="Link to this section" aria-describedby="fix-reject-at-add"><span aria-hidden="true">#</span></a></div><p>Keeps the error at indexing time as a non-aborting rejection, as the LUCENE-6459 design answer implies. Not built.</p><p class='k'>Trade-offs</p><p>At <code class='nw'>addDocument</code> nothing in the suggest module knows the field's type in the rest of the index: both classes use the same <code class='nw'>FieldType</code>, and <code class='nw'>FieldInfo</code> attributes are not validated across documents ("the behaviour after merge is undefined", <code>FieldInfo.java:669-671</code>). It needs a per-field schema property that the indexing chain checks, the same check in <code>addIndexes(Directory)</code>, and handling for indexes that already mix the types across segments (they would still need option A at merge).</p><div class="hd hd-3"><h3 id='fix-document'>Document the rule</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>Javadoc on <code class='nw'>SuggestField</code> and <code>ContextSuggestField</code>: never index both under one field name; doing so closes the IndexWriter at the next flush or merge. Not built.</p><p class='k'>Trade-offs</p><p>No behaviour change: the writer still closes and the committed index still cannot be merged.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream products are exposed only if they let one field name receive both field classes; Elasticsearch, for one, does not allow changing a completion field's contexts in its mapping. A server that picked the class from the structure of a user's request would let that user trigger it indirectly.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A plan reviewer reading <code>CompletionFieldsConsumer</code> noticed that the type is checked only while postings are written; public-API probes then closed the writer at flush and at merge. A bounded-exhaustive model-based test of the real writer (3,257,424 runs each with assertions on and off, 0 mismatches within the model) widened it to natural merges, new writers and <code>addIndexes(Directory)</code>.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>215 words</span></summary><div class='body'><p><strong>Method: code reading and exploratory probes, then bounded-exhaustive model-based testing of the real IndexWriter.</strong></p><ul><li>During planning, an independent reviewer from another model family (OpenAI GPT-5.6) read <code>CompletionFieldsConsumer.java</code> and ranked this lead first; a reading of main then confirmed that the type is checked only while postings are written, after the delegate postings, and that flush treats every Throwable as aborting.</li><li>The finder's exploratory public-API probes gave the first executed signal: a tragic close at flush and at merge.</li><li>The finder then wrote a predictive model of <code class='nw'>IndexWriter</code> with the completion postings format and compared it, operation by operation, with the real writer over every script of length up to 5 over 12 operations (adds of each type and both, plain and rejected adds, delete, flush, commit, <code class='nw'>forceMerge(1)</code>, NRT reopen, <code>addIndexes(Directory)</code>, <code>addIndexes(CodecReader)</code>) and 12 configurations: 3,257,424 runs each with assertions on and off, 0 model mismatches (1 to 5 <code>ConcurrentMergeScheduler</code> timing interleavings per run, where <code class='nw'>forceMerge</code> rethrows before the merge thread closes the writer, were classified separately; natural merges with merge factor 2 were checked only against the contract); a model mutant was killed with 12,328 mismatches, and with the throw removed every contract-violation class dropped to 0. It was minimised into the JUnit; independent AI tools then reproduced, reviewed and judged it.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-27): 376 query records over GitHub issues, PRs, commits and review threads, the mailing lists, the JIRA archive, downstream projects and the web; the exact message returns no GitHub issue or PR. Closest: LUCENE-6459, which added the check, and LUCENE-7562, a different merge failure in the same file.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>No issue, PR, review comment, JIRA ticket, list thread, downstream report or web page describes a mix that <code class='nw'>addDocument</code> accepts being rejected only at flush or merge, the writer closing, lost documents, or merges of the two segment types failing. The check is unchanged on upstream main (<code class='nw'>f7bcc0abd816</code>, re-read at <code class='nw'>20ced71c1e6e</code>), branch_10x and branch_10_6; branch_9x was tombstoned in 2024 (#13882), and its last release, 9.12.3, is affected (executed). No open PR touches the four suggest files.</p><p><strong>Closest, not this bug:</strong> #7518 (LUCENE-6459, added the check; states only that a mix is invalid and throws "upon indexing"), #7400 (LUCENE-6339, the document suggester), #8613 (LUCENE-7562, a merge-time NPE in the same file on ghost fields, fixed as a bug in 5.5.4 and 6.4), #7637 (LUCENE-6579, made every merge exception tragic, same release), the bug-fix precedents #6724 (LUCENE-5662) and #9487 (LUCENE-8441), and #15584, a design precedent (not a bug fix).</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; downstream repositories; dev@, java-user@, issues@ and commits@; JIRA archive; web</th><td class='when'>2026-10-27</td><td>five runs of a scripted prior-report search (the finder's, the devil's advocate's and three follow-up runs), 51 queries each</td><td>only the related items above</td></tr><tr><th scope='row'>GitHub (apache/lucene, apache/lucene-solr, Elasticsearch, OpenSearch, Solr, all of GitHub)</th><td class='when'>2026-10-27</td><td>75 GraphQL searches, including the exact message and the owner's handle</td><td>"single field name has mixed types": no issue or PR</td></tr><tr><th scope='row'>Review threads and open PRs</th><td class='when'>2026-10-27</td><td>the full threads of #7518, #7400, #8613, #7637, #7049 and others; the changed files of all 409 open apache/lucene PRs</td><td>only #7518 discusses the mix; no open PR touches the files</td></tr><tr><th scope='row'>lists.apache.org and JIRA</th><td class='when'>2026-10-27</td><td>30 list queries; 4 JQL queries</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with <code>ContextSuggestField</code> by LUCENE-6459 (<code class='nw'>be4d58c7740</code>, branch_5x <code class='nw'>380bb29f395</code>, 2015-05-28) and first released in 5.3.0; not a regression. It fails the same way on 5.3.0, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.12.3, 10.5.2 and main; 5.2.1 has no <code>ContextSuggestField</code>.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>5 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-6459 "add common suggest API for document based NRT suggester" (trunk <code class='nw'>be4d58c7740</code>, branch_5x <code class='nw'>380bb29f395</code>, both 2015-05-28; GitHub mirror #7518; svn era, no PR). The commit added <code>ContextSuggestField</code>, the type byte, the write-time check, the query-time check and <code>testMixedSuggestFields</code>. On the main line of history <code>git log -S</code> on the message finds only this commit (<code class='nw'>--all</code> adds its branch_5x copy and a 2021 branch_8x tombstone), and <code>git blame</code> (also <code>-w -C</code>, ignoring the LUCENE-9570 reformat) puts today's check on it. The first release is 5.3.0: the branch_5x commit is not an ancestor of the 5.2.0 or 5.2.1 tags, and CHANGES.txt lists LUCENE-6459 under 5.3.0. The merge case also depends on LUCENE-6579 (trunk <code class='nw'>926397824e9</code>, 2015-07-14, "exceptions during merging are now tragic"; CHANGES lists it under 5.3.0), which shipped in the same release. Later commits on the file (LUCENE-6553, LUCENE-7562, refactorings) did not change the check.</p><p>Caveats: releases 5.x-8.x ran on JDK 25, outside their supported JDKs; the failing path is plain Java and the controls pass on the same JVM. All 94 release tags from 5.3.0 to 10.5.2 in the history clone contain the check (read).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 6 of 8 fail (gradle and the standalone runner, assertions on and off); the portable main() fails all four scenarios</td></tr><tr><th scope='row'>10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the brief's test 6 of 8 fail (assertions on; off in the fact check); the finder's and the independent reproducer's tests fail</td></tr><tr><th scope='row'>5.3.0, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the portable main(): all four scenarios close the writer; the same-type control passes</td></tr><tr><th scope='row'>5.2.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no API</span></td><td>no ContextSuggestField: compile error</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the brief's test 8 of 8; the whole lucene/suggest module, 244 tests, 0 failed</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate and an adjudication confirmed it with their own runs; reviews by another model family agreed on the root cause but ran read-only. A registry re-run, an audit and fact checks reproduced it, and this doc's test fails 6 of 8 on main and passes with the fix.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>486 words</span></summary><div class='body'><p>Every executed check came from AI tools of one model family; the reviews by another model family (OpenAI GPT-5.6) ran, reading only and could not run Java, and a separate run re-ran the finder's JUnit (it fails).</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>4-test public-API JUnit fails 4 of 4 on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>); its 6-test version-portable copy fails 6 of 6 down to 8.11.2; same-type control 4 of 4 pass; removing the throw (a root-cause check, not a fix) passes 4 of 4; model-based test: 0 model mismatches in 3,257,424 runs each with <code class='nw'>-ea</code> and <code class='nw'>-da</code> (timing interleavings of the concurrent merge scheduler classified separately).</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> procedural not_real (low)</span></td><td>Ran read-only and could not execute, so its rubric required not_real; it agreed with the root cause.</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>Read-only; inputs in contract; cites the DocumentsWriter javadoc, LUCENE-7562 and #15584.</td></tr><tr><th scope='row'>Cross-model review, root-cause lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> uncertain (medium)</span></td><td>Read-only; root cause agrees, inputs in contract; the uncertainty comes from not executing. It led to splitting off the sibling (deleted or rejected postings counted at flush).</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit from the claim only: 5 of 6 fail on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3; shows the natural CMS merge, the new writer, CheckIndex clean and recovery after deleting one type.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, moderate framing risk</span></td><td>Built the by-design case and rejected it; its probe closed the writer through a natural merge with an all-default config after 8 alternating commits; corrected the first release to 5.3.0.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (medium)</span></td><td>Re-ran the independent reproduction's JUnit with a new seed: 5 of 6 fail with <code class='nw'>-ea</code> and <code class='nw'>-da</code>, at <code>CompletionTermWriter.write(:219)</code> from flush or merge.</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>The finder's JUnit fails 4 of 4 with <code class='nw'>-ea</code> and <code class='nw'>-da</code> (three seeds); the control passes; the independent reproduction's fails 5 of 6.</td></tr><tr><th scope='row'>this doc's brief</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced, one fix validated</span></td><td>A new 8-test JUnit fails 6 of 8 on main (gradle and the standalone runner, <code class='nw'>-ea</code>, <code class='nw'>-da</code>) and 10.5.2; the fix passes it and the whole suggest module with assertions on and off.</td></tr><tr><th scope='row'>fact check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> ok after three wording fixes</span></td><td>Re-ran the brief's gradle command on a clean extraction (6 of 8 fail, assertions on and off), the standalone runner on main and on 10.5.2 with assertions off, and the fix (8 of 8; the module's 244 tests). Its own probe executed <code>addIndexes(CodecReader)</code>, <code class='nw'>close()</code> and the NRT reopen. Found three wording errors, fixed here.</td></tr><tr><th scope='row'>cross-model fact check</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> core bug sound</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) checked the brief read-only against a reference pack; a separate run ran a public-API probe on stock and fixed jars with assertions on and off (soft-update and hard-update cases included). Its wording findings are fixed here.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-787/bug.png' download='completion-mixed-suggest-field-types-close-writer-at-flush-and-merge-bug.png' target='_self'>PNG</a> <span class='n'>456 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,605 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-787, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Mixing SuggestField and ContextSuggestField under one field name is accepted by addDocument and rejected only when the completion postings are written at flush or merge, where the IllegalArgumentException is tragic: the IndexWriter closes and loses every uncommitted document, and two cleanly committed segments of the two types make every merge that combines them close the writer again, also in a new writer (released since 5.3.0)</dd></div><div><dt>Area</dt><dd>suggest / document suggester (CompletionFieldsConsumer type check at flush and merge; core flush and merge abort paths)</dd></div><div><dt>Priority</dt><dd>Medium, rank 179: Mixing SuggestField and ContextSuggestField under one name closes the IndexWriter at flush and breaks later merges like LFV-760, but it lives in the opt-in document suggester.</dd></div><div><dt>Impact class</dt><dd>index unusable</dd></div><div><dt>Impact note</dt><dd>Applications of the opt-in document suggester (a field routed to the completion postings format through a per-field codec) that index both SuggestField and ContextSuggestField documents under one field name, by mistake or when they add contexts to an existing suggest field, lose their IndexWriter at the next flush if both types are buffered together (every document added since the last commit is lost, unrelated ones included), and if the types sit in separately committed segments (both flush and commit cleanly, CheckIndex is clean) every merge that combines them, including a natural background merge with an otherwise default IndexWriterConfig, closes the writer again in every new writer until all documents of one type are deleted; committed data stays readable and nothing is corrupted; no scale needed; every release from 5.3.0 to 10.5.2 and main.</dd></div><div><dt>Summary</dt><dd>You index a SuggestField document and a ContextSuggestField document under the same field name; addDocument accepts both, and the suggest module's design (LUCENE-6459) says such a mix is rejected with an IllegalArgumentException, so you expect an input error that leaves the writer and your other documents alone. Instead the type is compared only in CompletionFieldsConsumer while postings are written, so the IllegalArgumentException 'single field name has mixed types' fires inside flush or merge, where IndexWriter treats every exception as tragic: the writer closes and drops every uncommitted document. If the two types landed in different segments, both commit cleanly, but every merge that combines them closes the writer, also in any new writer, until you delete all documents of one type.</dd></div><div><dt>Introduced</dt><dd>be4d58c7740bea4e797eb1acff6355eb260e7c93 (trunk, svn r1682158) and its branch_5x commit 380bb29f395 (svn r1682170, shipped in 5.3.0): LUCENE-6459 'Query Interface for suggest API' (now apache/lucene#7518; committed by GitHub mikemccand for GitHub areek; no PR, svn era). It added ContextSuggestField (type byte 1) next to SuggestField (type byte 0), the type byte in every completion posting payload, the only type comparison (CompletionTermWriter.write, at flush and merge) and its only test, testMixedSuggestFields [read: git log -S on the message finds only this commit; git blame, also with -w -C and ignoring the LUCENE-9570 reformat, puts every line of today's check on it]. Present from the first day of the API; not a regression (2015-05-28 (trunk and branch_5x commits))</dd></div><div><dt>First affected version</dt><dd>5.3.0 [exec: the follow-up's public-API main() probe shows all four scenarios closing the writer, -ea and -da; the four-scenario JUnit fails 4 of 4]; 5.2.1 and earlier have no ContextSuggestField (compile error, API absent, not a result about the bug). Correction to the finder's 'since 5.2': the branch_5x commit is not an ancestor of the 5.2.0 or 5.2.1 tags, and CHANGES.txt lists LUCENE-6459 under 5.3.0</dd></div><div><dt>Affected versions</dt><dd>Every release from 5.3.0 through 10.5.2 (the latest) and main ea57360912ed and a9779ef3c193; never fixed (upstream main f7bcc0abd816, branch_10x, branch_10_6 and branch_9x carry the same check; no open PR touches CompletionFieldsConsumer, SuggestField, ContextSuggestField or CompletionQuery, read-only check 2026-10-27). [exec] follow-up main() probe and JUnit: FAIL on 5.3.0, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.12.3, 10.5.2 and main a9779ef3c193 (-ea; -da also on 5.3.0 and main), same-type controls pass; finder's JUnit fails 4 of 4 on main (-ea and -da), 10.5.2, 10.0.0, 9.12.3, 9.0.0 and 8.11.2 (version-portable copy); the independent reproduction's JUnit fails 5 of 6 on main (-ea and -da), 10.5.2 and 9.12.3 (-ea and -da); the intended-behaviour check re-ran the finder's JUnit on main and 10.5.2. [read] all 94 release tags 5.3.0-10.5.2 in the history clone contain the check unchanged in substance; the clone lacks the 8.8.2-8.11.x tags (8.11.4 executed). Releases 5.x-8.x ran on JDK 25, outside their supported JDKs; the failing path is plain Java and the controls pass on the same JVM</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal: code reading; also reached by exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, read-only; the prior-report record verdict new: 376 query records, namely the scripted prior-report search in five runs (finder, the intended-behaviour check and three follow-up runs, 51 queries each over apache/lucene issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web), 75 GitHub GraphQL searches (apache/lucene, apache/lucene-solr, elastic/elasticsearch, opensearch-project/OpenSearch, apache/solr and all of GitHub, including the exact message 'single field name has mixed types': 0 results anywhere, and an author:shbhar search), 30 direct list queries, 4 JIRA queries, 9 web queries (one throttled), commits by path on main, branch_10x, branch_10_6 and branch_9x, and the changed files of all 409 open apache/lucene PRs; the full review threads of #7518, #7400, #8613, #7637, #7049 and others read directly; 18 hits read, none the same bug). Closest items, not reports: #7518 / LUCENE-6459 (introduced the check; records only that a mix is invalid and throws IllegalArgumentException 'upon indexing', nothing on the writer closing, lost documents or merges), #7400 / LUCENE-6339 (the document suggester), #8613 / LUCENE-7562 (a different merge-time NullPointerException in CompletionFieldsConsumer on ghost fields, from elastic/elasticsearch#21500, fixed as a Lucene bug in 5.5.4 and 6.4), #7637 / LUCENE-6579 (made every merge exception tragic, same release 5.3.0), and the precedents #6724 / LUCENE-5662, #9487 / LUCENE-8441 and #15584 (validation errors moved out of aborting steps). Gaps: GitHub search does not index PR review comments, JIRA and list search are word-based, private reports are not visible</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26; tested 2026-10-27) through gradle in a scratch worktree and through the standalone JUnit runner, with assertions on and off; the 10.5.2 release jars (assertions on, and off in an independent fact check). A portable <code class='nw'>main()</code> ran on 5.3.0, 5.5.5, 6.6.6, 7.7.3, 8.11.4, 9.12.3, 10.5.2 and main; earlier JUnit runs covered 10.0.0, 9.12.3, 9.0.0 and 8.11.2. The fix was validated in the scratch worktree: the new test, the updated <code>testMixedSuggestFields</code>, the whole <code class='nw'>lucene/suggest</code> module (244 tests) with assertions on and off, and <code>:lucene:suggest:check</code>. Two later fact checks re-ran the repro and the fix and executed <code class='nw'>close()</code>, the NRT reopen, <code>addIndexes(CodecReader)</code> and soft-update migrations with public-API probes.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/CompletionFieldsConsumer.java:85-113 (at a9779ef3c193) (write: delegateFieldsConsumer.write first, then one CompletionTermWriter per field), :195-227 (CompletionTermWriter.write reads the type byte of every posting payload; :214-220 the first posting fixes the type, a different one throws IllegalArgumentException &#x27;single field name has mixed types&#x27;)</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/SuggestField.java:48 (at a9779ef3c193) (@lucene.experimental), :64, :123-124 (type() returns 0), :133 (type byte written into the payload); ContextSuggestField.java:44 (@lucene.experimental), :51, :106-107 (type() returns 1); no add-time comparison anywhere</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/CompletionQuery.java:87-103 (at a9779ef3c193) (rewrite throws IllegalStateException &#x27;&lt;field&gt; has values of multiple types&#x27; when segments carry different types: the cross-segment state is handled cleanly at query time)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/DocumentsWriterPerThread.java:585-589 (at a9779ef3c193) (flush: catch (Throwable) -&gt; onAbortingException; maybeAbort in finally); IndexWriter.java:5109-5113 (merge: catch (Throwable) -&gt; tragicEvent(t, &quot;merge&quot;))</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:162-165 (at a9779ef3c193) (class NOTE: the writer closes itself on an Error or a disaster during a checkpoint), :1465-1466 (addDocument: on an exception &#x27;the index will be consistent, but this document may not have been added&#x27;); DocumentsWriter.java:67-79 (package-private class javadoc: aborting exceptions are the &#x27;certain limited times when an exception can corrupt this state&#x27;; &#x27;All other exceptions (&quot;non-aborting exceptions&quot;)&#x27; only mark the document deleted; design intent, not public contract)</code></li><li><code>lucene/suggest/src/test/org/apache/lucene/search/suggest/document/TestContextSuggestField.java:158-176 (at a9779ef3c193) (testMixedSuggestFields, &#x27;:166 mixing suggest field types for same field name should error out&#x27;, accepts the exception from addDocument or commit and never inspects the writer)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/SuggestField.java:53-62, (at a9779ef3c193) :64, :79, :123-124, :127-138 (:133); ContextSuggestField.java:51, :106-107</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/CompletionFieldsConsumer.java:85-113, (at a9779ef3c193) :105-110, :149, :195-227 (:214-220, throw :219)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/DocumentsWriterPerThread.java:585-589, (at a9779ef3c193) :594-605; IndexWriter.java:5109-5113</code></li><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/CompletionQuery.java:87-103 (at a9779ef3c193)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:1363-1369 (at a9779ef3c193) (close() flushes only when commitOnClose is true)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:162-165, (at a9779ef3c193) :1465-1466; DocumentsWriter.java:67-79</code></li><li><code>lucene/suggest/src/test/org/apache/lucene/search/suggest/document/TestContextSuggestField.java:158-176 (at a9779ef3c193)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexingChain.java:2095-2101; (at a9779ef3c193) lucene/core/src/test/org/apache/lucene/index/TestCustomTermFreq.java:125 (at a9779ef3c193) (#15584: new validation non-aborting by design)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/suggest/src/java/org/apache/lucene/search/suggest/document/CompletionFieldsProducer.java:88-89 (at a9779ef3c193) (one constant as minimum and current version), :115 (type byte read without validation); CompletionPostingsFormat.java:95, :102-103; CompletionTerms.java:39-44; CompletionQuery.java:107-113 (ContextQuery rejects only type 0), :114-117 (plain query wrapped as ContextQuery)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/FieldInfo.java:662-672 (at a9779ef3c193) (attributes not validated across documents)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:10575-10577 (at a9779ef3c193) (LUCENE-6579 under 5.3.0)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestMixedSuggestFieldTypes.java (lucene/suggest, public API): <a href='../repro/LFV-787/TestMixedSuggestFieldTypes.java'><code>repro/LFV-787/TestMixedSuggestFieldTypes.java</code></a> (273 lines)</li><li>TestCompletionMixedTypesClosesWriter.java (the finder&#x27;s 4-test repro): <a href='../repro/LFV-787/TestCompletionMixedTypesClosesWriter.java'><code>repro/LFV-787/TestCompletionMixedTypesClosesWriter.java</code></a> (213 lines)</li><li>TestCompletionMixedTypes.java (independent reproducer): <a href='../repro/LFV-787/TestCompletionMixedTypes.java'><code>repro/LFV-787/TestCompletionMixedTypes.java</code></a> (313 lines)</li><li>CompletionMixedTypesMain.java (portable main(), 5.3.0 to main): <a href='../repro/LFV-787/CompletionMixedTypesMain.java'><code>repro/LFV-787/CompletionMixedTypesMain.java</code></a> (316 lines)</li><li>TestMixedMarkerFixProbe.java (behaviour of the fixed code): <a href='../repro/LFV-787/TestMixedMarkerFixProbe.java'><code>repro/LFV-787/TestMixedMarkerFixProbe.java</code></a> (139 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A picture of the repro's merge case, made in parallel with this doc from the executed repro on main <code class='nw'>a9779ef3c193</code> and the code; the PNG is the final summary card. The alt text describes the intended content.</p><ul class='paths'><li><a href='../assets/LFV-787/bug.png'><code>assets/LFV-787/bug.png</code></a> (456 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

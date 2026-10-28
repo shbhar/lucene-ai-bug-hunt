@@ -2,6 +2,8 @@
 
 Bug LFV-538 · Area: suggest / spell (WordBreakSpellChecker word breaks) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-538.html](../../bugs/LFV-538.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index some words and call WordBreakSpellChecker.suggestWordBreaks with setMa
 
 ## Expected vs actual
 
-- Expected: You expect the maxSuggestions splits of the term that rank best by Lucene's own order (fewest breaks, then highest frequency).
-- Actual: Once an earlier branch of the search has filled the queue, a later branch returns before it looks for its own splits, so a better split can be missing: with the index {a, ab, b, c, d, e}, the term 'abcde', maxChanges=4 and maxSuggestions=1 the method returns [a b c d e] (4 breaks) instead of [ab c d e] (3 breaks), while asking for 2 suggestions returns both in the right order.
+- Expected: `[ab c d e]` as the top 1 in both minimal tests, and `thousand one hundred eight` among the top 3 number-word splits.
+- Actual: `[a b c d e]` and `[a bc d e]`, and the top 3 holds the 4-break `thou sand one hundred eight` instead: all 3 tests fail.
 
 ## Files
 
@@ -43,6 +45,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestWordBreakSpellCheckerFullQueue.java](TestWordBreakSpellCheckerFullQueue.java)
+- [TestWordBreakPruneDeeperQueued.java](TestWordBreakPruneDeeperQueued.java)
+- [TestWordBreakTopNConsistency.java](TestWordBreakTopNConsistency.java)
 
 ## Feedback
 

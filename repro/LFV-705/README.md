@@ -2,6 +2,8 @@
 
 Bug LFV-705 · Area: spatial-extras / prefix trees: PackedQuadPrefixTree point-to-cell lookup (RecursivePrefixTreeStrategy and CompositeSpatialStrategy point queries) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-705.html](../../bugs/LFV-705.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a point at longitude +180, for example Pt(180, 10), with RecursivePref
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The query returns 0 hits, and so does CompositeSpatialStrategy's Intersects: indexing keeps the first cell in Z order whose rectangle relates to the point, and a geo rectangle treats +180 as -180, so the point is stored in the cells at the -180 edge, while the point query's cell lookup (PackedQuadPrefixTree.getCell, a mid-point walk since LUCENE-8755 in 8.3.0) sends x=+180 to the cells at the +180 edge.
+- Expected: Each of the three queries for `Pt(180, 10)` finds the document at `Pt(180, 10)`: 1 hit, as the three controls do.
+- Actual: RPT Intersects, RPT Contains and `CompositeSpatialStrategy` Intersects each return 0 hits (`expected:<1> but was:<0>`); the controls return 1.
 
 ## Files
 
@@ -50,6 +52,13 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestPackedQuadPlus180Point.java](TestPackedQuadPlus180Point.java)
+- [Plus180CellProbe.java](Plus180CellProbe.java)
+- [TestPlus180FixNeighbours.java](TestPlus180FixNeighbours.java)
+- [TestPlus180CrossSignTable.java](TestPlus180CrossSignTable.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/spatial-extras-composite-and-prefix-tree-query-cross-check/](../../models/spatial-extras-composite-and-prefix-tree-query-cross-check/)
 

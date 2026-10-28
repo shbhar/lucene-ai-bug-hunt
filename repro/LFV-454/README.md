@@ -2,6 +2,8 @@
 
 Bug LFV-454 · Area: search / kNN vector queries (per-segment collector sizing: AbstractKnnVectorQuery, TopKnnCollectorManager, TopKnnCollector; join DiversifyingNearestChildrenKnnCollectorManager) · Priority: low · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-454.html](../../bugs/LFV-454.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You run a KnnFloatVectorQuery with a k larger than the index, for example k = In
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Each segment's collector is built with a heap sized from k (k + 1 longs on a single-segment index) before the segment's vector count is looked at: k = Integer.MAX_VALUE throws IllegalArgumentException('initialCapacity must be &gt; 0 and &lt; 2147483630; got: 2147483647') from TernaryLongHeap, and k = 2^28 over a 3-document index throws OutOfMemoryError with a 2 GiB heap.
+- Expected: Every search returns the 3 documents, as k = 1000 and the filtered k = `Integer.MAX_VALUE` do.
+- Actual: k = `Integer.MAX_VALUE` throws `IllegalArgumentException: initialCapacity must be > 0 and < 2147483630; got: 2147483647`, and k = 2^28 throws `OutOfMemoryError` with a 2 GiB heap.
 
 ## Files
 
@@ -42,6 +44,14 @@ java -da -dsa -Dtests.asserts=false -Xmx2g --add-modules jdk.incubator.vector --
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestKnnQueryLargeK.java](TestKnnQueryLargeK.java)
+- [TestDiversifyingKnnLargeK.java](TestDiversifyingKnnLargeK.java)
+- [TestKnnQueryHugeK.java](TestKnnQueryHugeK.java)
+- [TestKnnLargeKVariants.java](TestKnnLargeKVariants.java)
+- [TestDiversifyingKnnLargeKVariants.java](TestDiversifyingKnnLargeKVariants.java)
 
 ## Feedback
 

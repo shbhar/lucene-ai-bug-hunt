@@ -2,6 +2,8 @@
 
 Bug LFV-105 · Area: index / indexing chain (single-term BINARY inversion, norms) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-105.html](../../bugs/LFV-105.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index one value in an untokenized field whose FieldType has DOCS_AND_FREQS a
 
 ## Expected vs actual
 
-- Expected: You expect the same field length and norm, 1 per value, because FieldInvertState#getLength is the 'total number of terms in this field' and a BINARY value is documented as a single value with term frequency one.
-- Actual: IndexingChain.invertTerm adds 2 to the length for every value, so the norm is 2 (2k for k values) and the BM25 score of the identical document drops (0.082873434 to 0.058813408 in the repro), while the postings still record freq 1 per value.
+- Expected: Both documents get the same norm (1 for one value, 2 for two) and the same BM25 score for the term query.
+- Actual: Norms [1, 2] and [2, 4]; BM25 0.082873434 vs 0.058813408 for the identical document.
 
 ## Files
 
@@ -48,6 +50,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestBinaryInvertedFieldNorms.java](TestBinaryInvertedFieldNorms.java)
+- [TestColumnBatchUntokenizedNorms.java](TestColumnBatchUntokenizedNorms.java)
+- [TestBinaryInvertableTypeFieldLength.java](TestBinaryInvertableTypeFieldLength.java)
+- [TestBinaryInvertLengthV1.java](TestBinaryInvertLengthV1.java)
+- [TestBinaryInvertLengthConsistency.java](TestBinaryInvertLengthConsistency.java)
 
 ## Feedback
 

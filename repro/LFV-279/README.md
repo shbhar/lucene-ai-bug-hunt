@@ -2,6 +2,8 @@
 
 Bug LFV-279 · Area: queries / span queries (SpanNotQuery: the exclusion filter in SpanNotWeight#getSpans) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-279.html](../../bugs/LFV-279.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index the text 'b a c' and run new SpanNotQuery(a, b, 0, -1), whose javadoc 
 
 ## Expected vs actual
 
-- Expected: You expect both spans [1,2) and [2,3), exactly as with post = 0.
-- Actual: You get only [1,2): once the first 'a' has used up the document's exclude spans, the exclude iterator sits at NO_MORE_POSITIONS (Integer.MAX_VALUE) and SpanNotQuery.java:210 computes Integer.MAX_VALUE - post, which wraps to a negative int for any post &lt; 0, so every later 'a' in the document is rejected.
+- Expected: Both spans [1,2) and [2,3) for post -1 and dist -1, as for post 0, and 1 hit for the nested spanNear.
+- Actual: Only [1,2) for post -1 and dist -1, and 0 hits for the nested spanNear.
 
 ## Files
 
@@ -43,6 +45,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSpanNotNegativePost.java](TestSpanNotNegativePost.java)
+- [TestSpanNotNegativePostV1.java](TestSpanNotNegativePostV1.java)
+- [TestSpanNotNegPostV3Probes.java](TestSpanNotNegPostV3Probes.java)
+- [4-TestSpanNotNegativePost.java](4-TestSpanNotNegativePost.java)
 
 ## Feedback
 

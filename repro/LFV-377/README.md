@@ -2,6 +2,8 @@
 
 Bug LFV-377 · Area: analysis / hunspell (Hunspell.spell and suggest compound checking, CHECKCOMPOUNDPATTERN replacements) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-377.html](../../bugs/LFV-377.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a Hunspell dictionary whose CHECKCOMPOUNDPATTERN rule has a replacement
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Lucene accepts schiffahrt but rejects dampfschiffahrt and donaudampfschiffahrt (and barfozar, barfur and barbozan on the content of its own checkcompoundpattern2/3 fixtures), and spell/suggest throw StackOverflowError for schiffschiffahrt, for 'auu' with the one-word dictionary au and 'CHECKCOMPOUNDPATTERN u u u', and for words of native Hunspell's own checkcompoundpattern4 (Telugu sandhi) fixture.
+- Expected: `spell` returns true for `dampfschiffahrt` and `donaudampfschiffahrt`, as for `schiffahrt`, and returns a verdict for `schiffschiffahrt`.
+- Actual: `spell("dampfschiffahrt")` is false and `spell("schiffschiffahrt")` throws `StackOverflowError`: 2 of 3 tests fail and the control passes, with assertions on and off.
 
 ## Files
 
@@ -48,6 +50,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestCheckCompoundPatternLaterJoin.java](TestCheckCompoundPatternLaterJoin.java)
+- [TestCompoundPatternReplacementAfterFirstPart.java](TestCompoundPatternReplacementAfterFirstPart.java)
+- [TestSimplifiedCompoundLaterBoundary.java](TestSimplifiedCompoundLaterBoundary.java)
+- [TestSimplifiedCompoundReachability.java](TestSimplifiedCompoundReachability.java)
+- [test-fixture.diff](test-fixture.diff)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/hunspell/](../../models/hunspell/)
 

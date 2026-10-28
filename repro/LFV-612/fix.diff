@@ -1,0 +1,21 @@
+diff --git a/lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java b/lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java
+index c91bab4812b..e3bbcf5b8ba 100644
+--- a/lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java
++++ b/lucene/spatial-extras/src/java/org/apache/lucene/spatial/prefix/RecursivePrefixTreeStrategy.java
+@@ -226,7 +226,15 @@ public class RecursivePrefixTreeStrategy extends PrefixTreeStrategy {
+         assert prevLevel < cell.getLevel();
+       }
+       assert cell.isLeaf();
+-      return new TermQuery(new Term(getFieldName(), cell.getTokenBytesWithLeaf(null)));
++      // pointsOnly: only cells at the maximum level are indexed as leaves; a coarser grid-aligned
++      // shape (e.g. a date unit coarser than full precision) is indexed as a prefix (non-leaf) term
++      // of every point beneath it.
++      return new TermQuery(
++          new Term(
++              getFieldName(),
++              cell.getLevel() == grid.getMaxLevels()
++                  ? cell.getTokenBytesWithLeaf(null)
++                  : cell.getTokenBytesNoLeaf(null)));
+     } else {
+       // Well there could be parent cells. But we can reduce the "scan level" which will be slower
+       // for a point query.

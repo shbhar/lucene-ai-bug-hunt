@@ -2,6 +2,8 @@
 
 Bug LFV-330 · Area: memory / MemoryIndex stored fields · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-330.html](../../bugs/LFV-330.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a MemoryIndex from a document with StringField("id", "doc-1", Store.YE
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: MemoryIndex stores the field's binaryValue rather than its storedValue: the String comes back as its UTF-8 bytes, so Document.get("id") returns null, and the numbers come back as their sortable point bytes (IntField 5 as [80 00 00 05]), so numericValue returns null.
+- Expected: `get("id")` = "doc-1" and `get("tag")` = "red", and the numbers and bytes as IndexWriter returns them: `Integer(5)`, `Long(7)`, `Float(1.5)`, `Double(2.5)`, `binary[9, 8, 7]`.
+- Actual: `get` returns null for both; the numbers come back as point bytes (`binary[-128, 0, 0, 5]` for 5) and the DataInput value is `<absent>`: 7 of 8 tests fail, the control passes.
 
 ## Files
 
@@ -45,6 +47,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMemoryIndexStoredValueParity.java](TestMemoryIndexStoredValueParity.java)
+- [TestMemoryIndexStoredValues.java](TestMemoryIndexStoredValues.java)
+- [TestMemoryIndexStoredDataInput.java](TestMemoryIndexStoredDataInput.java)
+- [TestMemoryIndexStoredWorkaroundProbe.java](TestMemoryIndexStoredWorkaroundProbe.java)
 
 ## Feedback
 

@@ -31,7 +31,7 @@ import org.apache.lucene.tests.analysis.MockTokenizer;
 import org.apache.lucene.tests.util.LuceneTestCase;
 
 /**
- * V3 probe (intended-behaviour check). It asserts the CURRENT stock behaviour, so it passes on an
+ * Probe (intended-behaviour check). It asserts the CURRENT stock behaviour, so it passes on an
  * unpatched build, and it tests two defences:
  *
  * <p>(1) "batchSize is only a lazy FST refresh, a deliberate staleness trade-off": then whether a

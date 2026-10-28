@@ -2,6 +2,8 @@
 
 Bug LFV-354 · Area: analysis / WordDelimiterGraphFilter final position increment (end of stream, accumPosInc) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-354.html](../../bugs/LFV-354.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyse 'foo --' (or 'foo the --' behind a StopFilter) with a whitespace tok
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The filter keeps that hole in an internal accumulator that only a later emitted token applies and has no end override, so the final increment is 0.
+- Expected: `foo --` and `foo 12-34` end with a final position increment of 1, `foo the --` with 2, and on the values `foo --` | `bar` the phrase `foo -- bar` finds the document while `"foo bar"` does not.
+- Actual: `finalPosInc expected:<1> but was:<0>` (and `<2>` / `<0>` behind the StopFilter), and the phrase counts are `[0, 1]` instead of `[1, 0]`: 4 of 5 tests fail, assertions on and off.
 
 ## Files
 
@@ -43,6 +45,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestWordDelimiterGraphFilterTrailingHole.java](TestWordDelimiterGraphFilterTrailingHole.java)
+- [fix-option-A.diff](fix-option-A.diff)
+- [TestWdgfTrailingHole.java](TestWdgfTrailingHole.java)
+- [TestWdgfFinalPosIncV1.java](TestWdgfFinalPosIncV1.java)
+- [TestWdgfV3CrossValuePhrase.java](TestWdgfV3CrossValuePhrase.java)
 
 ## Feedback
 

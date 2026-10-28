@@ -2,6 +2,8 @@
 
 Bug LFV-394 · Area: index / merge policy (LogMergePolicy.findMerges level window; LogDocMergePolicy, LogByteSizeMergePolicy) · Priority: low · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-394.html](../../bugs/LFV-394.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You configure LogDocMergePolicy (or LogByteSizeMergePolicy) with setMergeFactor(
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: findMerges computes the end of each merge window as 'int end = start + mergeFactor', which wraps negative for every size level that does not start at segment 0, and its minimum-size packing step then calls levels.get(-2147483648), so commit throws IndexOutOfBoundsException (OutOfMemoryError 'Requested array size exceeds VM limit' before 10.2.0).
+- Expected: Both `findMerges` calls return null (nothing to merge) and the second commit stores 20,000,001 documents.
+- Actual: The control passes; the other two tests throw `IndexOutOfBoundsException: Index -2147483648 out of bounds for length 2` at `LogMergePolicy.findMerges(LogMergePolicy.java:636)`, with assertions on and off.
 
 ## Files
 
@@ -48,6 +50,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestLogMergePolicyHugeMergeFactor.java](TestLogMergePolicyHugeMergeFactor.java)
+- [TestLogMergePolicyMergeFactorWrap.java](TestLogMergePolicyMergeFactorWrap.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/overflow-at-scale-2/](../../models/overflow-at-scale-2/)
 

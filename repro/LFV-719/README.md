@@ -2,6 +2,8 @@
 
 Bug LFV-719 · Area: analysis / ICU (ICUTokenizerFactory per-script rule files: rulefiles, parseRules) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-719.html](../../bugs/LFV-719.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You configure ICUTokenizerFactory with rulefiles="Latn:latin.rbbi" and a rule fi
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: ICUTokenizerFactory.parseRules decodes the BOM to U+FEFF and passes it to ICU's RuleBasedBreakIterator(String) as rule text: a file that starts with the rule '.+ {200};' (alone or after '#' comment lines) compiles with U+FEFF as a literal prefix of that rule, so 'ab cd' gives no tokens at all instead of ['ab cd'], and a file that starts with a comment and '!!forward;' (the shape of Lucene's Latin-break-only-on-whitespace.rbbi) fails with 'IllegalArgumentException: Error 66052 at line 2 column 1'.
+- Expected: Each BOM file gives the tokens of the same file without the BOM: `[ab cd]`, the 6 tokens of the Cyrillic and Thai test, and `[Don't,break.at?/(punct)!] [here]`.
+- Actual: `token 0 does not exist`, `term 2 expected:<[Немного русский. ]> but was:<[More]>` and `IllegalArgumentException: Error 66052 at line 20 column 1`: 3 of 3 tests fail, assertions on and off.
 
 ## Files
 
@@ -44,6 +46,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-icu also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestICUTokenizerFactoryRuleFileBom.java](TestICUTokenizerFactoryRuleFileBom.java)
+- [fix-option-A.diff](fix-option-A.diff)
+- [3-TestICUTokenizerFactoryRuleFileBom.java](3-TestICUTokenizerFactoryRuleFileBom.java)
+- [TestIcuRuleFileBom.java](TestIcuRuleFileBom.java)
 
 ## Feedback
 

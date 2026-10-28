@@ -2,6 +2,8 @@
 
 Bug LFV-619 · Area: spatial-extras / prefix trees (DateRangePrefixTree date parsing: parseCalendar, also reached through NumberRangePrefixTree.parseShape for single dates and range bounds) · Priority: low · Impact: wrong error · Novelty: new
 
+Bug page: [../../bugs/LFV-619.html](../../bugs/LFV-619.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You parse a date such as 2014-11-31, or a range such as [2014-11-01 TO 2014-11-3
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The day is checked only against 1..31 and set on a lenient java.util.Calendar, which moves it into the next month when the fields are read: 2014-11-31 becomes 2014-12-01, 2014-02-30 becomes 2014-03-02, and the range parses to [2014-11 TO 2014-12-01], so an Intersects query on a NumberRangePrefixTreeStrategy index also returns a document dated 2014-12-01.
+- Expected: `2014-11-31`, `2014-02-30`, `2013-02-29` and `2014-04-31T10` throw `ParseException` like `2014-11-32`, and so does the range `[2014-11-01 TO 2014-11-31]`.
+- Actual: They parse as 2014-12-01, 2014-03-02, 2013-03-01 and 2014-05-01T10; the range becomes `[2014-11 TO 2014-12-01]` and matches 2014-11-15 and 2014-12-01.
 
 ## Files
 
@@ -45,6 +47,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDateRangeNonexistentDay.java](TestDateRangeNonexistentDay.java)
+- [DateRangeDaySweep.java](DateRangeDaySweep.java)
+- [TestDateRangeParseNonexistentDay.java](TestDateRangeParseNonexistentDay.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-611 · Area: spatial3d / geom bounding boxes (GeoBBox.expand in the 13 GeoBBox classes with a longitude range, GeoBBoxFactory.makeGeoBBox); spatial-extras / spatial4j Geo3D context (Geo3dRectangleShape.getBuffered, reached by spatial4j's WKT BUFFER) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-611.html](../../bugs/LFV-611.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You take a geo3d box whose east edge is near the dateline, for example longitude
 
 ## Expected vs actual
 
-- Expected: You expect each bound to move out by the angle, so the box now crosses the dateline and reaches -2.983 radians (-178 degrees), as the same code already does for a box that crosses the dateline and as spatial4j's own geo rectangle buffer does.
-- Actual: Expand passes the unwrapped bound 3.3 to GeoBBoxFactory.makeGeoBBox, which clamps it to PI, so the box stops at 180 degrees and a document at (-179.5, 1) is not found (0 hits instead of 1); the west edge and all 13 GeoBBox classes with a longitude range behave the same way.
+- Expected: `[2.5, 3.0].expand(0.3)` reaches -2.983 rad across the dateline, and the Geo3D `Intersects(BUFFER(ENVELOPE(172, 178, 4, -4), 4))` query finds the point at (-179.5, 1): 1 hit.
+- Actual: The expanded box stops at `rightlon = π (180°)`, and the Geo3D query returns 0 hits; the plain geo context returns 1.
 
 ## Files
 
@@ -47,6 +49,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestGeoBBoxExpandAcrossDateline.java](TestGeoBBoxExpandAcrossDateline.java)
+- [TestGeo3dBufferQueryAcrossDateline.java](TestGeo3dBufferQueryAcrossDateline.java)
+- [TestExpandRotationInvariance.java](TestExpandRotationInvariance.java)
+- [4-TestGeoBBoxExpandAcrossDateline.java](4-TestGeoBBoxExpandAcrossDateline.java)
 
 ## Feedback
 

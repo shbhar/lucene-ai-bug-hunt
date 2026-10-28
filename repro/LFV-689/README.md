@@ -2,6 +2,8 @@
 
 Bug LFV-689 · Area: suggest / document (NRT) suggester (FuzzyCompletionQuery: FuzzyCompletionWeight.setNextMatch prefix-similarity boost in unicodeAware mode, also inside ContextQuery) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-689.html](../../bugs/LFV-689.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a FuzzyCompletionQuery with unicodeAware=true, the documented option t
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: FuzzyCompletionWeight.setNextMatch compares the query's code points with the UTF-8 byte labels of the matched suggestion, so the count stops at the first non-ASCII letter: for the query 'aéc' over aécd (weight 3) and the typo axcd (weight 4) both get boost 1 and the exact prefix ranks second, [axcd/4.0, aécd/3.0], while the same data in ASCII ('abc' over abcd and axcd) gives [abcd/6.0, axcd/4.0]; for an all-CJK or all-Cyrillic query every suggestion gets boost 0, so the exact prefix only ties with typos and the weight alone decides.
+- Expected: `[aécd/6.0, axcd/4.0]` and `[коты/6.0, киты/4.0]`, the scores of the ASCII twins (the ASCII control passes).
+- Actual: `[axcd/4.0, aécd/3.0]` and `[киты/4.0, коты/3.0]`: the exact prefix gets boost 1 and 0, no more than the typo.
 
 ## Files
 
@@ -43,6 +45,13 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestFuzzyCompletionQueryUnicodeAware.java](TestFuzzyCompletionQueryUnicodeAware.java)
+- [TestFuzzyCompletionUnicodeAwareBoost.java](TestFuzzyCompletionUnicodeAwareBoost.java)
+- [TestFuzzyUnicodeBoostV3.java](TestFuzzyUnicodeBoostV3.java)
+- [FuzzyUnicodeAwareBoostHistoryProbe.java](FuzzyUnicodeAwareBoostHistoryProbe.java)
 
 ## Feedback
 

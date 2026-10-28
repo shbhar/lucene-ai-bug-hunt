@@ -2,6 +2,8 @@
 
 Bug LFV-227 · Area: join / JoinUtil query-time term join (TermsWithScoreCollector.SV and SV.Avg, ScoreMode Min/Avg) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-227.html](../../bugs/LFV-227.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build JoinUtil.createJoinQuery("join", false, "ref", fromQuery, searcher, Sc
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Both modes return 2: the single-valued collector uses an accumulated score of exactly 0 to mean 'this join value has not been seen yet', so after a from-document that scored 0, the next from-document with the same value overwrites the stored minimum (Min) or restarts the sum and count (Avg).
+- Expected: The to-document scores 0.0 with `ScoreMode.Min` and 1.0 with `ScoreMode.Avg`, as the multi-valued join on the same documents does.
+- Actual: The single-valued join gives 2.0 for both: `single-valued collector expected:<0.0> but was:<2.0>` and `expected:<1.0> but was:<2.0>`; 2 of 2 tests fail.
 
 ## Files
 
@@ -50,6 +52,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestJoinZeroScoreAggregation.java](TestJoinZeroScoreAggregation.java)
+- [TestJoinZeroScoreOrders.java](TestJoinZeroScoreOrders.java)
+- [fix.diff](fix.diff)
 
 ## Feedback
 

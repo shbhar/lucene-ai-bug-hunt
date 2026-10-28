@@ -1,0 +1,964 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>IndriAndQuery hides its clauses from every QueryVisitor</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-872 &middot; indri-query-visit-leaf-hides-clauses</p><h1 id='top'>IndriAndQuery hides its clauses from every QueryVisitor</h1><p class='tldr'><code class='nw'>IndriQuery.visit</code> reports the whole query as a leaf, so tools that walk an <code class='nw'>IndriAndQuery</code> with a <code class='nw'>QueryVisitor</code> never see its clauses: term extraction returns nothing, term-extraction highlighting marks nothing, and the cumulative clause limit counts it as one clause. Search hits are right; since 8.9.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 258</span><span class='sub'>Every IndriAndQuery silently breaks QueryVisitor-based tools (term extraction and highlighting return nothing, clause limit and RAM estimate skip its clauses) while hits stay correct in a niche core API, so it ends the highlighting and visitor wrong-result rows after LFV-516 and below the hit-changing Indri row LFV-874.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>8.9.0 (2021), when the Indri classes were added<span class='sub'>introduced 2021-01-29 &middot; about 5 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>8.9.0 to 10.5.2 and main (8 releases run)</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>bytecode scan, then bounded-exhaustive comparison with BooleanQuery</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Tools that need to know what a query contains walk it with a <code class='nw'>QueryVisitor</code>. Every query that holds other queries must pass the visitor on to them; <code class='nw'>IndriAndQuery</code> does not.</p><figure class='visual' id='indri-query-visit-leaf-hides-clauses-short-visual'><div class='frame'><a class='still' href='../assets/LFV-872/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-872/bug.png' alt='Summary card: IndriAndQuery hides its clauses from every QueryVisitor; IndriQuery.visit is visitor.visitLeaf(this). Panel 1, where the visitor goes for the same two clauses body:president and body:washington: the BooleanQuery&#x27;s visitor reaches both term clauses and termCollector gets both terms; the IndriAndQuery&#x27;s only call is visitLeaf(this), the clauses are never visited and termCollector gets none. Panel 2, expected against actual for each tool: termCollector; UnifiedHighlighter term extraction (the BooleanQuery&#x27;s passage has both words marked, the IndriAndQuery&#x27;s none); the clause limit at maxClauseCount 4 with 6 clauses (the DisjunctionMaxQuery throws TooManyNestedClauses, the IndriAndQuery is counted as 1 and runs with 1 hit); RamUsageEstimator.sizeOf over 1,000 clauses. Footer: search hits are right, doc 0 for both queries.' width='1920' height='1080'></a></div><figcaption>The repro's example: a visitor walks the <code class='nw'>BooleanQuery</code> into both term clauses but stops at the <code class='nw'>IndriAndQuery</code> root, so term collection, highlighting, the clause limit and the RAM estimate see no clauses, while search finds the document for both queries. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Build an <code class='nw'>IndriAndQuery</code> of two term clauses, <code class='nw'>body:president</code> and <code class='nw'>body:washington</code>, and search a one-document index ("president washington was the first leader"): 1 hit, the same as the <code class='nw'>BooleanQuery</code> over the same clauses.</span></li><li><span>Ask which terms it may match with <code>QueryVisitor.termCollector</code>. You expect {body:president, body:washington}, as for the <code class='nw'>BooleanQuery</code>. You get []. The UnifiedHighlighter in term-extraction mode uses the same collector and returns the passage with no <code class='nw'>&lt;b&gt;</code> marks.</span></li><li><span>Set <code class='nw'>maxClauseCount</code> to 4: a <code>DisjunctionMaxQuery</code> and a nested <code class='nw'>BooleanQuery</code> over 6 term clauses throw <code class='nw'>TooManyClauses</code>. An <code class='nw'>IndriAndQuery</code> of the same 6 clauses runs (1 hit), and so does a <code class='nw'>BooleanQuery</code> of two 3-clause <code class='nw'>IndriAndQuery</code>s. With a limit of 16, a 2,000-clause <code class='nw'>IndriAndQuery</code> runs too.</span></li><li><span>Why: <code class='nw'>IndriQuery.visit</code> is <code>visitor.visitLeaf(this)</code>, so the visitor is told "leaf" and never sees the clauses, although <code class='nw'>Query#visit</code> must "recurse through the query tree, visiting any child queries". The same root makes <code>RamUsageEstimator.sizeOf</code> return 1,024 bytes for 1 clause and for 1,000 (<code class='nw'>BooleanQuery</code>: 1,169,024).</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that build an <code class='nw'>IndriAndQuery</code> (no Lucene parser produces one) and inspect it with a visitor-based tool: their own term extraction, the UnifiedHighlighter outside weight-matches mode, IndexSearcher's cumulative clause limit, or the query RAM estimate. Default codec and settings, any index size. Search hits stay right, so it goes unnoticed.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>687 words</span></summary><div class='body'><p>Tools that need to know what a query contains (term extraction, highlighting, IndexSearcher's cumulative clause limit, the query RAM estimate) walk the query tree with a <code class='nw'>QueryVisitor</code>, and every query that holds other queries is supposed to pass the visitor on to them. <code class='nw'>IndriAndQuery</code> holds a list of clauses, but <code class='nw'>IndriQuery.visit</code> only calls <code>visitor.visitLeaf(this)</code>. So for an <code class='nw'>IndriAndQuery</code> of <code class='nw'>body:president</code> and <code class='nw'>body:washington</code>, <code>QueryVisitor.termCollector</code> returns [] instead of both terms, the UnifiedHighlighter in term-extraction mode highlights nothing, a 6-clause <code class='nw'>IndriAndQuery</code> runs at <code class='nw'>maxClauseCount=4</code> while a <code>DisjunctionMaxQuery</code> over the same clauses is refused, and <code>RamUsageEstimator.sizeOf</code> gives 1,024 bytes for 1 clause and for 1,000 (on main the query cache sizes cached keys this way). Search hits are right (matching and scoring never call <code class='nw'>visit</code>), and no error is raised. It has been there since the Indri classes were added (LUCENE-9537, first released in 8.9.0). A one-method fix that visits every clause through a SHOULD sub-visitor makes all repros pass, and the search-package and highlighter test suites pass with it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong><code class='nw'>QueryVisitor</code></strong>: Lucene's query-introspection API. <code class='nw'>Query#visit</code> is documented to "Recurse through the query tree, visiting any child queries". A query with children pulls a sub-visitor with <code>getSubVisitor(occur, this)</code> and visits each child with it; a query that matches on terms calls <code class='nw'>consumeTerms</code>; <code class='nw'>visitLeaf</code> is for "leaf queries that do not match on terms".</li><li><strong>Who walks queries this way</strong>: <code>QueryVisitor.termCollector</code> ("collects all terms that may match a query"), the UnifiedHighlighter's term extraction, IndexSearcher's cumulative clause check (run by <code>IndexSearcher.rewrite</code>), <code>RamUsageEstimator.sizeOf(Query)</code>, and on main the <code class='nw'>LRUQueryCache</code> key accounting that uses it.</li><li><strong><code class='nw'>IndriAndQuery</code></strong>: a core query (since 8.9.0, LUCENE-9537) built from a <code>List&lt;BooleanClause&gt;</code>; its base class <code class='nw'>IndriQuery</code> keeps the list, and <code class='nw'>IndriAndWeight</code> builds a <code class='nw'>Weight</code> for every clause and, per segment, a scorer for each clause that has one.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><p><code class='nw'>IndriQuery.visit</code> (<code>IndriQuery.java:71-74</code> at <code class='nw'>a9779ef3c193</code>) is one line, <code>visitor.visitLeaf(this)</code>. The visitor is told the whole query is a leaf that does not match on terms, and the clauses are never handed to it. Each consumer then sees an empty box:</p><ol><li><code class='nw'>termCollector</code> collects only from <code class='nw'>consumeTerms</code>, and <code class='nw'>visitLeaf</code> is a no-op: it returns [].</li><li>The UnifiedHighlighter's <code class='nw'>extractTerms</code> is <code>query.visit(QueryVisitor.termCollector(...))</code>; it is used whenever the highlighter is not in weight-matches mode (<code>withWeightMatches(false)</code>, or any of multi-term, strict-phrase or passage-relevancy handling turned off). No terms, so no highlights.</li><li><code>IndexSearcher.rewrite</code> runs a clause-counting visitor that adds one per <code class='nw'>visitLeaf</code>, <code class='nw'>consumeTerms</code> or <code>consumeTermsMatching</code> call, so a whole <code class='nw'>IndriAndQuery</code> counts as one clause. Neither Indri class overrides <code class='nw'>rewrite</code>, and the <code class='nw'>IndriAndQuery</code> constructor has no size check (<code>BooleanQuery.Builder.add</code> refuses more than <code class='nw'>maxClauseCount</code> clauses at build time).</li><li><code>RamUsageEstimator.sizeOf(Query)</code> starts at the default size for the root and adds nothing for a root that calls <code class='nw'>visitLeaf</code>, so it is 1,024 bytes whatever the clauses hold.</li></ol><p>Matching and scoring do not use <code class='nw'>visit</code> (only the clause check before a search does): <code class='nw'>IndriAndWeight</code> iterates the clause list itself, so the hits are right (the security probe found the same hit sets as the SHOULD <code class='nw'>BooleanQuery</code> for 1, 2, 10 and 50 clauses; it did not compare scores).</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-executed-on-main'>The numbers (executed on main)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-executed-on-main" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-executed-on-main"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>tool</th><th><code class='nw'>IndriAndQuery</code></th><th><code class='nw'>BooleanQuery</code> / other composite (expected)</th></tr></thead><tbody><tr><td><code class='nw'>termCollector</code>, clauses <code class='nw'>body:president</code>, <code class='nw'>body:washington</code></td><td><code class='nw'>[]</code></td><td><code>{body:president, body:washington}</code></td></tr><tr><td>recording visitor (independent reproducer)</td><td>only <code>visitLeaf(IndriAndQuery)</code></td><td>a sub-visitor, then each term</td></tr><tr><td>UnifiedHighlighter, term extraction</td><td>"president washington was the first leader"</td><td>"<code>&lt;b&gt;president&lt;/b&gt; &lt;b&gt;washington&lt;/b&gt;</code> was the first leader"</td></tr><tr><td><code class='nw'>maxClauseCount=4</code>, 6 term clauses</td><td><code class='nw'>IndriAndQuery(6)</code> and <code>BooleanQuery(IndriAndQuery(3), IndriAndQuery(3))</code> run, 1 hit</td><td><code>DisjunctionMaxQuery(6)</code> and nested <code>BooleanQuery(3+3)</code> throw</td></tr><tr><td><code>maxClauseCount=16</code>, 2,000 clauses (security probe)</td><td>runs, 60,000+ hits</td><td><code>BooleanQuery.Builder</code> throws while adding</td></tr><tr><td><code>RamUsageEstimator.sizeOf</code></td><td>1,024 bytes for 1 clause and for 1,000</td><td>1,169,024 bytes for the same 1,000</td></tr><tr><td><code class='nw'>LRUQueryCache</code> key accounting, main only (independent reproducer)</td><td>192 bytes for 16 clauses and for 500</td><td>3,136 bytes for the 16-clause <code class='nw'>BooleanQuery</code>; with the fix, 3,136 and 92,192 for the <code class='nw'>IndriAndQuery</code></td></tr></tbody></table></div><p>Not claimed: in the UnifiedHighlighter's default weight-matches mode the <code class='nw'>IndriAndQuery</code> is not highlighted either, but for another reason (<code class='nw'>IndriAndWeight</code> does not implement <code class='nw'>Weight#matches</code>, whose default reports a match with no term positions); the visit fix does not change that.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>218 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Only application code builds an <code class='nw'>IndriAndQuery</code>: in the whole <code class='nw'>lucene/</code> tree no parser or builder produces one (only <code>IndriAndQuery.java</code> itself, <code>IndriAndWeight.java</code> and <code>TestIndriAndQuery.java</code> mention it). Every such query is affected, every time, for every visitor-based consumer.</li><li><strong>Term extraction and highlighting.</strong> Custom code that calls <code class='nw'>termCollector</code> (for example to log, cache or route on query terms) gets nothing. The UnifiedHighlighter uses it whenever it is not in weight-matches mode. Two clauses and one document are enough.</li><li><strong>Clause limit.</strong> The cumulative check counts the whole <code class='nw'>IndriAndQuery</code> as one clause, at any nesting depth, so it only matters once counting the clauses would trip the limit: more than <code>maxClauseCount + 1</code> calls (default 1,025), since the counter checks before it increments. A <code class='nw'>QueryTimeout</code> still stops a large query.</li><li><strong>RAM estimate.</strong> <code>RamUsageEstimator.sizeOf</code> ignores the clauses in every release since 8.9.0; on main (unreleased, #15124) <code class='nw'>LRUQueryCache</code> sizes cached query keys with it, which needs an application-installed cache (caching is off by default) and a non-scoring use, and grows with the clauses, about 184 bytes per term clause (a cached 16-clause <code class='nw'>IndriAndQuery</code>: 192 bytes against 3,136 with the fix; 500 clauses: 192 against 92,192; independent reproducer).</li><li><strong>How likely.</strong> <code class='nw'>IndriAndQuery</code> is a rarely used API, and the visible symptoms are in tools that inspect the query, not in search results.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test on the public API (<code class='nw'>LuceneTestCase</code>) with three tests, each next to a control over the same clauses: <code class='nw'>termCollector</code>, the clause limit at <code class='nw'>maxClauseCount=4</code>, and the RAM estimate. Put it in the core module's test sources and run one gradle command. The highlighter case is the second file.</p><figure class='code'><figcaption><span class='fname'>TestIndriAndQueryVisitsClauses.java (JUnit, public API)</span><span class='meta'>167 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.RamUsageEstimator;
+
+/**
+ * Query#visit must &quot;recurse through the query tree, visiting any child queries&quot;. IndriQuery#visit
+ * only calls visitor.visitLeaf(this), so no QueryVisitor ever sees the clauses of an IndriAndQuery.
+ * Each test compares an IndriAndQuery with a BooleanQuery (or DisjunctionMaxQuery) over the same
+ * TermQuery clauses. Public API only.
+ */
+public class TestIndriAndQueryVisitsClauses extends LuceneTestCase {
+
+  private static final String FIELD = &quot;body&quot;;
+
+  private static List&lt;BooleanClause&gt; shouldClauses(String... terms) {
+    List&lt;BooleanClause&gt; clauses = new ArrayList&lt;&gt;();
+    for (String t : terms) {
+      clauses.add(new BooleanClause(new TermQuery(new Term(FIELD, t)), Occur.SHOULD));
+    }
+    return clauses;
+  }
+
+  private static List&lt;BooleanClause&gt; numberedClauses(int from, int to) {
+    List&lt;BooleanClause&gt; clauses = new ArrayList&lt;&gt;();
+    for (int i = from; i &lt; to; i++) {
+      clauses.add(new BooleanClause(new TermQuery(new Term(FIELD, &quot;t&quot; + i)), Occur.SHOULD));
+    }
+    return clauses;
+  }
+
+  private static BooleanQuery booleanOf(List&lt;BooleanClause&gt; clauses) {
+    BooleanQuery.Builder builder = new BooleanQuery.Builder();
+    for (BooleanClause c : clauses) {
+      builder.add(c);
+    }
+    return builder.build();
+  }
+
+  private static Set&lt;Term&gt; collectTerms(Query query) {
+    Set&lt;Term&gt; terms = new HashSet&lt;&gt;();
+    query.visit(QueryVisitor.termCollector(terms));
+    return terms;
+  }
+
+  /** QueryVisitor.termCollector &quot;collects all terms that may match a query&quot;. */
+  public void testTermCollectorSeesClauseTerms() {
+    List&lt;BooleanClause&gt; clauses = shouldClauses(&quot;president&quot;, &quot;washington&quot;);
+    Set&lt;Term&gt; expected = Set.of(new Term(FIELD, &quot;president&quot;), new Term(FIELD, &quot;washington&quot;));
+    assertEquals(&quot;control: BooleanQuery&quot;, expected, collectTerms(booleanOf(clauses)));
+    assertEquals(
+        &quot;termCollector over IndriAndQuery(body:president, body:washington)&quot;,
+        expected,
+        collectTerms(new IndriAndQuery(clauses)));
+  }
+
+  /**
+   * IndexSearcher.TooManyNestedClauses: &quot;a Query that has more than getMaxClauseCount() total
+   * clauses cumulatively in all of its children&quot;.
+   */
+  public void testCumulativeClauseLimitCountsIndriClauses() throws IOException {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        Document doc = new Document();
+        doc.add(new StringField(FIELD, &quot;t0&quot;, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        int saved = IndexSearcher.getMaxClauseCount();
+        IndexSearcher.setMaxClauseCount(4);
+        try {
+          List&lt;Query&gt; six = new ArrayList&lt;&gt;();
+          for (BooleanClause c : numberedClauses(0, 6)) {
+            six.add(c.query());
+          }
+          // Controls: other composites over the same 6 term clauses are refused.
+          expectThrows(
+              IndexSearcher.TooManyClauses.class,
+              () -&gt; searcher.search(new DisjunctionMaxQuery(six, 0f), 10));
+          Query nestedBoolean =
+              new BooleanQuery.Builder()
+                  .add(booleanOf(numberedClauses(0, 3)), Occur.MUST)
+                  .add(booleanOf(numberedClauses(3, 6)), Occur.MUST)
+                  .build();
+          expectThrows(
+              IndexSearcher.TooManyClauses.class, () -&gt; searcher.search(nestedBoolean, 10));
+
+          // The same 6 term clauses inside IndriAndQuery.
+          Query nestedIndri =
+              new BooleanQuery.Builder()
+                  .add(new IndriAndQuery(numberedClauses(0, 3)), Occur.SHOULD)
+                  .add(new IndriAndQuery(numberedClauses(3, 6)), Occur.SHOULD)
+                  .build();
+          String flat = outcome(searcher, new IndriAndQuery(numberedClauses(0, 6)));
+          String nested = outcome(searcher, nestedIndri);
+          assertTrue(
+              &quot;maxClauseCount=4, the DisjunctionMaxQuery and nested BooleanQuery controls throw;&quot;
+                  + &quot; IndriAndQuery(6 clauses): &quot;
+                  + flat
+                  + &quot;; BooleanQuery(IndriAndQuery(3 clauses), IndriAndQuery(3 clauses)): &quot;
+                  + nested,
+              flat.startsWith(&quot;threw&quot;) &amp;&amp; nested.startsWith(&quot;threw&quot;));
+        } finally {
+          IndexSearcher.setMaxClauseCount(saved);
+        }
+      }
+    }
+  }
+
+  private static String outcome(IndexSearcher searcher, Query query) throws IOException {
+    try {
+      return &quot;ran, hits=&quot; + searcher.search(query, 10).scoreDocs.length;
+    } catch (IndexSearcher.TooManyClauses e) {
+      return &quot;threw &quot; + e.getClass().getSimpleName();
+    }
+  }
+
+  /**
+   * RamUsageEstimator.sizeOf(Query) walks the query with a QueryVisitor (LRUQueryCache on main uses
+   * it for cached query keys). A consequence of the same root: the estimate ignores the clauses.
+   */
+  public void testRamEstimateDependsOnClauses() {
+    long indri1 = RamUsageEstimator.sizeOf(new IndriAndQuery(numberedClauses(0, 1)));
+    long indri1000 = RamUsageEstimator.sizeOf(new IndriAndQuery(numberedClauses(0, 1000)));
+    long bool1000 = RamUsageEstimator.sizeOf(booleanOf(numberedClauses(0, 1000)));
+    assertTrue(
+        &quot;RamUsageEstimator.sizeOf: IndriAndQuery(1 clause)=&quot;
+            + indri1
+            + &quot; bytes, IndriAndQuery(1000 clauses)=&quot;
+            + indri1000
+            + &quot; bytes, BooleanQuery(same 1000 clauses)=&quot;
+            + bool1000
+            + &quot; bytes&quot;,
+        indri1000 &gt; indri1);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp TestIndriAndQueryVisitsClauses.java $LUCENE/lucene/core/src/test/org/apache/lucene/search/
+cd $LUCENE
+./gradlew :lucene:core:test --tests org.apache.lucene.search.TestIndriAndQueryVisitsClauses -Ptests.seed=DEADBEEF
+# assertions off (production-like): add -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>termCollector</code> returns {body:president, body:washington}; both 6-clause Indri shapes throw <code class='nw'>TooManyClauses</code> at <code class='nw'>maxClauseCount=4</code>; the RAM estimate grows with the clauses.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>termCollector</code> returns []; both Indri shapes run (1 hit) while the controls throw; <code class='nw'>sizeOf</code> is 1,024 bytes for 1 and for 1,000 clauses (<code class='nw'>BooleanQuery</code>: 1,169,024).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-872/'>repro/LFV-872/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (455 lines) · 2,267 words</span></summary><div class='body'><p><code>TestIndriAndQueryVisitsClauses</code> (core, package <code>org.apache.lucene.search</code> only to sit next to Lucene's own search tests): <code>testTermCollectorSeesClauseTerms</code> checks the <code class='nw'>BooleanQuery</code> control first, then the <code class='nw'>IndriAndQuery</code> over the same two clauses. <code>testCumulativeClauseLimitCountsIndriClauses</code> sets <code class='nw'>maxClauseCount</code> to 4 (restored in <code class='nw'>finally</code>), checks that a <code>DisjunctionMaxQuery</code> and a nested <code class='nw'>BooleanQuery</code> over 6 term clauses throw, then runs the two Indri shapes over the same clauses. <code>testRamEstimateDependsOnClauses</code> compares the estimate for 1 and 1,000 clauses and prints the <code class='nw'>BooleanQuery</code>'s for reference. It needs Lucene 10.0 or later (<code>BooleanClause.query()</code>); the 9.x copy of the independent reproducer's test uses <code class='nw'>getQuery()</code>.</p><p><code>TestIndriAndQueryHighlight</code> (highlighter module, package <code>org.apache.lucene.search.uhighlight</code>): one document, "president washington was the first leader", highlighted with <code>withWeightMatches(false)</code> for the <code class='nw'>BooleanQuery</code> control and for the <code class='nw'>IndriAndQuery</code>.</p><p>The other two files are the finder's test and the independent reproducer's, written from the claim alone; the latter adds a recording visitor that shows the only call the visitor gets.</p><div class="hd hd-3"><h3 id='code-2-h'>TestIndriAndQueryHighlight.java (highlighter module)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Goes into <code>lucene/highlighter/src/test/org/apache/lucene/search/uhighlight/</code>.</p><figure class='code'><figcaption><span class='fname'>TestIndriAndQueryHighlight.java (highlighter module)</span><span class='meta'>87 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.uhighlight;
+
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexOptions;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.IndriAndQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * The UnifiedHighlighter in term-extraction mode (withWeightMatches(false)) finds the query terms
+ * with QueryVisitor.termCollector (UnifiedHighlighter#extractTerms). It finds none in an
+ * IndriAndQuery, so the matching document comes back without highlights, while the BooleanQuery
+ * over the same clauses is highlighted. Public API only.
+ */
+public class TestIndriAndQueryHighlight extends LuceneTestCase {
+
+  public void testTermExtractionHighlightsIndriClauses() throws Exception {
+    String text = &quot;president washington was the first leader&quot;;
+    Analyzer analyzer = new MockAnalyzer(random());
+    try (Directory dir = newDirectory()) {
+      FieldType ft = new FieldType(TextField.TYPE_STORED);
+      ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(analyzer))) {
+        Document doc = new Document();
+        doc.add(new Field(&quot;body&quot;, text, ft));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = new IndexSearcher(reader);
+        List&lt;BooleanClause&gt; clauses =
+            List.of(
+                new BooleanClause(new TermQuery(new Term(&quot;body&quot;, &quot;president&quot;)), Occur.SHOULD),
+                new BooleanClause(new TermQuery(new Term(&quot;body&quot;, &quot;washington&quot;)), Occur.SHOULD));
+        Query bool = new BooleanQuery.Builder().add(clauses.get(0)).add(clauses.get(1)).build();
+        Query indri = new IndriAndQuery(clauses);
+        UnifiedHighlighter highlighter =
+            UnifiedHighlighter.builder(searcher, analyzer).withWeightMatches(false).build();
+        String expected = &quot;&lt;b&gt;president&lt;/b&gt; &lt;b&gt;washington&lt;/b&gt; was the first leader&quot;;
+
+        TopDocs boolHits = searcher.search(bool, 10);
+        assertEquals(1, boolHits.scoreDocs.length);
+        assertEquals(
+            &quot;control: BooleanQuery&quot;, expected, highlighter.highlight(&quot;body&quot;, bool, boolHits)[0]);
+
+        TopDocs indriHits = searcher.search(indri, 10);
+        assertEquals(&quot;the IndriAndQuery matches the document&quot;, 1, indriHits.scoreDocs.length);
+        assertEquals(
+            &quot;IndriAndQuery(body:president, body:washington)&quot;,
+            expected,
+            highlighter.highlight(&quot;body&quot;, indri, indriHits)[0]);
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cd $LUCENE &amp;&amp; ./gradlew :lucene:highlighter:test --tests org.apache.lucene.search.uhighlight.TestIndriAndQueryHighlight -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestIndriQueryVisitsClauses.java (the finder&#x27;s test)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestIndriQueryVisitsClauses.java (the finder&#x27;s test)</span><span class='meta'>159 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Query#visit must &quot;recurse through the query tree, visiting any child queries&quot;, but
+ * IndriQuery#visit calls visitor.visitLeaf(this) and never visits its clauses. So
+ * QueryVisitor.termCollector finds no terms in an IndriAndQuery, and IndexSearcher&#x27;s cumulative
+ * clause check (TooManyNestedClauses: &quot;more than getMaxClauseCount() total clauses cumulatively in
+ * all of its children&quot;) counts a whole IndriAndQuery as one clause. Public API only.
+ */
+public class TestIndriQueryVisitsClauses extends LuceneTestCase {
+
+  private static TermQuery tq(String text) {
+    return new TermQuery(new Term(&quot;f&quot;, text));
+  }
+
+  private static IndriAndQuery indriAnd(int from, int to) {
+    List&lt;BooleanClause&gt; clauses = new ArrayList&lt;&gt;();
+    for (int i = from; i &lt; to; i++) {
+      clauses.add(new BooleanClause(tq(&quot;t&quot; + i), Occur.SHOULD));
+    }
+    return new IndriAndQuery(clauses);
+  }
+
+  public void testTermCollectorSeesClauseTerms() {
+    IndriAndQuery query =
+        new IndriAndQuery(
+            List.of(
+                new BooleanClause(tq(&quot;a&quot;), Occur.SHOULD),
+                new BooleanClause(tq(&quot;b&quot;), Occur.SHOULD)));
+    Set&lt;Term&gt; terms = new HashSet&lt;&gt;();
+    query.visit(QueryVisitor.termCollector(terms));
+    assertEquals(
+        &quot;QueryVisitor.termCollector collects all terms that may match a query&quot;,
+        Set.of(new Term(&quot;f&quot;, &quot;a&quot;), new Term(&quot;f&quot;, &quot;b&quot;)),
+        terms);
+  }
+
+  /**
+   * RamUsageEstimator.sizeOf(Query) (&quot;the size in bytes of a Query object&quot;) walks the query with a
+   * QueryVisitor; LRUQueryCache uses it to account the RAM of cached query keys. An IndriAndQuery of
+   * 1000 term clauses is accounted as its shallow size, while the BooleanQuery over the same clauses
+   * is accounted with its clauses. (LRUQueryCache#getRamBytesUsed calls
+   * RamUsageEstimator.sizeOf(query, 32) for a cached query key.)
+   */
+  public void testQueryRamEstimateCountsIndriClauses() throws Exception {
+    List&lt;BooleanClause&gt; clauses = new ArrayList&lt;&gt;();
+    for (int i = 0; i &lt; 1000; i++) {
+      clauses.add(new BooleanClause(tq(&quot;term-&quot; + i), Occur.SHOULD));
+    }
+    BooleanQuery.Builder b = new BooleanQuery.Builder();
+    clauses.forEach(b::add);
+    long boolBytes = org.apache.lucene.util.RamUsageEstimator.sizeOf(b.build());
+    long indriBytes = org.apache.lucene.util.RamUsageEstimator.sizeOf(new IndriAndQuery(clauses));
+
+    assertTrue(
+        &quot;RamUsageEstimator.sizeOf: BooleanQuery(1000 clauses)=&quot;
+            + boolBytes
+            + &quot; bytes, IndriAndQuery(same 1000 clauses)=&quot;
+            + indriBytes
+            + &quot; bytes&quot;,
+        indriBytes * 2 &gt;= boolBytes);
+  }
+
+  public void testCumulativeClauseLimitCountsIndriClauses() throws Exception {
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig())) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;f&quot;, &quot;t0&quot;, Field.Store.NO));
+        w.addDocument(doc);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = newSearcher(reader);
+        int saved = IndexSearcher.getMaxClauseCount();
+        IndexSearcher.setMaxClauseCount(4);
+        try {
+          // Control: two nested BooleanQuery clauses of 3 term clauses each (6 leaves &gt; 4).
+          BooleanQuery.Builder inner1 = new BooleanQuery.Builder();
+          BooleanQuery.Builder inner2 = new BooleanQuery.Builder();
+          for (int i = 0; i &lt; 3; i++) {
+            inner1.add(tq(&quot;t&quot; + i), Occur.SHOULD);
+            inner2.add(tq(&quot;t&quot; + (i + 3)), Occur.SHOULD);
+          }
+          Query nestedBoolean =
+              new BooleanQuery.Builder()
+                  .add(inner1.build(), Occur.SHOULD)
+                  .add(inner2.build(), Occur.SHOULD)
+                  .build();
+          // (BooleanQuery.rewrite flattens it to one 6-clause BooleanQuery, which throws
+          // TooManyClauses; TooManyNestedClauses is a subclass of TooManyClauses.)
+          expectThrows(IndexSearcher.TooManyClauses.class, () -&gt; searcher.search(nestedBoolean, 10));
+
+          // Same shape with IndriAndQuery clauses: 6 leaves as well.
+          Query nestedIndri =
+              new BooleanQuery.Builder()
+                  .add(indriAnd(0, 3), Occur.SHOULD)
+                  .add(indriAnd(3, 6), Occur.SHOULD)
+                  .build();
+          IndexSearcher.TooManyClauses e1 = null;
+          try {
+            searcher.search(nestedIndri, 10);
+          } catch (IndexSearcher.TooManyClauses e) {
+            e1 = e;
+          }
+          // A single IndriAndQuery with 51 clauses (IndriAndQuery has no clause check of its own).
+          IndexSearcher.TooManyClauses e2 = null;
+          int hits = -1;
+          try {
+            hits = searcher.search(indriAnd(0, 51), 10).scoreDocs.length;
+          } catch (IndexSearcher.TooManyClauses e) {
+            e2 = e;
+          }
+          assertTrue(
+              &quot;maxClauseCount=4: BooleanQuery(IndriAndQuery(3 clauses), IndriAndQuery(3 clauses))&quot;
+                  + &quot; threw TooManyClauses: &quot;
+                  + (e1 != null)
+                  + &quot;; IndriAndQuery(51 clauses) threw: &quot;
+                  + (e2 != null)
+                  + &quot; (ran with &quot;
+                  + hits
+                  + &quot; hits)&quot;,
+              e1 != null &amp;&amp; e2 != null);
+        } finally {
+          IndexSearcher.setMaxClauseCount(saved);
+        }
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-3' data-status='command-3-st'>Copy</button><span class='copy-st' id='command-3-st' role='status' aria-live='polite'></span></figcaption><pre id='command-3' tabindex='0'><code>cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests org.apache.lucene.search.TestIndriQueryVisitsClauses -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestIndriVisitChildren.java (independent reproducer, with a recording visitor)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestIndriVisitChildren.java (independent reproducer, with a recording visitor)</span><span class='meta'>209 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.RamUsageEstimator;
+
+/**
+ * Query#visit: &quot;Recurse through the query tree, visiting any child queries.&quot; IndriQuery holds
+ * child queries (getClauses()), so a visitor must reach them, as it does for BooleanQuery and
+ * DisjunctionMaxQuery over the same children. Public API only (the package is only where Lucene
+ * keeps its own search tests).
+ */
+public class TestIndriVisitChildren extends LuceneTestCase {
+
+  private static final String F = &quot;body&quot;;
+
+  private static List&lt;BooleanClause&gt; termClauses(int n) {
+    return termClauses(0, n);
+  }
+
+  /** SHOULD TermQuery clauses on terms t{from}..t{from+n-1}. */
+  private static List&lt;BooleanClause&gt; termClauses(int from, int n) {
+    List&lt;BooleanClause&gt; clauses = new ArrayList&lt;&gt;();
+    for (int i = from; i &lt; from + n; i++) {
+      clauses.add(
+          new BooleanClause(new TermQuery(new Term(F, &quot;t&quot; + i)), BooleanClause.Occur.SHOULD));
+    }
+    return clauses;
+  }
+
+  private static BooleanQuery booleanOf(List&lt;BooleanClause&gt; clauses) {
+    BooleanQuery.Builder b = new BooleanQuery.Builder();
+    for (BooleanClause c : clauses) {
+      b.add(c);
+    }
+    return b.build();
+  }
+
+  private static Set&lt;Term&gt; collectTerms(Query q) {
+    Set&lt;Term&gt; terms = new HashSet&lt;&gt;();
+    q.visit(QueryVisitor.termCollector(terms));
+    return terms;
+  }
+
+  /** A visitor that records every query it is called for, through every sub-visitor. */
+  private static final class RecordingVisitor extends QueryVisitor {
+    final List&lt;Query&gt; seen = new ArrayList&lt;&gt;();
+
+    final List&lt;String&gt; log = new ArrayList&lt;&gt;();
+
+    @Override
+    public void consumeTerms(Query query, Term... terms) {
+      seen.add(query);
+      log.add(&quot;consumeTerms(&quot; + query.getClass().getSimpleName() + &quot; &quot; + query + &quot;)&quot;);
+    }
+
+    @Override
+    public void visitLeaf(Query query) {
+      seen.add(query);
+      log.add(&quot;visitLeaf(&quot; + query.getClass().getSimpleName() + &quot; &quot; + query + &quot;)&quot;);
+    }
+
+    @Override
+    public QueryVisitor getSubVisitor(BooleanClause.Occur occur, Query parent) {
+      return this;
+    }
+  }
+
+  public void testVisitorReachesChildQueries() {
+    List&lt;BooleanClause&gt; clauses = termClauses(2);
+    RecordingVisitor boolV = new RecordingVisitor();
+    booleanOf(clauses).visit(boolV);
+    // control: the BooleanQuery over the same clauses hands both TermQuery children to the visitor
+    assertTrue(&quot;control &quot; + boolV.log, boolV.seen.contains(clauses.get(0).query()));
+    assertTrue(&quot;control &quot; + boolV.log, boolV.seen.contains(clauses.get(1).query()));
+
+    IndriAndQuery indri = new IndriAndQuery(clauses);
+    RecordingVisitor indriV = new RecordingVisitor();
+    indri.visit(indriV);
+    assertTrue(
+        &quot;Query#visit must visit child queries; the visitor of IndriAndQuery(SHOULD t0, SHOULD t1) got only &quot;
+            + indriV.log,
+        indriV.seen.contains(clauses.get(0).query())
+            &amp;&amp; indriV.seen.contains(clauses.get(1).query()));
+  }
+
+  public void testTermCollectorSeesIndriClauseTerms() {
+    List&lt;BooleanClause&gt; clauses = termClauses(2);
+    Set&lt;Term&gt; expected = Set.of(new Term(F, &quot;t0&quot;), new Term(F, &quot;t1&quot;));
+    assertEquals(&quot;control BooleanQuery&quot;, expected, collectTerms(booleanOf(clauses)));
+    assertEquals(
+        &quot;QueryVisitor.termCollector &#x27;collects all terms that may match a query&#x27;&quot;,
+        expected,
+        collectTerms(new IndriAndQuery(clauses)));
+  }
+
+  public void testNestedClauseLimitCountsIndriClauses() throws IOException {
+    final int saved = IndexSearcher.getMaxClauseCount();
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(new MockAnalyzer(random())))) {
+        Document doc = new Document();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i &lt; 20; i++) {
+          sb.append(&quot;t&quot;).append(i).append(&#x27; &#x27;);
+        }
+        doc.add(new Field(F, sb.toString(), TextField.TYPE_NOT_STORED));
+        w.addDocument(doc);
+      }
+      try (IndexReader r = DirectoryReader.open(dir)) {
+        IndexSearcher s = new IndexSearcher(r);
+        s.setQueryCache(null);
+        IndexSearcher.setMaxClauseCount(8);
+
+        // control 1: a non-Boolean composite (DisjunctionMaxQuery) with 20 term children
+        List&lt;Query&gt; dis = new ArrayList&lt;&gt;();
+        for (BooleanClause c : termClauses(20)) {
+          dis.add(c.query());
+        }
+        expectThrows(
+            IndexSearcher.TooManyNestedClauses.class,
+            () -&gt; s.search(new DisjunctionMaxQuery(dis, 0.5f), 10));
+
+        // control 2: two nested BooleanQuery of 6 distinct clauses each under MUST (12 leaves &gt; 8)
+        BooleanQuery.Builder nested = new BooleanQuery.Builder();
+        nested.add(booleanOf(termClauses(0, 6)), BooleanClause.Occur.MUST);
+        nested.add(booleanOf(termClauses(6, 6)), BooleanClause.Occur.MUST);
+        BooleanQuery nestedBool = nested.build();
+        expectThrows(IndexSearcher.TooManyClauses.class, () -&gt; s.search(nestedBool, 10));
+
+        // same shapes with IndriAndQuery
+        IndriAndQuery big = new IndriAndQuery(termClauses(20));
+        Throwable t1 = null;
+        try {
+          TopDocs td = s.search(big, 10);
+          if (VERBOSE) System.out.println(&quot;IndriAndQuery(20) ran: &quot; + td.totalHits);
+        } catch (IndexSearcher.TooManyClauses e) {
+          t1 = e;
+        }
+        BooleanQuery.Builder nestedIndri = new BooleanQuery.Builder();
+        nestedIndri.add(new IndriAndQuery(termClauses(0, 6)), BooleanClause.Occur.MUST);
+        nestedIndri.add(new IndriAndQuery(termClauses(6, 6)), BooleanClause.Occur.MUST);
+        Throwable t2 = null;
+        try {
+          s.search(nestedIndri.build(), 10);
+        } catch (IndexSearcher.TooManyClauses e) {
+          t2 = e;
+        }
+        assertTrue(
+            &quot;maxClauseCount=8: TooManyNestedClauses is for queries with &#x27;more than getMaxClauseCount()&quot;
+                + &quot; total clauses cumulatively in all of its children&#x27;; IndriAndQuery(20 clauses) threw=&quot;
+                + (t1 != null)
+                + &quot;, BooleanQuery(MUST IndriAndQuery(6), MUST IndriAndQuery(6)) threw=&quot;
+                + (t2 != null),
+            t1 != null &amp;&amp; t2 != null);
+      }
+    } finally {
+      IndexSearcher.setMaxClauseCount(saved);
+    }
+  }
+
+  public void testRamEstimateCountsIndriClauses() {
+    List&lt;BooleanClause&gt; clauses = termClauses(500);
+    long bool = RamUsageEstimator.sizeOf(booleanOf(clauses));
+    long indri = RamUsageEstimator.sizeOf(new IndriAndQuery(clauses));
+    long bool32 = RamUsageEstimator.sizeOf(booleanOf(clauses), 32);
+    long indri32 = RamUsageEstimator.sizeOf(new IndriAndQuery(clauses), 32);
+    String msg =
+        &quot;RamUsageEstimator.sizeOf over 500 term clauses: BooleanQuery=&quot;
+            + bool
+            + &quot; IndriAndQuery=&quot;
+            + indri
+            + &quot;; with defSize 32 (the query cache&#x27;s key accounting): BooleanQuery=&quot;
+            + bool32
+            + &quot; IndriAndQuery=&quot;
+            + indri32;
+    System.out.println(msg);
+    assertTrue(msg, indri * 2 &gt;= bool &amp;&amp; indri32 * 2 &gt;= bool32);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-4' data-status='command-4-st'>Copy</button><span class='copy-st' id='command-4-st' role='status' aria-live='polite'></span></figcaption><pre id='command-4' tabindex='0'><code>cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests org.apache.lucene.search.TestIndriVisitChildren -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); the same test also fails on 10.5.2 and 10.0.0, and the core-only history check fails on every release it ran on from 8.9.0 to 10.5.2 (9.1.0 was run with the finder&#x27;s JUnit instead)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main a9779ef3c193, assertions on, seed DEADBEEF (abridged rendering of the gradle test results, not literal output; the same with -Ptests.asserts=false)
+TestIndriAndQueryVisitsClauses &gt; testTermCollectorSeesClauseTerms FAILED
+    java.lang.AssertionError: termCollector over IndriAndQuery(body:president, body:washington) expected:&lt;[body:washington, body:president]&gt; but was:&lt;[]&gt;
+TestIndriAndQueryVisitsClauses &gt; testCumulativeClauseLimitCountsIndriClauses FAILED
+    java.lang.AssertionError: maxClauseCount=4, the DisjunctionMaxQuery and nested BooleanQuery controls throw; IndriAndQuery(6 clauses): ran, hits=1; BooleanQuery(IndriAndQuery(3 clauses), IndriAndQuery(3 clauses)): ran, hits=1
+TestIndriAndQueryVisitsClauses &gt; testRamEstimateDependsOnClauses FAILED
+    java.lang.AssertionError: RamUsageEstimator.sizeOf: IndriAndQuery(1 clause)=1024 bytes, IndriAndQuery(1000 clauses)=1024 bytes, BooleanQuery(same 1000 clauses)=1169024 bytes
+TestIndriAndQueryHighlight &gt; testTermExtractionHighlightsIndriClauses FAILED
+    org.junit.ComparisonFailure: IndriAndQuery(body:president, body:washington) expected:&lt;[&lt;b&gt;president&lt;/b&gt; &lt;b&gt;washington&lt;/b&gt;] was the first leade...&gt; but was:&lt;[president washington] was the first leade...&gt;
+TestIndriVisitChildren &gt; testVisitorReachesChildQueries FAILED
+    java.lang.AssertionError: Query#visit must visit child queries; the visitor of IndriAndQuery(SHOULD t0, SHOULD t1) got only [visitLeaf(IndriAndQuery body:t0 body:t1)]
+# core: 12 tests, 10 failed (this doc&#x27;s 3/3, the finder&#x27;s 3/3, the reproducer&#x27;s 4/4); upstream TestIndriAndQuery 2/2 pass
+# the order inside expected:&lt;[...]&gt; is a HashSet&#x27;s and varies by run</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>Query#visit</code> must "recurse through the query tree, visiting any child queries"; <code class='nw'>IndriAndQuery</code> holds clauses but reports itself as a leaf.</li><li>The clause limit counts "total clauses cumulatively in all of its children", for "all queries, rather than only booleans" (LUCENE-8811).</li><li><code class='nw'>visitLeaf(this)</code> was never discussed or tested; the same omission in other classes was fixed as a bug (LUCENE-8849, LUCENE-9050).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>247 words</span></summary><div class='body'><ul><li><strong>Javadoc.</strong> <code class='nw'>Query#visit</code>: "Recurse through the query tree, visiting any child queries." <code>QueryVisitor#visitLeaf</code>: "Called by leaf queries that do not match on terms". <code class='nw'>termCollector</code>: "collects all terms that may match a query". <code>TooManyNestedClauses</code>: "Thrown when a client attempts to execute a Query that has more than getMaxClauseCount() total clauses cumulatively in all of its children."</li><li><strong>CHANGES.</strong> LUCENE-3041 (the visitor API): queries should "either pass the visitor down to any child queries, or call a visitX() or consumeX() method on it". LUCENE-8811 (9.0.0): the clause checks "are now implemented using a QueryVisitor and apply to all queries, rather than only booleans".</li><li><strong>The API designer's rule</strong> (review of the visitor API, apache/lucene-solr#581, 2019-02-26, @romseygeek): "Yes, all compound queries should pull a sub visitor and call <code class='nw'>visit</code> on each of their sub queries with it. And <code class='nw'>visitLeaf</code> is for queries that don't match on terms."</li><li><strong>Tests.</strong> <code>TestQueryVisitor.testExtractTermsEquivalent</code> asserts that <code class='nw'>termCollector</code> reaches terms inside nested <code class='nw'>BooleanQuery</code> and <code class='nw'>BoostQuery</code> composites; <code>TestMaxClauseLimit.testLargeDisjunctionMaxQuery</code> asserts that a non-Boolean composite with 1,050 children throws <code>TooManyNestedClauses</code>. <code>TestIndriAndQuery</code> checks hit counts only.</li><li><strong>History.</strong> <code class='nw'>visitLeaf(this)</code> is in the first commit of the introducing PR (apache/lucene-solr#2097, 2020-11-24) and unchanged since on the main line (on <code class='nw'>branch_8x</code>, which shipped 8.9.0, <code class='nw'>Query#visit</code> then still defaulted to the same <code class='nw'>visitLeaf(this)</code>); no review comment, issue comment (#10577, #11194, #463) or commit message mentions it.</li><li><strong>Precedent.</strong> LUCENE-8849 ("DocValuesRewriteMethod.visit wasn't visiting its embedded query", 8.6.0) and LUCENE-9050 ("MultiTermIntervalsSource.visit() was not calling back to its visitor", 8.3.1) were fixed as bugs.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>280 words</span></summary><div class='body'><p>The strongest case for "intended": the visitor API lets a composite be opaque, and several are on purpose (<code>ToParentBlockJoinQuery</code>, <code>ToChildBlockJoinQuery</code>, <code class='nw'>DrillDownQuery</code>, <code>MoreLikeThisQuery</code> and <code>CompositeVerifyQuery</code> call <code class='nw'>visitLeaf(this)</code>; block-join highlighting was dropped by design). <code>ToParentBlockJoinQuery</code> gets past the cumulative limit the same way. <code>RamUsageEstimator.sizeOf</code> is documented as an estimate. And maintainers see Indri as marginal (#11194 proposes moving it to the sandbox).</p><p>Why it is weaker than the contract: most precedents have a reason that does not apply here. The block-join children match other documents. <code class='nw'>DrillDownQuery</code> and <code>MoreLikeThisQuery</code> rewrite to a <code class='nw'>BooleanQuery</code>, which the clause check (run after rewriting) sees; a visitor applied to the query as given, such as the UnifiedHighlighter's term extraction, does not, so for those consumers they are as opaque as <code class='nw'>IndriAndQuery</code>. The closest case, <code>CompositeVerifyQuery</code> (spatial-extras), holds one same-document child and calls <code class='nw'>visitLeaf(this)</code>, but it is <code>@lucene.experimental</code>, its child is an approximation that "matches more than needed", and a shape predicate decides the final match, so its child's terms only approximate what it matches. <code class='nw'>IndriAndQuery</code> is in core, not experimental, has no <code class='nw'>rewrite</code>, and its clauses are the match: a plain disjunction over the same document. The estimate argument only explains why 1,024 follows from the leaf, which is why the RAM effect is a consequence, not the headline. "Marginal" bears on priority, not on whether it is a bug: the classes are public, not experimental, and shipped since 8.9.0. <strong>Verdict: most likely not intended (a defect), or at least a contradiction with the documented <code class='nw'>visit</code> contract;</strong> maintainers could still choose to keep Indri opaque and document it. The issue should answer the opaque-composite comparison up front.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Visit every clause through a SHOULD sub-visitor (validated)</strong></p><p class='short'>Make <code class='nw'>IndriQuery.visit</code> pass a SHOULD sub-visitor to every clause (+6/-1 in <code class='nw'>IndriQuery.java</code>), since the Indri scorers match the union of the clauses. All repro tests pass, and so do 2,353 tests (the search package plus <code>TestRamUsageEstimator</code>) and 723 highlighter tests, with assertions on and off. Oversized Indri queries then hit the clause limit, as other composites do.</p><pre class='snippet' tabindex='0'><code>@Override
+public void visit(QueryVisitor visitor) {
+  // The Indri scorers match the union of all clauses, whatever their Occur, so every clause is
+  // visited as a SHOULD clause.
+  QueryVisitor v = visitor.getSubVisitor(BooleanClause.Occur.SHOULD, this);
+  for (BooleanClause c : clauses) {
+    c.query().visit(v);
+  }
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 668 words</span></summary><div class='body'><p>One fix was validated on the module test suites; an <code class='nw'>Occur</code>-based variant was validated on a narrower set.</p><div class="hd hd-3"><h3 id='fix-should'>Visit every clause through a SHOULD sub-visitor (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-should" target="_self" aria-label="Link to this section" aria-describedby="fix-should"><span aria-hidden="true">#</span></a></div><p><code class='nw'>IndriQuery.visit</code> pulls <code>visitor.getSubVisitor(Occur.SHOULD, this)</code> and visits each clause's query with it. SHOULD describes what the clauses do today: <code class='nw'>IndriAndQuery</code> matches the union of its clauses whatever their <code class='nw'>Occur</code> (a separate finding), so a MUST_NOT clause, which still matches, keeps its terms visible. Fixed in the base class, so a future <code class='nw'>IndriOrQuery</code> (open PR #463) inherits it.</p><pre class='snippet' tabindex='0'><code>@Override
+public void visit(QueryVisitor visitor) {
+  // The Indri scorers match the union of all clauses, whatever their Occur, so every clause is
+  // visited as a SHOULD clause.
+  QueryVisitor v = visitor.getSubVisitor(BooleanClause.Occur.SHOULD, this);
+  for (BooleanClause c : clauses) {
+    c.query().visit(v);
+  }
+}</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Behaviour change:</strong> an <code class='nw'>IndriAndQuery</code> whose clauses take the cumulative count over the limit now throws <code>TooManyNestedClauses</code>, like other composites. The counter checks before it increments, so at the default 1,024 an <code class='nw'>IndriAndQuery</code> of 1,025 term clauses still runs and one of 1,026 throws (read; the executed check used 6 clauses at a limit of 4). Queries under the limit keep their hits; oversized ones that ran before now fail. Mention it in CHANGES.</li><li><code>RamUsageEstimator.sizeOf</code> and, on main, the query cache now account for the clauses (a cached 16-clause <code class='nw'>IndriAndQuery</code>: 3,136 bytes, equal to the <code class='nw'>BooleanQuery</code>; 500 clauses: 92,192).</li><li>Visitors now also receive callbacks from clauses that need rewriting (for example a <code class='nw'>PrefixQuery</code>). Searching such a query already fails at <code class='nw'>createWeight</code>, because <code class='nw'>IndriAndQuery</code> does not rewrite its clauses (a related finding), but visitor-only consumers (term extraction, highlighting, <code class='nw'>sizeOf</code>, custom visitors) never call <code class='nw'>createWeight</code>, so for them these callbacks are new. Cross-reference the two issues.</li><li>Does not fix the blank highlights in the default weight-matches mode, which needs <code class='nw'>Weight#matches</code> in <code class='nw'>IndriAndWeight</code>.</li><li>Not benchmarked (a visit walks the clause list once).</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree at <code class='nw'>a9779ef3c193</code>, gradle, seed DEADBEEF: <code class='nw'>:lucene:core</code>, every test class of <code>org.apache.lucene.search</code> plus <code>util.TestRamUsageEstimator</code>, with the 3 repro classes: 218 classes, 2,353 tests, 0 failures, with assertions on and off (<code>TestMaxClauseLimit</code>, <code class='nw'>TestQueryVisitor</code>, <code>TestLRUQueryCache</code>, <code class='nw'>TestBooleanQuery</code>, <code>TestIndriAndQuery</code> among them).</li><li>Whole <code>:lucene:highlighter</code> with the highlighter repro: 35 classes, 723 tests, 0 failures, assertions on and off.</li><li><code>:lucene:core:check -x test</code> and <code>:lucene:highlighter:check -x test</code> with the fix and both tests: BUILD SUCCESSFUL.</li><li>The repro runner: the finder's and the reproducer's own fixes (the same code) pass their repros.</li></ul><div class="hd hd-3"><h3 id='fix-occur'>Visit each clause with its own Occur (validated on a narrow set) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-occur" target="_self" aria-label="Link to this section" aria-describedby="fix-occur"><span aria-hidden="true">#</span></a></div><p>Mirrors <code>BooleanQuery.visit</code>: <code>c.query().visit(visitor.getSubVisitor(c.occur(), this))</code> for every clause.</p><pre class='snippet' tabindex='0'><code>for (BooleanClause c : clauses) {
+  c.query().visit(visitor.getSubVisitor(c.occur(), this));
+}</code></pre><p class='k'>Trade-offs</p><p>Right once <code class='nw'>IndriAndQuery</code> honours (or rejects) MUST, FILTER and MUST_NOT. Today it hides a MUST_NOT clause's terms from <code class='nw'>termCollector</code> (the default sub-visitor for MUST_NOT is empty) although that clause still produces matches. The clause count includes MUST_NOT clauses either way.</p><p class='k'>What the checks validated</p><p>The 3 repro classes, <code>TestIndriAndQuery</code>, <code class='nw'>TestQueryVisitor</code> and <code>TestMaxClauseLimit</code> (22 tests) and the highlighter repro pass, assertions on. Not run on the whole package or with assertions off.</p><div class="hd hd-3"><h3 id='fix-javadoc'>Document Indri queries as opaque to QueryVisitor</h3><a class="hlink" href="#fix-javadoc" target="_self" aria-label="Link to this section" aria-describedby="fix-javadoc"><span aria-hidden="true">#</span></a></div><p>Say in the javadoc that term extraction, highlighting and the clause limit do not see Indri clauses.</p><p class='k'>Trade-offs</p><p>A legitimate maintainer choice, but it contradicts <code class='nw'>Query#visit</code>'s contract and leaves the cumulative clause limit not counting the clauses. Not run.</p><div class="hd hd-3"><h3 id='fix-subclass'>Override visit in IndriAndQuery only</h3><a class="hlink" href="#fix-subclass" target="_self" aria-label="Link to this section" aria-describedby="fix-subclass"><span aria-hidden="true">#</span></a></div><p>The same loop in the subclass instead of the base class.</p><p class='k'>Trade-offs</p><p>Works for today's one subclass; a future <code class='nw'>IndriOrQuery</code> would repeat the bug. Not run.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround without a Lucene change</h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p>Count <code class='nw'>getClauses()</code> before searching or set a <code class='nw'>QueryTimeout</code>; walk <code class='nw'>getClauses()</code> yourself for term extraction; or wrap the query in your own <code class='nw'>Query</code> whose <code class='nw'>visit</code> descends. Such a wrapper must also delegate <code class='nw'>createWeight</code>, <code class='nw'>equals</code>, <code class='nw'>hashCode</code> and <code class='nw'>toString</code>, and its <code class='nw'>rewrite</code> must keep the wrapper rather than return the bare <code class='nw'>IndriAndQuery</code>. Not run.</p><p class='k'>Trade-offs</p><p>Every application has to know about it.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>An application that relies on <code class='nw'>maxClauseCount</code> alone to bound user-built <code class='nw'>IndriAndQuery</code> clause lists is not protected: it should count the clauses itself or set a <code class='nw'>QueryTimeout</code>.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>An automated bytecode scan of every concrete <code class='nw'>Query</code> class flagged that <code class='nw'>IndriAndQuery</code> never hands its clauses to a visitor. A later hunt compared it with the equivalent <code class='nw'>BooleanQuery</code> on all 1,884 small clause lists against a Z3 model: term collection differed in 1,845, the clause count in 1,860. A public-API JUnit test then reproduced it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>182 words</span></summary><div class='body'><p><strong>Method: semi-formal</strong> (an automated scan, then bounded-exhaustive translation validation of the real core jar against a Z3 model).</p><ul><li><strong>First signal (2026-10-26).</strong> An earlier unit scanned the bytecode of every concrete <code class='nw'>Query</code> class in the stock main jars (JDK ClassFile API) for contract checks; its rows VISIT-MISS and VISIT-NOSUB flagged that <code class='nw'>IndriAndQuery</code>'s clauses are never handed to a visitor. That unit registered the related rewrite bug and recorded this visit root as separate.</li><li><strong>Hunt (2026-10-28).</strong> An outside-reviewer probe pack re-raised it (<code class='nw'>termCollector</code> returns []). The finder built a bounded-exhaustive harness: every clause list over 3 terms and 4 <code class='nw'>Occur</code> values (1,884 queries), run through the real jar and compared with the same clauses in a <code class='nw'>BooleanQuery</code> and with a Z3 model of the expected visitor results. <code class='nw'>termCollector</code> differed in 1,845 lists and the clause-count visitor in 1,860, with 0 mismatches against the model's prediction for the leaf-only <code class='nw'>visit</code>.</li><li>The finder then wrote a public-API JUnit test (term collection, clause limit, RAM estimate) and a highlighter test, and found the RAM-estimate and query-cache consumers by searching for callers of <code class='nw'>Query.visit</code>.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found: 193 queries over GitHub issues, PRs and commits, the mailing lists, the JIRA archive, downstream projects and the web, plus the full introducing PR, searched 2026-10-28. Nearest: the same omission fixed in other classes (LUCENE-8849, LUCENE-9050).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>Nobody has reported that <code class='nw'>IndriQuery.visit</code> treats the query as a leaf, or any of its symptoms (empty <code class='nw'>termCollector</code>, Indri clauses not counted by <code class='nw'>maxClauseCount</code>, the RAM under-estimate, missing highlights). None of the hits is about this bug; the only items by the owner (an author search found 3) are unrelated.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene, apache/lucene-solr)</th><td class='when'>2026-10-28</td><td>3 scripted prior-report searches (identifiers, symptoms, history keys) and 39 GraphQL searches (38 plus the broad <code>repo:apache/lucene Indri</code> search): Indri with visit, visitor, QueryVisitor, visitLeaf, termCollector, highlight, maxClauseCount, TooManyClauses</td><td>no report</td></tr><tr><th scope='row'>Threads read in full</th><td class='when'>2026-10-28</td><td>lucene-solr#2097 (all review comments, all 24 commits), #10577, #11194, #11290, #463, #12295, #9855, #15097, #15124</td><td>no mention of visit; #2097's one design question (r532221029) is about which clause types are supported</td></tr><tr><th scope='row'>Open and recent PRs</th><td class='when'>2026-10-28</td><td>changed files of all 410 open PRs; the 76 items updated since 2026-10-26; Indri/visitLeaf items updated since 2026-10-26 (re-read by the fact check at ~)</td><td>only #463, #469, #669, #11928, #12295 touch Indri files; none touches visit</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-28</td><td>dev@, java-user@, issues@, commits@ (a scripted prior-report search and 9 direct queries); JIRA archive (3 queries)</td><td>only LUCENE-9537, LUCENE-10157 and smoothing-score threads</td></tr><tr><th scope='row'>Downstream and web</th><td class='when'>2026-10-28</td><td>Elasticsearch, OpenSearch, Solr trackers; the Lucindri repositories; 7 web searches (several throttled)</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since the Indri classes were added (LUCENE-9537, <code class='nw'>9cc5c9b7983</code>, merged 2021-01-29; first release 8.9.0); <code class='nw'>visit</code> has never changed. Affects 8.9.0 to 10.5.2, <code class='nw'>branch_10_6</code> and main; the clause-limit effect since 9.0.0.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-9537 "Add initial Indri search engine functionality to Lucene" (apache/lucene-solr#2097 by @cammiemw, squash-merged 2021-01-29 as <code class='nw'>9cc5c9b7983</code>; cherry-picked to branch_8x as <code class='nw'>a6125fb9385</code>, released in 8.9.0). The <code class='nw'>visitLeaf(this)</code> body is in the PR's first commit <code class='nw'>087d9d2a07c</code> (2020-11-24). The only later main-line commit on <code class='nw'>IndriQuery.java</code>, <code class='nw'>2ee537ce160</code> (#13261, 2024), changes <code class='nw'>toString</code> only. Not a regression, so no bisect.</p><p>When each effect appeared: term collection and <code class='nw'>sizeOf</code> with the class in 8.9.0; the cumulative clause limit in 9.0.0 (LUCENE-8811); the query-cache key accounting on main only (#15124, unreleased).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>every repro fails with assertions on and off; upstream main <code class='nw'>c5ab3e57b9ba</code> still has <code class='nw'>visitLeaf(this)</code></td></tr><tr><th scope='row'>10.6.0-SNAPSHOT (<code class='nw'>branch_10_6</code>) <code class='nw'>4ae946e5a9b9</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's JUnit fails 3/3 with assertions off; this doc's core test fails 3/3 and the highlighter test 1/1 with assertions on and off (fact check)</td></tr><tr><th scope='row'>10.5.2, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 3/3; highlighter test fails on 10.5.2</td></tr><tr><th scope='row'>9.12.3, 9.1.0, 9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>term collection, sizeOf and the clause limit fail (core-only checks on 9.0.0 and 9.12.3); the finder's JUnit fails 3/3 on 9.1.0 and 9.12.3</td></tr><tr><th scope='row'>8.11.4, 8.10.1, 8.9.0</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> no cumulative limit</span></td><td>term collection and sizeOf fail; the cumulative clause limit does not exist before 9.0.0</td></tr><tr><th scope='row'>8.8.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>no Indri classes</td></tr><tr><th scope='row'>fix (main + one-method visit)</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>every repro passes; core search and highlighter suites pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and an intended-behaviour devil's advocate each reproduced it and called it real; the adjudication confirmed it with a new seed. Reviews by another model family could only read code: one called it real, the other defaulted to "not reproduced" but agreed on the root cause.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>329 words</span></summary><div class='body'><p>Every check ran on main <code class='nw'>a9779ef3c193</code>, except that the cross-model reviews read the sources at <code class='nw'>ea57360912ed</code> (the cited Indri, <code class='nw'>Query</code>, <code class='nw'>QueryVisitor</code> and <code class='nw'>IndexSearcher</code> files are identical at both). No reviewer from another model family executed code: the reviews could only read code, and the separate re-runs ended in <code class='nw'>setup_error</code> (wrong package for the highlighter test class). The executed checks are the finder's, the verifiers', the adjudication's, the registry re-runs, a credibility audit, this doc's own runs and the fact check's.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own test written from the claim (recording visitor, termCollector, clause limit at 8 with DisjunctionMaxQuery and nested-BooleanQuery controls, sizeOf over 500 clauses: 585,024 vs 1,024 bytes) fails 4/4 on main (on and off), 10.5.2 and 9.12.3; its fix passes and upstream TestIndriAndQuery stays green; found that the query-cache effect is main only.</td></tr><tr><th scope='row'>cross-model review, refute lens (OpenAI GPT-5.6, reading only)</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not_real, low (procedural)</span></td><td>Could not run code, so its protocol defaults to not_real; read <code class='nw'>ea57360912ed</code>; root cause agrees, inputs in contract, intended argument weak.</td></tr><tr><th scope='row'>cross-model review, intended lens (OpenAI GPT-5.6, reading only)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>Read <code class='nw'>ea57360912ed</code> only; rated the "composites may be opaque" case weak. A separate re-run of the finder's repro ended in <code class='nw'>setup_error</code>; the cross-model review's own re-runs fail on main and pass with the fix.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the opaque-composite case from the block-join, DrillDown and MoreLikeThis precedents and rejected it; re-ran on main and 10.5.2.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high, tier Low</span></td><td>With a new seed the reproducer's test fails 4/4 with assertions on and off and passes 4/4 with the fix.</td></tr><tr><th scope='row'>Registration check and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's test (3/3 fail on and off, 3/3 pass with the fix) and the highlighter test (1/1 fail).</td></tr><tr><th scope='row'>this doc's validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> fix validated</span></td><td>Gradle on stock and with the fix (search package, highlighter module, static checks), assertions on and off.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-872/bug.png' download='indri-query-visit-leaf-hides-clauses-bug.png' target='_self'>PNG</a> <span class='n'>418 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,418 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-872, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>IndriQuery.visit reports the whole query as a leaf and never visits its clauses, so QueryVisitor.termCollector, UnifiedHighlighter term extraction, IndexSearcher's cumulative clause limit and RamUsageEstimator.sizeOf all ignore an IndriAndQuery's clauses</dd></div><div><dt>Area</dt><dd>search / IndriQuery (QueryVisitor traversal of Indri composite queries; consumers: QueryVisitor.termCollector, IndexSearcher's cumulative clause limit, RamUsageEstimator.sizeOf(Query), UnifiedHighlighter)</dd></div><div><dt>Priority</dt><dd>Medium, rank 258: Every IndriAndQuery silently breaks QueryVisitor-based tools (term extraction and highlighting return nothing, clause limit and RAM estimate skip its clauses) while hits stay correct in a niche core API, so it ends the highlighting and visitor wrong-result rows after LFV-516 and below the hit-changing Indri row LFV-874.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications that build an IndriAndQuery (a rarely used core API that no Lucene query parser produces) get wrong answers, with no error, from every QueryVisitor-based tool on every such query: QueryVisitor.termCollector returns no terms, the UnifiedHighlighter in term-extraction mode (withWeightMatches(false)) highlights nothing, IndexSearcher's cumulative maxClauseCount check (since 9.0.0) counts the whole IndriAndQuery as one clause whatever it holds, and RamUsageEstimator.sizeOf returns the 1024-byte default (on main only, LRUQueryCache's key accounting inherits this, a few KB per cached entry); search hits and scores are unchanged; default codec, IndexWriterConfig and searcher, ordinary scale; every release since 8.9.0.</dd></div><div><dt>Summary</dt><dd>You build an IndriAndQuery of ordinary TermQuery clauses, for example f:a and f:b, and inspect it with a QueryVisitor, as term extraction, highlighting, IndexSearcher's clause-count check and the query RAM estimate do. You expect the visitor to reach both clauses, as it does for a BooleanQuery over the same clauses, because Query#visit is documented to 'recurse through the query tree, visiting any child queries'. Instead IndriQuery.visit only calls visitor.visitLeaf(this), so termCollector returns [], with maxClauseCount=4 a 51-clause IndriAndQuery and BooleanQuery(IndriAndQuery(3), IndriAndQuery(3)) both run while the same nesting of BooleanQuery clauses throws TooManyClauses, and RamUsageEstimator.sizeOf gives 1,024 bytes for 1,000 clauses against 1,169,024 for the BooleanQuery.</dd></div><div><dt>Introduced</dt><dd>9cc5c9b7983cf181280e18819f8516dc16ccf1ef (LUCENE-9537 'Add initial Indri search engine functionality to Lucene', now issue apache/lucene#10577; PR apache/lucene-solr#2097 by GitHub cammiemw, squash-merged 2021-01-29), released through its branch_8x cherry-pick a6125fb93855 (CHANGES entry moved to 8.9.0 by 4d839225b147); the visitLeaf(this) body is already in the PR's first commit 087d9d2a07c (authored 2020-11-24) and was never discussed in review [read: git log -L on IndriQuery.visit and git log -S visitLeaf in the full-history clone show only 9cc5c9b7983; the one later commit on IndriQuery.java, 2ee537ce160 (#13261, 2024-04-04), changes toString only; exec: fails on 8.9.0, the first release with the class, while 8.8.2 has no Indri classes]; not a regression, so no bisect (2021-01-29 (lucene-solr#2097 squash-merged and cherry-picked to branch_8x the same day; the visitLeaf(this) line was authored 2020-11-24 in the PR's first commit))</dd></div><div><dt>First affected version</dt><dd>8.9.0 [exec] (the first release with the Indri classes; 8.8.2 has none and the repro does not compile there [exec]); on the main line 9.0.0 [exec]. The cumulative clause-limit effect starts at 9.0.0, where IndexSearcher's visitor-based limit first shipped (LUCENE-8811) [exec]</dd></div><div><dt>Affected versions</dt><dd>8.9.0 to 8.11.4 and every 9.x and 10.x release, 9.0.0 to 10.5.2 [exec: a core-only main() (recording visitor, termCollector, sizeOf) fails on 8.9.0 (-ea and -da), 8.10.1, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main; a clause-limit main() fails on 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main and does not compile on 8.11.4 (no cumulative limit before 9.0); the finder's 3-test JUnit fails 3 of 3 on 9.1.0, 9.12.3, 10.0.0, 10.5.2, branch_10_6 head 4ae946e5a9b9 and main (-ea and -da); the UnifiedHighlighter JUnit fails on 9.12.3, 10.5.2 and main; the independent reproduction's JUnit fails 4 of 4 on 9.12.3, 10.5.2 and main; read: git tag --contains 9cc5c9b7983, and visit is byte-identical at the 9.0.0, 9.12.3, 10.0.0 and 10.5.2 tags and on main]; the LRUQueryCache key under-count is main only (GITHUB#15124, e706267b893, CHANGES 11.0.0, in no release tag) [exec, the independent reproduction: on main a cached 16-clause IndriAndQuery is accounted at 192 bytes against 3,136 for the BooleanQuery; no Indri-specific difference on 10.5.2]; upstream main c5ab3e57b9ba, branch_10x and branch_10_6 still call visitLeaf(this) [read 2026-10-28; refresh: still only 9cc5c9b7983 and 2ee537ce160 on IndriQuery.java]; not fixed anywhere. All runs on aarch64 Linux with JDK 25.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (the prior-report record, verdict new, searched 2026-10-28, read-only, 193 queries: 3 scripted prior-report searches (135 queries over GitHub issues, PRs and commits, downstream Elasticsearch/OpenSearch/Solr, the dev@, java-user@, issues@ and commits@ lists and the JIRA archive), 39 GitHub GraphQL searches, 9 direct list and 3 JIRA queries, 7 web searches; full reads of #10577, #11194, #11290, #463, #12295, #9855, #15097, #15124 and lucene-solr#2097 (all review comments and all 24 PR commits' patches); a changed-file scan of all 410 open apache/lucene PRs and the 76 items updated since 2026-10-26; the Lucindri repositories), plus the finder's, the independent reproduction's, the intended-behaviour check's and the adjudication's own searches; refresh 2026-10-28: no apache/lucene issue or PR mentioning Indri updated since 2026-10-26, no QueryVisitor or visitLeaf item updated since 2026-10-25, the newest PRs (to #16926) and issues (to #16928) unrelated, and upstream commits on IndriQuery.java still only 9cc5c9b7983 (author date 2021-01-29) and 2ee537ce160 (author date 2024-04-04). Related, not this bug: same-contract precedents in other classes fixed as bugs, LUCENE-8849 (#9892, DocValuesRewriteMethod.visit; registry LFV-038 is the related DocValuesRewriteMethod case), LUCENE-9050 (#10092, MultiTermIntervalsSource.visit empty) and #12686 (IndexOrDocValuesQuery highlighting); #14756/#16175 (IndexOrDocValuesQuery counted twice, the opposite direction); #9855 (LUCENE-8811, the visitor-based cumulative clause count); #15097/#15124 (LRUQueryCache now sizes keys with RamUsageEstimator, which exposes the gap to the cache on main); #463 (open, stale: would add an Indri parser and an IndriOrQuery that inherits the same visit). Gaps: web search was throttled (7 completed); generic GitHub queries were read only to the first page.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (gradle in a scratch worktree: this doc's core and highlighter tests, the finder's and the independent reproducer's tests and upstream <code>TestIndriAndQuery</code> on stock, assertions on and off; the recommended fix on every <code>org.apache.lucene.search</code> test class plus <code>TestRamUsageEstimator</code> and the whole highlighter module, assertions on and off, and both modules' static checks; the <code class='nw'>Occur</code>-based alternative on the repro classes, <code>TestIndriAndQuery</code>, <code class='nw'>TestQueryVisitor</code> and <code>TestMaxClauseLimit</code>; the repro runner: the finder's, the verifiers', the adjudication's, the registry re-runs, the credibility audit and this doc's tests, several seeds, assertions on and off); the release jars 8.8.2 (no Indri classes), 8.9.0, 8.10.1, 8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0 and 10.5.2; a 10.6.0-SNAPSHOT (<code class='nw'>branch_10_6</code>) build at <code class='nw'>4ae946e5a9b9</code> (the finder's JUnit with assertions off; the fact check's runs of this doc's core and highlighter tests, assertions on and off). OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/IndriQuery.java:71-74 (visit: visitor.visitLeaf(this)); lucene/core/src/java/org/apache/lucene/search/Query.java:88-93; QueryVisitor.java:54 (visitLeaf &#x27;Called by leaf queries that do not match on terms&#x27;), :87 (termCollector &#x27;collects all terms that may match a query&#x27;); IndexSearcher.java:1195 (&#x27;total clauses cumulatively in all of its children&#x27;); LRUQueryCache.java:470 (RamUsageEstimator.sizeOf(query, 32))</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/IndriQuery.java:28-96 (clauses field :30, visit :71-74, iterator :89-92, getClauses :94-96)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndriAndWeight.java:33-73 (a Weight per clause :41-44, a scorer per clause that has one :47-58)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/Query.java:88-93; QueryVisitor.java:53-58 (visitLeaf), :79-84 (getSubVisitor), :86-99 (termCollector)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:871-880 (rewrite runs the clause check), :891-932 (clause-count visitor; the check before the increment :908-930); BooleanQuery.java:82-84, 615-631</code></li><li><code>lucene/core/src/java/org/apache/lucene/util/RamUsageEstimator.java:319-357, 365-386; lucene/core/src/java/org/apache/lucene/search/LRUQueryCache.java:465-471</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:108-111, 480-485, 502-529</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/Weight.java:72, 94 (default matches: MATCH_WITH_NO_TERMS)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:80 (maxClauseCount 1024), :82-84 (no default query cache), :976-983 (cache only without scores)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSearcher.java:908-930 (each counter call checks numClauses &gt; maxClauseCount before ++numClauses); IndriAndWeight.java:67-73 (isCacheable, no clause cap)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/Query.java:88-93; QueryVisitor.java:53-58, 86-91; IndexSearcher.java:1193-1199</code></li><li><code>lucene/CHANGES.txt:4664-4667 (LUCENE-8811), 5783 (LUCENE-8849), 6146-6147 (LUCENE-9050), 6452-6455 (LUCENE-3041)</code></li><li><code>lucene/core/src/test/org/apache/lucene/search/TestQueryVisitor.java:67-77; TestMaxClauseLimit.java:128-148; TestIndriAndQuery.java</code></li><li><code>lucene/spatial-extras/src/java/org/apache/lucene/spatial/composite/CompositeVerifyQuery.java:33-41, 88-90; lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:918 (terms extracted from the query as given)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/QueryVisitor.java:79-84 (MUST_NOT gets EMPTY_VISITOR); IndexSearcher.java:902-905</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone tag releases/lucene/10.5.2 (IndriQuery.java visit unchanged)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestIndriAndQueryVisitsClauses.java (JUnit, public API): <a href='../repro/LFV-872/TestIndriAndQueryVisitsClauses.java'><code>repro/LFV-872/TestIndriAndQueryVisitsClauses.java</code></a> (167 lines)</li><li>TestIndriAndQueryHighlight.java (highlighter module): <a href='../repro/LFV-872/TestIndriAndQueryHighlight.java'><code>repro/LFV-872/TestIndriAndQueryHighlight.java</code></a> (87 lines)</li><li>TestIndriQueryVisitsClauses.java (the finder&#x27;s test): <a href='../repro/LFV-872/TestIndriQueryVisitsClauses.java'><code>repro/LFV-872/TestIndriQueryVisitsClauses.java</code></a> (159 lines)</li><li>TestIndriVisitChildren.java (independent reproducer, with a recording visitor): <a href='../repro/LFV-872/TestIndriVisitChildren.java'><code>repro/LFV-872/TestIndriVisitChildren.java</code></a> (209 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the repro's example, made in parallel with this doc from an executed probe on the stock main jars (assertions on and off, and with the fix). The PNG is the summary card.</p><ul class='paths'><li><a href='../assets/LFV-872/bug.png'><code>assets/LFV-872/bug.png</code></a> (418 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

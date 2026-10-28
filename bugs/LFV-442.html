@@ -1,0 +1,678 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>TieredMergePolicy accepts setMaxMergedSegmentMB(0), then commit(), close() and forceMergeDeletes() throw once enough documents are deleted</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-442 &middot; tmp-zero-max-merged-segment-empty-candidate</p><h1 id='top'>TieredMergePolicy accepts setMaxMergedSegmentMB(0), then commit(), close() and forceMergeDeletes() throw once enough documents are deleted</h1><p class='tldr'><code>TieredMergePolicy.setMaxMergedSegmentMB(0)</code> is accepted, but once enough documents are deleted, <code class='nw'>commit()</code>, <code class='nw'>close()</code> and <code>forceMergeDeletes()</code> throw: the merge-selection loop never takes a segment and then reads the first entry of an empty list. A regression since 7.5.0; a 1-byte maximum works.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 326</span><span class='sub'>SetMaxMergedSegmentMB(0) on the default TieredMergePolicy is accepted, but commit, close and forceMergeDeletes later throw loudly once deletes pile up, the same degenerate-setting profile as LFV-394, and it is less reachable than LFV-454.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>crash</span></dd></div><div><dt>Since</dt><dd>7.5.0 (LUCENE-7976, 2018)<span class='sub'>introduced 2018-06-15 &middot; about 8 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>every release checked, 7.5.0 to 10.5.2, and main (8 releases executed, 57 tags read); 7.4.0 not affected</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>boundary-value probes of setter checks</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>A merge policy picks segments to merge in a loop that stops before the merge would grow past <code>maxMergedSegmentMB</code>. A segment that alone is bigger than the limit is still merged on its own, to reclaim its deletes. With a limit of 0 bytes the loop stops before it looks at any segment.</p><figure class='visual' id='tmp-zero-max-merged-segment-empty-candidate-short-visual'><div class='frame'><a class='still' href='../assets/LFV-442/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-442/bug.png' alt='Diagram of the bug: with maxMergedSegmentMB 0 the merge-selection loop&#x27;s guard bytesThisMerge &lt; maxMergedSegmentBytes reads 0 &lt; 0, so no segment enters the candidate list and candidate.get(0) throws from commit() and forceMergeDeletes(); with a 1-byte maximum the guard reads 0 &lt; 1 and the segment with deletes becomes a singleton merge.' width='1920' height='1080'></a></div><figcaption><code class='nw'>commit()</code> and <code>forceMergeDeletes()</code> with a 0-byte and a 1-byte maximum: at 0 the selection loop stops before the first segment, and reading the empty candidate list throws; at 1 byte the segment becomes a one-segment merge. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Configure the default merge policy with <code>new TieredMergePolicy().setMaxMergedSegmentMB(0)</code>. The setter accepts it: it rejects only negative values ("must be &gt;=0").</span></li><li><span>Index 10 documents into one segment, delete 5 of them, add 1 more and call <code class='nw'>commit()</code>. You expect the commit to succeed with 6 live documents, as it does with a 1-byte or the default 5 GB maximum.</span></li><li><span>Instead <code class='nw'>commit()</code> throws <code>IndexOutOfBoundsException: Index 0 out of bounds for length 0</code> (an <code class='nw'>AssertionError</code> with assertions on). <code>forceMergeDeletes()</code> on two 5-document segments with 1 delete each throws the same way; so do <code class='nw'>close()</code>, NRT reopens and indexing calls that flush, while those deletes remain.</span></li><li><span>Why: the loop that picks segments for a merge runs only while <code>bytesThisMerge &lt; maxMergedSegmentBytes</code>. With a 0-byte limit that is 0 &lt; 0, false before the first segment, so even the branch meant for one oversized segment never runs and the candidate list stays empty.</span></li><li><span>It needs deletes: with the defaults, more than 20% of the index and of a segment for <code class='nw'>commit()</code>, more than 10% of a segment for <code>forceMergeDeletes()</code>. With the default settings the index on disk stays at the last commit; 7.4.0 accepted 0 without error.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that set <code>setMaxMergedSegmentMB(0)</code>, or -0.0, a positive value below 2^-20 MB or NaN, which are stored as 0 bytes; one downstream user set 0 expecting "no limit". Append-only indexing works, so it can pass testing and fail later, once updates or deletes pile up. Then commits keep failing while the deletes remain, until the merge policy is replaced.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>886 words</span></summary><div class='body'><p><code>TieredMergePolicy.setMaxMergedSegmentMB</code> rejects only negative values, so 0 is stored as a 0-byte maximum; so are -0.0, every positive value below 2^-20 MB (one byte), and NaN. The merge-selection loop in <code class='nw'>doFindMerges</code> runs only while <code>bytesThisMerge &lt; maxMergedSegmentBytes</code>, which is <code>0 &lt; 0</code> before the first segment is added, so the loop never admits a segment, not even through the branch that turns an oversized segment into a one-segment ("singleton") merge. The candidate list stays empty, and the next lines fail: <code>assert candidate.size() &gt; 0</code> with assertions on, <code class='nw'>candidate.get(0)</code> with <code>IndexOutOfBoundsException</code> with them off. This comes out of <code class='nw'>commit()</code>, <code class='nw'>close()</code>, NRT reopens and segment-flushing adds once more than 20% of the index and of some segment is deleted, and out of <code>forceMergeDeletes()</code> once a segment has more than 10% deletes (the defaults of <code>deletesPctAllowed</code> and <code>forceMergeDeletesPctAllowed</code>). A 1-byte maximum works; 7.4.0 accepted 0 without error; every release checked from 7.5.0 on fails (8 releases and main executed, the same code read in the 57 release tags 7.5.0-10.5.2 of the history clone).</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Merge candidate</strong>: the list of segments <code>TieredMergePolicy</code> considers merging together. <code class='nw'>doFindMerges</code> builds one per start position and keeps the best-scoring one.</li><li><strong>Singleton merge</strong>: a merge of one segment into a new one, which rewrites it without its deleted documents. The class javadoc describes it, "down to 1 at once, if that one has deletions" (<code>TieredMergePolicy.java:42-44</code>), and the selection loop states it for a segment that alone is over the maximum: "We should never have something coming in that _cannot_ be merged, so handle singleton merges" (<code class='nw'>:559-560</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>setMaxMergedSegmentMB</code> (<code class='nw'>:102-109</code>) throws only for <code>v &lt; 0.0</code> ("maxMergedSegmentMB must be &gt;=0") and stores <code>(long) (v * 1024 * 1024)</code>: 0, -0.0, every positive value below 2^-20 MB and NaN become <code>maxMergedSegmentBytes = 0</code>; negative values are rejected.</li><li>With a 0 maximum, <code class='nw'>findMerges</code> sets aside every non-empty segment as too large (<code>&gt; maxMergedSegmentBytes / 2</code>) unless both the index and the segment are more than <code>deletesPctAllowed</code> (default 20%) deleted (<code class='nw'>:381-397</code>), then calls <code class='nw'>doFindMerges</code> (<code class='nw'>:438</code>). <code>findForcedDeletesMerges</code> passes every segment with more than <code>forceMergeDeletesPctAllowed</code> (default 10%) deletes (<code class='nw'>:957-963</code>, call at <code class='nw'>:968</code>). Both leave out segments that are already merging.</li><li>The candidate loop's header includes <code>bytesThisMerge &lt; maxMergedSegmentBytes</code> (<code class='nw'>:539-548</code>, clause at <code class='nw'>:546</code>). <code class='nw'>bytesThisMerge</code> starts at 0, so the header is <code>0 &lt; 0</code>, false, before the first segment. The body, which admits an oversized first segment as a singleton ("We should never have something coming in that _cannot_ be merged, so handle singleton merges", <code class='nw'>:552-570</code>), never runs.</li><li><code>assert candidate.size() &gt; 0</code> (<code class='nw'>:578</code>) fails with assertions on; <code>segInfosSizes.get(candidate.get(0))</code> (<code class='nw'>:580</code>) throws <code>IndexOutOfBoundsException</code> with them off.</li><li>Callers: <code class='nw'>commit()</code> and <code class='nw'>prepareCommit()</code> through <code>findFullFlushMerges</code> (<code>IndexWriter.java:3863</code> -&gt; <code class='nw'>:2496</code>, <code>MergePolicy.java:693</code>; with the default 500 ms <code>maxFullFlushMergeWaitMillis</code>, <code class='nw'>:3858</code>); NRT reopens (<code class='nw'>:635</code>, <code class='nw'>:704-706</code>), <code class='nw'>close()</code>, an explicit <code class='nw'>flush()</code>, <code class='nw'>maybeMerge()</code> and segment-flushing adds through <code class='nw'>maybeMerge</code> (<code class='nw'>:2445</code> -&gt; <code class='nw'>:2508</code>, <code class='nw'>:6345-6360</code>); <code>forceMergeDeletes()</code> (<code class='nw'>:2359</code>), or already in its preliminary <code>flush(true, true)</code> (<code class='nw'>:2348</code>) when deletes are still unflushed. The selection of <code class='nw'>forceMerge(1)</code> (<code class='nw'>findForcedMerges</code>, <code>TieredMergePolicy.java:745-921</code>) does not use <code class='nw'>doFindMerges</code> and is not affected (executed).</li></ol><p>A 1-byte maximum makes the header <code>0 &lt; 1</code>, so the first segment enters and becomes a singleton merge.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-main-a9779ef3c193'>The numbers (main <code class='nw'>a9779ef3c193</code>)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-main-a9779ef3c193" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-main-a9779ef3c193"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>case</th><th>expected</th><th>main</th></tr></thead><tbody><tr><td>0 maximum: 10 docs, delete 5, add 1, <code class='nw'>commit()</code></td><td>6 live docs</td><td><code class='nw'>AssertionError</code> at <code class='nw'>:578</code> / <code>IndexOutOfBoundsException</code> at <code class='nw'>:580</code></td></tr><tr><td>0 maximum: two 5-doc segments, 1 delete each, <code>forceMergeDeletes()</code></td><td>8 live docs</td><td>the same exception</td></tr><tr><td>0 maximum: 100 docs, delete 50, <code class='nw'>commit()</code> or <code class='nw'>close()</code></td><td>succeeds</td><td>the same exception; <code class='nw'>close()</code> rolls back</td></tr><tr><td>1-byte or default maximum, the 100-doc <code class='nw'>commit()</code> and <code>forceMergeDeletes()</code> cases</td><td>succeeds</td><td>succeeds; deletes reclaimed (maxDoc 50 after commit, 70 after <code>forceMergeDeletes()</code> with 30 deleted and <code>deletesPctAllowed</code> 50)</td></tr><tr><td>0 maximum and <code>setMaxFullFlushMergeWaitMillis(0)</code>: 100 docs, delete 50, <code class='nw'>commit()</code></td><td>succeeds</td><td>throws after the commit was written (numDocs 50 on disk)</td></tr><tr><td>0 maximum, append only or 6% deletes</td><td>succeeds</td><td>succeeds</td></tr></tbody></table></div><p>What it does to the writer (main <code class='nw'>ea57360912ed</code>, the same code, and an entry-point probe on <code class='nw'>a9779ef3c193</code>): with assertions off no entry point records a tragic event and the writer stays open; calls keep failing while the delete thresholds are exceeded (a second commit after 10 more documents threw again), and replacing the merge policy on the live config (<code>w.getConfig().setMergePolicy(new TieredMergePolicy())</code>) recovers it. With assertions on, <code class='nw'>commit()</code>, <code class='nw'>prepareCommit()</code>, NRT reopens and segment-flushing adds record the <code class='nw'>AssertionError</code> as tragic and the writer closes (<code>IndexWriter.java:3879-3883</code>, <code class='nw'>:711-721</code>, <code class='nw'>:1632-1640</code>); <code>forceMergeDeletes()</code>, an explicit <code class='nw'>flush()</code> and <code class='nw'>maybeMerge()</code> let it propagate and the writer stays open, not tragic. A <code class='nw'>close()</code> that throws closes the writer and drops the uncommitted changes, as <code class='nw'>close()</code> documents for any exception (<code class='nw'>:1344-1352</code>). With the default 500 ms <code>maxFullFlushMergeWaitMillis</code> a failing <code class='nw'>commit()</code> writes no commit point: the index on disk stays at the last commit and CheckIndex is clean. With <code>setMaxFullFlushMergeWaitMillis(0)</code> the commit is written first (<code class='nw'>:4261</code>) and <code class='nw'>commit()</code> then throws from the post-commit <code class='nw'>maybeMerge</code> (<code class='nw'>:4265-4266</code>), so the caller sees an exception for a durable commit. An <code class='nw'>addDocument</code> whose automatic flush throws has already been indexed, so retrying it can add a duplicate.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>232 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Applications that configure the default <code>TieredMergePolicy</code> with a 0 maximum, or with -0.0, a positive value below 2^-20 MB or NaN. Some people set 0 meaning "no limit": one user on a downstream forum set a 0-byte maximum expecting "unlimited" (that server maps 0 to "unset", so Lucene never saw it), and Lucene's own randomized tests were steered away from 0 in 2013 and from near-0 values in 2015.</li><li><strong>Opt-in.</strong> A non-default value of a public setter on the default merge policy.</li><li><strong>Delayed.</strong> Append-only indexing works; the failure starts once update or delete churn pushes the index and a segment past <code>deletesPctAllowed</code> (20% by default), or when <code>forceMergeDeletes()</code> runs on a segment with more than <code>forceMergeDeletesPctAllowed</code> (10% by default) deletes.</li><li><strong>Effect.</strong> Commits, closes, NRT reopens and segment-flushing adds keep failing while those thresholds are exceeded. With assertions off the writer is usable again after the merge policy is replaced; with assertions on, a failing commit, NRT reopen or flushing add closes it. A throwing <code class='nw'>close()</code> drops the uncommitted changes, as <code class='nw'>close()</code> documents for any exception. With <code>setMaxFullFlushMergeWaitMillis(0)</code> a <code class='nw'>commit()</code> that throws has already been written. No corruption of committed data, no wrong hits, no hang.</li><li><strong>Scale.</strong> None: 10 documents.</li><li><strong>Likelihood.</strong> Rare: no matching report was found in the searches (see Prior reports), eight years after 7.5.0, and the downstream wrappers seen mostly treat 0 as "unset" or reject it.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test with 2 cases in <code>org.apache.lucene.index</code>, public API only: <code class='nw'>commit()</code> after deleting 5 of 10 documents, and <code>forceMergeDeletes()</code> on two 5-document segments with 1 delete each, both with <code>setMaxMergedSegmentMB(0)</code>. It returns early if the setter rejects 0, so it also accepts that fix.</p><figure class='code'><figcaption><span class='fname'>TestTieredMergePolicyZeroMaxMergedSegment.java (lucene/core, 2 tests)</span><span class='meta'>104 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * TieredMergePolicy#setMaxMergedSegmentMB accepts 0 (&quot;must be &gt;=0&quot;), but with a 0-byte maximum
+ * doFindMerges builds an empty merge candidate and fails (AssertionError with -ea,
+ * IndexOutOfBoundsException with -da).
+ */
+public class TestTieredMergePolicyZeroMaxMergedSegment extends LuceneTestCase {
+
+  /** Returns null if the setter rejects 0 (a valid fix), else a writer using it. */
+  private static IndexWriter newWriter(Directory dir) throws Exception {
+    TieredMergePolicy tmp = new TieredMergePolicy();
+    try {
+      tmp.setMaxMergedSegmentMB(0.0); // accepted on main: the setter only rejects v &lt; 0
+    } catch (IllegalArgumentException rejected) {
+      return null;
+    }
+    assertEquals(0.0, tmp.getMaxMergedSegmentMB(), 0.0);
+    IndexWriterConfig iwc =
+        new IndexWriterConfig(new MockAnalyzer(random()))
+            .setMergePolicy(tmp)
+            .setMergeScheduler(new SerialMergeScheduler())
+            .setMaxBufferedDocs(IndexWriterConfig.DISABLE_AUTO_FLUSH)
+            .setRAMBufferSizeMB(16);
+    return new IndexWriter(dir, iwc);
+  }
+
+  private static void addDocs(IndexWriter w, int from, int to) throws Exception {
+    for (int i = from; i &lt; to; i++) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.NO));
+      w.addDocument(doc);
+    }
+  }
+
+  /** forceMergeDeletes on two segments that each have one deleted document. */
+  public void testForceMergeDeletes() throws Exception {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir)) {
+      if (w == null) return;
+      addDocs(w, 0, 5);
+      w.flush();
+      addDocs(w, 5, 10);
+      w.flush();
+      w.deleteDocuments(new Term(&quot;id&quot;, &quot;0&quot;), new Term(&quot;id&quot;, &quot;5&quot;));
+      w.commit();
+      try {
+        w.forceMergeDeletes(); // 20% deletes per segment &gt; forceMergeDeletesPctAllowed (10%)
+      } catch (Throwable t) {
+        throw new AssertionError(&quot;forceMergeDeletes failed with maxMergedSegmentMB=0&quot;, t);
+      }
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(8, r.numDocs());
+      }
+    }
+  }
+
+  /** Plain indexing: a segment with more deletes than deletesPctAllowed reaches the same code. */
+  public void testNaturalMergeAfterDeletes() throws Exception {
+    try (Directory dir = newDirectory();
+        IndexWriter w = newWriter(dir)) {
+      if (w == null) return;
+      addDocs(w, 0, 10);
+      w.flush();
+      // 50% of the only segment deleted: above deletesPctAllowed (20%), so findMerges does not
+      // set it aside as &quot;too large&quot; and hands it to doFindMerges
+      for (int i = 0; i &lt; 5; i++) {
+        w.deleteDocuments(new Term(&quot;id&quot;, Integer.toString(i)));
+      }
+      try {
+        addDocs(w, 10, 11);
+        w.commit();
+      } catch (Throwable t) {
+        throw new AssertionError(&quot;commit failed with maxMergedSegmentMB=0&quot;, t);
+      }
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(6, r.numDocs());
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/org/apache/lucene/index/TestTieredMergePolicyZeroMaxMergedSegment.java \
+   $LUCENE/lucene/core/src/test/org/apache/lucene/index/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests TestTieredMergePolicyZeroMaxMergedSegment -Ptests.seed=DEADBEEF
+# add -Ptests.asserts=false for the IndexOutOfBoundsException
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>commit()</code> and <code>forceMergeDeletes()</code> succeed and leave 6 and 8 live documents (or the setter rejects 0).</dd></div><div class='got'><dt>Observed</dt><dd>Both throw: <code class='nw'>AssertionError</code> at <code>TieredMergePolicy.java:578</code> with assertions on, <code>IndexOutOfBoundsException: Index 0 out of bounds for length 0</code> at <code class='nw'>:580</code> with them off.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-442/'>repro/LFV-442/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>2 more files (216 lines) · 1,140 words</span></summary><div class='body'><p>The test uses <code>SerialMergeScheduler</code>, <code class='nw'>MockAnalyzer</code> and <code class='nw'>newDirectory()</code> and flushes by hand. Both cases fail on main, with assertions on and off.</p><p>The second and third files come from the independent reproducer: four tests on a 100-document segment (the setter accepts 0; <code class='nw'>commit()</code>, <code class='nw'>close()</code> and <code>forceMergeDeletes()</code> after deletes, the last with <code>deletesPctAllowed</code> 50 so that its commit passes; it assumes the setter keeps accepting 0), and the commit and <code>forceMergeDeletes()</code> cases with a 1-byte and the default maximum, which pass and reclaim the deletes (there is no <code class='nw'>close()</code> control with pending deletes).</p><div class="hd hd-3"><h3 id='code-2-h'>TestTMPZeroMaxMergedV1.java (commit, close, forceMergeDeletes on 100 documents)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>On main: 3 of 4 fail (commit, close, forceMergeDeletes); the setter test passes.</p><figure class='code'><figcaption><span class='fname'>TestTMPZeroMaxMergedV1.java (commit, close, forceMergeDeletes on 100 documents)</span><span class='meta'>127 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * TieredMergePolicy.setMaxMergedSegmentMB accepts 0 (&quot;must be &gt;=0&quot;). With that accepted value, an
+ * index with a segment that has many deletes must still commit, close and forceMergeDeletes
+ * without an exception. Uses only public API.
+ */
+public class TestTMPZeroMaxMergedV1 extends LuceneTestCase {
+
+  static final int NUM_DOCS = 100;
+
+  static IndexWriterConfig config(double maxMergedSegmentMB, double deletesPctAllowed) {
+    TieredMergePolicy tmp = new TieredMergePolicy();
+    tmp.setMaxMergedSegmentMB(maxMergedSegmentMB); // accepted by the setter
+    tmp.setDeletesPctAllowed(deletesPctAllowed);
+    IndexWriterConfig iwc = new IndexWriterConfig(new MockAnalyzer(random()));
+    iwc.setMergePolicy(tmp);
+    iwc.setMergeScheduler(new SerialMergeScheduler());
+    iwc.setMaxBufferedDocs(10 * NUM_DOCS); // one segment per flush
+    iwc.setRAMBufferSizeMB(IndexWriterConfig.DISABLE_AUTO_FLUSH);
+    return iwc;
+  }
+
+  /** One committed segment of NUM_DOCS docs, then deletes of the first numDeletes ids. */
+  static void indexAndDelete(IndexWriter w, int numDeletes) throws Exception {
+    for (int i = 0; i &lt; NUM_DOCS; i++) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;id&quot;, Integer.toString(i), Field.Store.NO));
+      w.addDocument(doc);
+    }
+    w.commit(); // no deletes yet: must succeed
+    for (int i = 0; i &lt; numDeletes; i++) {
+      w.deleteDocuments(new Term(&quot;id&quot;, Integer.toString(i)));
+    }
+  }
+
+  public void testSetterAcceptsZero() {
+    TieredMergePolicy tmp = new TieredMergePolicy();
+    tmp.setMaxMergedSegmentMB(0.0);
+    assertEquals(0.0, tmp.getMaxMergedSegmentMB(), 0.0);
+  }
+
+  /** Natural merge path: commit() after 50% deletes in the only segment. */
+  public void testCommitAfterDeletes() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config(0.0, 20.0));
+      Throwable t = null;
+      try {
+        indexAndDelete(w, 50);
+        w.commit();
+      } catch (Throwable e) {
+        t = e;
+      } finally {
+        w.rollback();
+      }
+      if (t != null) {
+        throw new AssertionError(&quot;commit() threw with maxMergedSegmentMB=0&quot;, t);
+      }
+    }
+  }
+
+  /** close() commits, so it takes the same path. */
+  public void testCloseAfterDeletes() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config(0.0, 20.0));
+      Throwable t = null;
+      try {
+        indexAndDelete(w, 50);
+        w.close();
+      } catch (Throwable e) {
+        t = e;
+        w.rollback();
+      }
+      if (t != null) {
+        throw new AssertionError(&quot;close() threw with maxMergedSegmentMB=0&quot;, t);
+      }
+    }
+  }
+
+  /**
+   * Forced-deletes path: deletesPctAllowed=50 so that commit() with 30% deletes is fine, then
+   * forceMergeDeletes() (forceMergeDeletesPctAllowed default 10).
+   */
+  public void testForceMergeDeletes() throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config(0.0, 50.0));
+      Throwable t = null;
+      String stage = &quot;commit&quot;;
+      try {
+        indexAndDelete(w, 30);
+        w.commit();
+        stage = &quot;forceMergeDeletes&quot;;
+        w.forceMergeDeletes();
+      } catch (Throwable e) {
+        t = e;
+      } finally {
+        w.rollback();
+      }
+      if (t != null) {
+        throw new AssertionError(stage + &quot;() threw with maxMergedSegmentMB=0&quot;, t);
+      }
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestTMPZeroMaxMergedControlV1.java (1-byte and default maximum)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>On main: 4 of 4 pass; commit gives maxDoc 50, numDocs 50, forceMergeDeletes maxDoc 70, numDocs 70.</p><figure class='code'><figcaption><span class='fname'>TestTMPZeroMaxMergedControlV1.java (1-byte and default maximum)</span><span class='meta'>89 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Controls for TestTMPZeroMaxMergedV1: the same scenarios with a 1-byte maximum (the smallest
+ * positive value) and with the default maximum must pass, and report whether deletes were
+ * reclaimed (singleton merge).
+ */
+public class TestTMPZeroMaxMergedControlV1 extends LuceneTestCase {
+
+  static final double ONE_BYTE_MB = 1.0 / 1024 / 1024;
+
+  private void runCommit(double maxMB) throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, TestTMPZeroMaxMergedV1.config(maxMB, 20.0));
+      TestTMPZeroMaxMergedV1.indexAndDelete(w, 50);
+      w.commit();
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        System.out.println(
+            &quot;CONTROL commit maxMB=&quot;
+                + maxMB
+                + &quot; leaves=&quot;
+                + r.leaves().size()
+                + &quot; maxDoc=&quot;
+                + r.maxDoc()
+                + &quot; numDocs=&quot;
+                + r.numDocs());
+        assertEquals(50, r.numDocs());
+      }
+      w.close();
+    }
+  }
+
+  private void runForceMergeDeletes(double maxMB) throws Exception {
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, TestTMPZeroMaxMergedV1.config(maxMB, 50.0));
+      TestTMPZeroMaxMergedV1.indexAndDelete(w, 30);
+      w.commit();
+      w.forceMergeDeletes();
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        System.out.println(
+            &quot;CONTROL forceMergeDeletes maxMB=&quot;
+                + maxMB
+                + &quot; leaves=&quot;
+                + r.leaves().size()
+                + &quot; maxDoc=&quot;
+                + r.maxDoc()
+                + &quot; numDocs=&quot;
+                + r.numDocs());
+        assertEquals(70, r.numDocs());
+      }
+      w.close();
+    }
+  }
+
+  public void testOneByteCommit() throws Exception {
+    runCommit(ONE_BYTE_MB);
+  }
+
+  public void testOneByteForceMergeDeletes() throws Exception {
+    runForceMergeDeletes(ONE_BYTE_MB);
+  }
+
+  public void testDefaultCommit() throws Exception {
+    runCommit(new TieredMergePolicy().getMaxMergedSegmentMB());
+  }
+
+  public void testDefaultForceMergeDeletes() throws Exception {
+    runForceMergeDeletes(new TieredMergePolicy().getMaxMergedSegmentMB());
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT), gradle, assertions on and off; also 7.5.0 to 10.5.2 release jars; 7.4.0 passes</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (a pure-Java code path)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/org/apache/lucene/index/TestTieredMergePolicyZeroMaxMergedSegment.java \
+   $LUCENE/lucene/core/src/test/org/apache/lucene/index/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests TestTieredMergePolicyZeroMaxMergedSegment -Ptests.seed=DEADBEEF
+# add -Ptests.asserts=false for the IndexOutOfBoundsException
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>$ ./gradlew --no-daemon --continue :lucene:core:test --tests TestTieredMergePolicyZeroMaxMergedSegment --tests TestTMPZeroMaxMergedV1 --tests TestTMPZeroMaxMergedControlV1 -Ptests.seed=DEADBEEF
+TestTieredMergePolicyZeroMaxMergedSegment &gt; testNaturalMergeAfterDeletes FAILED
+    java.lang.AssertionError: commit failed with maxMergedSegmentMB=0
+        Caused by:
+        java.lang.AssertionError
+            at org.apache.lucene.index.TieredMergePolicy.doFindMerges(TieredMergePolicy.java:578)
+            at org.apache.lucene.index.TieredMergePolicy.findMerges(TieredMergePolicy.java:438)
+            at org.apache.lucene.index.MergePolicy.findFullFlushMerges(MergePolicy.java:693)
+            at org.apache.lucene.index.OneMergeWrappingMergePolicy.findFullFlushMerges(OneMergeWrappingMergePolicy.java:72)
+            at org.apache.lucene.index.IndexWriter.updatePendingMerges(IndexWriter.java:2496)
+            at org.apache.lucene.index.IndexWriter.preparePointInTimeMerge(IndexWriter.java:3960)
+            at org.apache.lucene.index.IndexWriter.prepareCommitInternal(IndexWriter.java:3863)
+            at org.apache.lucene.index.IndexWriter.commitInternal(IndexWriter.java:4253)
+            at org.apache.lucene.index.IndexWriter.commit(IndexWriter.java:4215)
+TestTieredMergePolicyZeroMaxMergedSegment &gt; testForceMergeDeletes FAILED
+    java.lang.AssertionError: forceMergeDeletes failed with maxMergedSegmentMB=0
+        Caused by:
+        java.lang.AssertionError
+            at org.apache.lucene.index.TieredMergePolicy.doFindMerges(TieredMergePolicy.java:578)
+            at org.apache.lucene.index.TieredMergePolicy.findForcedDeletesMerges(TieredMergePolicy.java:968)
+            at org.apache.lucene.index.IndexWriter.forceMergeDeletes(IndexWriter.java:2359)
+            at org.apache.lucene.index.IndexWriter.forceMergeDeletes(IndexWriter.java:2425)
+TestTMPZeroMaxMergedV1 &gt; testCommitAfterDeletes FAILED
+TestTMPZeroMaxMergedV1 &gt; testForceMergeDeletes FAILED
+TestTMPZeroMaxMergedV1 &gt; testCloseAfterDeletes FAILED
+10 tests completed, 5 failed
+
+# with -Ptests.asserts=false: the same 5 of 10 fail, each caused by
+java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0
+    at java.base/java.util.ArrayList.get(ArrayList.java:428)
+    at org.apache.lucene.index.TieredMergePolicy.doFindMerges(TieredMergePolicy.java:580)
+    at org.apache.lucene.index.TieredMergePolicy.findMerges(TieredMergePolicy.java:438)   (or findForcedDeletesMerges:968)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The setter accepts 0 by its own check (<code>must be &gt;=0</code>); the sibling <code>setFloorSegmentMB</code> rejects 0.</li><li>The javadoc says an oversized merge shrinks "down to 1 at once, if that one has deletions"; the code asserts the candidate is never empty.</li><li>A 0 maximum worked through 7.4.0 (no natural merges); no CHANGES or MIGRATE entry drops it.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>299 words</span></summary><div class='body'><ul><li><strong>Setter contract.</strong> <code>if (v &lt; 0.0)</code> with "maxMergedSegmentMB must be &gt;=0" (<code>TieredMergePolicy.java:103-104</code>); the javadoc (<code class='nw'>:97-101</code>) gives no other range. <code>setFloorSegmentMB</code> checks <code>v &lt;= 0.0</code>, "floorSegmentMB must be &gt; 0.0" (<code class='nw'>:168-170</code>): the class rejects 0 where it means to.</li><li><strong>Documented handling of oversized segments.</strong> "If a merge will produce a segment that's larger than {@link #setMaxMergedSegmentMB}, then the policy will merge fewer segments (down to 1 at once, if that one has deletions) to keep the segment size under budget" (<code class='nw'>:42-44</code>). The loop says "We should never have something coming in that _cannot_ be merged, so handle singleton merges" (<code class='nw'>:559-560</code>), and "We should never see an empty candidate" with <code>assert candidate.size() &gt; 0</code> (<code class='nw'>:576-578</code>).</li><li><strong>Tests.</strong> <code>TestTieredMergePolicy.testSetters</code> (<code class='nw'>:759-793</code>) tries 0.5, +Infinity, <code>Long.MAX_VALUE / 1 MiB</code> and -2.0 (rejected), not 0. The test framework randomizes <code>setMaxMergedSegmentMB(r.nextDouble() * 100)</code> (<code>LuceneTestCaseParent.java:1977</code>), a range that starts at 0 (a 0-byte draw has a probability of about 1e-8).</li><li><strong>History.</strong> Through 7.4.0, <code class='nw'>findMerges</code> set every segment aside (no natural merges) and <code>findForcedDeletesMerges</code> ignored the maximum ("Don't enforce max merged size here"). LUCENE-7976 (7.5.0) put both on <code class='nw'>doFindMerges</code> and added the clause; its CHANGES entry says only "TieredMergePolicy now respects maxSegmentSizeMB by default when executing findForcedMerges and findForcedDeletesMerges" (<code>CHANGES.txt:7224-7227</code>). None of the 124 comments on #9025 discusses a 0 maximum. Two test-only commits keep randomized tests away from such values: one from 2013 ("don't let maxMergedSegmentMB be 0.0"; "If we get TieredMP and it's maxMergedSegmentMB is 0 then this test falsely fails") suggests 0 was then known to mean "no merging" rather than an error; one from 2015 ("do not use near-zero maxMergedSegmentMB for this test!") only shows near-0 values did not suit one test. Neither documents what 0 means.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>172 words</span></summary><div class='body'><p>The strongest case for "intended": a 0-byte "maximum sized segment to produce" can never be met, and the class javadoc says "findForcedDeletesMerges should never produce segments greater than maxSegmentSize" (<code class='nw'>:61</code>), so 0 has no valid output; users who want no merging should use <code class='nw'>NoMergePolicy</code>; the <code class='nw'>&gt;=0</code> check came with LUCENE-4323 (2012) along with a compound-file size setter where 0 does mean something; and the class is <code>@lucene.experimental</code> (<code class='nw'>:67</code>).</p><p>Why it fails: that supports at most "reject 0 in the setter" or "no merge", not an internal <code class='nw'>AssertionError</code> or <code>IndexOutOfBoundsException</code> out of <code class='nw'>commit()</code>, <code class='nw'>close()</code> or <code>forceMergeDeletes()</code>. A 1-byte maximum is just as impossible to meet and works; 0 worked through 7.4.0; "experimental" allows API changes, not crashes on an accepted value. The cross-model reviews rated the intended-behaviour argument weak; the independent reproducer, the devil's-advocate checker and the adjudication found the bug real without a rating. The cross-model fact check of this doc rated "0 is an invalid configuration" moderate and "the current exception is intended" weak.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Always admit the first segment in the candidate loop</strong></p><p class='short'>Let the candidate loop always look at the first segment: <code>&amp;&amp; (candidate.isEmpty() || bytesThisMerge &lt; maxMergedSegmentBytes)</code> (<code>TieredMergePolicy.java:546</code>). Nothing changes for a positive maximum. Validated with gradle: the repro tests pass with assertions on and off, and 10 upstream merge and delete suites pass (105 tests, 12 skipped, 0 failures).</p><pre class='snippet' tabindex='0'><code>                 &amp;&amp; (candidate.size() &lt; mergeFactor || bytesThisMerge &lt; floorSegmentBytes)
+-                &amp;&amp; bytesThisMerge &lt; maxMergedSegmentBytes
++                // always look at the first segment: the body turns it into a singleton merge even
++                // when it alone exceeds maxMergedSegmentBytes (e.g. maxMergedSegmentMB == 0)
++                &amp;&amp; (candidate.isEmpty() || bytesThisMerge &lt; maxMergedSegmentBytes)
+                 &amp;&amp; (bytesThisMerge &lt; floorSegmentBytes || docCountThisMerge &lt;= allowedDocCount);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 793 words</span></summary><div class='body'><p>Two fixes were built and validated in a scratch worktree at <code class='nw'>a9779ef3c193</code> (removed afterwards); either is reasonable, and the maintainers choose. Workaround today: use a maximum of at least 1 byte (<code>1.0 / 1024 / 1024</code> MB), or <code class='nw'>NoMergePolicy</code> if no merging is wanted. Related but separate: LFV-447 (<code>setSegmentsPerTier(NaN)</code> makes the next flush hang), which these fixes do not touch.</p><div class="hd hd-3"><h3 id='fix-loop-first-segment'>Always admit the first segment in the candidate loop <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-loop-first-segment" target="_self" aria-label="Link to this section" aria-describedby="fix-loop-first-segment"><span aria-hidden="true">#</span></a></div><p>One clause in <code>TieredMergePolicy.java:546</code>. <code class='nw'>bytesThisMerge</code> grows only when a segment is added (<code class='nw'>:571-573</code>), so it is 0 while the candidate is empty, and <code>0 &lt; max</code> already holds for any positive maximum: the new clause differs only at 0. The first segment then reaches the existing singleton-merge branch (<code class='nw'>:552-570</code>).</p><pre class='snippet' tabindex='0'><code>                 &amp;&amp; (candidate.size() &lt; mergeFactor || bytesThisMerge &lt; floorSegmentBytes)
+-                &amp;&amp; bytesThisMerge &lt; maxMergedSegmentBytes
++                // always look at the first segment: the body turns it into a singleton merge even
++                // when it alone exceeds maxMergedSegmentBytes (e.g. maxMergedSegmentMB == 0)
++                &amp;&amp; (candidate.isEmpty() || bytesThisMerge &lt; maxMergedSegmentBytes)
+                 &amp;&amp; (bytesThisMerge &lt; floorSegmentBytes || docCountThisMerge &lt;= allowedDocCount);</code></pre><p class='k'>Trade-offs</p><ul><li><strong>What 0 then means</strong> (executed): <code>forceMergeDeletes()</code> reclaims the deletes by singleton merges (30 of 100 deleted: maxDoc 70), like 1 byte. <code class='nw'>commit()</code> succeeds but merges nothing (50 of 100 deleted: maxDoc 100), because <code class='nw'>findMerges</code> passes <code>maxMergeIsRunning = mergingBytes &gt;= maxMergedSegmentBytes</code> (<code class='nw'>:447</code>), which is <code>0 &gt;= 0</code>, and too-large candidates are then skipped (<code class='nw'>:626-627</code>). That is the 7.4.0 behaviour; a 1-byte maximum does reclaim on commit (maxDoc 50).</li><li><strong>A semantic choice.</strong> With this fix <code>forceMergeDeletes()</code> writes segments larger than a 0-byte maximum, as it already does for any maximum smaller than a deleted segment (1 byte, executed). The javadoc line "findForcedDeletesMerges should never produce segments greater than maxSegmentSize" (<code class='nw'>:61</code>, added in 2021) is already not literal for those singleton merges, which LUCENE-7976 introduced. It is recommended here because every value that works today keeps working; if maintainers see 0 as an invalid configuration, the setter fix is at least as defensible.</li><li>Large indexes were not tested: when the eligible segments total at least <code class='nw'>segsPerTier</code> x max(smallest segment, <code>floorSegmentBytes</code>) bytes (with the defaults 128 MB or more), the tier loop (<code class='nw'>:402-413</code>) reaches a 0 level size; the <code class='nw'>double</code> division gives +Infinity (NaN at exactly that size), the loop stops at <code>levelSize == maxMergedSegmentBytes</code> (<code class='nw'>:406</code>), and <code>(int) allowedSegCount</code> (<code class='nw'>:442</code>) becomes <code>Integer.MAX_VALUE</code> (0 for NaN). No exception is expected there; what the fixed selection then picks was not tested (read only).</li><li>Add a CHANGES entry under Bug Fixes; the clause is the same on the 10.x branches.</li></ul><p class='k'>What the checks validated</p><ul><li>Clean scratch worktree at <code class='nw'>a9779ef3c193</code>, gradle, seed <code class='nw'>DEADBEEF</code>. Stock: 5 of 10 repro tests fail, assertions on and off. With the fix: the 3 repro classes (10 tests) and <code>TestTieredMergePolicy</code>, <code>TestIndexWriterMergePolicy</code>, <code>TestIndexWriterForceMerge</code>, <code>TestIndexWriterMerging</code>, <code>TestIndexWriterDelete</code>, <code>TestForceMergeForever</code>, <code>TestSoftDeletesRetentionMergePolicy</code>, <code>TestUpgradeIndexMergePolicy</code>, <code>TestOneMergeWrappingMergePolicy</code> and <code>TestThreadedForceMerge</code>: 115 tests, 12 skipped, 0 failures. Assertions off: the repro classes, <code>TestTieredMergePolicy</code> and <code>TestIndexWriterMergePolicy</code>, 48 tests, 0 failures.</li><li>A fix-outcome check (commit and forceMergeDeletes with a 0 maximum, maxDoc and numDocs asserted) passes; <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLintMain</code> and <code>forbiddenApisMain</code> on <code class='nw'>lucene/core</code> pass.</li></ul><div class="hd hd-3"><h3 id='fix-setter-reject'>Reject values that cannot be a maximum in the setter <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-setter-reject" target="_self" aria-label="Link to this section" aria-describedby="fix-setter-reject"><span aria-hidden="true">#</span></a></div><p><code>if ((v &gt; 0.0) == false)</code> throws "maxMergedSegmentMB must be &gt; 0.0" (also for -0.0 and NaN), and <code>Math.max(1L, (long) v)</code> rounds tiny positive values up to 1 byte; the javadoc states the range.</p><pre class='snippet' tabindex='0'><code>if ((v &gt; 0.0) == false) { // also rejects NaN
+  throw new IllegalArgumentException(&quot;maxMergedSegmentMB must be &gt; 0.0 (got &quot; + v + &quot;)&quot;);
+}
+v *= 1024 * 1024;
+maxMergedSegmentBytes = v &gt; Long.MAX_VALUE ? Long.MAX_VALUE : Math.max(1L, (long) v);</code></pre><p class='k'>Trade-offs</p><p>Matches <code>setFloorSegmentMB</code> and fails at configuration time, not at the first heavily deleted commit. A behaviour change: applications that pass 0 and index append-only, which works today, get an <code>IllegalArgumentException</code>, so it needs a CHANGES (maybe MIGRATE) entry. The independent reproducer's <code>TestTMPZeroMaxMergedV1</code> asserts that 0 is accepted and does not fit this option.</p><p class='k'>What the checks validated</p><p>Same worktree: the finder's test (2 of 2; it returns early), a setter check (0, -0.0 and NaN rejected; 1e-7 stored as 1 byte), <code>TestTieredMergePolicy</code> and <code>TestIndexWriterMergePolicy</code>: 42 tests, 0 failures.</p><div class="hd hd-3"><h3 id='fix-both'>Both</h3><a class="hlink" href="#fix-both" target="_self" aria-label="Link to this section" aria-describedby="fix-both"><span aria-hidden="true">#</span></a></div><p>The loop fix keeps merge selection safe if a 0-byte maximum ever reaches it again (defence in depth: <code>maxMergedSegmentBytes</code> is private, so today only the setter sets it); the setter fix makes the contract explicit.</p><p class='k'>Trade-offs</p><p>Not run together; each part was validated on its own.</p><div class="hd hd-3"><h3 id='fix-zero-means-unlimited'>Treat 0 as "no limit" (not recommended)</h3><a class="hlink" href="#fix-zero-means-unlimited" target="_self" aria-label="Link to this section" aria-describedby="fix-zero-means-unlimited"><span aria-hidden="true">#</span></a></div><p>Map 0 to <code class='nw'>Long.MAX_VALUE</code> in the setter.</p><p class='k'>Trade-offs</p><p>Silently changes what the value means; Lucene never documented that meaning.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream (code reading only): one search server passes a per-index byte-size setting straight to this setter with no lower bound, so a 0-byte index setting would reach this crash there; another treats 0 as "unset".</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A static inventory of the argument checks in Lucene's public setters gave the values each one accepts at its boundary. Driving selected numeric setters of four merge policies end to end with those values (272 configurations) flagged an exception for every <code>maxMergedSegmentMB</code> that maps to 0 bytes; a hand-written JUnit confirmed it on the commit and forceMergeDeletes paths.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>153 words</span></summary><div class='body'><p><strong>Method: boundary-value testing guided by a static guard inventory</strong> (semi-formal; no model checker or prover was involved).</p><ul><li>A bytecode pass over 27 core and non-sandbox module jars listed 1,231 public entry points that can throw <code>IllegalArgumentException</code>, with each guard's parameters and constants.</li><li>From the guard constants it derived boundary values and probed them on the real jar: <code>setMaxMergedSegmentMB</code> accepts 0, -0.0, <code class='nw'>Double.MIN_VALUE</code>, 1e-7 and NaN.</li><li>A sweep drove selected numeric setters of four merge policies (TieredMergePolicy, LogByteSizeMergePolicy, LogDocMergePolicy, TemporalMergePolicy) end to end with a watchdog (272 configurations) and flagged a thrown <code>IndexOutOfBoundsException</code> for every <code>maxMergedSegmentMB</code> value that maps to 0 bytes; 1.0 and larger were clean. Its workload deletes while indexing and calls <code class='nw'>commit()</code> before <code>forceMergeDeletes()</code>, and the first exception ends a run, so with 0 the sweep did not get to <code>forceMergeDeletes()</code> on its own (from reading the workload); the finder's public-API JUnit then showed that path as well.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-26, re-checked 2026-10-28) in Lucene's GitHub issues, PRs and commits, JIRA, the mailing lists, downstream trackers or the web. Nearest: LUCENE-7976 (#9025), which added the loop clause, and two test-only commits that keep randomized tests away from a 0 maximum.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>3 searches</span></summary><div class='body'><p>Verdict new: 26 hits, none the same bug, nothing by the owner. Of the 411 open PRs, 6 touch <code>TieredMergePolicy*.java</code> and none changes the setter or the clause. Other context: #9310 / LUCENE-8263 (widened the commit path), #5390 / LUCENE-4323 (added the <code class='nw'>&gt;=0</code> check), #8062 / LUCENE-7005 (tightened only <code>setFloorSegmentMB</code>'s message). Gaps: GitHub's search rate limit (6 queries re-run through the tool), punctuation-insensitive search, list bodies cached to 400 characters, private reports invisible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; dev@, java-user@, issues@, commits@; JIRA archive; downstream repositories; web</th><td class='when'>2026-10-26</td><td>the hunt's prior-report tool, four runs: setMaxMergedSegmentMB, doFindMerges, maxMergedSegmentBytes, findForcedDeletesMerges, "Index 0 out of bounds for length 0", candidate.size() &gt; 0, "must be &gt;=0", zero, NaN, forceMergeDeletes, expungeDeletes</td><td>no report; nearest #9025 / LUCENE-7976 and the test-only commits db140ffc83a, fd44b39c03b</td></tr><tr><th scope='row'>GitHub-wide, JIRA (LUCENE, SOLR), Solr lists, open PRs, history</th><td class='when'>2026-10-26</td><td>8 GitHub-wide searches, 6 JIRA REST queries, 9 list queries, the file lists of all 411 open PRs, all 124 comments of #9025, git log -S/--grep, CHANGES.txt and MIGRATE.md</td><td>no report; a downstream forum user set a 0-byte maximum expecting "unlimited" (that server maps 0 to "unset")</td></tr><tr><th scope='row'>GitHub issues and PRs (apache/lucene); the file's upstream commit list</th><td class='when'>2026-10-28</td><td>setMaxMergedSegmentMB; maxMergedSegmentMB 0; TieredMergePolicy IndexOutOfBoundsException; doFindMerges; open PRs TieredMergePolicy</td><td>nothing new; the file last changed in 6643a5dbe1ed (2026-01-23), before a9779ef3c193</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by LUCENE-7976 (<code class='nw'>2519025fdaf</code>, 2018-06-15) and widened to the commit path by LUCENE-8263 (2018-07-17); both first shipped in 7.5.0. 7.4.0 is the last unaffected release; every release checked from 7.5.0 to 10.5.2, and main, fails (8 releases executed, 57 tags read).</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-7976 (#9025; patches on the issue, no PR), "Make TieredMergePolicy respect maxSegmentSizeMB and allow singleton merges of very large segments", Erick Erickson, 2018-06-15: <code class='nw'>2519025fdaf</code> on master, <code class='nw'>9c4e315c1cb</code> on branch_7x (the copy in 7.5.0). It moved forced-deletes and natural selection onto one <code class='nw'>doFindMerges</code> and added <code>bytesThisMerge &lt; maxMergedSegmentBytes</code> to its loop. Shadowing that commit's file onto the 7.4.0 jars makes <code>forceMergeDeletes()</code> fail; the parent's file passes.</p><p><strong>Widened by</strong> LUCENE-8263 (<code class='nw'>8093c450c1f</code> / <code class='nw'>8875402694b</code>, #9310, Adrien Grand, 2018-07-17): the commit path now reaches the loop at <code>deletesPctAllowed</code> instead of a hard-coded 50% (per-commit shadow bisect over the nine branch_7x commits between them).</p><p>With assertions off the throw site is <code class='nw'>score()</code> in 7.5.0 to 9.2.x (executed on 7.5.0, 8.11.4 and 9.0.0; read for 9.1.0 and 9.2.0) and <code class='nw'>candidate.get(0)</code> in <code class='nw'>doFindMerges</code> from 9.3.0 on (LUCENE-10574); the outcome is the same. All 57 release tags from 7.5.0 to 10.5.2 in the history clone have the same clause, setter and call (8.8.2 to 8.11.x are not tagged there; 8.11.4 was executed). Not fixed upstream as of <code class='nw'>20ced71c1e6e</code> (2026-10-27).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>5 of 10 repro tests fail through gradle, assertions on and off; the finder's test 2 of 2 with the standalone runner</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>finder, independent reproducer and judge runs fail, assertions on and off; controls pass</td></tr><tr><th scope='row'>10.5.2, 10.0.0, 9.12.3, 9.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the repro fails 2 of 2 (on and off for 10.5.2, 9.12.3, 9.0.0)</td></tr><tr><th scope='row'>8.11.4, 8.0.0, 7.7.3, 7.5.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the repro fails 2 of 2 (on and off for 8.11.4 and 7.5.0, where the assertions-off throw comes from score()); independent core-only programs fail too</td></tr><tr><th scope='row'>7.4.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>passes, assertions on and off: no natural merge, forceMergeDeletes expunges</td></tr><tr><th scope='row'>7.4.0 + LUCENE-7976's TieredMergePolicy.java</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> bisect</span></td><td>forceMergeDeletes fails; the commit scenario passes until LUCENE-8263</td></tr><tr><th scope='row'>fix, scratch worktree at <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>loop fix: 115 tests incl. 10 upstream suites pass; setter fix: 42 tests pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder's repro, an independent reproducer's own tests and controls, a devil's-advocate check and an adjudication found it real; a cross-model review (OpenAI GPT-5.6) agreed with the root cause and rated the intended-behaviour argument weak. This doc re-ran it on main <code class='nw'>a9779ef3c193</code> with gradle and validated two fixes.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>337 words</span></summary><div class='body'><p>The checks below ran on main <code class='nw'>ea57360912ed</code> unless stated; <code>TieredMergePolicy.java</code> is the same file on <code class='nw'>a9779ef3c193</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Boundary sweep flag, then a public-API JUnit: fails 2 of 2 on main (on and off), 10.5.2, 10.0.0 and 9.12.3; with the loop fix it passes and TestTieredMergePolicy still passes.</td></tr><tr><th scope='row'>cross-model review (refute lens)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real (low), on procedure only</span></td><td>OpenAI GPT-5.6, reading only: it could not run code; it agreed with the root cause, found the inputs in contract and rated the intended argument weak.</td></tr><tr><th scope='row'>cross-model review (intended lens)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>OpenAI GPT-5.6: intended-behaviour argument weak; 7 of 12 evidence items support real.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own tests fail 3 of 4 on main, 10.5.2 and 9.12.3 (on and off); 1-byte and default controls pass; 7.5.0 and 8.11.4 fail, 7.4.0 passes; impact runs on writer state and recovery.</td></tr><tr><th scope='row'>devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the strongest works-as-designed case; it supports at most rejecting 0, not an exception. Own program fails on 7.5.0, 8.11.4 and main, passes on 7.4.0; 1e-6 MB works.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the reproducer's tests with a new seed: same frames; controls pass. Class corrected from 'index unusable' to 'crash'.</td></tr><tr><th scope='row'>security screen</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not security-sensitive</span></td><td>Trusted configuration; loud, immediate failures confined to one writer; CheckIndex clean (executed probe).</td></tr><tr><th scope='row'>registry refresh</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>The finder's repro fails 2 of 2 on <code class='nw'>a9779ef3c193</code>.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; two fixes validated</span></td><td>Gradle in a scratch worktree: stock 5 of 10 fail (on and off); loop fix 115 tests pass, setter fix 42 tests pass; lint passes.</td></tr><tr><th scope='row'>fact checks of this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> bug confirmed; wording fixed</span></td><td>An independent fact check re-ran the repros and the fix (bug real, two wording errors); a cross-model fact check (OpenAI GPT-5.6) found 11 errors, 7 overclaims and 6 missing caveats in the wording, all fixed or answered; a diagram check passed. An entry-point probe on <code class='nw'>a9779ef3c193</code> settled which calls make the writer tragic.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-442/bug.png' download='tmp-zero-max-merged-segment-empty-candidate-bug.png' target='_self'>PNG</a> <span class='n'>476 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,363 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-442, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>TieredMergePolicy.setMaxMergedSegmentMB(0), a value the setter accepts, makes commit(), close() and forceMergeDeletes() throw once a segment has enough deletes: the doFindMerges candidate loop never admits a segment, so the merge candidate is empty (AssertionError with -ea, IndexOutOfBoundsException with -da); a regression since 7.5.0</dd></div><div><dt>Area</dt><dd>index / TieredMergePolicy merge selection (doFindMerges candidate loop; setMaxMergedSegmentMB validation)</dd></div><div><dt>Priority</dt><dd>Low, rank 326: SetMaxMergedSegmentMB(0) on the default TieredMergePolicy is accepted, but commit, close and forceMergeDeletes later throw loudly once deletes pile up, the same degenerate-setting profile as LFV-394, and it is less reachable than LFV-454.</dd></div><div><dt>Impact class</dt><dd>crash</dd></div><div><dt>Impact note</dt><dd>Applications that set the default TieredMergePolicy's maxMergedSegmentMB to 0 (or to any value below 2^-20 MB, or NaN, which the setter also stores as 0 bytes) get an exception from forceMergeDeletes() as soon as a segment has more than forceMergeDeletesPctAllowed (default 10%) deletes, and from commit(), close(), NRT reader opens and auto-flushing indexing calls once both the index and a segment have more than deletesPctAllowed (default 20%) deletes, on every release from 7.5.0 through 10.5.2 and on main; with -da the IndexOutOfBoundsException does not make the writer tragic (the last commit stays intact and readable and swapping the merge policy recovers the writer, but a close() that throws rolls back uncommitted changes), with -ea the AssertionError is tragic; no corruption, no wrong results, no scale needed (10 documents).</dd></div><div><dt>Summary</dt><dd>You configure the default TieredMergePolicy with setMaxMergedSegmentMB(0), which the setter accepts (it rejects only negative values, with the message 'must be &gt;=0'), delete some documents, and expect commit(), close() and forceMergeDeletes() to succeed, either with no merge or with the singleton merge the class javadoc promises for segments over the maximum ('down to 1 at once, if that one has deletions'), as they do with a 1-byte maximum and as they did on 7.4.0. Instead the candidate loop in doFindMerges requires 'bytesThisMerge &lt; maxMergedSegmentBytes', which is 0 &lt; 0 before the first segment is added, so no segment is ever admitted and the candidate list stays empty. 'assert candidate.size() &gt; 0' then fails with -ea, and candidate.get(0) throws IndexOutOfBoundsException ('Index 0 out of bounds for length 0') with -da, out of the writer call.</dd></div><div><dt>Introduced</dt><dd>2519025fdafe55494448854c87e094b14f434b41 on master and its branch_7x cherry-pick 9c4e315c1cb3495f400c179159836f568cd2989d (the copy that shipped in 7.5.0), 'LUCENE-7976: Make TieredMergePolicy respect maxSegmentSizeMB and allow singleton merges of very large segments' (JIRA LUCENE-7976, now GitHub issue #9025; patches on the issue, no pull request). It moved findMerges and findForcedDeletesMerges onto one shared doFindMerges and added '&amp;&amp; bytesThisMerge &lt; maxMergedSegmentBytes' to its candidate loop header [read: git log -S in the full-history clone; exec: TieredMergePolicy.java of 9c4e315c1cb shadowed onto the 7.4.0 jars makes forceMergeDeletes fail with -ea and -da, the parent's file passes]. The commit()/close() path in the repro's form fails from LUCENE-8263 (8093c450c1fd22e2bfd5b2a4a1e45c6f95f16189 on master, 8875402694b42791e18da2d3cf44a4353c676e26 on branch_7x, 2018-07-17, #9310), which lets segments with more than deletesPctAllowed deletes reach the loop [exec: per-commit shadow bisect over the nine branch_7x TieredMergePolicy commits between them]; both first shipped in 7.5.0. (2018-06-15 (LUCENE-7976); widened 2018-07-17 (LUCENE-8263))</dd></div><div><dt>First affected version</dt><dd>7.5.0 [exec] (both trigger paths); 7.4.0 is not affected [exec: passes with -ea and -da; there a 0 maximum meant no natural merges, and forceMergeDeletes ignored the maximum and still expunged deletes]</dd></div><div><dt>Affected versions</dt><dd>every release from 7.5.0: 7.5.0-7.7.3, 8.0.0-8.11.4, 9.0.0-9.12.3, 10.0.0-10.5.2, and main ea57360912ed [exec: the follow-up's history runs fail on 7.5.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0, 10.5.2 and main, both scenarios, with -ea, and with -da on 7.5.0, 8.11.4, 9.0.0, 9.12.3, 10.5.2 and main; the independent reproduction and the intended-behaviour check confirmed 7.5.0 and 8.11.4 with their own core-only main() programs] [read: all 57 release tags 7.5.0-10.5.2 in the history clone plus main have the loop clause, the 'v &lt; 0.0'-only setter and findForcedDeletesMerges -&gt; doFindMerges; 8.8.2-8.11.x have no tag there, 8.11.4 was executed from release jars]; unchanged on upstream main c50bc9523db3, branch_10x and branch_10_6 (the prior-report record). With -da the exception comes from score() in 7.5.0-9.0.0 and from doFindMerges' candidate.get(0) from 9.3.0 on (LUCENE-10574 moved the first use); the outcome is the same.</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26; the prior-report record plus the finder's run; all read-only): four runs of the scripted prior-report search (together 66 GitHub issue and PR queries on apache/lucene plus multi-repo downstream queries, 10 commit, 9 downstream, 80 mailing-list queries over dev@, java-user@, issues@ and commits@, 16 JIRA-archive and 9 web queries), 8 GitHub-wide searches with no repository filter, 6 JIRA REST queries (LUCENE, SOLR), 9 Solr-list queries, the changed-file lists of all 411 open apache/lucene PRs (6 touch TieredMergePolicy*.java; none changes the setter or the loop clause), all 124 comments of #9025, and git log -S/--grep plus CHANGES.txt and MIGRATE.md in the full history; 26 hits, all same_bug false. Related prior items, none the same bug: #9025 / LUCENE-7976 (added the loop clause; no 0 maximum discussed); test-only commits db140ffc83a (2013, 'don't let maxMergedSegmentMB be 0.0') and fd44b39c03b (2015, 'do not use near-zero maxMergedSegmentMB for this test!'), which keep randomized tests away from a 0 or near-0 maximum because before 7.5.0 it disabled natural merging and made those tests fail falsely (no exception, no production change); #5390 / LUCENE-4323 (added the '&gt;=0' check); #8062 / LUCENE-7005 (tightened only setFloorSegmentMB's message). Code unchanged on upstream main c50bc9523db3, branch_10x and branch_10_6. Gaps: GitHub's search rate limit, punctuation-insensitive exact-string search, list bodies cached to 400 characters.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26) through gradle in a clean scratch worktree, assertions on and off, and the fix in the same worktree (repro, 10 upstream merge and delete suites, format and lint checks); the standalone JUnit runner on the built jars. Earlier runs: main <code class='nw'>ea57360912ed</code> (the same <code>TieredMergePolicy.java</code> blob), the release jars 7.4.0, 7.5.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2, and a per-commit shadow bisect onto 7.4.0. Upstream main <code class='nw'>20ced71c1e6e</code> (2026-10-27) has the same file (read).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/TieredMergePolicy.java:42-44 (at ea57360912ed) (class javadoc: an over-size merge shrinks &#x27;down to 1 at once, if that one has deletions&#x27;), :61 (&#x27;findForcedDeletesMerges should never produce segments greater than maxSegmentSize&#x27;), :67 (@lucene.experimental), :81-82 (forceMergeDeletesPctAllowed = 10.0, deletesPctAllowed = 20.0), :98-109 (setMaxMergedSegmentMB javadoc gives no range; &#x27;if (v &lt; 0.0)&#x27; and &#x27;maxMergedSegmentMB must be &gt;=0&#x27;; (long) cast at :107 maps every v below 2^-20 MB, and NaN, to 0 bytes), :168-170 (setFloorSegmentMB rejects &#x27;v &lt;= 0.0&#x27; with &#x27;must be &gt; 0.0&#x27;), :381-397 (findMerges sets aside a segment over maxMergedSegmentBytes / 2 unless both its own and the index&#x27;s deleted percentage exceed deletesPctAllowed), :438 (findMerges -&gt; doFindMerges), :539-548 (candidate loop header, &#x27;bytesThisMerge &lt; maxMergedSegmentBytes&#x27; at :546), :552-570 (singleton-merge branch, comment at :559-560), :576-580 (&#x27;assert candidate.size() &gt; 0&#x27; at :578, candidate.get(0) at :580), :925-977 (findForcedDeletesMerges keeps segments above forceMergeDeletesPctAllowed and calls doFindMerges at :968)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:2445-2496 (at ea57360912ed) (maybeMerge -&gt; updatePendingMerges -&gt; findFullFlushMerges on commit, close and flush)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/TieredMergePolicy.java:42-44, 81-82, 102-109, 347-352, 381-397, 438, 520-525, 533-580, 745-921, 925-977</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:635, 704-721, 1325-1337, 1344-1352, 1631-1641, 2248, 2348, 2359, 2425, 2438-2448, 2493-2509, 3737-3743, 3858-3865, 3879-3884, 3960, 4261-4266, 4356-4358, 4379, 6345-6360; IndexWriterConfig.java:108, 483-500; MergePolicy.java:689-693</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/TieredMergePolicy.java:42-44, 61, 67, 97-109, 168-170, 559-560, 576-578</code></li><li><code>a Lucene main checkout lucene/core/src/test/org/apache/lucene/index/TestTieredMergePolicy.java:759-793; lucene/test-framework/src/java/org/apache/lucene/tests/util/LuceneTestCaseParent.java:1975-1977</code></li><li><code>a Lucene main checkout lucene/CHANGES.txt:7224-7231</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/TieredMergePolicy.java:404-413, 438-447, 537, 552-573, 626-627</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestTieredMergePolicyZeroMaxMergedSegment.java (lucene/core, 2 tests): <a href='../repro/LFV-442/TestTieredMergePolicyZeroMaxMergedSegment.java'><code>repro/LFV-442/TestTieredMergePolicyZeroMaxMergedSegment.java</code></a> (104 lines)</li><li>TestTMPZeroMaxMergedV1.java (commit, close, forceMergeDeletes on 100 documents): <a href='../repro/LFV-442/TestTMPZeroMaxMergedV1.java'><code>repro/LFV-442/TestTMPZeroMaxMergedV1.java</code></a> (127 lines)</li><li>TestTMPZeroMaxMergedControlV1.java (1-byte and default maximum): <a href='../repro/LFV-442/TestTMPZeroMaxMergedControlV1.java'><code>repro/LFV-442/TestTMPZeroMaxMergedControlV1.java</code></a> (89 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel from an executed probe on main (the repro's two scenarios with a 0-byte and a 1-byte maximum); the PNG is the summary frame.</p><ul class='paths'><li><a href='../assets/LFV-442/bug.png'><code>assets/LFV-442/bug.png</code></a> (476 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

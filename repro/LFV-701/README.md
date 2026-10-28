@@ -2,6 +2,8 @@
 
 Bug LFV-701 · Area: core / document: LatLon point geometry queries (LatLonDocValuesQuery CONTAINS on the doc-values path vs LatLonPoint.newGeometryQuery, and their IndexOrDocValuesQuery pairing) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-701.html](../../bugs/LFV-701.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index points with LatLonPoint and LatLonDocValuesField and ask for the docum
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: CONTAINS(P1, P2) returns [C] on both paths; with 2,000 more one-point documents the doc-values query still returns 1 hit, and `id:A AND` the wrapper and the wrapper's `explain` for A match nothing.
+- Actual: The doc-values query returns [A, B, C] (the INTERSECTS hits), then 2,003 hits; `id:A AND` the wrapper returns A, and its `explain` reports a match.
 
 ## Files
 
@@ -46,6 +48,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestLatLonDocValuesContainsMultiPoint.java](TestLatLonDocValuesContainsMultiPoint.java)
+- [2-TestLatLonDocValuesContainsMultiPoint.java](2-TestLatLonDocValuesContainsMultiPoint.java)
+- [LatLonDocValuesContainsHistoryMain.java](LatLonDocValuesContainsHistoryMain.java)
+- [latlon-docvalues-contains-all-points.diff](latlon-docvalues-contains-all-points.diff)
 
 ## Feedback
 

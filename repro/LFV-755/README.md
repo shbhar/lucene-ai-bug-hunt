@@ -2,6 +2,8 @@
 
 Bug LFV-755 · Area: geo / Tessellator hole elimination (polygon indexing for LatLonShape and XYShape) · Priority: low · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-755.html](../../bugs/LFV-755.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index a valid polygon with holes, for example an L-shaped outer ring (0,0) (
 
 ## Expected vs actual
 
-- Expected: You expect XYShape.createIndexableFields or LatLonShape.createIndexableFields to return its triangles, as 10.4.0 does.
-- Actual: Since #15739 (first released in 10.5.0), both calls throw IllegalArgumentException 'Unable to Tessellate shape.
+- Expected: Both calls return the polygon's triangles (13, total area 75.5, as on 10.4.0), and the control passes.
+- Actual: Both throw `IllegalArgumentException: Unable to Tessellate shape. Possible malformed shape detected.`; the control passes (2 of 3 tests fail).
 
 ## Files
 
@@ -41,6 +43,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestTessellatorChainedTouchingHoles.java](TestTessellatorChainedTouchingHoles.java)
+- [test-tessellator.diff](test-tessellator.diff)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-634 · Area: analysis / hunspell (WordFormGenerator: getAllWordForms, generateAllSimpleWords, compress) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-634.html](../../bugs/LFV-634.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a Hunspell dictionary in which a prefix rule's continuation class allow
 
 ## Expected vs actual
 
-- Expected: You expect ampere, amperes, kiloampere and kiloamperes: Lucene's own spell accepts all four and analyzeSimpleWord analyses each one as a form of ampere/U, as C Hunspell 1.7.2 also does.
-- Actual: You get only [ampere, kiloampere], because WordFormGenerator applies suffixes only from the entry's own flags and then forbids any suffix once a prefix has been applied (WordFormGenerator.java:378); generateAllSimpleWords misses the same words, and compress suggests an unneeded flag (for work/P with 'PFX P 0 re/S', compress([work, rework, reworks]) proposes work/PS, which also adds the unrequested word works).
+- Expected: `[ampere, amperes, kiloampere, kiloamperes]`; `generateAllSimpleWords` = `work, rework, reworks`; `compress` = `toEdit=[work/P], extra=`.
+- Actual: the words `[ampere, kiloampere]` (raw list `[ampere, ampere, kiloampere]`); `work, rework`; `toEdit=[work/PS], extra=[works]`: 3 of 4 tests fail with assertions on and off, the controls pass.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestWordFormsPrefixEnabledSuffix.java](TestWordFormsPrefixEnabledSuffix.java)
+- [2-TestWordFormsPrefixEnabledSuffix.java](2-TestWordFormsPrefixEnabledSuffix.java)
+- [TestPrefixEnabledSuffixWordForms.java](TestPrefixEnabledSuffixWordForms.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/hunspell-wordform-generator-munch-differential/](../../models/hunspell-wordform-generator-munch-differential/)
 

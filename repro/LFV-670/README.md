@@ -2,6 +2,8 @@
 
 Bug LFV-670 · Area: spatial-extras / prefix-tree heatmap faceting (HeatmapFacetCounter.calcFacets, also reached through PrefixTreeStrategy.calcFacets; coarse 'ancestor' leaf cells reported by PrefixTreeFacetCounter) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-670.html](../../bugs/LFV-670.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index non-point shapes (rectangles, polygons) with the default RecursivePref
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: A document whose shape was indexed as a leaf cell coarser than the heatmap level has its count added to every heatmap cell under that leaf, including cells that do not intersect the input shape at all, because the code that spreads these coarse ('ancestor') counts never checks the cells against the input shape; point documents and rectangular inputs come out right.
+- Expected: Every heatmap cell that does not intersect the circle is 0; the square counts only in the 8 of its 16 cells that touch the circle.
+- Actual: The square's 8 cells outside the circle report 1 (`expected:<0> but was:<8>`); the point at (88, 88) is correctly 0.
 
 ## Files
 
@@ -50,6 +52,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) spatial-extras also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestHeatmapAncestorCellsOutsideInputShape.java](TestHeatmapAncestorCellsOutsideInputShape.java)
+- [test-only.diff](test-only.diff)
+- [TestHeatmapZeroOutsideInputShape.java](TestHeatmapZeroOutsideInputShape.java)
+- [HeatmapGridProbe.java](HeatmapGridProbe.java)
 
 ## Feedback
 

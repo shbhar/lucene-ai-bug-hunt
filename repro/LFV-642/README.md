@@ -2,6 +2,8 @@
 
 Bug LFV-642 · Area: analysis / hunspell (Stemmer affix compatibility: COMPLEXPREFIXES twofold prefixes) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-642.html](../../bugs/LFV-642.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a hunspell dictionary that sets COMPLEXPREFIXES (twofold prefix strippi
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: spell("reunfoo") is true, getRoots("reunfoo") is [foo] and HunspellStemFilter turns the token reunfoo into foo, because since 9.5.0 Stemmer.isAffixCompatible returns true for any prefix stripped after another prefix (Stemmer.java:541, 566) and the only remaining gate is the dictionary-wide check that some prefix rule carries the flag A (Dictionary.isSecondStagePrefix).
+- Expected: `reunfoo` is rejected with no roots (controls: `unfoo`, `disfoo`, `redisfoo` accepted, `refoo` rejected), and the stem filter emits `foo reunfoo`.
+- Actual: `spell=true roots=[foo]` for `reunfoo` while every control passes, and the stem filter emits `foo foo`.
 
 ## Files
 
@@ -42,6 +44,12 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestComplexPrefixesSecondPrefix.java](TestComplexPrefixesSecondPrefix.java)
+- [2-TestComplexPrefixesSecondPrefix.java](2-TestComplexPrefixesSecondPrefix.java)
+- [TestTwofoldPrefixContinuation.java](TestTwofoldPrefixContinuation.java)
 
 ## Feedback
 

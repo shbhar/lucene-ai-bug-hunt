@@ -1,0 +1,1058 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Merges with BpVectorReorderer throw NullPointerException and close the IndexWriter when a segment has no vectors for the field</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-269 &middot; merged-vector-values-copy-null-sub</p><h1 id='top'>Merges with BpVectorReorderer throw NullPointerException and close the IndexWriter when a segment has no vectors for the field</h1><p class='tldr'>With <code>BPReorderingMergePolicy</code> and a <code>BpVectorReorderer</code> (main only), merging 100 documents with vectors and 10 without the vector field throws <code>NullPointerException</code>; the <code class='nw'>IndexWriter</code> closes, loses uncommitted changes and fails again after every reopen. The missing null check, in <code class='nw'>copy()</code> of the merged vector view, has shipped since 10.2.0.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 318</span><span class='sub'>Like LFV-100, this is a merged-view NPE when one segment lacks the vector field, but every BP-vector-reordered merge closes the writer again after each reopen, and the stock path is unreleased.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>index unusable</span></dd></div><div><dt>Since</dt><dd>10.2.0 (the copy() defect, #14092); end to end on main only<span class='sub'>introduced 2024-12-31 &middot; about 1 year</span></dd></div><div class='wide'><dt>Affected</dt><dd>main (11.0.0-SNAPSHOT) end to end; 10.2.0 to 10.5.2 only through custom reorder code</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>a randomized differential test of the merged segment view</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by code reading or testing and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>During a merge, Lucene reads all the merged segments through one combined view. A segment in which no document has the vector field is an empty slot in that view, and the iterator and ordinal lookup of the merged vector values handle that slot, but <code class='nw'>copy()</code> does not.</p><figure class='visual' id='merged-vector-values-copy-null-sub-short-visual'><div class='frame'><a class='still' href='../assets/LFV-269/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-269/bug.png' alt='Diagram of the bug: segment _0 with 100 vectors and segment _1 with 10 documents and no vectors are merged through one combined view in which _1 is an empty slot; BpVectorReorderer&#x27;s copy() of the view throws NullPointerException on that slot, the IndexWriter closes and loses its uncommitted documents, and a reopened writer fails the same way.' width='1920' height='1080'></a></div><figcaption>The forceMerge of a 100-vector segment and a 10-document segment without vectors: the empty slot in the merged view, the failing copy(), the closed writer and the same failure after reopen. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Use <code>BPReorderingMergePolicy(new LogDocMergePolicy(), new BpVectorReorderer("vector"))</code> with the default codec. Index 100 documents with a 2-dimensional float vector and commit, then 10 documents without the vector field and commit: 2 segments, the second with no vectors.</span></li><li><span>Call <code class='nw'>forceMerge(1)</code>. You expect 1 segment with 110 documents and 100 vectors, each with its document, as when both segments have vectors (that control passes).</span></li><li><span>Instead the merge throws <code>NullPointerException: Cannot invoke "org.apache.lucene.index.KnnVectorValues.copy()" because "this.sub" is null</code>: <code>BpVectorReorderer</code> calls <code class='nw'>copy()</code> on the merged view in each thread that takes part in partitioning, and <code class='nw'>copy()</code> does not skip the empty slot of the segment without vectors.</span></li><li><span><code class='nw'>IndexWriter</code> treats the failed merge as a tragic event and closes: 5 uncommitted documents and 1 uncommitted delete are lost (114 documents visible before, 110 on disk after). A reopened writer fails again at the next merge of that segment (3 of 3 cycles); the committed index stays clean.</span></li><li><span>With the default reorderer settings it takes 64 vectors in the merge (63 merge fine) and a segment without the field in that merge. <code>addIndexes(CodecReader...)</code> fails the same way but keeps the writer open.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications on main that opt into <code>BPReorderingMergePolicy</code> with <code>BpVectorReorderer</code> and index documents without the vector field. With default reorderer settings, a merge that includes such a segment and holds 64 or more vectors fails and closes the writer, again after each reopen; the last commit stays clean. On 10.2.0-10.5.2 only custom reorder code copying the merged view hits it.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>890 words</span></summary><div class='body'><p>During a merge, <code class='nw'>IndexWriter</code> reads the segments being merged through one combined view (<code>SlowCompositeCodecReaderWrapper</code>) and hands it to <code class='nw'>OneMerge#reorder</code>. For a vector field the view keeps one slot per segment, and a segment in which no document has the field gets an empty (<code class='nw'>null</code>) slot. The iterator of the merged vector values skips empty slots and <code class='nw'>vectorValue()</code>'s ordinal lookup handles them, but <code class='nw'>copy()</code> calls <code class='nw'>sub.copy()</code> on each slot and throws <code>NullPointerException: Cannot invoke "org.apache.lucene.index.KnnVectorValues.copy()" because "this.sub" is null</code>. <code>BpVectorReorderer</code> calls <code class='nw'>copy()</code> in each thread that takes part in partitioning, which with the default settings starts once the merge holds at least 64 vectors, so with <code>BPReorderingMergePolicy</code> and a <code>BpVectorReorderer</code> a merge of 100 documents with vectors and 10 without fails. <code class='nw'>IndexWriter</code> treats the failed merge as a tragic event: the writer closes, the changes since the last commit are lost, and a reopened writer fails again at the next merge of that segment. The committed index stays clean. The end-to-end failure is on main only (11.0.0-SNAPSHOT); the <code class='nw'>copy()</code> defect itself came with #14092 and has shipped since 10.2.0, where only custom reorder code that copies the merged view reaches it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Merged view</strong>: during a merge, <code class='nw'>IndexWriter</code> wraps the segments being merged in one <code class='nw'>CodecReader</code>, <code>SlowCompositeCodecReaderWrapper</code>, and passes it to <code>MergePolicy.OneMerge#reorder</code>, which may return a new document order. With one segment there is no view (<code class='nw'>wrap()</code> returns the segment, <code class='nw'>:49-57</code>).</li><li><strong>Slot</strong>: the merged vector values keep one <code class='nw'>DocValuesSub</code> per segment. A segment without vectors for the field gets a slot whose values are <code class='nw'>null</code>.</li><li><strong>BP reordering</strong>: <code>BPReorderingMergePolicy</code> (lucene/misc) renumbers the documents of each merged segment. With a <code>BpVectorReorderer</code> (#14097, main only) it sorts documents so that similar vectors sit together, by splitting the vectors in halves recursively on several threads.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code>getFloatVectorValues</code> of the merged view (<code>SlowCompositeCodecReaderWrapper.java:824-841</code>) asks every segment for its values (<code class='nw'>:830</code>), which is <code class='nw'>null</code> for a segment that indexed no vectors (<code>CodecReader.java:235-237</code>; <code>LeafReader.java:215-221</code>), and adds a slot also for <code class='nw'>null</code> (<code class='nw'>:831</code>). Byte (<code class='nw'>:924-941</code>) and float16 (<code class='nw'>:944-961</code>) are the same.</li><li>The iterator skips empty slots (<code class='nw'>:339</code>, <code class='nw'>:357</code>), and the ordinal lookup handles them (<code class='nw'>findSub</code>, <code class='nw'>:1082</code> onwards). But <code>DocValuesSub.copy()</code> (<code class='nw'>:304-309</code>) is <code>return new DocValuesSub&lt;&gt;((T) (sub.copy()), docStart, ordStart);</code> (<code class='nw'>:307</code>) with no null check, and the three <code>Merged*VectorValues.copy()</code> methods call it for every slot (<code class='nw'>:903-909</code>, <code class='nw'>:1003-1009</code>, <code class='nw'>:1073-1079</code>). (Separate from this bug: the merged values also inherit the dense default <code class='nw'>ordToDoc()</code>, which returns its argument (<code>KnnVectorValues.java:43-50</code>), and <code class='nw'>iterator()</code> returns one shared iterator (<code class='nw'>:887-889</code>); the differential test flagged both, neither is a registered bug, and neither is needed to explain this failure.)</li><li><code>BpVectorReorderer.computeDocMap</code> reads the merged <code>FloatVectorValues</code> (<code>BpVectorReorderer.java:590</code>) and, after a RAM-budget check that the default budget passes (<code class='nw'>:598-606</code>), each thread that takes part builds one <code class='nw'>PerThreadState</code>, whose constructor calls <code class='nw'>vectors.copy()</code> (<code class='nw'>:110</code>, <code class='nw'>:620-624</code>). The first one is built in <code>ReorderTask.compute</code> (<code class='nw'>:217</code>) right after <code>if (halfLength &lt; minPartitionSize) return;</code> (<code class='nw'>:208-211</code>): with the default <code class='nw'>minPartitionSize</code> of 32 that needs 64 vectors.</li><li><code>BPReorderingMergePolicy</code>'s <code class='nw'>reorder</code> catches only <code>NotEnoughRAMException</code> (<code>BPReorderingMergePolicy.java:133-145</code>); forced merges are always reordered (<code class='nw'>:103-105</code>), natural merges from <code>minNaturalMergeNumDocs</code> documents, default 1 (<code class='nw'>:46</code>).</li><li><code>IndexWriter.mergeMiddle</code> builds the view and calls <code class='nw'>reorder</code> (<code>IndexWriter.java:5557-5558</code>). The exception reaches <code class='nw'>merge()</code>'s outer <code>catch (Throwable t)</code> and <code>tragicEvent(t, "merge")</code> (<code class='nw'>:5109-5113</code>), which calls <code>maybeCloseOnTragicEvent()</code> and so <code>rollbackInternal()</code> (<code class='nw'>:6090-6106</code>): the writer rolls back to the last commit and closes. <code>addIndexes(CodecReader...)</code> builds the same view (<code class='nw'>:3561-3562</code>) but calls <code class='nw'>tragicEvent</code> only for <code class='nw'>Error</code> (<code class='nw'>:3390-3392</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-main-a9779ef3c193-default-codec'>The numbers (main <code class='nw'>a9779ef3c193</code>, default codec)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-main-a9779ef3c193-default-codec" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-main-a9779ef3c193-default-codec"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>case</th><th>expected</th><th>main</th></tr></thead><tbody><tr><td><code class='nw'>forceMerge(1)</code>, 100 docs with vectors + 10 docs with vectors (control)</td><td>1 segment, 110 vectors</td><td>the same</td></tr><tr><td><code class='nw'>forceMerge(1)</code>, 100 docs with vectors + 10 docs without the field</td><td>1 segment, 110 docs, 100 vectors</td><td>NPE at <code>DocValuesSub.copy</code>, writer closed</td></tr><tr><td>the same with 63 vectors</td><td>merges</td><td>merges</td></tr><tr><td>the same with 64 vectors</td><td>merges</td><td>NPE</td></tr><tr><td>5 uncommitted adds and 1 uncommitted delete before <code class='nw'>forceMerge(1)</code></td><td>kept</td><td>lost: 114 docs visible, 110 on disk, the deleted doc is back</td></tr><tr><td>natural merges, LogDocMergePolicy mergeFactor 2, 3 reopen cycles</td><td>merges</td><td>the writer closes in 3 of 3; segments 3, 4, 5</td></tr><tr><td>default TieredMergePolicy, committed 20-doc flushes (up to 12 planned), the sixth without vectors</td><td>merges</td><td>the writer closes after the 9th commit; 9 ran (180 docs on disk)</td></tr><tr><td><code>addIndexes(CodecReader...)</code> of the same two segments</td><td>adds 110 docs</td><td>NPE; the writer stays open</td></tr><tr><td>merged view <code class='nw'>copy()</code>: float32 (empty slot first or last), byte, float16</td><td>a copy</td><td>NPE in each</td></tr></tbody></table></div><p>The control, the 63/64 rows and the <code class='nw'>copy()</code> row come from the repro tests, with default settings. The writer-state rows come from a probe that also uses the default codec, but in all four tests a <code>ConcurrentMergeScheduler</code> subclass whose <code>handleMergeException</code> only records merge-thread exceptions, and <code>setMaxFullFlushMergeWaitMillis(0)</code>; the writer closes in <code>IndexWriter.merge</code>'s outer catch (<code>IndexWriter.java:5109-5113</code>) before that handler runs, so the outcome does not depend on it. In that probe <code class='nw'>forceMerge</code> throws <code class='nw'>IOException</code> or, depending on timing, <code>IllegalStateException: this writer hit an unrecoverable error; cannot complete forceMerge</code>, with the NPE as the cause (<code>IndexWriter.java:2284-2300</code>).</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>309 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Applications on main that opt into the expert lucene/misc combination <code>BPReorderingMergePolicy</code> + <code>BpVectorReorderer</code> (CHANGES 11.0.0, #14097: "Binary partitioning merge policy over float-valued vector field") and whose vector field is optional: documents without embeddings, several document kinds in one index, or a batch without vectors flushed on its own. Applications that put a vector in every document, as the upstream <code>TestBPReorderingMergePolicy</code> does, never hit it.</li><li><strong>Trigger.</strong> A forced or natural merge that includes a segment with no vector for the field and holds at least 64 vectors, and <code>addIndexes(CodecReader...)</code> of such inputs, under the reproduced conditions: default reorderer settings (<code class='nw'>minPartitionSize</code> 32) and RAM budget (a budget too small for the merge throws <code>NotEnoughRAMException</code> before <code class='nw'>copy()</code> and the policy skips reordering), no index sort, no document blocks without a parent field. Default codec and <code>IndexWriterConfig</code>; no special values or timing. With the javadoc's suggested <code>minNaturalMergeNumDocs</code> of 2^18, small natural merges are not reordered, but larger ones and every forced merge still are.</li><li><strong>Effect.</strong> Indexing stops: the writer closes, the changes since the last commit are lost (114 documents visible before, 110 on disk after, an uncommitted delete undone), and each reopened writer fails again at the next merge that picks the same segment while the segment count grows. Under those conditions <code class='nw'>forceMerge(1)</code> over such segments fails every time. The last committed index stays clean (CheckIndex) and searchable; what a near-real-time reader already saw of the uncommitted changes disappears. <code>addIndexes(CodecReader...)</code> throws but keeps the writer open.</li><li><strong>Scale.</strong> None: 64 vectors and one 10-document segment without the field.</li><li><strong>Released versions.</strong> The <code class='nw'>copy()</code> defect has shipped since 10.2.0, but there no in-tree code calls <code class='nw'>copy()</code> on the merged view; an application's own <code class='nw'>OneMerge#reorder</code> that does fails on 10.2.0 and 10.5.2 and passes on 10.1.0.</li><li><strong>Encodings.</strong> float32, byte and float16 merged values all throw; only float32 has an in-tree caller.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test in <code class='nw'>lucene/misc</code> (the trigger is public API; the test reads the package-private <code>BPReorderingMergePolicy.REORDERED</code>): 100 documents with a 2-dimensional vector in one segment, 10 without the field in another, <code class='nw'>forceMerge(1)</code> through <code>BPReorderingMergePolicy</code> with <code>BpVectorReorderer</code>. The control, with vectors in both segments, passes; the trigger fails, with assertions on and off.</p><figure class='code'><figcaption><span class='fname'>TestBpVectorReorderSegmentWithoutVectors.java (lucene/misc, 2 tests)</span><span class='meta'>112 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.misc.index;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FloatVectorValues;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.KnnVectorValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.SegmentReader;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * BPReorderingMergePolicy with a BpVectorReorderer merges a segment with vectors and a segment in
+ * which no document has the (optional) vector field. The merge must succeed and keep every vector
+ * with its document, as it does when both segments have vectors.
+ */
+public class TestBpVectorReorderSegmentWithoutVectors extends LuceneTestCase {
+
+  private static final String FIELD = &quot;vector&quot;;
+
+  private static float[] vector(int id) {
+    return new float[] {id % 7, 1 + id % 3};
+  }
+
+  /** Adds documents {@code from..to-1} and commits, so that they form one segment. */
+  private static void addSegment(IndexWriter w, int from, int to, boolean withVectors)
+      throws IOException {
+    for (int id = from; id &lt; to; id++) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;id&quot;, Integer.toString(id), Field.Store.YES));
+      if (withVectors) {
+        doc.add(new KnnFloatVectorField(FIELD, vector(id)));
+      }
+      w.addDocument(doc);
+    }
+    w.commit();
+  }
+
+  private void mergeAndCheck(boolean secondSegmentHasVectors) throws IOException {
+    BPReorderingMergePolicy mp =
+        new BPReorderingMergePolicy(new LogDocMergePolicy(), new BpVectorReorderer(FIELD));
+    IndexWriterConfig iwc =
+        new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()).setMergePolicy(mp);
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, iwc)) {
+      addSegment(w, 0, 100, true); // 100 vectors: enough to partition (2 x minPartitionSize 32)
+      addSegment(w, 100, 110, secondSegmentHasVectors); // 10 documents
+      w.forceMerge(1);
+      assertTrue(w.isOpen());
+
+      try (DirectoryReader r = DirectoryReader.open(w)) {
+        assertEquals(1, r.leaves().size());
+        LeafReader leaf = r.leaves().get(0).reader();
+        assertEquals(110, leaf.numDocs());
+        // the reorderer really ran on this merge
+        assertEquals(
+            &quot;true&quot;,
+            ((SegmentReader) leaf)
+                .getSegmentInfo()
+                .info
+                .getDiagnostics()
+                .get(BPReorderingMergePolicy.REORDERED));
+        FloatVectorValues values = leaf.getFloatVectorValues(FIELD);
+        assertEquals(secondSegmentHasVectors ? 110 : 100, values.size());
+        // every vector still belongs to its document
+        StoredFields storedFields = leaf.storedFields();
+        KnnVectorValues.DocIndexIterator it = values.iterator();
+        for (int doc = it.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = it.nextDoc()) {
+          int id = Integer.parseInt(storedFields.document(doc).get(&quot;id&quot;));
+          assertTrue(secondSegmentHasVectors || id &lt; 100);
+          assertArrayEquals(vector(id), values.vectorValue(it.index()), 0f);
+        }
+      }
+    }
+  }
+
+  /** Control: both segments have vectors. */
+  public void testBothSegmentsHaveVectors() throws IOException {
+    mergeAndCheck(true);
+  }
+
+  /** The second segment has no document with the vector field. */
+  public void testSegmentWithoutVectors() throws IOException {
+    mergeAndCheck(false);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/org/apache/lucene/misc/index/TestBpVectorReorderSegmentWithoutVectors.java \
+   $LUCENE/lucene/misc/src/test/org/apache/lucene/misc/index/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:misc:test --tests TestBpVectorReorderSegmentWithoutVectors -Ptests.seed=DEADBEEF
+# also with -Ptests.asserts=false (same failure, recorded with the standalone runner)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>forceMerge(1)</code> gives 1 segment with 110 documents and 100 vectors, each with its document, and the writer stays open.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>forceMerge(1)</code> throws <code>IOException: background merge hit exception</code>, caused by <code>NullPointerException ... because "this.sub" is null</code>, and the writer closes itself. (In the writer-state probe, depending on timing, <code class='nw'>forceMerge</code> can throw <code>IllegalStateException: this writer hit an unrecoverable error; cannot complete forceMerge</code> instead, with the same cause.)</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-269/'>repro/LFV-269/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (576 lines) · 2,642 words</span></summary><div class='body'><p>Default codec and <code>IndexWriterConfig</code>, default reorderer settings, <code class='nw'>newDirectory()</code>. After the merge the test checks 1 segment, 110 documents, the <code>bp.reordered=true</code> diagnostic (so the reorderer really ran), the vector count, and that every vector still belongs to its document (by stored id). With the fix both tests pass, including those content checks.</p><p>The second file is the unit test for the fix site, in <code class='nw'>lucene/core</code> (it uses the package-private <code class='nw'>wrap()</code> from the same package, as <code>TestGetVectorCountCodecWrappers</code> does): <code class='nw'>copy()</code> of the merged view for float32 (empty slot first and last), byte and float16, plus a control; the copy must iterate the same documents and return the same vectors. On main 4 of its 5 tests fail.</p><p>The third file shows the size threshold (63 vectors merge, 64 fail). The fourth is the writer-state probe: <code class='nw'>forceMerge</code>, natural merges across 3 reopens, the default <code>TieredMergePolicy</code> and <code>addIndexes(CodecReader...)</code>, printing whether the writer stays open, what reaches disk and the CheckIndex result.</p><div class="hd hd-3"><h3 id='code-2-h'>TestSlowCompositeVectorValuesCopy.java (lucene/core, 5 tests, the fix site)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>On main: 4 of 5 fail with the NPE at <code>DocValuesSub.copy</code> (float32 first and last, byte, float16); the control passes.</p><figure class='code'><figcaption><span class='fname'>TestSlowCompositeVectorValuesCopy.java (lucene/core, 5 tests, the fix site)</span><span class='meta'>132 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.index;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnByteVectorField;
+import org.apache.lucene.document.KnnFloat16VectorField;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * copy() of the merged vector values of SlowCompositeCodecReaderWrapper (the view that merges and
+ * addIndexes(CodecReader...) pass to OneMerge#reorder) when one wrapped segment has no vectors for
+ * the field. Package-private access, as in TestGetVectorCountCodecWrappers.
+ */
+public class TestSlowCompositeVectorValuesCopy extends LuceneTestCase {
+
+  private static final int DOCS_PER_SEGMENT = 3;
+
+  private static void addVector(Document doc, String field, int id) {
+    switch (field) {
+      case &quot;f&quot; -&gt; doc.add(new KnnFloatVectorField(field, new float[] {id, 1}));
+      case &quot;b&quot; -&gt; doc.add(new KnnByteVectorField(field, new byte[] {(byte) id, 1}));
+      case &quot;h&quot; -&gt;
+          doc.add(
+              new KnnFloat16VectorField(
+                  field,
+                  new short[] {Float.floatToFloat16(id), Float.floatToFloat16(1)},
+                  VectorSimilarityFunction.EUCLIDEAN));
+      default -&gt; throw new AssertionError(field);
+    }
+  }
+
+  private static KnnVectorValues values(CodecReader reader, String field) throws IOException {
+    return switch (field) {
+      case &quot;f&quot; -&gt; reader.getFloatVectorValues(field);
+      case &quot;b&quot; -&gt; reader.getByteVectorValues(field);
+      default -&gt; reader.getFloat16VectorValues(field);
+    };
+  }
+
+  private static String vectorString(KnnVectorValues values, int ord) throws IOException {
+    return switch (values) {
+      case FloatVectorValues v -&gt; Arrays.toString(v.vectorValue(ord));
+      case ByteVectorValues v -&gt; Arrays.toString(v.vectorValue(ord));
+      case Float16VectorValues v -&gt; Arrays.toString(v.vectorValue(ord));
+      default -&gt; throw new AssertionError(values);
+    };
+  }
+
+  /** Two segments of 3 documents; {@code fieldless} (0 or 1, or -1 for none) has no vectors. */
+  private void check(String field, int fieldless) throws IOException {
+    try (Directory dir = newDirectory()) {
+      IndexWriterConfig iwc = new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        for (int seg = 0; seg &lt; 2; seg++) {
+          for (int i = 0; i &lt; DOCS_PER_SEGMENT; i++) {
+            int id = seg * DOCS_PER_SEGMENT + i;
+            Document doc = new Document();
+            doc.add(new StringField(&quot;id&quot;, Integer.toString(id), Field.Store.NO));
+            if (seg != fieldless) {
+              addVector(doc, field, id);
+            }
+            w.addDocument(doc);
+          }
+          w.commit(); // one segment per loop
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        assertEquals(2, r.leaves().size());
+        List&lt;CodecReader&gt; leaves = new ArrayList&lt;&gt;();
+        for (LeafReaderContext ctx : r.leaves()) {
+          leaves.add((CodecReader) ctx.reader());
+        }
+        CodecReader merged = SlowCompositeCodecReaderWrapper.wrap(leaves);
+        KnnVectorValues values = values(merged, field);
+        KnnVectorValues copy = values.copy();
+        assertEquals(values.size(), copy.size());
+        // the copy iterates the same documents and returns the same vectors
+        KnnVectorValues.DocIndexIterator it = values.iterator();
+        KnnVectorValues.DocIndexIterator copyIt = copy.iterator();
+        for (int doc = it.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = it.nextDoc()) {
+          assertEquals(doc, copyIt.nextDoc());
+          assertEquals(vectorString(values, it.index()), vectorString(copy, copyIt.index()));
+        }
+        assertEquals(DocIdSetIterator.NO_MORE_DOCS, copyIt.nextDoc());
+      }
+    }
+  }
+
+  public void testFloatCopyAllSegmentsHaveVectors() throws IOException {
+    check(&quot;f&quot;, -1);
+  }
+
+  public void testFloatCopyFirstSegmentWithoutVectors() throws IOException {
+    check(&quot;f&quot;, 0);
+  }
+
+  public void testFloatCopyLastSegmentWithoutVectors() throws IOException {
+    check(&quot;f&quot;, 1);
+  }
+
+  public void testByteCopySegmentWithoutVectors() throws IOException {
+    check(&quot;b&quot;, 1);
+  }
+
+  public void testFloat16CopySegmentWithoutVectors() throws IOException {
+    check(&quot;h&quot;, 1);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-2' data-status='command-2-st'>Copy</button><span class='copy-st' id='command-2-st' role='status' aria-live='polite'></span></figcaption><pre id='command-2' tabindex='0'><code>cp $REPRO/org/apache/lucene/index/TestSlowCompositeVectorValuesCopy.java \
+   $LUCENE/lucene/core/src/test/org/apache/lucene/index/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:core:test --tests TestSlowCompositeVectorValuesCopy -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestBpVectorReorderThreshold.java (63 vs 64 vectors)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>On main: <code class='nw'>test63Vectors</code> passes, <code class='nw'>test64Vectors</code> fails with the same NPE (run with the standalone JUnit runner).</p><figure class='code'><figcaption><span class='fname'>TestBpVectorReorderThreshold.java (63 vs 64 vectors)</span><span class='meta'>69 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.misc.index;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Probe of the size threshold: forceMerge(1) of a segment with N vectors and a 10-document
+ * segment without the field, BPReorderingMergePolicy + BpVectorReorderer with default settings
+ * (minPartitionSize 32). By the code, partitioning, and with it copy(), starts at N &gt;= 64.
+ */
+public class TestBpVectorReorderThreshold extends LuceneTestCase {
+
+  private static void run(int vectors) throws IOException {
+    BPReorderingMergePolicy mp =
+        new BPReorderingMergePolicy(new LogDocMergePolicy(), new BpVectorReorderer(&quot;vector&quot;));
+    IndexWriterConfig iwc =
+        new IndexWriterConfig()
+            .setCodec(TestUtil.getDefaultCodec())
+            .setMergePolicy(mp)
+            .setMergeScheduler(new SerialMergeScheduler());
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (int i = 0; i &lt; vectors; i++) {
+        Document doc = new Document();
+        doc.add(new KnnFloatVectorField(&quot;vector&quot;, new float[] {i % 7, 1 + i % 3}));
+        w.addDocument(doc);
+      }
+      w.commit();
+      for (int i = 0; i &lt; 10; i++) {
+        w.addDocument(new Document());
+      }
+      w.commit();
+      w.forceMerge(1);
+      assertTrue(w.isOpen());
+    }
+  }
+
+  public void test63Vectors() throws IOException {
+    run(63);
+  }
+
+  public void test64Vectors() throws IOException {
+    run(64);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestFieldlessSegmentMergeWriterState.java (writer-state probe)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Asserts the correct behaviour, so all 4 tests fail on main; its PROBE lines give the numbers in the table above. With the fix 4 of 4 pass.</p><figure class='code'><figcaption><span class='fname'>TestFieldlessSegmentMergeWriterState.java (writer-state probe)</span><span class='meta'>375 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.misc.index;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.CodecReader;
+import org.apache.lucene.index.ConcurrentMergeScheduler;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.LogDocMergePolicy;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.NoMergePolicy;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.TieredMergePolicy;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+
+/**
+ * Security-assessment probe: what state is the IndexWriter in after a merge through
+ * BPReorderingMergePolicy + BpVectorReorderer fails because one merged segment has no vectors
+ * for the field? Each test prints a PROBE line with its observations and then asserts the
+ * behaviour a correct implementation would show (so the stock build fails and a fixed build
+ * passes).
+ */
+public class TestFieldlessSegmentMergeWriterState extends LuceneTestCase {
+
+  /** Records merge-thread exceptions instead of rethrowing them as uncaught exceptions. */
+  static final class RecordingCMS extends ConcurrentMergeScheduler {
+    final List&lt;Throwable&gt; errors = Collections.synchronizedList(new ArrayList&lt;&gt;());
+
+    @Override
+    protected void handleMergeException(Throwable exc) {
+      errors.add(exc);
+    }
+  }
+
+  private static IndexWriterConfig config(MergePolicy in, RecordingCMS cms) {
+    IndexWriterConfig iwc = new IndexWriterConfig();
+    iwc.setCodec(TestUtil.getDefaultCodec());
+    iwc.setMergePolicy(new BPReorderingMergePolicy(in, new BpVectorReorderer(&quot;vector&quot;)));
+    iwc.setMergeScheduler(cms);
+    iwc.setMaxFullFlushMergeWaitMillis(0);
+    return iwc;
+  }
+
+  private static void addDocs(IndexWriter w, String prefix, int count, boolean withVector)
+      throws IOException {
+    for (int i = 0; i &lt; count; i++) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;id&quot;, prefix + i, Field.Store.YES));
+      if (withVector) {
+        doc.add(new KnnFloatVectorField(&quot;vector&quot;, new float[] {i % 7, 1 + i % 3}));
+      }
+      w.addDocument(doc);
+    }
+  }
+
+  private static String rootCause(Throwable t) {
+    if (t == null) {
+      return &quot;none&quot;;
+    }
+    Throwable c = t;
+    while (c.getCause() != null &amp;&amp; c.getCause() != c) {
+      c = c.getCause();
+    }
+    return c.getClass().getSimpleName();
+  }
+
+  private static void closeQuietly(IndexWriter w) {
+    try {
+      w.close();
+    } catch (Throwable _) {
+      // writer may already be closed by a tragic event
+    }
+  }
+
+  /**
+   * forceMerge(1) over a segment with vectors and a segment without: observe the writer, the
+   * changes made after the last commit, and the index that is left on disk.
+   */
+  public void testForceMergeWriterState() throws Exception {
+    RecordingCMS cms = new RecordingCMS();
+    try (Directory dir = newDirectory()) {
+      IndexWriter w = new IndexWriter(dir, config(new LogDocMergePolicy(), cms));
+      Throwable forceMergeFailure = null;
+      boolean openAfter;
+      Throwable tragic;
+      int nrtNumDocs;
+      int nrtV0;
+      try {
+        addDocs(w, &quot;v&quot;, 100, true);
+        w.commit();
+        addDocs(w, &quot;n&quot;, 10, false);
+        w.commit();
+        // changes after the last commit: 5 new documents and one delete
+        addDocs(w, &quot;u&quot;, 5, true);
+        w.deleteDocuments(new Term(&quot;id&quot;, &quot;v0&quot;));
+        try (DirectoryReader nrt = DirectoryReader.open(w)) {
+          nrtNumDocs = nrt.numDocs();
+          nrtV0 = new IndexSearcher(nrt).count(new TermQuery(new Term(&quot;id&quot;, &quot;v0&quot;)));
+        }
+        try {
+          w.forceMerge(1);
+        } catch (Throwable t) {
+          // IOException &quot;background merge hit exception&quot; or, if the tragic event closed the
+          // writer first, IllegalStateException &quot;this writer hit an unrecoverable error&quot;
+          forceMergeFailure = t;
+        }
+        cms.sync();
+        openAfter = w.isOpen();
+        tragic = w.getTragicException();
+      } finally {
+        closeQuietly(w);
+      }
+      int diskNumDocs;
+      int diskLeaves;
+      int diskV0;
+      int diskU;
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        diskNumDocs = r.numDocs();
+        diskLeaves = r.leaves().size();
+        IndexSearcher s = new IndexSearcher(r);
+        diskV0 = s.count(new TermQuery(new Term(&quot;id&quot;, &quot;v0&quot;)));
+        diskU = s.count(new TermQuery(new Term(&quot;id&quot;, &quot;u0&quot;)));
+      }
+      TestUtil.checkIndex(dir);
+      System.out.println(
+          &quot;PROBE forceMerge: forceMergeFailure=&quot;
+              + (forceMergeFailure == null ? &quot;none&quot; : forceMergeFailure.getClass().getSimpleName())
+              + &quot; rootCause=&quot;
+              + rootCause(forceMergeFailure)
+              + &quot; mergeThreadErrors=&quot;
+              + cms.errors.size()
+              + &quot; writerOpenAfter=&quot;
+              + openAfter
+              + &quot; tragicException=&quot;
+              + rootCause(tragic)
+              + &quot; nrtNumDocsBefore=&quot;
+              + nrtNumDocs
+              + &quot; nrtHitsDeletedV0Before=&quot;
+              + nrtV0
+              + &quot; diskNumDocsAfter=&quot;
+              + diskNumDocs
+              + &quot; diskLeavesAfter=&quot;
+              + diskLeaves
+              + &quot; diskHitsDeletedV0After=&quot;
+              + diskV0
+              + &quot; diskHitsUncommittedU0After=&quot;
+              + diskU
+              + &quot; checkIndex=clean&quot;);
+      assertNull(&quot;forceMerge failed: &quot; + forceMergeFailure, forceMergeFailure);
+      assertTrue(&quot;writer closed by tragic event &quot; + tragic, openAfter);
+    }
+  }
+
+  /**
+   * Natural merges (LogDocMergePolicy, mergeFactor 2): the failure repeats each time a writer
+   * is reopened on the same index and adds one document.
+   */
+  public void testNaturalMergeRepeatsAcrossReopen() throws Exception {
+    try (Directory dir = newDirectory()) {
+      // build the two segments without merging
+      IndexWriterConfig base = new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE);
+      base.setCodec(TestUtil.getDefaultCodec());
+      try (IndexWriter w0 = new IndexWriter(dir, base)) {
+        // equal doc counts, so LogDocMergePolicy puts both segments on the same level
+        addDocs(w0, &quot;v&quot;, 100, true);
+        w0.commit();
+        addDocs(w0, &quot;n&quot;, 100, false);
+        w0.commit();
+      }
+      int cycles = 3;
+      int closedCycles = 0;
+      StringBuilder sb = new StringBuilder();
+      for (int cycle = 0; cycle &lt; cycles; cycle++) {
+        LogDocMergePolicy ldmp = new LogDocMergePolicy();
+        ldmp.setMergeFactor(2);
+        RecordingCMS cms = new RecordingCMS();
+        IndexWriter w = new IndexWriter(dir, config(ldmp, cms));
+        Throwable commitFailure = null;
+        boolean open;
+        Throwable tragic;
+        try {
+          addDocs(w, &quot;c&quot; + cycle + &quot;_&quot;, 1, true);
+          try {
+            w.commit();
+          } catch (Throwable t) {
+            commitFailure = t;
+          }
+          cms.sync();
+          open = w.isOpen();
+          tragic = w.getTragicException();
+        } finally {
+          closeQuietly(w);
+        }
+        if (open == false) {
+          closedCycles++;
+        }
+        int leaves;
+        int numDocs;
+        try (DirectoryReader r = DirectoryReader.open(dir)) {
+          leaves = r.leaves().size();
+          numDocs = r.numDocs();
+        }
+        sb.append(&quot; cycle&quot;)
+            .append(cycle)
+            .append(&quot;{commitFailure=&quot;)
+            .append(rootCause(commitFailure))
+            .append(&quot; mergeThreadErrors=&quot;)
+            .append(cms.errors.size())
+            .append(&quot; firstError=&quot;)
+            .append(cms.errors.isEmpty() ? &quot;none&quot; : rootCause(cms.errors.get(0)))
+            .append(&quot; writerOpenAfter=&quot;)
+            .append(open)
+            .append(&quot; tragic=&quot;)
+            .append(rootCause(tragic))
+            .append(&quot; diskLeaves=&quot;)
+            .append(leaves)
+            .append(&quot; diskNumDocs=&quot;)
+            .append(numDocs)
+            .append(&quot;}&quot;);
+      }
+      TestUtil.checkIndex(dir);
+      System.out.println(
+          &quot;PROBE naturalMerge: closedCycles=&quot; + closedCycles + &quot;/&quot; + cycles + sb + &quot; checkIndex=clean&quot;);
+      assertEquals(&quot;writer closed in &quot; + closedCycles + &quot; of &quot; + cycles + &quot; cycles&quot;, 0, closedCycles);
+    }
+  }
+
+  /**
+   * Default TieredMergePolicy, natural merges only: twelve small flushed segments, one of which
+   * has no document with the vector field.
+   */
+  public void testDefaultTieredNaturalMerge() throws Exception {
+    try (Directory dir = newDirectory()) {
+      RecordingCMS cms = new RecordingCMS();
+      IndexWriter w = new IndexWriter(dir, config(new TieredMergePolicy(), cms));
+      Throwable failure = null;
+      boolean open;
+      Throwable tragic;
+      int committedSegments = 0;
+      try {
+        for (int seg = 0; seg &lt; 12 &amp;&amp; failure == null &amp;&amp; w.isOpen(); seg++) {
+          addDocs(w, &quot;s&quot; + seg + &quot;_&quot;, 20, seg != 5);
+          try {
+            w.commit();
+            committedSegments++;
+          } catch (Throwable t) {
+            failure = t;
+          }
+          cms.sync();
+        }
+        open = w.isOpen();
+        tragic = w.getTragicException();
+      } finally {
+        closeQuietly(w);
+      }
+      int leaves;
+      int numDocs;
+      try (DirectoryReader r = DirectoryReader.open(dir)) {
+        leaves = r.leaves().size();
+        numDocs = r.numDocs();
+      }
+      TestUtil.checkIndex(dir);
+      System.out.println(
+          &quot;PROBE tieredNaturalMerge: committedSegments=&quot;
+              + committedSegments
+              + &quot; commitFailure=&quot;
+              + rootCause(failure)
+              + &quot; mergeThreadErrors=&quot;
+              + cms.errors.size()
+              + &quot; firstError=&quot;
+              + (cms.errors.isEmpty() ? &quot;none&quot; : rootCause(cms.errors.get(0)))
+              + &quot; writerOpenAfter=&quot;
+              + open
+              + &quot; tragic=&quot;
+              + rootCause(tragic)
+              + &quot; diskLeaves=&quot;
+              + leaves
+              + &quot; diskNumDocs=&quot;
+              + numDocs
+              + &quot; checkIndex=clean&quot;);
+      assertTrue(&quot;writer closed by tragic event &quot; + tragic, open);
+    }
+  }
+
+  /** addIndexes(CodecReader...) with the same inputs: does the writer stay open? */
+  public void testAddIndexesWriterState() throws Exception {
+    try (Directory src = newDirectory();
+        Directory dst = newDirectory()) {
+      IndexWriterConfig base = new IndexWriterConfig().setMergePolicy(NoMergePolicy.INSTANCE);
+      base.setCodec(TestUtil.getDefaultCodec());
+      try (IndexWriter w0 = new IndexWriter(src, base)) {
+        addDocs(w0, &quot;v&quot;, 100, true);
+        w0.commit();
+        addDocs(w0, &quot;n&quot;, 10, false);
+        w0.commit();
+      }
+      RecordingCMS cms = new RecordingCMS();
+      Throwable addIndexesFailure = null;
+      boolean open;
+      Throwable tragic;
+      boolean writableAfter = false;
+      int dstNumDocs;
+      try (DirectoryReader r = DirectoryReader.open(src)) {
+        CodecReader[] readers = new CodecReader[r.leaves().size()];
+        int i = 0;
+        for (LeafReaderContext ctx : r.leaves()) {
+          readers[i++] = (CodecReader) ctx.reader();
+        }
+        IndexWriter w = new IndexWriter(dst, config(new LogDocMergePolicy(), cms));
+        try {
+          try {
+            w.addIndexes(readers);
+          } catch (Throwable t) {
+            addIndexesFailure = t;
+          }
+          cms.sync();
+          open = w.isOpen();
+          tragic = w.getTragicException();
+          if (open) {
+            addDocs(w, &quot;after&quot;, 1, true);
+            w.commit();
+            writableAfter = true;
+          }
+        } finally {
+          closeQuietly(w);
+        }
+      }
+      try (DirectoryReader r = DirectoryReader.open(dst)) {
+        dstNumDocs = r.numDocs();
+      }
+      TestUtil.checkIndex(dst);
+      System.out.println(
+          &quot;PROBE addIndexes: addIndexesFailure=&quot;
+              + rootCause(addIndexesFailure)
+              + &quot; writerOpenAfter=&quot;
+              + open
+              + &quot; tragic=&quot;
+              + rootCause(tragic)
+              + &quot; writableAfter=&quot;
+              + writableAfter
+              + &quot; dstNumDocs=&quot;
+              + dstNumDocs
+              + &quot; checkIndex=clean&quot;);
+      assertNull(&quot;addIndexes failed: &quot; + addIndexesFailure, addIndexesFailure);
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT): reproduced through gradle and a standalone JUnit runner; the core copy() failure also on the 10.2.0 to 10.5.2 release jars, not on 10.0.0 and 10.1.0</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (a pure-Java code path)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/org/apache/lucene/misc/index/TestBpVectorReorderSegmentWithoutVectors.java \
+   $LUCENE/lucene/misc/src/test/org/apache/lucene/misc/index/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:misc:test --tests TestBpVectorReorderSegmentWithoutVectors -Ptests.seed=DEADBEEF
+# also with -Ptests.asserts=false (same failure, recorded with the standalone runner)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>$ ./gradlew --continue :lucene:core:test --tests TestSlowCompositeVectorValuesCopy :lucene:misc:test --tests TestBpVectorReorderSegmentWithoutVectors -Ptests.seed=DEADBEEF
+TestSlowCompositeVectorValuesCopy &gt; testFloatCopyLastSegmentWithoutVectors FAILED
+    java.lang.NullPointerException: Cannot invoke &quot;org.apache.lucene.index.KnnVectorValues.copy()&quot; because &quot;this.sub&quot; is null
+        at org.apache.lucene.index.SlowCompositeCodecReaderWrapper$DocValuesSub.copy(SlowCompositeCodecReaderWrapper.java:307)
+        at org.apache.lucene.index.SlowCompositeCodecReaderWrapper$SlowCompositeKnnVectorsReaderWrapper$MergedFloatVectorValues.copy(SlowCompositeCodecReaderWrapper.java:906)
+TestSlowCompositeVectorValuesCopy &gt; testByteCopySegmentWithoutVectors FAILED
+TestSlowCompositeVectorValuesCopy &gt; testFloatCopyFirstSegmentWithoutVectors FAILED
+TestSlowCompositeVectorValuesCopy &gt; testFloat16CopySegmentWithoutVectors FAILED
+5 tests completed, 4 failed
+
+TestBpVectorReorderSegmentWithoutVectors &gt; testSegmentWithoutVectors FAILED
+    java.io.IOException: background merge hit exception: _0(11.0.0):c100 _1(11.0.0):c10 into _2 [maxNumSegments=1]
+        at org.apache.lucene.index.IndexWriter.forceMerge(IndexWriter.java:2300)
+        Caused by:
+        java.lang.NullPointerException: Cannot invoke &quot;org.apache.lucene.index.KnnVectorValues.copy()&quot; because &quot;this.sub&quot; is null
+            at org.apache.lucene.index.SlowCompositeCodecReaderWrapper$DocValuesSub.copy(SlowCompositeCodecReaderWrapper.java:307)
+            at org.apache.lucene.index.SlowCompositeCodecReaderWrapper$SlowCompositeKnnVectorsReaderWrapper$MergedFloatVectorValues.copy(SlowCompositeCodecReaderWrapper.java:906)
+            at org.apache.lucene.misc.index.BpVectorReorderer$PerThreadState.&lt;init&gt;(BpVectorReorderer.java:110)
+            at org.apache.lucene.misc.index.BpVectorReorderer$1.initialValue(BpVectorReorderer.java:623)
+            at org.apache.lucene.util.CloseableThreadLocal.get(CloseableThreadLocal.java:70)
+            at org.apache.lucene.misc.index.BpVectorReorderer$ReorderTask.compute(BpVectorReorderer.java:217)
+            at org.apache.lucene.misc.index.BpVectorReorderer.computePermutation(BpVectorReorderer.java:627)
+            at org.apache.lucene.misc.index.BpVectorReorderer.computeValueMap(BpVectorReorderer.java:606)
+            at org.apache.lucene.misc.index.BpVectorReorderer.computeDocMap(BpVectorReorderer.java:591)
+            at org.apache.lucene.misc.index.BPReorderingMergePolicy$1.reorder(BPReorderingMergePolicy.java:138)
+            at org.apache.lucene.index.IndexWriter.mergeMiddle(IndexWriter.java:5558)
+            at org.apache.lucene.index.IndexWriter.merge(IndexWriter.java:5081)
+            ... (abridged)
+2 tests completed, 1 failed
+
+# standalone runner: 7 run, 5 failed with assertions on (seed DEADBEEF) and off (seed 0BADF00D)
+
+# writer-state probe, main a9779ef3c193: PROBE lines condensed (selected fields, reworded; full lines in run.log)
+PROBE forceMerge: forceMergeFailure=IOException rootCause=NullPointerException writerOpenAfter=false nrtNumDocsBefore=114 diskNumDocsAfter=110 diskHitsDeletedV0After=1 checkIndex=clean
+PROBE naturalMerge: closedCycles=3/3 diskLeaves 3 -&gt; 4 -&gt; 5 checkIndex=clean
+PROBE tieredNaturalMerge: committedSegments=9 writerOpenAfter=false checkIndex=clean
+PROBE addIndexes: addIndexesFailure=NullPointerException writerOpenAfter=true writableAfter=true checkIndex=clean</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code>KnnVectorValues#copy</code> has no precondition, and a segment without vectors is a documented state (<code>getFloatVectorValues</code> returns null); the merged view's iterator and ordinal lookup handle that null, but <code class='nw'>copy()</code> does not.</li><li>#14092 added the per-slot <code class='nw'>copy()</code> for this very caller; <code>BpVectorReorderer</code> and its tests support documents without vectors.</li><li>The same class's null-slot crash for points was fixed as a bug (#12859).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>284 words</span></summary><div class='body'><ul><li><strong><code>KnnVectorValues#copy</code></strong> (<code>KnnVectorValues.java:95-99</code>): "Creates a new copy of this {@link KnnVectorValues}. This is helpful when you need to access different values at once, to avoid overwriting the underlying vector returned." No precondition.</li><li><strong><code>LeafReader#getFloatVectorValues</code></strong> (<code>LeafReader.java:215-221</code>): "... or null if no {@link FloatVectorValues} were indexed. The returned instance should only be used by a single thread." So a reorderer that reads the vectors from several threads at once needs one copy per thread (or must serialize access), and a segment without vectors is an expected state.</li><li><strong><code class='nw'>OneMerge#reorder</code></strong> (<code>MergePolicy.java:311-325</code>) "will be called when index sorting is disabled on a merged view of the {@link OneMerge}": this view.</li><li><strong><code>BPReorderingMergePolicy</code></strong> (<code class='nw'>:34-39</code>): "When reordering doesn't have enough RAM, it simply skips reordering in order not to fail the merge."</li><li><strong>Sparse vectors are supported.</strong> The merged view stores <code class='nw'>null</code> slots on purpose (since #12622, 2023) and handles them in its iterator and ordinal lookup. <code>BpVectorReorderer</code> sorts "docs with no value at the end" (<code>BpVectorReorderer.java:743</code>), its <code class='nw'>checkField</code> returns null for an absent field instead of throwing (<code class='nw'>:699-713</code>), and <code>TestBpVectorReorderer.testIndexReorderSparse</code> checks that documents without vectors "sort at the end" (<code class='nw'>:387-428</code>), on a single segment, so without a merged view.</li><li><strong>History.</strong> #14092 (@msokolov, 2024-12-31) added the per-slot <code class='nw'>copy()</code>; its PR body says the earlier shallow copy "was a bug introduced with #13779 ... I came across test failures when working on reviving a vector-based binary-partitioning merge policy". No review comments; segments without the field are not discussed.</li><li><strong>Precedents.</strong> #12858 / #12859 (2023): "Avoid null PointValues when merging points in SlowCompositeCodecReaderWrapper". #14123 / #14125 (2025): "Add null checks to SortingCodecReader" for a segment without vectors in a reordering or <code class='nw'>addIndexes</code> merge.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>170 words</span></summary><div class='body'><p>The strongest case for "intended": the wrapper is package-private and "primarily targeted at merging, not searching" (<code>SlowCompositeCodecReaderWrapper.java:43-47</code>); <code class='nw'>KnnVectorValues</code>, <code>getFloatVectorValues</code> and <code class='nw'>OneMerge#reorder</code> are <code>@lucene.experimental</code>; <code class='nw'>KnnVectorsReader</code> says "The behavior is undefined if the given field doesn't have KNN vectors enabled on its FieldInfo" (<code>KnnVectorsReader.java:64-69</code>); the vector values of <code>SortingCodecReader</code> throw <code>UnsupportedOperationException</code> from <code class='nw'>copy()</code> (<code>SortingFloatVectorValues.copy()</code>, <code>SortingCodecReader.java:345-348</code>); the policy's javadoc names only <code class='nw'>BPIndexReorderer</code>; and <code>BpVectorReorderer</code> is new and untested with such segments.</p><p>Why it fails: "experimental" allows API changes, not an NPE on legal data built with public API and default settings. The wrapper never asks a segment's <code class='nw'>KnnVectorsReader</code> about an absent field; it calls <code class='nw'>CodecReader</code>'s guarded getter, which returns <code class='nw'>null</code> by contract, and stores that <code class='nw'>null</code> itself. An <code>UnsupportedOperationException</code> is a deliberate signal; this NPE is an accident in the method #14092 wrote for this caller. #14097 made <code>BpVectorReorderer</code> pluggable into <code>BPReorderingMergePolicy</code>, and <code>TestBPReorderingMergePolicy</code> plugs it in. The missing test is a coverage gap. Every reviewer rated the intended-behaviour argument weak.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Return the empty slot unchanged in DocValuesSub.copy()</strong></p><p class='short'>Guard the empty slot in <code>DocValuesSub.copy()</code>: <code>if (sub == null) return this;</code> (+4 lines in <code>SlowCompositeCodecReaderWrapper.java</code>). Validated with gradle: both repro classes pass with assertions on and off, and <code class='nw'>TestAddIndexes</code>, <code>TestSortingCodecReader</code>, <code>TestGetVectorCountCodecWrappers</code>, the whole misc module and the nightly <code>TestBPReorderingMergePolicy</code> pass.</p><pre class='snippet' tabindex='0'><code>private record DocValuesSub&lt;T extends KnnVectorValues&gt;(T sub, int docStart, int ordStart) {
+  @SuppressWarnings(&quot;unchecked&quot;)
+  DocValuesSub&lt;T&gt; copy() throws IOException {
+    if (sub == null) {
+      // this reader has no vectors for the field: nothing to copy
+      return this;
+    }
+    return new DocValuesSub&lt;&gt;((T) (sub.copy()), docStart, ordStart);
+  }
+}</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 578 words</span></summary><div class='body'><p>One fix was built and validated in a scratch worktree; the other options are untested or not recommended. The null guard does not fix two related, separate hunt findings in the same code: LFV-278 (the merged iterator numbers ordinals by position, so a reordered <code class='nw'>addIndexes</code> of two or more <code>SortingCodecReader</code> inputs writes vectors onto the wrong documents) and LFV-404 (<code>BpVectorReorderer</code> fails with <code>UnsupportedOperationException</code> on <code>SortingCodecReader</code> inputs, whose vector values' <code class='nw'>copy()</code> throws on purpose, <code>SortingCodecReader.java:345-348</code>).</p><div class="hd hd-3"><h3 id='fix-null-guard'>Return the empty slot unchanged in DocValuesSub.copy() <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-null-guard" target="_self" aria-label="Link to this section" aria-describedby="fix-null-guard"><span aria-hidden="true">#</span></a></div><p><code>SlowCompositeCodecReaderWrapper.java</code> only, +4 lines. The record is immutable and an empty slot has no state, so returning it is safe; slots with vectors are copied as before, so #14092's thread-safety fix stays. One place fixes float32, byte and float16 and every consumer of the merged view's <code class='nw'>copy()</code>: <code>BpVectorReorderer</code> and custom <code class='nw'>OneMerge#reorder</code> code, whether a merge or <code>addIndexes(CodecReader...)</code> reaches them.</p><pre class='snippet' tabindex='0'><code>private record DocValuesSub&lt;T extends KnnVectorValues&gt;(T sub, int docStart, int ordStart) {
+  @SuppressWarnings(&quot;unchecked&quot;)
+  DocValuesSub&lt;T&gt; copy() throws IOException {
+    if (sub == null) {
+      // this reader has no vectors for the field: nothing to copy
+      return this;
+    }
+    return new DocValuesSub&lt;&gt;((T) (sub.copy()), docStart, ordStart);
+  }
+}</code></pre><p class='k'>Trade-offs</p><ul><li>No behaviour change for segments with vectors; no extra allocation.</li><li>The same change applies to the 10.x branches, whose <code>DocValuesSub.copy</code> reads the same (10.x has no float16 values). Add a CHANGES entry under Bug Fixes.</li><li>A regression test should cover a merge, not only <code class='nw'>copy()</code>: the end-to-end test checks the vector content and the document mapping after the reordered merge.</li></ul><p class='k'>What the checks validated</p><ul><li>Clean scratch worktree at <code class='nw'>a9779ef3c193</code>, gradle, seed <code class='nw'>DEADBEEF</code>. Stock: <code>TestSlowCompositeVectorValuesCopy</code> 4 of 5 fail and <code>TestBpVectorReorderSegmentWithoutVectors</code> 1 of 2 fail. With the fix: both pass, 7 of 7, with assertions on and off.</li><li>Closest suites with the fix: <code class='nw'>TestAddIndexes</code> (39 tests), <code>TestGetVectorCountCodecWrappers</code> (1), <code>TestSortingCodecReader</code> (3) and the whole <code class='nw'>lucene/misc</code> module (24 classes, 317 tests, 9 skipped, among them <code>TestBPReorderingMergePolicy</code>, <code>TestBpVectorReorderer</code> and <code>TestBPIndexReorderer</code>): 0 failures. <code>TestBPReorderingMergePolicy</code> with <code>-Ptests.nightly=true</code>: 3 of 3 pass, none skipped.</li><li>With the fix and both tests in place, these pass: <code>checkGoogleJavaFormat</code> (core, misc), <code class='nw'>ecjLintMain</code> and <code class='nw'>ecjLintTest</code> (core), <code class='nw'>ecjLintTest</code> (misc), <code>forbiddenApisMain</code> and <code>forbiddenApisTest</code> (core) and <code>forbiddenApisTest</code> (misc). The worktree was removed afterwards.</li><li>Shadowed onto the stock jars: the repro passes 7 of 7 with assertions on and off; the writer-state probe passed 4 of 4.</li></ul><div class="hd hd-3"><h3 id='fix-call-sites'>Guard at the three call sites</h3><a class="hlink" href="#fix-call-sites" target="_self" aria-label="Link to this section" aria-describedby="fix-call-sites"><span aria-hidden="true">#</span></a></div><p><code>subsCopy.add(sub.sub() == null ? sub : sub.copy())</code> in <code>MergedFloatVectorValues</code>, <code>MergedFloat16VectorValues</code> and <code>MergedByteVectorValues.copy()</code>.</p><p class='k'>Trade-offs</p><p>Same behaviour; three places to keep in sync. Untested.</p><div class="hd hd-3"><h3 id='fix-no-empty-slots'>Do not store empty slots</h3><a class="hlink" href="#fix-no-empty-slots" target="_self" aria-label="Link to this section" aria-describedby="fix-no-empty-slots"><span aria-hidden="true">#</span></a></div><p>Skip segments whose values are <code class='nw'>null</code> when the merged values are built.</p><p class='k'>Trade-offs</p><p>Removes the <code class='nw'>null</code> state. The remaining slots keep their own <code class='nw'>docStart</code> and <code class='nw'>ordStart</code>, so the iterator and <code class='nw'>findSub</code> look compatible, but that needs validation. The slot list would be empty only if no segment has the field, which the field-info check in <code class='nw'>CodecReader</code>'s getter normally prevents; a direct call on the vectors reader would then make <code>MergedDocIterator</code>'s constructor call <code class='nw'>it.next()</code> on an empty list (<code class='nw'>:322</code>), so it needs a guard. Touches three getters for the same effect as the null guard. Untested.</p><div class="hd hd-3"><h3 id='fix-revert-14092'>Revert #14092 (not recommended)</h3><a class="hlink" href="#fix-revert-14092" target="_self" aria-label="Link to this section" aria-describedby="fix-revert-14092"><span aria-hidden="true">#</span></a></div><p>Go back to the shallow copy of the slot list.</p><p class='k'>Trade-offs</p><p>Brings back the shared, thread-unsafe copy that #14092 fixed.</p><div class="hd hd-3"><h3 id='fix-reorderer-side'>Work around it in BpVectorReorderer (not recommended)</h3><a class="hlink" href="#fix-reorderer-side" target="_self" aria-label="Link to this section" aria-describedby="fix-reorderer-side"><span aria-hidden="true">#</span></a></div><p>Avoid the copy, or catch the exception and skip reordering.</p><p class='k'>Trade-offs</p><p>Leaves the merged view's <code class='nw'>copy()</code> broken for custom <code class='nw'>OneMerge#reorder</code> code.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream: a public code search found no product that wires <code>BpVectorReorderer</code> into a merge policy; an application that adopts it on main loses indexing whenever documents without the vector field end up in a segment of their own.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A randomized differential test built merged views over random multi-segment inputs, with fields missing from some segments, and compared a broad set of merged-view APIs with the source segments; in 60 iterations it reported, among other mismatches, 102 NullPointerExceptions from <code class='nw'>copy()</code> of the merged vector values. The failing frame led to <code>BpVectorReorderer</code>, then to an end-to-end repro.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>173 words</span></summary><div class='body'><p><strong>Method: randomized differential testing</strong> of the merged view against its source segments (no model checker, solver or prover found it).</p><ul><li>The test builds random multi-segment inputs (a target of 2-5 segments, which it can overshoot) in which some fields are missing from some segments, wraps them in the merged view and compares a broad set of merged-view APIs, the vector values' <code class='nw'>copy()</code> included, with the source segments. Over 60 random iterations without empty segments it reported 592 mismatches of 5 kinds, among them 102 of the kind "vector-copy-exception: NullPointerException"; the others (<code>getOffHeapByteSize</code> exceptions, the inherited <code class='nw'>ordToDoc()</code> and the shared <code class='nw'>iterator()</code>) are not this bug.</li><li>The failing frame (<code>DocValuesSub.copy</code>) led to the one in-tree caller that copies the merged view, <code>BpVectorReorderer</code>, and an end-to-end JUnit through <code>BPReorderingMergePolicy</code> reproduced it on the stock jars.</li><li>A Z3 model of the same unit proved the merged view's ordinal lookup (<code class='nw'>findSub</code>) correct with empty slots; it gave no signal for <code class='nw'>copy()</code>, so this is not counted as a formal find.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (2026-10-26, re-checked 2026-10-28) in Lucene's GitHub issues, PRs and commits, JIRA, the mailing lists including the CI mails, four downstream projects or the web. Nearest: #12859 (the same class's null-slot crash for points) and #14125 (null checks in <code>SortingCodecReader</code>).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Verdict new: no report by anyone, the owner included. Open #16879 (adds <code class='nw'>getMergeSources</code> to the same reader) and #15430 (adds <code>if (floats == null) return null;</code> in <code class='nw'>computeDocMap</code>; <code class='nw'>checkField</code> already returns null when the merged field infos lack the field, and the merged view returns non-null values when they have it, so the guard does not change this case) touch the area but would not fix it. A #15003 PR comment shows a different error on the same call path (<code>AssertionError: Called on the wrong instance</code>). Gaps: GitHub search covers titles, bodies and comments, not the diffs of closed unmerged PRs; private reports are not visible.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; dev@, java-user@, issues@, commits@ and builds@; JIRA archive</th><td class='when'>2026-10-26</td><td>the hunt's prior-report tool, three runs: SlowCompositeCodecReaderWrapper, BpVectorReorderer, BPReorderingMergePolicy, DocValuesSub, copy, "this.sub is null", "background merge hit exception", "segment without vectors"</td><td>no report; nearest #14123 / #14125 and #12858 / #12859</td></tr><tr><th scope='row'>GitHub (apache/lucene, Elasticsearch, OpenSearch, OpenSearch k-NN, Solr)</th><td class='when'>2026-10-26</td><td>86 GraphQL searches</td><td>no report; downstream BP-reordering items are feature requests or configuration changes</td></tr><tr><th scope='row'>Mailing lists, JIRA, open PRs, history, the web</th><td class='when'>2026-10-26</td><td>45 direct list queries, the builds@ CI mails for TestBPReorderingMergePolicy read in full; a JQL query; the changed files and patches of all 413 open PRs; git log -S 'sub.copy()'; 4 web searches</td><td>CI failures with other causes (OutOfMemoryError, "The heap is empty", a codec footer mismatch); open #16879 and #15430 would not fix it</td></tr><tr><th scope='row'>GitHub issues and PRs (apache/lucene); upstream commit lists</th><td class='when'>2026-10-28</td><td>BpVectorReorderer; SlowCompositeCodecReaderWrapper copy; "this.sub" is null; commits of both files</td><td>nothing new (#16250 is RoaringDocIdSet); neither file changed after a9779ef3c193</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #14092 (<code class='nw'>68051f1b9f5</code>, 2024-12-31), first released in 10.2.0, where no in-tree code reaches it. The stock end-to-end trigger, <code>BpVectorReorderer</code> in <code>BPReorderingMergePolicy</code> (#14097), is on main only; 10.0.0 and 10.1.0 are clean.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #14092, "SlowCompositeCodecReaderWrapper copies sub-vector values for thread-safety" (commit <code class='nw'>68051f1b9f5</code>, subject "SlowCompositeCodecReaderWrapper must copy its sub-vector values to maintain thread-safety", @msokolov, 2024-12-31, milestone 10.2.0; branch_10x backport <code class='nw'>0bfa27513dce</code>, contained in the tags 10.2.0 to 10.5.2). It replaced the shallow copy of the slot list (#13779, 10.0.0) with a per-slot <code>DocValuesSub.copy()</code> without a null check. Between 10.1.0 and 10.2.0 the backport is the only commit touching the file; reverse-applying it to the 10.2.0 file gives the 10.1.0 file, and shadowing that class onto 10.2.0 makes both failing tests pass.</p><p><code>BpVectorReorderer</code> came with #14097 (<code class='nw'>02a09f6ab12</code>, 2025-01-07), in no release tag; #16383 (<code class='nw'>bfe5c847d3c</code>, 2026-07-27, main only) added the float16 merged values with the same <code class='nw'>copy()</code>. Not fixed upstream as of <code class='nw'>20ced71c1e6e</code> (2026-10-27).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>end to end and core: the repro fails 5 of 7, assertions on and off, also through gradle; the writer closes</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's repro fails 4 of 6, on and off; natural and tiered merges close the writer</td></tr><tr><th scope='row'>10.2.0, 10.3.0, 10.3.2, 10.4.0, 10.5.2</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> custom reorder only</span></td><td>the core copy() NPE (same-package test; on 10.2.0 and 10.5.2 also a public-API custom OneMerge#reorder), on and off on 10.2.0 and 10.5.2; no BpVectorReorderer in these releases</td></tr><tr><th scope='row'>10.2.1, 10.2.2, 10.3.1, 10.5.0, 10.5.1</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> by reading</span></td><td>DocValuesSub.copy reads the same; not executed</td></tr><tr><th scope='row'>10.2.0 with the #14092 backport reverted</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> bisect</span></td><td>both failing tests pass</td></tr><tr><th scope='row'>10.0.0, 10.1.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>copy() is shallow there; the tests pass</td></tr><tr><th scope='row'>9.12.3</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>no KnnVectorValues#copy() (compile error)</td></tr><tr><th scope='row'>fix, scratch worktree at <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>repro 7 of 7, closest core suites, the misc module (317 tests) and the nightly TestBPReorderingMergePolicy pass</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder's repro, an independent reproducer's own tests, a root-cause review by another model family (OpenAI GPT-5.6), a devil's-advocate check and an adjudication all found it real; a writer-state probe showed that the writer closes and loses uncommitted changes. This doc re-ran it all on main <code class='nw'>a9779ef3c193</code>.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>345 words</span></summary><div class='body'><p>The checks below ran on main <code class='nw'>ea57360912ed</code> unless stated; the merged view, the reorderer and the merge code are the same on <code class='nw'>a9779ef3c193</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Differential-test signature; an end-to-end and a same-package JUnit fail 4 of 6, assertions on and off; the fix passes them and the upstream BP and vector-count suites.</td></tr><tr><th scope='row'>cross-model review (refute lens)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real (low), on procedure only</span></td><td>OpenAI GPT-5.6, reading only: it could not run code, agreed with the root cause and rated the intended-behaviour argument weak.</td></tr><tr><th scope='row'>cross-model review (intended lens)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>OpenAI GPT-5.6: the inputs are in contract and the intended-behaviour argument is weak.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own tests fail 6 of 10, on and off; found <code>addIndexes(CodecReader...)</code> as a second trigger and a public-API custom reorder that fails on 10.2.0 and 10.5.2; its own one-line fix passes 10 of 10.</td></tr><tr><th scope='row'>root-cause review</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>OpenAI GPT-5.6, reading only (it ran no code): the first invalid step is <code>DocValuesSub.copy</code>, one cause for all three encodings. The pipeline's own re-runs on two seeds fail 4 of 6 and pass with the fix.</td></tr><tr><th scope='row'>devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>No intended, misuse or out-of-contract argument survives; its re-run fails 4 of 6, on and off.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>The reproducer's tests with fresh seeds fail 6 of 10, on and off; the fix passes 10 of 10. Rated it a crash before the writer-state probe showed the writer closes.</td></tr><tr><th scope='row'>writer-state probe</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> writer closes; not security-sensitive</span></td><td>forceMerge, natural and default tiered merges close the writer and lose uncommitted changes; 3 of 3 reopens fail again; addIndexes keeps the writer open; CheckIndex clean; with the fix 4 of 4 pass.</td></tr><tr><th scope='row'>registry refresh</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> still reproduces</span></td><td>The finder's repro fails 4 of 6 on <code class='nw'>a9779ef3c193</code>, on and off, with the same messages.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>New repro 5 of 7 fail, on and off; 63 vs 64 vectors; the writer-state probe on <code class='nw'>a9779ef3c193</code>; the fix validated with gradle.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-269/bug.png' download='merged-vector-values-copy-null-sub-bug.png' target='_self'>PNG</a> <span class='n'>482 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,359 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-269, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>The merged vector values of SlowCompositeCodecReaderWrapper throw NullPointerException from copy() when one merged segment has no vectors for the field, so merges through BPReorderingMergePolicy with BpVectorReorderer fail and close the IndexWriter, again after every reopen</dd></div><div><dt>Area</dt><dd>index / merged CodecReader view (SlowCompositeCodecReaderWrapper vector values); misc / BP merge-time reordering</dd></div><div><dt>Priority</dt><dd>Medium, rank 318: Like LFV-100, this is a merged-view NPE when one segment lacks the vector field, but every BP-vector-reordered merge closes the writer again after each reopen, and the stock path is unreleased.</dd></div><div><dt>Impact class</dt><dd>index unusable</dd></div><div><dt>Impact note</dt><dd>Applications on unreleased main (11.0.0-SNAPSHOT) that opt into the expert lucene/misc BPReorderingMergePolicy with a BpVectorReorderer and have a segment in which no document carries the (optional) vector field are hit on every forced or natural merge that includes that segment and holds at least 64 vectors (2 x the default minPartitionSize of 32, read from code): the merge throws, IndexWriter closes itself as a tragic event and discards all uncommitted changes, and a reopened writer closes again at the next such merge, while the committed index stays clean and searchable; addIndexes(CodecReader...) under the same policy throws but leaves the writer open; any index size, default codec and IndexWriterConfig otherwise; on released 10.2.0-10.5.2 the same NullPointerException is reachable only through an application's own OneMerge#reorder or IndexReorderer that calls copy() on the merged view.</dd></div><div><dt>Summary</dt><dd>You use BPReorderingMergePolicy with a BpVectorReorderer on a float vector field, and one segment holds only documents without that optional field, for example a batch of documents without embeddings that was flushed on its own. You expect merges to combine it with the other segments, as they do when every segment has vectors. Instead the merged view's FloatVectorValues.copy() throws NullPointerException ('Cannot invoke KnnVectorValues.copy() because this.sub is null'), IndexWriter treats the failed merge as a tragic event, closes itself and drops every change since the last commit, and the same merge fails again after each reopen.</dd></div><div><dt>Introduced</dt><dd>68051f1b9f5a052b9a2b4274ad7197eafb4a8caf, 'SlowCompositeCodecReaderWrapper must copy its sub-vector values to maintain thread-safety (#14092)' by msokolov (merged 2024-12-31, milestone 10.2.0, no review comments, no CHANGES entry); branch_10x backport 0bfa27513dce, same day, the commit the 10.2.0 release contains [exec: between 10.1.0 and 10.2.0 it is the only commit touching SlowCompositeCodecReaderWrapper.java; reverse-applying it to the 10.2.0 file gives the 10.1.0 file byte for byte, and shadowing that class onto the stock 10.2.0 jars turns both failing tests into passes]. It replaced the shallow copy of the sub list (#13779, 10.0.0) with DocValuesSub.copy(), which calls sub.copy() with no null check, to fix a real thread-safety problem; the null subs themselves date from #12622 (f7cab164501, 2023) and are handled everywhere else. The end-to-end in-tree trigger came with #14097 (02a09f6ab12, 2025-01-07, main only), whose BpVectorReorderer copies the merged view once per thread; #16383 (bfe5c847d3c, 2026-07-27, main only) added the float16 variant with the same pattern (2024-12-31)</dd></div><div><dt>First affected version</dt><dd>10.2.0 [exec] for the core copy() NullPointerException (same-package test and a public-API custom OneMerge#reorder that copies the merged view, -ea and -da; 10.1.0 passes); the stock end-to-end failure (BPReorderingMergePolicy + BpVectorReorderer) is unreleased, main only (11.0.0-SNAPSHOT), because BpVectorReorderer is in no release</dd></div><div><dt>Affected versions</dt><dd>core copy() defect: 10.2.0, 10.3.0, 10.3.2, 10.4.0, 10.5.2 and main ea57360912ed [exec: the follow-up's history runs, the finder's release runs and the independent reproduction's; -da also on 10.2.0, 10.5.2 and main]; 10.2.1, 10.2.2, 10.3.1, 10.5.0, 10.5.1 and the branch_10x, branch_10_6 and branch_10_5 tips of 2026-10-24 [read: DocValuesSub.copy reads the same]; not affected: 10.0.0 and 10.1.0 [exec pass]; 9.12.3 and older: API absent (no KnnVectorValues, no copy()) [exec: compile error on 9.12.3]. End-to-end BPReorderingMergePolicy + BpVectorReorderer failure (forceMerge, natural merges, addIndexes(CodecReader...)): main only [exec, -ea and -da]; BpVectorReorderer is absent from the 10.2.0, 10.3.0 and 10.5.2 misc jars [checked by the intended-behaviour check on the cached jars]. float32, byte and (main only) float16 merged values all fail [exec], but only the float32 path has an in-tree caller. Not fixed upstream as of main ea57360912ed [read, 2026-10-26]</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>non-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; the prior-report record: three scripted prior-report searches over apache/lucene issues and PRs, commits, the dev@, java-user@, issues@, commits@ and builds@ lists and the JIRA archive; 86 GitHub GraphQL searches over apache/lucene and four downstream projects; 45 direct mailing-list queries with the builds@ Jenkins mails for TestBPReorderingMergePolicy read in full; a direct JQL query; the changed files and patches of all 413 open PRs; 4 web searches; git log -S 'sub.copy()'). Related, not the same bug: #14123 / #14125 (2025-01-09, an NPE in SortingCodecReader for a segment without vectors in a reordering or addIndexes merge, fixed only in SortingCodecReader); #12858 / #12859 (2023, null PointValues in the same wrapper's points reader, the precedent for a null-check fix); #14092 (introduced it); #14097 (added the caller); #13779; #13626 / #13641; a #15003 review comment with an AssertionError on the same call path; open #16879 (adds getMergeSources to the same file) and #15430 (null check for a merged view with no vectors at all) touch the area but would not fix it</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-26) with assertions on and off, through gradle in a clean scratch worktree and through a standalone JUnit runner on the built jars; the fix in the same worktree (repro, closest core suites, the whole misc module, the nightly <code>TestBPReorderingMergePolicy</code>, format and lint checks). Earlier runs of the same defect: the release jars 9.12.3, 10.0.0, 10.1.0, 10.2.0, 10.3.0, 10.3.2, 10.4.0 and 10.5.2, and main <code class='nw'>ea57360912ed</code>. Upstream main <code class='nw'>20ced71c1e6e</code> (2026-10-27) has the same code (read).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java:304-309 (at ea57360912ed) (DocValuesSub.copy: &#x27;new DocValuesSub&lt;&gt;((T) (sub.copy()), docStart, ordStart)&#x27; with no null check), :339 and :357 (MergedDocIterator checks &#x27;current.sub != null&#x27;), :826-840 (getFloatVectorValues adds a DocValuesSub for every reader, also when its values are null; siblings for float16 and byte), :903-909, :1003-1009, :1073-1079 (MergedFloat/Float16/ByteVectorValues.copy call sub.copy() for every entry)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/KnnVectorValues.java:96 (at ea57360912ed) (copy(): &#x27;Creates a new copy of this KnnVectorValues&#x27;, no precondition)</code></li><li><code>lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java:108-111 (at ea57360912ed) (PerThreadState constructor calls vectors.copy()), :208-211 (halfLength &lt; minPartitionSize returns before the first PerThreadState), :217 (threadLocal.get()), :578-593 (computeDocMap reads the merged view&#x27;s FloatVectorValues), :614-627 (CloseableThreadLocal builds PerThreadState)</code></li><li><code>lucene/misc/src/java/org/apache/lucene/misc/index/AbstractBPReorderer.java:25 (at ea57360912ed) (DEFAULT_MIN_PARTITION_SIZE = 32)</code></li><li><code>lucene/misc/src/java/org/apache/lucene/misc/index/BPReorderingMergePolicy.java:46 (at ea57360912ed) (minNaturalMergeNumDocs = 1), :133-145 (reorder catches only NotEnoughRAMException)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3562 (at ea57360912ed) (addIndexes(CodecReader...) calls merge.reorder on the merged reader), :5558 (mergeMiddle calls merge.reorder on the merged view), :5109-5113 (merge(): catch Throwable -&gt; tragicEvent(t, &quot;merge&quot;))</code></li><li><code>a Lucene main checkout SECURITY.md:28 (downstream application handles untrusted input)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java:49-57, 304-309, 339, 357, 824-841, 903-909, 924-961, 1003-1009, 1073-1079, 1082-1106</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/CodecReader.java:235-237; LeafReader.java:215-221</code></li><li><code>a Lucene main checkout lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java:110, 208-217, 578-593, 610-628; AbstractBPReorderer.java:25</code></li><li><code>a Lucene main checkout lucene/misc/src/java/org/apache/lucene/misc/index/BPReorderingMergePolicy.java:46, 103-105, 133-145</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:3388-3392, 3561-3562, 5030-5058, 5065-5113, 5557-5558</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/CHANGES.txt:162 (GITHUB#14097); lucene/misc/src/test/org/apache/lucene/misc/index/TestBPReorderingMergePolicy.java:40-80 (a vector in every document)</code></li><li><code>a Lucene main checkout lucene/misc/src/java/org/apache/lucene/misc/index/BPReorderingMergePolicy.java:46, 54-56, 103-117</code></li><li><code>a Lucene main checkout lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java:598-606 (NotEnoughRAMException before copy()); lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:5545-5558 (reorder skipped with an index sort or blocks without a parent field)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/KnnVectorValues.java:95-99; LeafReader.java:215-221; MergePolicy.java:311-325</code></li><li><code>a Lucene main checkout lucene/misc/src/java/org/apache/lucene/misc/index/BPReorderingMergePolicy.java:34-39</code></li><li><code>a Lucene main checkout lucene/misc/src/java/org/apache/lucene/misc/index/BpVectorReorderer.java:699-713, 735-743; a Lucene main checkout lucene/misc/src/test/org/apache/lucene/misc/index/TestBpVectorReorderer.java:387-428</code></li><li><code>a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/SlowCompositeCodecReaderWrapper.java:43-47; a Lucene main checkout lucene/core/src/java/org/apache/lucene/codecs/KnnVectorsReader.java:64-69; a Lucene main checkout lucene/core/src/java/org/apache/lucene/index/SortingCodecReader.java:345-348</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestBpVectorReorderSegmentWithoutVectors.java (lucene/misc, 2 tests): <a href='../repro/LFV-269/TestBpVectorReorderSegmentWithoutVectors.java'><code>repro/LFV-269/TestBpVectorReorderSegmentWithoutVectors.java</code></a> (112 lines)</li><li>TestSlowCompositeVectorValuesCopy.java (lucene/core, 5 tests, the fix site): <a href='../repro/LFV-269/TestSlowCompositeVectorValuesCopy.java'><code>repro/LFV-269/TestSlowCompositeVectorValuesCopy.java</code></a> (132 lines)</li><li>TestBpVectorReorderThreshold.java (63 vs 64 vectors): <a href='../repro/LFV-269/TestBpVectorReorderThreshold.java'><code>repro/LFV-269/TestBpVectorReorderThreshold.java</code></a> (69 lines)</li><li>TestFieldlessSegmentMergeWriterState.java (writer-state probe): <a href='../repro/LFV-269/TestFieldlessSegmentMergeWriterState.java'><code>repro/LFV-269/TestFieldlessSegmentMergeWriterState.java</code></a> (375 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>Made in parallel from an executed probe on main <code class='nw'>a9779ef3c193</code> (100 committed documents with vectors, 10 without, 5 uncommitted, <code class='nw'>forceMerge(1)</code>, two reopens); the PNG is the final summary frame.</p><ul class='paths'><li><a href='../assets/LFV-269/bug.png'><code>assets/LFV-269/bug.png</code></a> (482 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

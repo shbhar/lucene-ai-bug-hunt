@@ -2,6 +2,8 @@
 
 Bug LFV-396 · Area: core / document: shape doc values (ShapeDocValues reader behind LatLonShapeDocValues / XYShapeDocValues relate and the slow doc-values shape queries; MemoryIndex shape doc-values fields) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-396.html](../../bugs/LFV-396.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a LatLonShape or XYShape doc value from a BytesRef that points into th
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: ShapeDocValues reads its header at the offset but then rewinds its ByteArrayDataInput to position 0 of the backing array, so relate decodes whatever bytes sit at the start of that array: the relation is silently wrong in either direction (CROSSES or INSIDE becomes OUTSIDE, OUTSIDE becomes CROSSES), and on a MemoryIndex an overlapping shape is missed by an INTERSECTS box query and matched by a DISJOINT one. getBoundingBox and getCentroid stay correct, which hides the problem.
+- Expected: Square A's slice at offset 76 relates like A's own bytes: CROSSES, INSIDE, OUTSIDE; in a `MemoryIndex`, INTERSECTS matches and DISJOINT does not.
+- Actual: It relates like square B, the bytes at position 0: OUTSIDE, OUTSIDE, CROSSES; in a `MemoryIndex`, INTERSECTS misses A and DISJOINT matches it.
 
 ## Files
 
@@ -53,6 +55,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestShapeDocValuesSliceOffset.java](TestShapeDocValuesSliceOffset.java)
+- [TestMemoryIndexShapeDocValuesSlice.java](TestMemoryIndexShapeDocValuesSlice.java)
+- [TestShapeDocValuesBulkBinaryValues.java](TestShapeDocValuesBulkBinaryValues.java)
+- [shapedocvalues-rewind-to-slice-start.diff](shapedocvalues-rewind-to-slice-start.diff)
 
 ## Feedback
 

@@ -1,0 +1,1699 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Sort.getPrimarySortField skips an index-sort field that still orders the documents, so range queries on the next sort field return wrong hits</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-860 &middot; primary-sort-field-skips-hidden-or-derived-index-sort-field</p><h1 id='top'>Sort.getPrimarySortField skips an index-sort field that still orders the documents, so range queries on the next sort field return wrong hits</h1><p class='tldr'>In 10.6, range queries on the second index-sort field return wrong hits when the reader hides the first sort field or that field is a <code class='nw'>BinarySortField</code> keyed on another field: f:[1 TO 3] finds 0 of 2 documents, and <code>LongField.newRangeQuery</code> throws. 10.5.2 is correct.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Medium, rank 96</span><span class='sub'>This is an unreleased 10.6.0 core range-query regression that silently returns wrong hits, but it needs an opt-in index sort of two or more fields plus a FilterLeafReader that hides the first sort field or a BinarySortField with a derived key.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>10.6.0 (unreleased), #16424, 2026-07-30<span class='sub'>introduced 2026-07-30</span></dd></div><div class='wide'><dt>Affected</dt><dd>main and the 10.6.0 release candidate; 10.5.2 and older are clean</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>caller inventory, then a metamorphic test and a bounded-exhaustive check</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-28.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>With an index sort, a range query on the sort field can skip the per-document check: its matches are one contiguous run of doc IDs, found by binary search. Since 10.6 this also works for the second sort field when the first one has no effect in a segment, and that test can be fooled.</p><figure class='visual' id='primary-sort-field-skips-hidden-or-derived-index-sort-field-short-visual'><div class='frame'><a class='still' href='../assets/LFV-860/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-860/bug.png' alt='An index sorted by (c, f) holds five documents in doc-ID order with c = 0, 0, 1, 1, 2 and f = 5, 9, 1, 7, 3. The plain reader reports c as the primary sort and f:[1 TO 3] returns docs 2 and 4. Through a reader that hides c, Sort.getPrimarySortField reports f; the range query assumes f ascends, starts the range at doc 0 and ends it at doc 0, the first document with f &gt; 3, and returns 0 hits. LongField.newRangeQuery throws IllegalArgumentException instead. 10.5.2 returns docs 2 and 4.' width='1920' height='1080'></a></div><figcaption>The repro's five documents in doc-ID order, sorted by (c, f). With c hidden, <code>getPrimarySortField</code> reports f, the range query treats f as ascending, and the run of matching doc IDs for f:[1 TO 3] comes out empty instead of docs 2 and 4. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Sort an index by two fields, <code>(c, f)</code>, and add five documents: (c, f) = (1,7), (0,9), (2,3), (0,5), (1,1). After <code class='nw'>forceMerge(1)</code> the segment is ordered by c first, so f reads 5, 9, 1, 7, 3 in doc-ID order.</span></li><li><span>The reader does not list c in its FieldInfos, in either of two ways that IndexWriter accepts and the API documentation does not forbid: c is a <code class='nw'>BinarySortField</code> subclass whose key is computed from another doc-values field, so no field named c exists; or a <code class='nw'>FilterLeafReader</code> hides c but, as every <code class='nw'>FilterLeafReader</code> does by default, still reports the index sort <code>(c, f)</code>.</span></li><li><span>Run <code>NumericDocValuesField.newSlowRangeQuery("f", 1, 3)</code>. You expect 2 hits, the documents with f = 1 and f = 3, as the plain reader and 10.5.2 return.</span></li><li><span>You get 0 hits and no error; <code>LongField.newRangeQuery("f", 1, 3)</code> throws <code>IllegalArgumentException: minDoc must be &lt; maxDoc</code>. Over 55 ranges on an 8-document index, 43 are wrong (46 for <code class='nw'>LongField</code>), some with documents outside the range.</span></li><li><span>Why: new in 10.6, <code>Sort.getPrimarySortField</code> skips a sort field that "would have no effect", judged from the reader. It finds no FieldInfo for c and reports f. The query then treats f as ascending and stops at the first document with f &gt; 3, doc 0 (f = 5): an empty range.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications on main or 10.6.0 with an index sort of two or more fields (opt-in) that run doc-values range queries on the second sort field, and either sort by a <code class='nw'>BinarySortField</code> subclass with a derived key or read through a <code class='nw'>FilterLeafReader</code> that hides the first sort field but keeps the sort. Rare; then many such ranges are silently wrong.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>789 words</span></summary><div class='body'><p><code>Sort.getPrimarySortField(LeafReader)</code>, added in 10.6 by #16424, tells three doc-values range queries which field the segment is effectively sorted by: it skips leading index-sort fields that "would have no effect" in the segment, so a query on the second sort field can binary-search instead of testing every document. It decides "no effect" from the reader it is given (the field is missing from <code class='nw'>getFieldInfos()</code>, or its skipper holds one value), but the documents' order belongs to the segment. When the first sort field is a <code class='nw'>BinarySortField</code> whose key comes from another doc-values field, or a <code class='nw'>FilterLeafReader</code> hides it while keeping the index sort, the method skips a field that orders every document, and the range queries on the next sort field cut a doc-ID range out of documents that are not in that order. In a 5-document index f:[1 TO 3] returns 0 hits instead of 2 and <code>LongField.newRangeQuery</code> throws <code>IllegalArgumentException</code>; over 55 ranges of an 8-document index 43 are wrong (46 for <code class='nw'>LongField</code>). It affects main and the 10.6.0 release candidate, with assertions on and off; 10.5.2 and older are correct. Reading the evidence from the unwrapped segment and skipping only the built-in sort-field classes fixes every repro, and the neighbouring core suites pass.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Index sort</strong>: <code>IndexWriterConfig.setIndexSort(new Sort(c, f))</code> stores each segment's documents ordered by c, then by f among equal c. The reader reports it in <code>getMetaData().sort()</code>, "the order in which documents from this index are sorted" (<code>LeafMetaData.java:32</code>).</li><li><strong>Index-sort range shortcut</strong>: <code>NumericDocValuesField</code>, <code>SortedNumericDocValuesField</code> and <code>SortedDocValuesField.newSlowRangeQuery</code> on a skip-indexed field, and <code class='nw'>LongField</code> / <code>IntField.newRangeQuery</code>, check whether the segment's primary sort is the queried field. If it is, and the query's other guards hold (for the doc-values queries a single-valued field whose skip index covers every document; for <code class='nw'>LongField</code> / <code class='nw'>IntField</code> an INT or LONG sort and a one-dimensional points index, among others), the matches form one doc-ID range and the query finds its two ends instead of testing every document.</li><li><strong><code>Sort.getPrimarySortField(reader)</code></strong> (new in 10.6, #16424): the primary sort those queries ask for. It skips leading sort fields that "would have no effect" in the segment (<code>Sort.java:141-143</code>), so a query on the second sort field can use the shortcut when the first one is empty or constant there.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>It decides "no effect" from the reader: the field is missing from <code>reader.getFieldInfos()</code> ("Field has no values in this segment", <code>Sort.java:156-159</code>), or its skipper is dense with <code>minValue() == maxValue()</code> (<code class='nw'>:164-169</code>).</li><li>The order is a property of the segment, and a reader can omit the first sort field while the segment is still ordered by it:<ul><li>a <code class='nw'>BinarySortField</code> subclass derives its key from another doc-values field, as its javadoc allows (<code>BinarySortField.java:41-44</code>); no field of its own name exists;</li><li>a <code class='nw'>FilterLeafReader</code> hides the field and, by default, still delegates <code class='nw'>getMetaData()</code> (<code>FilterLeafReader.java:477-481</code>).</li></ul></li><li><code>getPrimarySortField</code> returns f, and the range query on f (<code>SortedNumericDocValuesRangeQuery.java:237-247</code>, <code>SortedSetDocValuesRangeQuery.java:288-298</code>, <code>IndexSortSortedNumericDocValuesRangeQuery.java:198, 425, 523</code>) cuts a doc-ID range out of a segment that is not ordered by f.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-example'>The example</h3><a class="hlink" href="#what-the-bug-is-the-example" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-example"><span aria-hidden="true">#</span></a></div><p>Index sorted by (c, f), five documents, after <code class='nw'>forceMerge(1)</code>:</p><div class="tbl"><table><thead><tr><th>doc ID</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th></tr></thead><tbody><tr><td>c</td><td>0</td><td>0</td><td>1</td><td>1</td><td>2</td></tr><tr><td>f</td><td>5</td><td>9</td><td>1</td><td>7</td><td>3</td></tr></tbody></table></div><p>f:[1 TO 3] matches docs 2 and 4. Assuming f ascends, the shortcut starts the range at doc 0 (no f is below 1) and ends it before the first document from there with f &gt; 3, which is doc 0 itself (f = 5): the empty range [0, 0), 0 hits (<code>SortedSkipperScorerSupplier.java:113-182</code>). <code>LongField.newRangeQuery</code> finds the two ends through the points index instead, gets start 2 and end 0, and <code>DocIdSetIterator.range(2, 0)</code> throws <code>IllegalArgumentException: minDoc must be &lt; maxDoc</code>.</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>reader and sort</th><th>f:[1 TO 3], 5 docs</th><th>55 ranges, 8 docs</th></tr></thead><tbody><tr><td>plain reader, every form</td><td>2 hits</td><td>0 wrong</td></tr><tr><td><code class='nw'>BinarySortField</code> keyed on field a (no wrapper)</td><td>0 hits</td><td>43 wrong</td></tr><tr><td>c hidden, <code>NumericDocValuesField</code> with a skip index</td><td>0 hits</td><td>43 wrong</td></tr><tr><td>c hidden, <code>SortedDocValuesField</code> with a skip index</td><td>0 hits</td><td>43 wrong</td></tr><tr><td>c hidden, <code>LongField.newRangeQuery</code></td><td><code>IllegalArgumentException</code></td><td>46 wrong: 16 throw, 30 return wrong hits (23 with documents outside the range)</td></tr><tr><td><code class='nw'>BinarySortField</code> on a constant skip-indexed field, key (that field, b): the skipper rule</td><td>0 hits</td><td>43 wrong</td></tr><tr><td>10.5.2, every form</td><td>2 hits</td><td>0 wrong</td></tr></tbody></table></div><p>A bounded-exhaustive check of the stock jar (every layout of up to 5 documents over (c, f) in {0,1} x {1,2,3}, every range on f, a LONG <code>NumericDocValuesField</code> with a skip index, c hidden by the test framework's <code>FieldFilterLeafReader</code>) finds 0 of 55,980 checks wrong on the plain reader and 22,120 wrong, in 5,964 of 9,330 layouts, through a reader that hides c; 10.5.2 has 0.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>361 words</span></summary><div class='body'><ul><li><strong>Who.</strong> An index sort of at least two fields (opt-in), doc-values range or exact queries on the second sort field (<code>newSlowRangeQuery</code> of <code>NumericDocValuesField</code>, <code>SortedNumericDocValuesField</code> and single-valued <code>SortedDocValuesField</code> / <code>SortedSetDocValuesField</code> with a skip index, or <code class='nw'>LongField</code> / <code>IntField.newRangeQuery</code> without one), and one of:<ul><li>a <code class='nw'>BinarySortField</code> subclass whose key is derived from other doc-values fields (<code>@lucene.experimental</code>, added in 10.5.0 by #16202, whose javadoc invites such keys);</li><li>a reader wrapper that hides the first sort field and keeps the index sort: <code class='nw'>FilterLeafReader</code>'s default, the test framework's <code>FieldFilterLeafReader</code> ("exposes only a subset of fields"), and field-level-security views built like it. One widely used downstream field-level-security reader says it is based on <code>FieldFilterLeafReader</code>, filters FieldInfos and keeps <code class='nw'>getMetaData()</code>; whether its queries reach these shortcuts was not checked;</li><li>weakest: a <code class='nw'>BinarySortField</code> subclass on a skip-indexed NUMERIC field that is constant in the segment, keyed on (that field, another field).</li></ul></li><li><strong>Effect.</strong> Wrong hits and counts, with no error, for many ranges on the second sort field (43 of 55 in an 8-document test; 22,120 of 55,980 checks, about 40%, in the bounded check): missing matches and sometimes documents outside the range (in a 66-range probe, 16 ranges on the skip-index path and 20 on the <code class='nw'>LongField</code> path returned extra hits; f:[2 TO 9] also returned the document with f = 1). <code>LongField.newRangeQuery</code> (and, by reading, <code class='nw'>IntField</code>'s) can throw <code>IllegalArgumentException</code> instead. Five documents are enough.</li><li><strong>What still holds.</strong> In the security probe's fixture no deleted document was returned and no other FILTER clause of the same query was violated; nothing is written, and a fixed jar gives the right answers on the same index.</li><li><strong>Not released yet.</strong> Main and the 10.6.0 release candidate (its vote runs until at least 2026-10-29); 10.5.2 and the older releases tested are correct, and no release before 10.6 has the method.</li><li><strong>May widen.</strong> Open PR #16857 reuses the same skip rules for <code>TopFieldCollector</code> early termination, and open PR #16699 extends the shortcut to FLOAT and DOUBLE sorts.</li><li><strong>How likely.</strong> Rare: the opt-in multi-field index sort plus an uncommon reader or sort-field setup. Once that setup exists, many range queries on the second sort field are wrong.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test on the public API (<code class='nw'>LuceneTestCase</code>, <code class='nw'>newDirectory()</code>, <code>TestUtil.getDefaultCodec()</code>): five documents per test, one test per form: the derived-key <code class='nw'>BinarySortField</code> with no wrapper, and a reader that hides the first sort field completely, with a <code>NumericDocValuesField</code> and a <code class='nw'>LongField</code> range. It goes into lucene/core's test sources with one SPI line.</p><figure class='code'><figcaption><span class='fname'>TestPrimarySortFieldSkipsOrderingField.java (JUnit, public API)</span><span class='meta'>316 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.DocValuesSkipper;
+import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.FieldInfos;
+import org.apache.lucene.index.FilterLeafReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.PointValues;
+import org.apache.lucene.index.SortFieldProvider;
+import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * The index is sorted by two fields, (c, f). In each test the first sort field c really orders the
+ * documents, but the reader does not list it in its FieldInfos: either c is a BinarySortField whose
+ * key comes from another doc-values field, or a FilterLeafReader hides c. A doc-values range query
+ * on f must still match the documents whose f is in the range.
+ *
+ * &lt;p&gt;The BinarySortField subclass needs its provider listed in
+ * META-INF/services/org.apache.lucene.index.SortFieldProvider (as BinarySortField requires).
+ */
+public class TestPrimarySortFieldSkipsOrderingField extends LuceneTestCase {
+
+  // (c, f) per document. Sorted by (c, f), the segment holds f = 5, 9, 1, 7, 3 in doc-ID order.
+  private static final long[][] DOCS = {{1, 7}, {0, 9}, {2, 3}, {0, 5}, {1, 1}};
+
+  private interface DocBuilder {
+    void add(Document doc, long c, long f);
+  }
+
+  private static void index(Directory dir, Sort sort, DocBuilder builder) throws IOException {
+    IndexWriterConfig iwc =
+        new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()).setIndexSort(sort);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (long[] cf : DOCS) {
+        Document doc = new Document();
+        builder.add(doc, cf[0], cf[1]);
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+  }
+
+  /** f:[1 TO 3] matches the two documents with f = 1 and f = 3. */
+  private static void assertTwoHits(LeafReader reader, Query q) throws IOException {
+    IndexSearcher searcher = new IndexSearcher(reader);
+    searcher.setQueryCache(null);
+    String msg = q + &quot;, getPrimarySortField=&quot; + Sort.getPrimarySortField(reader);
+    assertEquals(msg, 2, searcher.search(q, 10).totalHits.value());
+    assertEquals(msg, 2, searcher.count(q));
+  }
+
+  /** No wrapper: the first sort field is a BinarySortField whose key comes from field &quot;a&quot;. */
+  public void testBinarySortFieldWithKeyFromOtherField() throws IOException {
+    Sort sort = new Sort(new KeyFromFieldA(&quot;c&quot;), new SortField(&quot;f&quot;, SortField.Type.LONG));
+    try (Directory dir = newDirectory()) {
+      index(
+          dir,
+          sort,
+          (doc, c, f) -&gt; {
+            doc.add(new NumericDocValuesField(&quot;a&quot;, c));
+            doc.add(NumericDocValuesField.indexedField(&quot;f&quot;, f));
+          });
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        LeafReader leaf = getOnlyLeafReader(reader);
+        NumericDocValues f = leaf.getNumericDocValues(&quot;f&quot;);
+        long[] order = new long[leaf.maxDoc()];
+        for (int doc = 0; doc &lt; order.length; doc++) {
+          assertTrue(f.advanceExact(doc));
+          order[doc] = f.longValue();
+        }
+        assertArrayEquals(new long[] {5, 9, 1, 7, 3}, order); // ordered by a, not by f
+        assertTwoHits(leaf, NumericDocValuesField.newSlowRangeQuery(&quot;f&quot;, 1, 3));
+      }
+    }
+  }
+
+  /** A reader that hides the first sort field c: NumericDocValuesField with a skip index. */
+  public void testHiddenFirstSortFieldNumericRange() throws IOException {
+    Sort sort =
+        new Sort(new SortField(&quot;c&quot;, SortField.Type.LONG), new SortField(&quot;f&quot;, SortField.Type.LONG));
+    try (Directory dir = newDirectory()) {
+      index(
+          dir,
+          sort,
+          (doc, c, f) -&gt; {
+            doc.add(NumericDocValuesField.indexedField(&quot;c&quot;, c));
+            doc.add(NumericDocValuesField.indexedField(&quot;f&quot;, f));
+          });
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        LeafReader leaf = getOnlyLeafReader(reader);
+        Query q = NumericDocValuesField.newSlowRangeQuery(&quot;f&quot;, 1, 3);
+        assertTwoHits(leaf, q); // the plain reader is right
+        LeafReader hidden = new HideField(leaf, &quot;c&quot;);
+        assertEquals(sort, hidden.getMetaData().sort()); // FilterLeafReader delegates getMetaData()
+        assertTwoHits(hidden, q);
+      }
+    }
+  }
+
+  /** The same with LongField (points + doc values, no skip index needed). */
+  public void testHiddenFirstSortFieldLongFieldRange() throws IOException {
+    Sort sort =
+        new Sort(
+            new SortedNumericSortField(&quot;c&quot;, SortField.Type.LONG),
+            new SortedNumericSortField(&quot;f&quot;, SortField.Type.LONG));
+    try (Directory dir = newDirectory()) {
+      index(
+          dir,
+          sort,
+          (doc, c, f) -&gt; {
+            doc.add(new LongField(&quot;c&quot;, c, Field.Store.NO));
+            doc.add(new LongField(&quot;f&quot;, f, Field.Store.NO));
+          });
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        LeafReader leaf = getOnlyLeafReader(reader);
+        Query q = LongField.newRangeQuery(&quot;f&quot;, 1, 3);
+        assertTwoHits(leaf, q);
+        assertTwoHits(new HideField(leaf, &quot;c&quot;), q);
+      }
+    }
+  }
+
+  /**
+   * Hides one field everywhere (FieldInfos, terms, points, every doc-values type, the skipper and
+   * norms) and keeps everything else, including getMetaData().
+   */
+  static final class HideField extends FilterLeafReader {
+    private final String hidden;
+    private final FieldInfos infos;
+
+    HideField(LeafReader in, String hidden) {
+      super(in);
+      this.hidden = hidden;
+      List&lt;FieldInfo&gt; keep = new ArrayList&lt;&gt;();
+      for (FieldInfo fi : in.getFieldInfos()) {
+        if (fi.name.equals(hidden) == false) {
+          keep.add(fi);
+        }
+      }
+      infos = new FieldInfos(keep.toArray(new FieldInfo[0]));
+    }
+
+    private boolean visible(String field) {
+      return field.equals(hidden) == false;
+    }
+
+    @Override
+    public FieldInfos getFieldInfos() {
+      return infos;
+    }
+
+    @Override
+    public Terms terms(String field) {
+      return visible(field) ? super.terms(field) : null;
+    }
+
+    @Override
+    public PointValues getPointValues(String field) {
+      return visible(field) ? super.getPointValues(field) : null;
+    }
+
+    @Override
+    public NumericDocValues getNumericDocValues(String field) throws IOException {
+      return visible(field) ? super.getNumericDocValues(field) : null;
+    }
+
+    @Override
+    public BinaryDocValues getBinaryDocValues(String field) throws IOException {
+      return visible(field) ? super.getBinaryDocValues(field) : null;
+    }
+
+    @Override
+    public SortedDocValues getSortedDocValues(String field) throws IOException {
+      return visible(field) ? super.getSortedDocValues(field) : null;
+    }
+
+    @Override
+    public SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
+      return visible(field) ? super.getSortedNumericDocValues(field) : null;
+    }
+
+    @Override
+    public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+      return visible(field) ? super.getSortedSetDocValues(field) : null;
+    }
+
+    @Override
+    public DocValuesSkipper getDocValuesSkipper(String field) {
+      return visible(field) ? super.getDocValuesSkipper(field) : null;
+    }
+
+    @Override
+    public NumericDocValues getNormValues(String field) throws IOException {
+      return visible(field) ? super.getNormValues(field) : null;
+    }
+
+    @Override
+    public CacheHelper getCoreCacheHelper() {
+      return null;
+    }
+
+    @Override
+    public CacheHelper getReaderCacheHelper() {
+      return null;
+    }
+  }
+
+  /**
+   * A BinarySortField whose sort key is the sortable 8-byte encoding of the NUMERIC field &quot;a&quot;, as
+   * BinarySortField&#x27;s javadoc allows (&quot;derive an order-preserving key from the stored bytes and/or
+   * other doc-values fields of the segment&quot;). Its own field name is never indexed.
+   */
+  public static final class KeyFromFieldA extends BinarySortField {
+    static final String NAME = &quot;TestKeyFromFieldA&quot;;
+
+    public KeyFromFieldA(String field) {
+      super(field, false, null, NAME);
+    }
+
+    @Override
+    protected BinaryDocValues getSortKeyDocValues(LeafReader reader) throws IOException {
+      NumericDocValues a = DocValues.getNumeric(reader, &quot;a&quot;);
+      BytesRef key = new BytesRef(new byte[Long.BYTES]);
+      return new BinaryDocValues() {
+        @Override
+        public BytesRef binaryValue() throws IOException {
+          long v = a.longValue() ^ Long.MIN_VALUE;
+          for (int i = 0; i &lt; Long.BYTES; i++) {
+            key.bytes[i] = (byte) (v &gt;&gt;&gt; (56 - 8 * i));
+          }
+          return key;
+        }
+
+        @Override
+        public int docID() {
+          return a.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+          return a.nextDoc();
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+          return a.advance(target);
+        }
+
+        @Override
+        public boolean advanceExact(int target) throws IOException {
+          return a.advanceExact(target);
+        }
+
+        @Override
+        public long cost() {
+          return a.cost();
+        }
+      };
+    }
+
+    /** Reads and writes {@link KeyFromFieldA} (registered through SPI). */
+    public static final class Provider extends SortFieldProvider {
+      public Provider() {
+        super(NAME);
+      }
+
+      @Override
+      public SortField readSortField(DataInput in) throws IOException {
+        return new KeyFromFieldA(in.readString());
+      }
+
+      @Override
+      public void writeSortField(SortField sf, DataOutput out) throws IOException {
+        out.writeString(sf.getField());
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># $LUCENE = a Lucene checkout at a9779ef3c193, $REPRO = this bug&#x27;s repro/ directory
+cp &quot;$REPRO/TestPrimarySortFieldSkipsOrderingField.java&quot; &quot;$LUCENE/lucene/core/src/test/org/apache/lucene/search/&quot;
+cd &quot;$LUCENE&quot; &amp;&amp; git apply &quot;$REPRO/spi-registration.diff&quot;
+./gradlew :lucene:core:test --tests org.apache.lucene.search.TestPrimarySortFieldSkipsOrderingField -Ptests.seed=DEADBEEF
+# assertions off (production-like): add -Ptests.asserts=false
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>2 hits for f:[1 TO 3] in all three tests (the documents with f = 1 and f = 3), as the plain reader and 10.5.2 return.</dd></div><div class='got'><dt>Observed</dt><dd>0 hits in the two doc-values tests (<code>getPrimarySortField</code> reports f), and <code>IllegalArgumentException: minDoc must be &lt; maxDoc but got minDoc=2 maxDoc=0</code> from <code>LongField.newRangeQuery</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-860/'>repro/LFV-860/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>6 more files (1,034 lines) · 4,709 words</span></summary><div class='body'><p><code>testBinarySortFieldWithKeyFromOtherField</code> sorts by a <code class='nw'>BinarySortField</code> subclass named c whose key is the doc-values field a, then f; it first checks that f reads 5, 9, 1, 7, 3 in doc-ID order. <code>testHiddenFirstSortFieldNumericRange</code> and <code>testHiddenFirstSortFieldLongFieldRange</code> sort by (c, f), check the plain reader (2 hits), then search through <code class='nw'>HideField</code>, a <code class='nw'>FilterLeafReader</code> that hides c from FieldInfos, terms, points, every doc-values type, the skipper and norms and keeps everything else, <code class='nw'>getMetaData()</code> included. The assertion message prints what <code>getPrimarySortField</code> returns.</p><ul><li>The <code class='nw'>BinarySortField</code> subclass needs its provider in the core test SPI file: <code>spi-registration.diff</code> adds the line.</li><li>On branch_10_6 / 10.6.0 and on 10.5.2 add <code>throws IOException</code> to the <code class='nw'>terms</code>, <code class='nw'>getPointValues</code> and <code>getDocValuesSkipper</code> overrides (<code>branch_10x-variant.diff</code>); on 10.5.2, which has no <code>getPrimarySortField</code>, also drop it from the message (<code class='nw'>src-10.5.2</code> has both changes), and the test passes there.</li><li>The finder's tests add the <code>SortedDocValuesField</code> path and the skipper-rule form; the independent reproducer's check all 55 ranges against a brute-force scan, with a wrapper that hides only an unrelated field as a control. Each needs its own SPI lines (<code>META-INF/services</code> next to it).</li></ul><div class="hd hd-3"><h3 id='code-2-h'>spi-registration.diff (the test&#x27;s SortFieldProvider line)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>spi-registration.diff (the test&#x27;s SortFieldProvider line)</span><span class='meta'>9 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/core/src/test/META-INF/services/org.apache.lucene.index.SortFieldProvider b/lucene/core/src/test/META-INF/services/org.apache.lucene.index.SortFieldProvider
+index c6080b087b3..594fe086cb3 100644
+--- a/lucene/core/src/test/META-INF/services/org.apache.lucene.index.SortFieldProvider
++++ b/lucene/core/src/test/META-INF/services/org.apache.lucene.index.SortFieldProvider
+@@ -17,3 +17,4 @@
+ 
+ org.apache.lucene.search.TestBinarySortField$FirstValueSortField$Provider
+ org.apache.lucene.search.TestBinarySortField$MinValueSortField$Provider
++org.apache.lucene.search.TestPrimarySortFieldSkipsOrderingField$KeyFromFieldA$Provider
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>branch_10x-variant.diff (the same test for branch_10_6 / 10.6.0)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>branch_10x-variant.diff (the same test for branch_10_6 / 10.6.0)</span><span class='meta'>26 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>--- TestPrimarySortFieldSkipsOrderingField.java
++++ src-10x/org/apache/lucene/search/TestPrimarySortFieldSkipsOrderingField.java
+@@ -188,12 +188,12 @@
+     }
+ 
+     @Override
+-    public Terms terms(String field) {
++    public Terms terms(String field) throws IOException {
+       return visible(field) ? super.terms(field) : null;
+     }
+ 
+     @Override
+-    public PointValues getPointValues(String field) {
++    public PointValues getPointValues(String field) throws IOException {
+       return visible(field) ? super.getPointValues(field) : null;
+     }
+ 
+@@ -223,7 +223,7 @@
+     }
+ 
+     @Override
+-    public DocValuesSkipper getDocValuesSkipper(String field) {
++    public DocValuesSkipper getDocValuesSkipper(String field) throws IOException {
+       return visible(field) ? super.getDocValuesSkipper(field) : null;
+     }
+ 
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestPrimarySortFieldHiddenSortField.java (the finder&#x27;s: numeric, sorted and LongField paths)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestPrimarySortFieldHiddenSortField.java (the finder&#x27;s: numeric, sorted and LongField paths)</span><span class='meta'>161 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.Set;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FilterDirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.index.FieldFilterLeafReader;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Hiding a field that a query does not use must not change the query&#x27;s hits. Here the index is
+ * sorted by (c, f) and a FilterLeafReader hides c. The documents are still in (c, f) order, and
+ * getMetaData().sort() still says so, but Sort.getPrimarySortField treats c as &quot;no values in this
+ * segment&quot; because c is not in the reader&#x27;s FieldInfos, and returns f. The doc-values range queries
+ * then use their index-sort shortcuts on f, whose values are not in doc order.
+ */
+public class TestPrimarySortFieldHiddenSortField extends LuceneTestCase {
+
+  // (c, f) pairs; sorted by (c, f) the docs hold f = 5, 9, 1, 7, 3
+  private static final long[][] DOCS = {{1, 7}, {0, 9}, {2, 3}, {0, 5}, {1, 1}};
+
+  private interface DocBuilder {
+    void add(Document doc, long c, long f);
+  }
+
+  private static Directory index(Sort sort, DocBuilder builder) throws IOException {
+    Directory dir = new ByteBuffersDirectory();
+    IndexWriterConfig iwc =
+        new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()).setIndexSort(sort);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (long[] cf : DOCS) {
+        Document doc = new Document();
+        builder.add(doc, cf[0], cf[1]);
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+    return dir;
+  }
+
+  /** Wraps every leaf in a FieldFilterLeafReader that hides the given field. */
+  private static DirectoryReader hide(DirectoryReader in, String field) throws IOException {
+    return new FilterDirectoryReader(
+        in,
+        new FilterDirectoryReader.SubReaderWrapper() {
+          @Override
+          public LeafReader wrap(LeafReader reader) {
+            return new FieldFilterLeafReader(reader, Set.of(field), true);
+          }
+        }) {
+      @Override
+      protected DirectoryReader doWrapDirectoryReader(DirectoryReader in) throws IOException {
+        return hide(in, field);
+      }
+
+      @Override
+      public CacheHelper getReaderCacheHelper() {
+        return null;
+      }
+    };
+  }
+
+  private static long expected(long lo, long hi) {
+    long n = 0;
+    for (long[] cf : DOCS) {
+      if (cf[1] &gt;= lo &amp;&amp; cf[1] &lt;= hi) {
+        n++;
+      }
+    }
+    return n;
+  }
+
+  private static void check(Sort sort, DocBuilder builder, Query q, long expected)
+      throws IOException {
+    try (Directory dir = index(sort, builder);
+        DirectoryReader plain = DirectoryReader.open(dir);
+        DirectoryReader hidden = hide(DirectoryReader.open(dir), &quot;c&quot;)) {
+      assertEquals(1, plain.leaves().size());
+      IndexSearcher sp = new IndexSearcher(plain);
+      sp.setQueryCache(null);
+      IndexSearcher sh = new IndexSearcher(hidden);
+      sh.setQueryCache(null);
+      // control: the unwrapped reader is right
+      assertEquals(&quot;unwrapped reader, &quot; + q, expected, sp.count(q));
+      assertEquals(&quot;unwrapped reader, &quot; + q, expected, sp.search(q, 10).totalHits.value());
+      // the same query on f, with the unrelated field c hidden
+      assertEquals(&quot;reader hiding c, search(), &quot; + q, expected, sh.search(q, 10).totalHits.value());
+      assertEquals(&quot;reader hiding c, count(), &quot; + q, expected, sh.count(q));
+    }
+  }
+
+  /** NumericDocValuesField with a skip index: SortedNumericDocValuesRangeQuery&#x27;s shortcut. */
+  public void testNumericDocValuesRange() throws IOException {
+    Sort sort =
+        new Sort(new SortField(&quot;c&quot;, SortField.Type.LONG), new SortField(&quot;f&quot;, SortField.Type.LONG));
+    DocBuilder b =
+        (doc, c, f) -&gt; {
+          doc.add(NumericDocValuesField.indexedField(&quot;c&quot;, c));
+          doc.add(NumericDocValuesField.indexedField(&quot;f&quot;, f));
+        };
+    check(sort, b, NumericDocValuesField.newSlowRangeQuery(&quot;f&quot;, 1, 3), expected(1, 3));
+  }
+
+  /** LongField (points + doc values, no skip index): IndexSortSortedNumericDocValuesRangeQuery. */
+  public void testLongFieldRange() throws IOException {
+    Sort sort =
+        new Sort(
+            new SortedNumericSortField(&quot;c&quot;, SortField.Type.LONG),
+            new SortedNumericSortField(&quot;f&quot;, SortField.Type.LONG));
+    DocBuilder b =
+        (doc, c, f) -&gt; {
+          doc.add(new LongField(&quot;c&quot;, c, Field.Store.NO));
+          doc.add(new LongField(&quot;f&quot;, f, Field.Store.NO));
+        };
+    check(sort, b, LongField.newRangeQuery(&quot;f&quot;, 1, 3), expected(1, 3));
+  }
+
+  /** SortedDocValuesField with a skip index: SortedSetDocValuesRangeQuery&#x27;s shortcut. */
+  public void testSortedDocValuesRange() throws IOException {
+    Sort sort =
+        new Sort(
+            new SortField(&quot;c&quot;, SortField.Type.LONG), new SortField(&quot;f&quot;, SortField.Type.STRING));
+    DocBuilder b =
+        (doc, c, f) -&gt; {
+          doc.add(NumericDocValuesField.indexedField(&quot;c&quot;, c));
+          doc.add(SortedDocValuesField.indexedField(&quot;f&quot;, new BytesRef(Long.toString(f))));
+        };
+    Query q =
+        SortedDocValuesField.newSlowRangeQuery(
+            &quot;f&quot;, new BytesRef(&quot;1&quot;), new BytesRef(&quot;3&quot;), true, true);
+    check(sort, b, q, expected(1, 3));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-4' data-status='command-4-st'>Copy</button><span class='copy-st' id='command-4-st' role='status' aria-live='polite'></span></figcaption><pre id='command-4' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.search.TestPrimarySortFieldHiddenSortField -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>TestPrimarySortFieldDerivedBinaryKey.java (the finder&#x27;s: both BinarySortField forms)</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>Needs the two provider lines of <code>META-INF/services/org.apache.lucene.index.SortFieldProvider</code> (spi-registration.diff) in the candidate directory.</p><figure class='code'><figcaption><span class='fname'>TestPrimarySortFieldDerivedBinaryKey.java (the finder&#x27;s: both BinarySortField forms)</span><span class='meta'>267 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.SortFieldProvider;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * BinarySortField documents that a subclass may derive the sort key &quot;from the stored bytes and/or
+ * other doc-values fields of the segment&quot;. Here the key comes from the doc-values field &quot;a&quot; only,
+ * under the sort-field name &quot;key&quot;, which no document indexes. The index is sorted by (key, f), so
+ * documents are in (a, f) order, but Sort.getPrimarySortField skips &quot;key&quot; (&quot;no values in this
+ * segment&quot;) and returns f, and the doc-values range query on f uses its index-sort shortcut.
+ *
+ * &lt;p&gt;Needs META-INF/services/org.apache.lucene.index.SortFieldProvider listing {@link
+ * DerivedKeySortField.Provider} on the classpath (as BinarySortField requires for subclasses).
+ */
+public class TestPrimarySortFieldDerivedBinaryKey extends LuceneTestCase {
+
+  /** Sort key = the 8-byte sortable encoding of the NUMERIC field &quot;a&quot;. */
+  public static final class DerivedKeySortField extends BinarySortField {
+    static final String NAME = &quot;TestDerivedKeySortField&quot;;
+
+    public DerivedKeySortField(String field) {
+      super(field, false, null, NAME);
+    }
+
+    @Override
+    protected BinaryDocValues getSortKeyDocValues(LeafReader reader) throws IOException {
+      NumericDocValues a = DocValues.getNumeric(reader, &quot;a&quot;);
+      BytesRef key = new BytesRef(new byte[Long.BYTES]);
+      return new BinaryDocValues() {
+        @Override
+        public BytesRef binaryValue() throws IOException {
+          long v = a.longValue() ^ Long.MIN_VALUE;
+          for (int i = 0; i &lt; Long.BYTES; i++) {
+            key.bytes[i] = (byte) (v &gt;&gt;&gt; (56 - 8 * i));
+          }
+          return key;
+        }
+
+        @Override
+        public int docID() {
+          return a.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+          return a.nextDoc();
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+          return a.advance(target);
+        }
+
+        @Override
+        public boolean advanceExact(int target) throws IOException {
+          return a.advanceExact(target);
+        }
+
+        @Override
+        public long cost() {
+          return a.cost();
+        }
+      };
+    }
+
+    /** Serializes/deserializes a {@link DerivedKeySortField}. */
+    public static final class Provider extends SortFieldProvider {
+      public Provider() {
+        super(NAME);
+      }
+
+      @Override
+      public SortField readSortField(DataInput in) throws IOException {
+        return new DerivedKeySortField(in.readString());
+      }
+
+      @Override
+      public void writeSortField(SortField sf, DataOutput out) throws IOException {
+        out.writeString(sf.getField());
+      }
+    }
+  }
+
+  /**
+   * Sort key = (own NUMERIC field, companion NUMERIC field &quot;b&quot;), both as 8-byte sortable bytes. The
+   * own field has a skip index; when it is constant in a segment, getPrimarySortField&#x27;s skipper rule
+   * skips this sort field although the documents are still ordered by &quot;b&quot;.
+   */
+  public static final class CompositeKeySortField extends BinarySortField {
+    static final String NAME = &quot;TestCompositeKeySortField&quot;;
+
+    public CompositeKeySortField(String field) {
+      super(field, false, null, NAME);
+    }
+
+    @Override
+    protected BinaryDocValues getSortKeyDocValues(LeafReader reader) throws IOException {
+      NumericDocValues own = DocValues.getNumeric(reader, getField());
+      NumericDocValues b = DocValues.getNumeric(reader, &quot;b&quot;);
+      BytesRef key = new BytesRef(new byte[2 * Long.BYTES]);
+      return new BinaryDocValues() {
+        @Override
+        public BytesRef binaryValue() throws IOException {
+          while (b.docID() &lt; own.docID()) {
+            b.nextDoc();
+          }
+          long[] parts = {own.longValue(), b.docID() == own.docID() ? b.longValue() : 0};
+          for (int p = 0; p &lt; 2; p++) {
+            long v = parts[p] ^ Long.MIN_VALUE;
+            for (int i = 0; i &lt; Long.BYTES; i++) {
+              key.bytes[p * Long.BYTES + i] = (byte) (v &gt;&gt;&gt; (56 - 8 * i));
+            }
+          }
+          return key;
+        }
+
+        @Override
+        public int docID() {
+          return own.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+          return own.nextDoc();
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+          return own.advance(target);
+        }
+
+        @Override
+        public boolean advanceExact(int target) throws IOException {
+          return own.advanceExact(target);
+        }
+
+        @Override
+        public long cost() {
+          return own.cost();
+        }
+      };
+    }
+
+    /** Serializes/deserializes a {@link CompositeKeySortField}. */
+    public static final class Provider extends SortFieldProvider {
+      public Provider() {
+        super(NAME);
+      }
+
+      @Override
+      public SortField readSortField(DataInput in) throws IOException {
+        return new CompositeKeySortField(in.readString());
+      }
+
+      @Override
+      public void writeSortField(SortField sf, DataOutput out) throws IOException {
+        out.writeString(sf.getField());
+      }
+    }
+  }
+
+  // (a, f) pairs; sorted by (a, f) the docs hold f = 5, 9, 1, 7, 3
+  private static final long[][] DOCS = {{1, 7}, {0, 9}, {2, 3}, {0, 5}, {1, 1}};
+
+  public void testRangeOnSecondSortField() throws IOException {
+    Sort sort =
+        new Sort(new DerivedKeySortField(&quot;key&quot;), new SortField(&quot;f&quot;, SortField.Type.LONG));
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()).setIndexSort(sort);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        for (long[] af : DOCS) {
+          Document doc = new Document();
+          doc.add(new NumericDocValuesField(&quot;a&quot;, af[0]));
+          doc.add(NumericDocValuesField.indexedField(&quot;f&quot;, af[1]));
+          w.addDocument(doc);
+        }
+        w.forceMerge(1);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        assertEquals(1, reader.leaves().size());
+        // the documents really are in (a, f) order
+        NumericDocValues f = reader.leaves().get(0).reader().getNumericDocValues(&quot;f&quot;);
+        long[] order = new long[DOCS.length];
+        for (int i = 0; i &lt; order.length; i++) {
+          assertTrue(f.advanceExact(i));
+          order[i] = f.longValue();
+        }
+        assertArrayEquals(new long[] {5, 9, 1, 7, 3}, order);
+
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setQueryCache(null);
+        Query q = NumericDocValuesField.newSlowRangeQuery(&quot;f&quot;, 1, 3);
+        assertEquals(&quot;search(), &quot; + q, 2, searcher.search(q, 10).totalHits.value());
+        assertEquals(&quot;count(), &quot; + q, 2, searcher.count(q));
+      }
+    }
+  }
+
+  /** Same, through the skipper rule: the key&#x27;s own field &quot;a&quot; is constant (skip-indexed), &quot;b&quot; is not. */
+  public void testRangeOnSecondSortFieldCompositeKey() throws IOException {
+    Sort sort =
+        new Sort(new CompositeKeySortField(&quot;a&quot;), new SortField(&quot;f&quot;, SortField.Type.LONG));
+    try (Directory dir = new ByteBuffersDirectory()) {
+      IndexWriterConfig iwc =
+          new IndexWriterConfig().setCodec(TestUtil.getDefaultCodec()).setIndexSort(sort);
+      try (IndexWriter w = new IndexWriter(dir, iwc)) {
+        for (long[] bf : DOCS) {
+          Document doc = new Document();
+          doc.add(NumericDocValuesField.indexedField(&quot;a&quot;, 42));
+          doc.add(new NumericDocValuesField(&quot;b&quot;, bf[0]));
+          doc.add(NumericDocValuesField.indexedField(&quot;f&quot;, bf[1]));
+          w.addDocument(doc);
+        }
+        w.forceMerge(1);
+      }
+      try (DirectoryReader reader = DirectoryReader.open(dir)) {
+        assertEquals(1, reader.leaves().size());
+        NumericDocValues f = reader.leaves().get(0).reader().getNumericDocValues(&quot;f&quot;);
+        long[] order = new long[DOCS.length];
+        for (int i = 0; i &lt; order.length; i++) {
+          assertTrue(f.advanceExact(i));
+          order[i] = f.longValue();
+        }
+        assertArrayEquals(new long[] {5, 9, 1, 7, 3}, order);
+        IndexSearcher searcher = new IndexSearcher(reader);
+        searcher.setQueryCache(null);
+        Query q = NumericDocValuesField.newSlowRangeQuery(&quot;f&quot;, 1, 3);
+        assertEquals(&quot;search(), &quot; + q, 2, searcher.search(q, 10).totalHits.value());
+        assertEquals(&quot;count(), &quot; + q, 2, searcher.count(q));
+      }
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-5' data-status='command-5-st'>Copy</button><span class='copy-st' id='command-5-st' role='status' aria-live='polite'></span></figcaption><pre id='command-5' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.search.TestPrimarySortFieldDerivedBinaryKey -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-6-h'>TestHiddenSortFieldRange.java (independent reproducer: 55 ranges against brute force)</h3><a class="hlink" href="#code-6-h" target="_self" aria-label="Link to this section" aria-describedby="code-6-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>TestHiddenSortFieldRange.java (independent reproducer: 55 ranges against brute force)</span><span class='meta'>257 lines</span><button type='button' class='copy' data-copy='code-6' data-status='code-6-st'>Copy</button><span class='copy-st' id='code-6-st' role='status' aria-live='polite'></span></figcaption><pre id='code-6' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.function.LongFunction;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.index.FieldFilterLeafReader;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.BytesRef;
+
+/**
+ * Independent verifier repro. A one-segment index is sorted by (c, f). Wrapping its leaf in a
+ * FieldFilterLeafReader that hides the unrelated field c must not change which documents a range
+ * query on f matches. Every range [lo, hi] over a small value domain is compared against a
+ * brute-force scan of f&#x27;s doc values on the same reader.
+ */
+public class TestHiddenSortFieldRange extends LuceneTestCase {
+
+  // (c, f) per document, in insertion order. f values are distinct, so after the index sort by
+  // (c, f) the doc-ID order of f is 1,3,6 | 2,4,5 | 0,7 (not monotone in f).
+  private static final long[][] DOCS = {
+    {1, 2}, {0, 6}, {1, 4}, {0, 1}, {0, 3}, {1, 5}, {2, 0}, {2, 7}
+  };
+
+  private interface DocBuilder {
+    void add(Document doc, long c, long f);
+  }
+
+  private static BytesRef term(long v) {
+    return new BytesRef(Long.toString(v)); // single digit, so byte order == numeric order
+  }
+
+  private Directory dir;
+  private DirectoryReader reader;
+
+  private LeafReader buildIndex(Sort indexSort, DocBuilder builder) throws IOException {
+    dir = new ByteBuffersDirectory();
+    IndexWriterConfig iwc = new IndexWriterConfig();
+    iwc.setCodec(TestUtil.getDefaultCodec());
+    iwc.setIndexSort(indexSort);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (long[] d : DOCS) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;z&quot;, &quot;x&quot;, Field.Store.NO));
+        builder.add(doc, d[0], d[1]);
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+    reader = DirectoryReader.open(dir);
+    assertEquals(1, reader.leaves().size());
+    LeafReader leaf = reader.leaves().get(0).reader();
+    assertEquals(indexSort, leaf.getMetaData().sort());
+    return leaf;
+  }
+
+  @Override
+  public void tearDown() throws Exception {
+    if (reader != null) {
+      reader.close();
+    }
+    if (dir != null) {
+      dir.close();
+    }
+    super.tearDown();
+  }
+
+  /** f values in doc-ID order, read from the unwrapped segment. */
+  private static long[] fValues(LeafReader leaf) throws IOException {
+    long[] out = new long[leaf.maxDoc()];
+    SortedNumericDocValues sn = DocValues.getSortedNumeric(leaf, &quot;f&quot;);
+    for (int doc = 0; doc &lt; leaf.maxDoc(); doc++) {
+      assertTrue(sn.advanceExact(doc));
+      assertEquals(1, sn.docValueCount());
+      out[doc] = sn.nextValue();
+    }
+    return out;
+  }
+
+  private static long[] fValuesSorted(LeafReader leaf) throws IOException {
+    long[] out = new long[leaf.maxDoc()];
+    var sv = DocValues.getSorted(leaf, &quot;f&quot;);
+    for (int doc = 0; doc &lt; leaf.maxDoc(); doc++) {
+      assertTrue(sv.advanceExact(doc));
+      out[doc] = Long.parseLong(sv.lookupOrd(sv.ordValue()).utf8ToString());
+    }
+    return out;
+  }
+
+  /** Runs every range on the given reader; returns a description of each mismatch. */
+  private static List&lt;String&gt; check(
+      String label, LeafReader r, long[] f, LongBinaryQuery qf) throws IOException {
+    IndexSearcher s = new IndexSearcher(r);
+    s.setQueryCache(null);
+    List&lt;String&gt; bad = new ArrayList&lt;&gt;();
+    for (long lo = -1; lo &lt;= 8; lo++) {
+      for (long hi = lo; hi &lt;= 8; hi++) {
+        Set&lt;Integer&gt; expected = new TreeSet&lt;&gt;();
+        for (int doc = 0; doc &lt; f.length; doc++) {
+          if (f[doc] &gt;= lo &amp;&amp; f[doc] &lt;= hi) {
+            expected.add(doc);
+          }
+        }
+        Query q = qf.make(lo, hi);
+        try {
+          Set&lt;Integer&gt; got = new TreeSet&lt;&gt;();
+          for (ScoreDoc sd : s.search(q, r.maxDoc() + 1).scoreDocs) {
+            got.add(sd.doc);
+          }
+          int count = s.count(q);
+          if (got.equals(expected) == false || count != expected.size()) {
+            bad.add(
+                label + &quot; f:[&quot; + lo + &quot; TO &quot; + hi + &quot;] expected &quot; + expected + &quot; got &quot; + got
+                    + &quot; count=&quot; + count);
+          }
+        } catch (RuntimeException e) {
+          bad.add(label + &quot; f:[&quot; + lo + &quot; TO &quot; + hi + &quot;] threw &quot; + e);
+        }
+      }
+    }
+    return bad;
+  }
+
+  private interface LongBinaryQuery {
+    Query make(long lo, long hi);
+  }
+
+  private void runScenario(
+      String name, Sort indexSort, DocBuilder builder, LongBinaryQuery qf, boolean sortedField)
+      throws IOException {
+    LeafReader leaf = buildIndex(indexSort, builder);
+    long[] f = sortedField ? fValuesSorted(leaf) : fValues(leaf);
+    LeafReader hideZ = new FieldFilterLeafReader(leaf, Set.of(&quot;z&quot;), true);
+    LeafReader hideC = new FieldFilterLeafReader(leaf, Set.of(&quot;c&quot;), true);
+    assertNull(hideC.getFieldInfos().fieldInfo(&quot;c&quot;));
+    assertNotNull(hideC.getFieldInfos().fieldInfo(&quot;f&quot;));
+    assertEquals(indexSort, hideC.getMetaData().sort());
+
+    System.out.println(
+        name + &quot;: f in doc order &quot; + java.util.Arrays.toString(f)
+            + &quot;; getPrimarySortField(plain)=&quot; + primary(leaf)
+            + &quot; getPrimarySortField(hide c)=&quot; + primary(hideC));
+
+    // Controls: unwrapped segment and a wrapper that hides only the unrelated field z.
+    List&lt;String&gt; plainBad = check(name + &quot; plain&quot;, leaf, f, qf);
+    List&lt;String&gt; zBad = check(name + &quot; hide-z&quot;, hideZ, f, qf);
+    assertTrue(&quot;control failed: &quot; + plainBad, plainBad.isEmpty());
+    assertTrue(&quot;control failed: &quot; + zBad, zBad.isEmpty());
+
+    List&lt;String&gt; cBad = check(name + &quot; hide-c&quot;, hideC, f, qf);
+    int total = 0;
+    for (long lo = -1; lo &lt;= 8; lo++) {
+      total += (int) (8 - lo + 1);
+    }
+    System.out.println(name + &quot;: hide-c mismatches &quot; + cBad.size() + &quot;/&quot; + total);
+    for (int i = 0; i &lt; Math.min(5, cBad.size()); i++) {
+      System.out.println(&quot;  &quot; + cBad.get(i));
+    }
+    assertTrue(
+        name + &quot;: hiding c changed the hits of &quot; + cBad.size() + &quot;/&quot; + total + &quot; ranges on f; first: &quot;
+            + cBad.subList(0, Math.min(3, cBad.size())),
+        cBad.isEmpty());
+  }
+
+  /**
+   * Diagnostic only (not used by any assertion): the public static Sort.getPrimarySortField exists
+   * from 10.6 on; looked up by name so the same source also compiles against older releases.
+   */
+  private static String primary(LeafReader r) {
+    try {
+      return String.valueOf(
+          Sort.class.getMethod(&quot;getPrimarySortField&quot;, LeafReader.class).invoke(null, r));
+    } catch (NoSuchMethodException e) {
+      return &quot;n/a (method absent in this version)&quot;;
+    } catch (ReflectiveOperationException e) {
+      return &quot;error &quot; + e;
+    }
+  }
+
+  /** NumericDocValuesField with a skip index on f; LONG sort on (c, f). */
+  public void testNumericSkipIndexRange() throws IOException {
+    runScenario(
+        &quot;numeric&quot;,
+        new Sort(new SortField(&quot;c&quot;, SortField.Type.LONG), new SortField(&quot;f&quot;, SortField.Type.LONG)),
+        (doc, c, f) -&gt; {
+          doc.add(NumericDocValuesField.indexedField(&quot;c&quot;, c));
+          doc.add(NumericDocValuesField.indexedField(&quot;f&quot;, f));
+        },
+        (lo, hi) -&gt; NumericDocValuesField.newSlowRangeQuery(&quot;f&quot;, lo, hi),
+        false);
+  }
+
+  /** SortedDocValuesField with a skip index on f; sort on (c LONG, f STRING). */
+  public void testSortedSkipIndexRange() throws IOException {
+    LongFunction&lt;BytesRef&gt; t = TestHiddenSortFieldRange::term;
+    runScenario(
+        &quot;sorted&quot;,
+        new Sort(
+            new SortField(&quot;c&quot;, SortField.Type.LONG), new SortField(&quot;f&quot;, SortField.Type.STRING)),
+        (doc, c, f) -&gt; {
+          doc.add(NumericDocValuesField.indexedField(&quot;c&quot;, c));
+          doc.add(SortedDocValuesField.indexedField(&quot;f&quot;, t.apply(f)));
+        },
+        (lo, hi) -&gt;
+            SortedDocValuesField.newSlowRangeQuery(
+                &quot;f&quot;, t.apply(Math.max(lo, 0)), t.apply(Math.min(hi, 9)), true, true),
+        true);
+  }
+
+  /** LongField (points + doc values, no skip index) on f; sort on (c LONG, f SORTED_NUMERIC LONG). */
+  public void testLongFieldRange() throws IOException {
+    runScenario(
+        &quot;longfield&quot;,
+        new Sort(
+            new SortField(&quot;c&quot;, SortField.Type.LONG),
+            new SortedNumericSortField(&quot;f&quot;, SortField.Type.LONG)),
+        (doc, c, f) -&gt; {
+          doc.add(new NumericDocValuesField(&quot;c&quot;, c));
+          doc.add(new LongField(&quot;f&quot;, f, Field.Store.NO));
+        },
+        (lo, hi) -&gt; LongField.newRangeQuery(&quot;f&quot;, lo, hi),
+        false);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-6' data-status='command-6-st'>Copy</button><span class='copy-st' id='command-6-st' role='status' aria-live='polite'></span></figcaption><pre id='command-6' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.search.TestHiddenSortFieldRange -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='code-7-h'>TestDerivedBinarySortKey.java (independent reproducer: both BinarySortField forms)</h3><a class="hlink" href="#code-7-h" target="_self" aria-label="Link to this section" aria-describedby="code-7-h"><span aria-hidden="true">#</span></a></div><p>Needs the two provider lines of <code>META-INF/services/org.apache.lucene.index.SortFieldProvider</code> (spi-registration.diff) in the candidate directory.</p><figure class='code'><figcaption><span class='fname'>TestDerivedBinarySortKey.java (independent reproducer: both BinarySortField forms)</span><span class='meta'>314 lines</span><button type='button' class='copy' data-copy='code-7' data-status='code-7-st'>Copy</button><span class='copy-st' id='code-7-st' role='status' aria-live='polite'></span></figcaption><pre id='code-7' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.SortFieldProvider;
+import org.apache.lucene.store.ByteBuffersDirectory;
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
+
+/**
+ * Independent verifier repro for the BinarySortField trigger. BinarySortField&#x27;s javadoc allows a
+ * subclass to derive the sort key &quot;from the stored bytes and/or other doc-values fields of the
+ * segment&quot;. The index is sorted by (derived key, f); a range query on f (skip-indexed numeric doc
+ * values) is compared against the same range on g, a copy of f without a skip index, and against
+ * a brute-force scan.
+ *
+ * &lt;p&gt;Needs META-INF/services/org.apache.lucene.index.SortFieldProvider (listing the two Provider
+ * classes below) on the classpath.
+ */
+public class TestDerivedBinarySortKey extends LuceneTestCase {
+
+  // (src, f) per document. The derived key orders by src, so f is not monotone in doc-ID order.
+  private static final long[][] DOCS = {
+    {1, 2}, {0, 6}, {1, 4}, {0, 1}, {0, 3}, {1, 5}, {2, 0}, {2, 7}
+  };
+
+  /** Key = sortable bytes of the numeric doc-values field &quot;src&quot;; the sort&#x27;s own field is absent. */
+  public static final class SrcKeySortField extends BinarySortField {
+    static final String NAME = &quot;VOneSrcKey&quot;;
+
+    public SrcKeySortField(String field) {
+      super(field, false, null, NAME);
+    }
+
+    @Override
+    protected BinaryDocValues getSortKeyDocValues(LeafReader reader) throws IOException {
+      return new KeyValues(DocValues.getNumeric(reader, &quot;src&quot;), null);
+    }
+
+    /** SPI provider. */
+    public static final class Provider extends SortFieldProvider {
+      public Provider() {
+        super(NAME);
+      }
+
+      @Override
+      public SortField readSortField(DataInput in) throws IOException {
+        return new SrcKeySortField(in.readString());
+      }
+
+      @Override
+      public void writeSortField(SortField sf, DataOutput out) throws IOException {
+        out.writeString(sf.getField());
+      }
+    }
+  }
+
+  /**
+   * Key = (value of the named skip-indexed field, value of the companion field &quot;src&quot;), so the
+   * order is by the named field first and by src within equal values.
+   */
+  public static final class PairKeySortField extends BinarySortField {
+    static final String NAME = &quot;VOnePairKey&quot;;
+
+    public PairKeySortField(String field) {
+      super(field, false, null, NAME);
+    }
+
+    @Override
+    protected BinaryDocValues getSortKeyDocValues(LeafReader reader) throws IOException {
+      return new KeyValues(
+          DocValues.getNumeric(reader, getField()), DocValues.getNumeric(reader, &quot;src&quot;));
+    }
+
+    /** SPI provider. */
+    public static final class Provider extends SortFieldProvider {
+      public Provider() {
+        super(NAME);
+      }
+
+      @Override
+      public SortField readSortField(DataInput in) throws IOException {
+        return new PairKeySortField(in.readString());
+      }
+
+      @Override
+      public void writeSortField(SortField sf, DataOutput out) throws IOException {
+        out.writeString(sf.getField());
+      }
+    }
+  }
+
+  /** Binary view over one or two dense numeric fields; forward iteration with nextDoc only. */
+  private static final class KeyValues extends BinaryDocValues {
+    private final NumericDocValues first;
+    private final NumericDocValues second;
+    private final BytesRef key;
+
+    KeyValues(NumericDocValues first, NumericDocValues second) {
+      this.first = first;
+      this.second = second;
+      this.key = new BytesRef(new byte[second == null ? Long.BYTES : 2 * Long.BYTES]);
+    }
+
+    @Override
+    public BytesRef binaryValue() throws IOException {
+      NumericUtils.longToSortableBytes(first.longValue(), key.bytes, 0);
+      if (second != null) {
+        int doc = first.docID();
+        while (second.docID() &lt; doc) {
+          second.nextDoc();
+        }
+        if (second.docID() != doc) {
+          throw new IllegalStateException(&quot;src missing for doc &quot; + doc);
+        }
+        NumericUtils.longToSortableBytes(second.longValue(), key.bytes, Long.BYTES);
+      }
+      return key;
+    }
+
+    @Override
+    public int docID() {
+      return first.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      return first.nextDoc();
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      int doc = first.docID();
+      while (doc &lt; target) {
+        doc = first.nextDoc();
+      }
+      return doc;
+    }
+
+    @Override
+    public boolean advanceExact(int target) throws IOException {
+      return advance(target) == target;
+    }
+
+    @Override
+    public long cost() {
+      return first.cost();
+    }
+  }
+
+  private Directory dir;
+  private DirectoryReader reader;
+
+  @Override
+  public void tearDown() throws Exception {
+    if (reader != null) {
+      reader.close();
+    }
+    if (dir != null) {
+      dir.close();
+    }
+    super.tearDown();
+  }
+
+  private interface Extra {
+    void add(Document doc);
+  }
+
+  private LeafReader buildIndex(Sort indexSort, Extra extra) throws IOException {
+    dir = new ByteBuffersDirectory();
+    IndexWriterConfig iwc = new IndexWriterConfig();
+    iwc.setCodec(TestUtil.getDefaultCodec());
+    iwc.setIndexSort(indexSort);
+    try (IndexWriter w = new IndexWriter(dir, iwc)) {
+      for (long[] d : DOCS) {
+        Document doc = new Document();
+        doc.add(new NumericDocValuesField(&quot;src&quot;, d[0]));
+        doc.add(NumericDocValuesField.indexedField(&quot;f&quot;, d[1]));
+        doc.add(new NumericDocValuesField(&quot;g&quot;, d[1])); // same values, no skip index
+        extra.add(doc);
+        w.addDocument(doc);
+      }
+      w.forceMerge(1);
+    }
+    reader = DirectoryReader.open(dir);
+    assertEquals(1, reader.leaves().size());
+    LeafReader leaf = reader.leaves().get(0).reader();
+    assertEquals(indexSort, leaf.getMetaData().sort());
+    return leaf;
+  }
+
+  private static long[] values(LeafReader leaf, String field) throws IOException {
+    long[] out = new long[leaf.maxDoc()];
+    NumericDocValues v = DocValues.getNumeric(leaf, field);
+    for (int doc = 0; doc &lt; leaf.maxDoc(); doc++) {
+      assertTrue(v.advanceExact(doc));
+      out[doc] = v.longValue();
+    }
+    return out;
+  }
+
+  private static Set&lt;Integer&gt; hits(IndexSearcher s, Query q, int maxDoc) throws IOException {
+    Set&lt;Integer&gt; got = new TreeSet&lt;&gt;();
+    for (ScoreDoc sd : s.search(q, maxDoc + 1).scoreDocs) {
+      got.add(sd.doc);
+    }
+    return got;
+  }
+
+  private void runScenario(String name, LeafReader leaf) throws IOException {
+    long[] f = values(leaf, &quot;f&quot;);
+    long[] src = values(leaf, &quot;src&quot;);
+    System.out.println(
+        name + &quot;: src in doc order &quot; + Arrays.toString(src) + &quot;, f in doc order &quot;
+            + Arrays.toString(f) + &quot;; getPrimarySortField=&quot; + primary(leaf));
+    // The derived key really drives the order: src is non-decreasing in doc-ID order.
+    for (int i = 1; i &lt; src.length; i++) {
+      assertTrue(&quot;index not sorted by the derived key&quot;, src[i - 1] &lt;= src[i]);
+    }
+    IndexSearcher s = new IndexSearcher(leaf);
+    s.setQueryCache(null);
+    List&lt;String&gt; bad = new ArrayList&lt;&gt;();
+    int total = 0;
+    for (long lo = -1; lo &lt;= 8; lo++) {
+      for (long hi = lo; hi &lt;= 8; hi++) {
+        total++;
+        Set&lt;Integer&gt; expected = new TreeSet&lt;&gt;();
+        for (int doc = 0; doc &lt; f.length; doc++) {
+          if (f[doc] &gt;= lo &amp;&amp; f[doc] &lt;= hi) {
+            expected.add(doc);
+          }
+        }
+        // control: same values without a skip index never take the index-sort shortcut
+        Set&lt;Integer&gt; gHits = hits(s, NumericDocValuesField.newSlowRangeQuery(&quot;g&quot;, lo, hi), f.length);
+        assertEquals(&quot;control g:[&quot; + lo + &quot; TO &quot; + hi + &quot;]&quot;, expected, gHits);
+        Query q = NumericDocValuesField.newSlowRangeQuery(&quot;f&quot;, lo, hi);
+        Set&lt;Integer&gt; fHits = hits(s, q, f.length);
+        int count = s.count(q);
+        if (fHits.equals(expected) == false || count != expected.size()) {
+          bad.add(
+              &quot;f:[&quot; + lo + &quot; TO &quot; + hi + &quot;] expected &quot; + expected + &quot; got &quot; + fHits + &quot; count=&quot;
+                  + count);
+        }
+      }
+    }
+    System.out.println(name + &quot;: mismatches &quot; + bad.size() + &quot;/&quot; + total);
+    for (int i = 0; i &lt; Math.min(5, bad.size()); i++) {
+      System.out.println(&quot;  &quot; + bad.get(i));
+    }
+    assertTrue(
+        name + &quot;: &quot; + bad.size() + &quot;/&quot; + total + &quot; ranges on f wrong; first: &quot;
+            + bad.subList(0, Math.min(3, bad.size())),
+        bad.isEmpty());
+  }
+
+  /** Diagnostic only (not used by assertions); Sort.getPrimarySortField exists from 10.6 on. */
+  private static String primary(LeafReader r) {
+    try {
+      return String.valueOf(
+          Sort.class.getMethod(&quot;getPrimarySortField&quot;, LeafReader.class).invoke(null, r));
+    } catch (NoSuchMethodException e) {
+      return &quot;n/a (method absent in this version)&quot;;
+    } catch (ReflectiveOperationException e) {
+      return &quot;error &quot; + e;
+    }
+  }
+
+  /** Sort-field name &quot;key&quot; has no field of its own; the key is derived from &quot;src&quot;. */
+  public void testKeyDerivedFromOtherField() throws IOException {
+    Sort sort = new Sort(new SrcKeySortField(&quot;key&quot;), new SortField(&quot;f&quot;, SortField.Type.LONG));
+    runScenario(&quot;src-key&quot;, buildIndex(sort, doc -&gt; {}));
+  }
+
+  /** Key (a, src) where the skip-indexed field a is constant in the segment. */
+  public void testCompositeKeyWithConstantNamedField() throws IOException {
+    Sort sort = new Sort(new PairKeySortField(&quot;a&quot;), new SortField(&quot;f&quot;, SortField.Type.LONG));
+    runScenario(
+        &quot;pair-key&quot;, buildIndex(sort, doc -&gt; doc.add(NumericDocValuesField.indexedField(&quot;a&quot;, 7))));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command-7' data-status='command-7-st'>Copy</button><span class='copy-st' id='command-7-st' role='status' aria-live='polite'></span></figcaption><pre id='command-7' tabindex='0'><code>./gradlew :lucene:core:test --tests org.apache.lucene.search.TestDerivedBinarySortKey -Ptests.seed=DEADBEEF
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT) and a 10.6.0-SNAPSHOT build of the RC1 commit 4ae946e5a9b fail, assertions on and off (the official RC1 artifacts fail the finder&#x27;s tests); 10.5.2 passes</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># main a9779ef3c193, seed DEADBEEF, assertions on (the same with them off)
+testHiddenFirstSortFieldNumericRange     AssertionError: f:[1 TO 3], getPrimarySortField=&lt;long: &quot;f&quot;&gt; expected:&lt;2&gt; but was:&lt;0&gt;
+testBinarySortFieldWithKeyFromOtherField AssertionError: f:[1 TO 3], getPrimarySortField=&lt;long: &quot;f&quot;&gt; expected:&lt;2&gt; but was:&lt;0&gt;
+testHiddenFirstSortFieldLongFieldRange   IllegalArgumentException: minDoc must be &lt; maxDoc but got minDoc=2 maxDoc=0
+    at DocIdSetIterator.range(DocIdSetIterator.java:49)
+    at IndexSortSortedNumericDocValuesRangeQuery$IteratorAndCount.denseRange(IndexSortSortedNumericDocValuesRangeQuery.java:660)
+    at IndexSortSortedNumericDocValuesRangeQuery.getDocIdSetIteratorOrNullFromBkd(IndexSortSortedNumericDocValuesRangeQuery.java:504)
+tests_run=3 failures=3
+
+# 10.6.0-SNAPSHOT jars built from the RC1 commit 4ae946e5a9b (branch_10x variant): the same 3 failures, assertions on and off
+# official 10.6.0 RC1 Maven artifacts, the finder&#x27;s 5 tests: 5 of 5 fail (0 hits; minDoc must be &lt; maxDoc), assertions on and off
+# 10.5.2 (variant without getPrimarySortField in the message): tests_run=3 failures=0, assertions on and off
+
+# gradle, stock main, assertions on: 73 classes, 747 tests, 13 failed (exactly the 13 repro tests: this doc&#x27;s 3, the finder&#x27;s 5, the reproducer&#x27;s 5), 26 skipped; the 68 neighbouring upstream suites pass</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code>getPrimarySortField</code>'s javadoc allows a skip only "If sorting against a field would have no effect"; here that field orders every document.</li><li>The queries promise every document in the range; 10.5.2 returns them through the same wrapper and sort.</li><li><code class='nw'>BinarySortField</code> invites keys from "other doc-values fields"; <code class='nw'>FilterLeafReader</code> keeps the sort by default; no javadoc says to drop it.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>341 words</span></summary><div class='body'><ul><li><strong>The method's own contract.</strong> "If sorting against a field would have no effect then that SortField is skipped over ... This can happen for fields with no values in the segment, or fields that have only a single distinct value" (<code>Sort.java:141-143</code>); the code comment says "Field has no values in this segment" (<code class='nw'>:157</code>). The segment has values of c and is ordered by them; the <code class='nw'>BinarySortField</code> key orders every document.</li><li><strong>The shortcut's contract.</strong> <code>IndexSortSortedNumericDocValuesRangeQuery</code> uses it only if "its primary sort is on the same field as the query", and "This fallback must be an equivalent range query -- it should produce the same documents" (<code>IndexSortSortedNumericDocValuesRangeQuery.java:46</code>, <code class='nw'>:55</code>). <code>NumericDocValuesField.newSlowRangeQuery</code> "matches all documents whose value is between lowerValue and upperValue included" (<code>NumericDocValuesField.java:91-92</code>).</li><li><strong>The trigger is documented.</strong> <code class='nw'>BinarySortField</code>: "A subclass may override getSortKeyDocValues(LeafReader) to derive an order-preserving key from the stored bytes and/or other doc-values fields of the segment" (<code>BinarySortField.java:41-44</code>, again at <code class='nw'>:150-152</code>), and <code class='nw'>IndexingChain</code> accepts a sorter that reads other fields. <code class='nw'>FilterLeafReader</code> passes every call through, "possibly transforming the data along the way" (<code>FilterLeafReader.java:30-31</code>), delegates <code class='nw'>getMetaData()</code> (<code class='nw'>:477-481</code>), and its notes cover only live docs, <code class='nw'>numDocs</code> and cache helpers (<code class='nw'>:37-42</code>).</li><li><strong>History.</strong> #16424 (merged 2026-07-30) describes using "index-level stats from FieldInfo or associated DocValuesSkipper entries"; its one review thread is about density, and nothing in it discusses wrappers or derived keys. CHANGES: "Use secondary or lower sorts to accelerate XXDocValuesRangeQueries if the primary sort field is empty or only contains a single value" (<code>lucene/CHANGES.txt:645-646</code>). Before it, the shortcuts used only the first sort field, and the releases tested (10.5.0-10.5.2, 10.4.0, 10.0.0, 9.12.3, 9.10.0) give the right hits through the same wrapper and sort; by reading, so does every release before 10.6.</li><li><strong>Tests.</strong> <code>TestGetPrimarySortField</code> covers only plain segment leaves (<code>testPrimaryWithNoValuesInSegmentIsSkipped</code>, <code class='nw'>:137</code>, uses a field that is truly absent); <code>TestBinarySortField</code>'s two subclasses read only their own field. No upstream test runs these queries through a field-hiding reader or with a derived key.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>180 words</span></summary><div class='body'><p>The strongest works-as-designed case (the devil's advocate, the cross-model intended lens, the adjudication): a reader that hides an index-sort field but keeps <code>getMetaData().sort()</code> contradicts itself, so the wrapper should drop or rewrite the sort. There is real support for this: on main, a 10.6 snapshot and 10.5.2, a search sorted by (c, f) through such a reader returns view-inconsistent top hits (f = [1, 5] instead of [1, 3]), because <code>TopFieldCollector</code> early termination trusts the metadata sort. And <code class='nw'>BinarySortField</code> is experimental; its in-tree subclasses read only their own field.</p><p>Why it fails: no javadoc states that obligation, <code class='nw'>FilterLeafReader</code> delegates the sort by default and Lucene's own field-subset reader keeps it; the query here never references the hidden field and was right through the same wrapper on 10.5.2, while the older inconsistency affects only sorts on the hidden field; a reader that hides c completely (FieldInfos, terms, points, every doc-values type, the skipper and norms) fails the same way; and the <code class='nw'>BinarySortField</code> form needs no wrapper at all. Do not claim the older sorted-search inconsistency in the issue: it predates 10.6.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: take the evidence from the segment, skip only built-in sort fields (provisional)</strong></p><p class='short'>In <code>Sort.getPrimarySortField</code>, read the no-effect evidence (FieldInfos, skipper) from the unwrapped segment, <code>FilterLeafReader.unwrap(reader)</code>, and skip only the built-in sort-field classes, whose order depends on their own field alone (+19/-5). With it, on main, all 13 repro tests and 68 neighbouring core suites pass, assertions on and off. It assumes the wrapper only hides data, so it is a provisional suggestion.</p><pre class='snippet' tabindex='0'><code>LeafReader segment = FilterLeafReader.unwrap(reader);
+for (SortField sf : sort.fields) {
+  String field = sf.getField();
+  if (field == null || isOrderedByOwnValues(sf) == false) {
+    return sf; // custom, or a key that may come from other fields
+  }
+  if (segment.getFieldInfos().fieldInfo(field) == null) continue;
+  DocValuesSkipper skipper = segment.getDocValuesSkipper(field);
+  ... // dense and minValue() == maxValue(): continue, as today
+}
+// isOrderedByOwnValues: sf.getClass() is SortField, SortedNumericSortField,
+// SortedSetSortField or BinarySortField</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 715 words</span></summary><div class='body'><p>Two fixes were built and run in a scratch worktree at <code class='nw'>a9779ef3c193</code>. A also covers custom sort fields other than <code class='nw'>BinarySortField</code> and is the suggested one, provisionally: it was validated on main only and assumes the wrapper only hides data. B is the finder's sketch. Until a fix ships, a hiding wrapper that also returns <code class='nw'>getMetaData()</code> without the sort gets the right hits (executed on main, a 10.6 snapshot and 10.5.2).</p><div class="hd hd-3"><h3 id='fix-segment-evidence-builtin-only'>A: take the evidence from the segment, skip only built-in sort fields (provisional) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-segment-evidence-builtin-only" target="_self" aria-label="Link to this section" aria-describedby="fix-segment-evidence-builtin-only"><span aria-hidden="true">#</span></a></div><p>Read FieldInfos and the skipper from <code>FilterLeafReader.unwrap(reader)</code>, the segment that holds the order, and return any sort field that is not exactly <code class='nw'>SortField</code>, <code>SortedNumericSortField</code>, <code>SortedSetSortField</code> or <code class='nw'>BinarySortField</code> as the primary sort without trying to skip it. +19/-5 in <code class='nw'>Sort.java</code>.</p><pre class='snippet' tabindex='0'><code>LeafReader segment = FilterLeafReader.unwrap(reader);
+for (SortField sf : sort.fields) {
+  String field = sf.getField();
+  if (field == null || isOrderedByOwnValues(sf) == false) {
+    return sf; // custom, or a key that may come from other fields
+  }
+  if (segment.getFieldInfos().fieldInfo(field) == null) continue;
+  DocValuesSkipper skipper = segment.getDocValuesSkipper(field);
+  ... // dense and minValue() == maxValue(): continue, as today
+}
+// isOrderedByOwnValues: sf.getClass() is SortField, SortedNumericSortField,
+// SortedSetSortField or BinarySortField</code></pre><p class='k'>Trade-offs</p><ul><li>The built-in classes keep #16424's optimisation: an absent or constant field really is a no-op in a segment. Every subclass, <code class='nw'>BinarySortField</code> subclasses included, is returned as the primary sort, so it never feeds a shortcut on another field; that only costs the optimisation, never correctness.</li><li>The range queries still read the queried field's values and skipper through the wrapper, as today.</li><li>Gap: a wrapper that is not a <code class='nw'>FilterLeafReader</code> (a direct <code class='nw'>LeafReader</code> subclass that delegates <code class='nw'>getMetaData()</code>) is not unwrapped. Not benchmarked; the change adds one unwrap loop per call.</li><li>Assumes the wrapper only hides data, so that the segment's FieldInfos and skippers describe the sort it reports; <code class='nw'>FilterLeafReader</code> also allows transforming wrappers (rewritten metadata, synthesized fields), and no test covers one. The exact-class allowlist changes what a public static method returns for harmless subclasses. Maintainers may prefer a more conservative rule; documenting the wrapper obligation is legitimate for the wrapper form.</li><li>Main only: a branch_10_6 backport needs the 10.x method's try/catch for <code class='nw'>IOException</code> (and its annotation). No fix A run used the RC1 artifacts or the 10.6 snapshot.</li></ul><p class='k'>What the checks validated</p><p>Gradle in a scratch worktree at <code class='nw'>a9779ef3c193</code>, seed DEADBEEF: the 5 repro classes (13 tests) and 68 neighbouring core suites (<code>TestGetPrimarySortField</code>, <code>TestDocValuesQueries</code>, <code>TestIndexSortSortedNumericDocValuesRangeQuery</code>, <code>TestBinarySortField</code>, the sort tests, <code class='nw'>TestIndexSorting</code> and every <code>org.apache.lucene.document</code> test): 747 tests, 0 failures, 26 skipped, with assertions on and off; on stock the same run fails exactly the 13 repro tests. <code>:lucene:core:check -x test</code> with the fix and the new test passes (google-java-format, ecj lint, forbidden APIs).</p><div class="hd hd-3"><h3 id='fix-hunter-sketch'>B: take the evidence from the segment, never skip a BinarySortField <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-hunter-sketch" target="_self" aria-label="Link to this section" aria-describedby="fix-hunter-sketch"><span aria-hidden="true">#</span></a></div><p>The finder's sketch: the same <code class='nw'>unwrap</code>, and <code>field == null || sf instanceof BinarySortField</code> returns the sort field as primary. +9/-5 in <code class='nw'>Sort.java</code>.</p><p class='k'>Trade-offs</p><p>Fixes the same cases, but other custom <code class='nw'>SortField</code> subclasses with their own index sorter, whose key need not be their named field's values, are still skipped.</p><p class='k'>What the checks validated</p><p>Gradle, assertions on: the same 747 tests, 0 failures, 26 skipped. The finder's earlier runner check: its 5 repro tests and 72 upstream tests pass.</p><div class="hd hd-3"><h3 id='fix-document-wrapper'>Document a wrapper obligation</h3><a class="hlink" href="#fix-document-wrapper" target="_self" aria-label="Link to this section" aria-describedby="fix-document-wrapper"><span aria-hidden="true">#</span></a></div><p>Say in <code class='nw'>FilterLeafReader</code> (and <code>getPrimarySortField</code>) that a reader hiding an index-sort field must drop or rewrite <code>getMetaData().sort()</code>.</p><p class='k'>Trade-offs</p><p>A legitimate maintainer choice for the wrapper form, and the workaround users can apply today; it leaves the <code class='nw'>BinarySortField</code> form, which needs no wrapper. The javadoc change itself is text; the wrapper side, a reader that drops the sort, is the executed workaround.</p><div class="hd hd-3"><h3 id='fix-positive-evidence'>Skip only on skipper evidence (drop the FieldInfos rule)</h3><a class="hlink" href="#fix-positive-evidence" target="_self" aria-label="Link to this section" aria-describedby="fix-positive-evidence"><span aria-hidden="true">#</span></a></div><p>Remove the "not in FieldInfos" rule and keep the dense single-value skipper rule.</p><p class='k'>Trade-offs</p><p>Still misfires through the skipper rule: the independent reproducer's diagnostic shadow fixed 4 of 5 tests, and the skipper-rule test still failed. It also changes what <code>TestGetPrimarySortField.testPrimaryWithNoValuesInSegmentIsSkipped</code> asserts (by reading).</p><div class="hd hd-3"><h3 id='fix-revert'>Revert to the first index-sort field</h3><a class="hlink" href="#fix-revert" target="_self" aria-label="Link to this section" aria-describedby="fix-revert"><span aria-hidden="true">#</span></a></div><p>Make <code>getPrimarySortField</code> return the first sort field, the rule before #16424.</p><p class='k'>Trade-offs</p><p>The repros pass (the follow-up's revert check on main and the 10.6 snapshot), but #16424's optimisation and its <code>TestGetPrimarySortField</code> assertions go.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>A field-level-security view that hides the first index-sort field but keeps the index sort in <code class='nw'>getMetaData()</code> gets wrong range results on the next sort field from 10.6 on, some of them outside the range; dropping the sort in the wrapper avoids it.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A hunt over the index-sort range shortcuts listed every caller of <code>Sort.getPrimarySortField</code> and spotted the "not in FieldInfos, so skip" rule. A metamorphic test (hide a field the query does not use, compare hits) and a derived-key probe executed it, and a bounded-exhaustive check against brute force confirmed it before the finder wrote the JUnit tests.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>199 words</span></summary><div class='body'><p><strong>Method: code inventory, then metamorphic testing and bounded-exhaustive translation validation</strong> (the hunt's "semi-formal" tier).</p><ul><li>The hunt unit covered the index-sort shortcuts of the doc-values range queries. Listing every consumer of <code>Sort.getPrimarySortField</code> over the non-sandbox sources showed the rule that a sort field missing from the reader's FieldInfos is skipped.</li><li>A metamorphic probe hid a field with <code>FieldFilterLeafReader</code> and compared the hits of range queries on the other field: 595 of 600 wrong on main and a 10.6 snapshot built from the RC1 commit, 0 of 600 on 10.5.2. A <code class='nw'>BinarySortField</code> derived-key probe: 99 of 100 wrong on main and the 10.6 snapshot, 0 of 100 on 10.5.2.</li><li>Bounded-exhaustive translation validation of the stock jar against brute-force range semantics: every layout of up to 5 documents over (c, f) in {0,1} x {1,2,3}, index sort (c, f) LONG, <code>NumericDocValuesField</code> with a skip index, every range on f, c hidden by <code>FieldFilterLeafReader</code> (its FieldInfo only); the <code class='nw'>BinarySortField</code> and <code class='nw'>LongField</code> forms are not part of it. Plain reader 0 of 55,980 checks wrong; reader hiding c 22,120 wrong in 5,964 of 9,330 layouts; 10.5.2 and the fix sketch 0.</li><li>The finder then wrote the public-API JUnit tests, and independent checkers reproduced them.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (three search-tool runs of 59 queries each, about 40 manual GitHub searches, the file lists of 532 recent PRs and the 10.6.0 vote threads, 2026-10-28). The nearest items are #16424, which added the rules, and open #16857 and #16699, which would reuse them.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Registry verdict <strong>new</strong>: nobody has reported or discussed this bug, and the owner appears in no hit. Nearest items: #16424 (introduced both rules; its review is about density only), open #16857 (reuses the rules for <code>TopFieldCollector</code> early termination) and open #16699 (FLOAT/DOUBLE sorts), #16884-#16886 and #16893 (document blocks and multi-valued fields at the same consumers, a different cause, fixed by #16893 in the RC, where the repro still fails), #16887 (<code>TopFieldCollector</code> with document blocks, still open), #16202 (added <code class='nw'>BinarySortField</code> with the "other doc-values fields" wording), #16434 (a different hazard of the same method), #9311 / LUCENE-8264 (shows a wrapper can drop the sort, not that it must), and a downstream field-level-security PR that hides doc-values skippers of hidden fields (a different bug, on Lucene 10.5.2). Limits: keyword search only; GitHub does not index PR diffs (the file-list scan covers recent PRs); 9 of 18 planned web queries were throttled; private reports are invisible. Re-check right before filing.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>apache/lucene issues, PRs and commits; dev@, java-user@, issues@, commits@; JIRA archive; downstream repositories; web</th><td class='when'>2026-10-28</td><td>a scripted prior-report search, three runs of 59 queries each (identifiers and messages; field-level-security and field-subset readers; BinarySortField, derived keys, sort pruning), plus the finder's 51-query and the devil's advocate's 56-query runs</td><td>no report; nearest #16424, the introducing PR</td></tr><tr><th scope='row'>GitHub (apache/lucene and three downstream search servers)</th><td class='when'>2026-10-28</td><td>about 40 manual searches; the file lists of 180 open and 352 of the 354 closed apache/lucene PRs updated since 2026-07-27 (two returned none); commits touching the five files on main, branch_10_6 and branch_10x since 2026-07-01</td><td>no report; only #16857 touches the skip loop and keeps the rules</td></tr><tr><th scope='row'>dev@ list</th><td class='when'>2026-10-28</td><td>the 10.6.0 RC1 vote and feature-freeze threads</td><td>no mention of this code</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-28</td><td>9 general queries (9 more throttled)</td><td>generic pages only</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced by #16424 (<code class='nw'>693a7234bad</code>, merged 2026-07-30; branch_10x backport <code class='nw'>a22c06400da</code>), so the first affected release would be 10.6.0, now in its RC1 vote. Main and RC1 fail; 10.5.0 to 10.5.2, 10.4.0, 10.0.0, 9.12.3 and 9.10.0 pass. Reverting only <code>getPrimarySortField</code> to the first sort field makes the repro pass.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>8 rows</span></summary><div class='body'><p><strong>Introduced by</strong> #16424 "Smarter use of sort-field optimizations in DV range queries" (@romseygeek; opened 2026-07-27, approved by @sgup432, merged 2026-07-30): <code>693a7234bad2e03abc80c3dc9819aef493095aeb</code> on main and the backport <code class='nw'>a22c06400da4</code> on branch_10x the same day, which reaches branch_10_6 through its fork on 2026-10-14. It added <code>Sort.getPrimarySortField</code> with both skip rules and replaced the shortcuts' first-sort-field test (<code>indexSort.getSort()[0].getField().equals(field)</code>) with it. <code>git log -S</code> for the method, the "Field has no values" comment and the skipper test finds only this commit, and <code>git blame</code> gives it for the method and the consumer lines. The exact parent commit was not built (its files no longer compile against <code class='nw'>a9779ef</code>); the one-method revert stands in for it. Upstream main <code class='nw'>c5ab3e57b9b</code> and the branch_10_6 head still have both rules.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's 3 tests, the finder's 5 and the reproducer's 5 fail, assertions on and off</td></tr><tr><th scope='row'>10.6.0 RC1 <code class='nw'>4ae946e5a9b</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> release candidate</span></td><td>the official Maven artifacts fail the finder's 5 tests; 10.6.0-SNAPSHOT jars built from the same commit fail this doc's 3, the finder's 5 and the reproducer's 5; assertions on and off</td></tr><tr><th scope='row'>upstream main <code class='nw'>20ced71</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>with the three range-query classes changed since <code class='nw'>a9779ef</code> (#16893) shadowed in: the finder's 5 fail</td></tr><tr><th scope='row'>10.5.0, 10.5.1, 10.5.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> last releases</span></td><td>the finder's 5 pass on each; this doc's 3 and the reproducer's 5 pass on 10.5.2 (<code class='nw'>BinarySortField</code> exists, no <code>getPrimarySortField</code>)</td></tr><tr><th scope='row'>10.4.0, 10.0.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the hidden-field tests pass (no <code class='nw'>BinarySortField</code>)</td></tr><tr><th scope='row'>9.12.3, 9.10.0</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>a version-neutral <code class='nw'>LongField</code> variant passes</td></tr><tr><th scope='row'>main and the 10.6 snapshot with <code>getPrimarySortField</code> returning the first sort field</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> revert check</span></td><td>the finder's 5 pass</td></tr><tr><th scope='row'>fix A on <code class='nw'>a9779ef3c193</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the 13 repro tests and 68 neighbouring suites pass, assertions on and off</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer (55 ranges against brute force), a cross-model review (reading only), an intended-behaviour devil's advocate with a complete hiding wrapper, and an adjudication: all real. Every re-run fails on main and on the RC1 commit (official artifacts or a snapshot build) with assertions on and off and passes on 10.5.2; neither cross-model reviewer ran code.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>448 words</span></summary><div class='body'><p>Each check ran or read on its own; the registration check and an audit re-ran the tests with new seeds, and this doc re-ran them through gradle on <code class='nw'>a9779ef3c193</code>.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder (inventory, probes, bounded-exhaustive check, JUnit)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>5 JUnit tests fail on main (assertions on and off), the 10.6 RC and upstream main <code class='nw'>20ced71</code> (shadow); pass on 10.5.2 and with the fix sketch, which also passes 72 upstream tests.</td></tr><tr><th scope='row'>independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own tests, 55 ranges each against a brute-force scan: 43/55 wrong (46/55 <code class='nw'>LongField</code>) on main and a 10.6 snapshot, 0 on 10.5.2; controls pass (plain reader, a wrapper hiding an unrelated field, a field without a skip index); diagnostic shadows pin both skip rules.</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6), reading only: root cause agrees, inputs in contract, the intended-behaviour argument moderate and failing. It ran no Java, and its record names the hunt's earlier main <code class='nw'>ea57360912ed</code> as the Lucene head. The automatic driver run beside it lacked the test SPI lines, so 2 of its 5 failures were setup errors; the re-runs filed with it (fail on main and a 10.6 snapshot, pass on 10.5.2) were made by the hunt's coordinating.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not_real, low (procedural)</span></td><td>Three attempts never ran code; the reviewer calls its verdict "not a substantive refutation". A separate run run beside it failed 5/5, but 2 of those were the same missing-SPI setup errors; the 3 wrapper failures are real. An executing cross-model review is still owed.</td></tr><tr><th scope='row'>intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the "wrapper must drop the sort" case and showed why it fails; a complete hiding wrapper fails the same way; a sort-dropping wrapper is a working workaround; the older sorted-search inconsistency predates 10.6.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>Re-ran the reproducer's tests with seed C0FFEE38: 5/5 fail on main with assertions on and off, 5/5 pass on 10.5.2.</td></tr><tr><th scope='row'>Registration check and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduces; keep</span></td><td>Registration check, seed 5EED0328: the reproducer's tests fail 5/5 with assertions off, the finder's 5/5 with them on. Audit, seed A0D17004: the reproducer's fail 5/5 on main with assertions on and off and pass 5/5 on 10.5.2.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> stock fails, fixes pass</span></td><td>The new test fails 3/3 on main and a 10.6.0-SNAPSHOT build of the RC1 commit, assertions on and off, and passes on 10.5.2. Gradle on stock main fails exactly the 13 repro tests of 747 (26 skipped); with fix A 0 of 747 fail (26 skipped), assertions on and off, and the static checks pass; with fix B 0 of 747 fail.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-860/bug.png' download='primary-sort-field-skips-hidden-or-derived-index-sort-field-bug.png' target='_self'>PNG</a> <span class='n'>448 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,467 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-860, snapshot of 2026-10-28</p><dl class='card'><div><dt>Registry title</dt><dd>Sort.getPrimarySortField (new in 10.6.0, #16424) skips an index-sort field that the reader's FieldInfos do not list, or whose skip index holds a single value, even when that field still orders the documents (a FilterLeafReader hides it but keeps the index sort, or a BinarySortField derives its key from other fields), so doc-values range queries on the next sort field, LongField.newRangeQuery included, return wrong hits or throw</dd></div><div><dt>Area</dt><dd>search / index-sort range-query shortcuts (Sort.getPrimarySortField; SortedNumericDocValuesRangeQuery, SortedSetDocValuesRangeQuery, IndexSortSortedNumericDocValuesRangeQuery)</dd></div><div><dt>Priority</dt><dd>Medium, rank 96: This is an unreleased 10.6.0 core range-query regression that silently returns wrong hits, but it needs an opt-in index sort of two or more fields plus a FilterLeafReader that hides the first sort field or a BinarySortField with a derived key.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Applications on main or the 10.6.0 release candidate (10.6.0 is in its release vote; 10.5.2 and every older release are correct) that use an index sort of at least two fields (opt-in) and either read through a field-hiding FilterLeafReader that keeps the index sort (FilterLeafReader's default delegation; the test framework's FieldFilterLeafReader and field-level-security views built like it) or sort by a BinarySortField subclass whose key comes from other doc-values fields (allowed by its javadoc) get wrong hits and counts, with no error, for most doc-values range queries on the next sort field (newSlowRangeQuery of NumericDocValuesField, SortedNumericDocValuesField and SortedDocValuesField on a skip-indexed field, and LongField.newRangeQuery, which can also throw IllegalArgumentException; IntField.newRangeQuery takes the same path [read]); no scale is needed, nothing is persisted, and a fixed jar restores correct results.</dd></div><div><dt>Summary</dt><dd>You sort an index by two fields, say (c, f), and then either read it through a FilterLeafReader that hides c from FieldInfos but, like every FilterLeafReader by default, still reports the index sort (c, f) in getMetaData(), or sort by a BinarySortField subclass whose key is derived from another doc-values field, as its javadoc allows; a doc-values range query on f should still match exactly the documents whose f is in the range, as it does on 10.5.2. On main and the 10.6.0 release candidate, Sort.getPrimarySortField (added by #16424) finds no FieldInfo for c (or for the BinarySortField's own name), concludes that sorting by it 'has no effect', and returns f as the primary sort, so the range queries' index-sort shortcuts binary-search a segment that is not ordered by f. The result: most ranges miss matching documents and some return documents outside the range (43 of 55 ranges wrong in the independent reproduction's test; f:[1 TO 3] returns 0 hits instead of 2), and LongField.newRangeQuery can throw IllegalArgumentException 'minDoc must be &lt; maxDoc'.</dd></div><div><dt>Introduced</dt><dd>693a7234bad2e03abc80c3dc9819aef493095aeb (#16424 'Smarter use of sort-field optimizations in DV range queries', by romseygeek; branch_10x backport a22c06400da, which reaches branch_10_6 through its 2026-10-14 fork) [read: git log -S getPrimarySortField / -S 'Field has no values in this segment' and blame of Sort.java:137-173 and every consumer call site give only this commit; exec: reverting getPrimarySortField alone to 'first index-sort field' (the pre-#16424 rule) turns 5/5 fail into 5/5 pass on main and on branch_10_6; an exact parent-vs-commit build was not run because the touched files at those commits no longer compile against a9779ef] (2026-07-30 (author date 2026-07-30T11:37:19+01:00; merged 2026-07-30T10:37:20Z))</dd></div><div><dt>First affected version</dt><dd>unreleased (10.6.0 would be the first release: the 10.6.0 RC1 artifacts, rev 4ae946e5a9b, fail 5/5 [exec]; the RC1 vote runs until at least 2026-10-29; 10.5.2 is clean [exec])</dd></div><div><dt>Affected versions</dt><dd>main / 11.0.0-SNAPSHOT since 693a7234bad [exec at a9779ef3c193, -ea and -da: 5/5 fail; upstream main 20ced71 via a shadow of the three range-query classes changed since a9779ef: 5/5 fail; upstream main head c5ab3e57b9b still has both skip rules, read 2026-10-28]; branch_10x since a22c06400da [read]; branch_10_6 head = 10.6.0 RC1 4ae946e5a9b [exec: RC1 Maven artifacts and snapshot jars, -ea and -da, 5/5 fail]. Not affected [exec]: 10.5.2, 10.5.1, 10.5.0 (5/5 pass), 10.4.0 and 10.0.0 (the 3 hidden-field tests pass; BinarySortField is absent), 9.12.3 and 9.10.0 (a version-neutral LongField leg passes). Every release before 10.6.0 lacks getPrimarySortField; its range shortcuts used only getSort()[0].</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-28, read-only; the prior-report record, verdict new: three scripted prior-report searches of 59 queries each over apache/lucene issues, PRs and commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web, plus the finder's 51-query and the intended-behaviour check's 56-query runs; manual GitHub searches over apache/lucene and three downstream search servers; file lists of all 180 open and 354 closed apache/lucene PRs updated since 2026-07-27; commits touching Sort.java and the three range-query classes on main, branch_10_6 and branch_10x since 2026-07-01, with author dates; the 10.6.0 RC1 vote and feature-freeze threads on dev@; a later re-check: getPrimarySortField issues 0, PRs only #16424/#16434/#16411, no PR or issue created since 2026-10-26 touches it, open #16857 unchanged since 2026-10-27, last commit to Sort.java on main and branch_10_6 is still #16424). Related, not this bug: #16424 (introduced the rules; its one review thread is about density), open #16857 (reuses the same skip loop for TopFieldCollector early termination: widens the reach if merged unchanged), open #16699 (extends the shortcut to FLOAT/DOUBLE sorts: widens it), #16884-#16887/#16893 (document blocks and multi-valued fields at the same consumers, different cause, fixed in the RC), #16202 (added BinarySortField with the 'other doc-values fields' wording), and a downstream field-level-security fix that hides doc-values skippers of hidden fields (elastic/elasticsearch#163541, different bug, downstream on Lucene 10.5.2).</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (the repro runner: this doc's test, the finder's and an independent reproducer's, assertions on and off; gradle in a scratch worktree: stock and fixes A and B over the 13 repro tests and 68 neighbouring upstream suites, assertions on and off, and the core module's static checks with fix A); the 10.6.0 RC1 commit <code class='nw'>4ae946e5a9b</code> (the official Maven artifacts with the finder's tests, and a 10.6.0-SNAPSHOT build of that commit with every test); the release jars 10.5.2, 10.5.1, 10.5.0, 10.4.0, 10.0.0, 9.12.3 and 9.10.0; upstream main <code class='nw'>20ced71</code> with the changed range-query classes shadowed in. JDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/Sort.java:138-177 (at a9779ef3c193) (getPrimarySortField; javadoc :141-143 &#x27;If sorting against a field would have no effect then that SortField is skipped over ... fields with no values in the segment, or fields that have only a single distinct value&#x27;; :156-159 &#x27;if (reader.getFieldInfos().fieldInfo(field) == null) { // Field has no values in this segment ... continue; }&#x27;; :160-169 dense skipper with minValue() == maxValue() -&gt; continue)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/SortedNumericDocValuesRangeQuery.java:144, (at a9779ef3c193) :237-247 (canUsePrimarySortShortcut takes getPrimarySortField&#x27;s answer when its field equals the queried field)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/SortedSetDocValuesRangeQuery.java:126, (at a9779ef3c193) :288-298 (same shortcut for SORTED/SORTED_SET)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSortSortedNumericDocValuesRangeQuery.java:40-56 (at a9779ef3c193) (javadoc: &#x27;its primary sort is on the same field as the query&#x27;; &#x27;This fallback must be an equivalent range query -- it should produce the same documents&#x27;), :198, :425, :523 (getPrimarySortField in count, BKD and doc-values paths)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/LongField.java:144 (at a9779ef3c193) and IntField.java:141 (newRangeQuery returns IndexSortSortedNumericDocValuesRangeQuery); NumericDocValuesField.java:91-92 (&#x27;matches all documents whose value is between lowerValue and upperValue included&#x27;), :111</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/BinarySortField.java:40-45, (at a9779ef3c193) :150-152 (a subclass may derive the key &#x27;from the stored bytes and/or other doc-values fields of the segment&#x27;)</code></li><li><code>lucene/core/src/java/org/apache/lucene/index/FilterLeafReader.java:30-31 (at a9779ef3c193) (&#x27;possibly transforming the data along the way&#x27;), :477-481 (getMetaData delegates); index/LeafMetaData.java:32 (sort = &#x27;the order in which documents from this index are sorted&#x27;); lucene/test-framework/src/java/org/apache/lucene/tests/index/FieldFilterLeafReader.java:41-44</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/Sort.java:138-173 (at a9779ef3c193) (javadoc :141-143; FieldInfos rule :156-159; skipper rule :164-169)</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/SortedNumericDocValuesRangeQuery.java:144, (at a9779ef3c193) 237-247; document/SortedSetDocValuesRangeQuery.java:126, 288-298</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/IndexSortSortedNumericDocValuesRangeQuery.java:198, (at a9779ef3c193) 425, 504, 523</code></li><li><code>lucene/core/src/java/org/apache/lucene/document/SortedSkipperScorerSupplier.java:113-182 (at a9779ef3c193) (the range ends)</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/BinarySortField.java:41-44; (at a9779ef3c193) index/FilterLeafReader.java:477-481; index/LeafMetaData.java:32</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/document/NumericDocValuesField.java:110-111, (at a9779ef3c193) 145; document/LongField.java:138-144; document/IntField.java:135-141</code></li><li><code>lucene/test-framework/src/java/org/apache/lucene/tests/index/FieldFilterLeafReader.java:40-44 (at a9779ef3c193)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/core/src/java/org/apache/lucene/search/Sort.java:141-143, (at a9779ef3c193) 157; search/IndexSortSortedNumericDocValuesRangeQuery.java:46, 55; document/NumericDocValuesField.java:91-92</code></li><li><code>lucene/core/src/java/org/apache/lucene/search/BinarySortField.java:41-44, (at a9779ef3c193) 150-152; index/FilterLeafReader.java:30-31, 37-42, 477-481; index/IndexingChain.java:1635</code></li><li><code>lucene/CHANGES.txt:645-646; (at a9779ef3c193) lucene/core/src/test/org/apache/lucene/search/TestGetPrimarySortField.java:137</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/core/src/test/org/apache/lucene/search/TestGetPrimarySortField.java:137-158 (at a9779ef3c193)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestPrimarySortFieldSkipsOrderingField.java (JUnit, public API): <a href='../repro/LFV-860/TestPrimarySortFieldSkipsOrderingField.java'><code>repro/LFV-860/TestPrimarySortFieldSkipsOrderingField.java</code></a> (316 lines)</li><li>spi-registration.diff (the test&#x27;s SortFieldProvider line): <a href='../repro/LFV-860/spi-registration.diff'><code>repro/LFV-860/spi-registration.diff</code></a> (9 lines)</li><li>branch_10x-variant.diff (the same test for branch_10_6 / 10.6.0): <a href='../repro/LFV-860/branch_10x-variant.diff'><code>repro/LFV-860/branch_10x-variant.diff</code></a> (26 lines)</li><li>TestPrimarySortFieldHiddenSortField.java (the finder&#x27;s: numeric, sorted and LongField paths): <a href='../repro/LFV-860/TestPrimarySortFieldHiddenSortField.java'><code>repro/LFV-860/TestPrimarySortFieldHiddenSortField.java</code></a> (161 lines)</li><li>TestPrimarySortFieldDerivedBinaryKey.java (the finder&#x27;s: both BinarySortField forms): <a href='../repro/LFV-860/TestPrimarySortFieldDerivedBinaryKey.java'><code>repro/LFV-860/TestPrimarySortFieldDerivedBinaryKey.java</code></a> (267 lines)</li><li>TestHiddenSortFieldRange.java (independent reproducer: 55 ranges against brute force): <a href='../repro/LFV-860/TestHiddenSortFieldRange.java'><code>repro/LFV-860/TestHiddenSortFieldRange.java</code></a> (257 lines)</li><li>TestDerivedBinarySortKey.java (independent reproducer: both BinarySortField forms): <a href='../repro/LFV-860/TestDerivedBinarySortKey.java'><code>repro/LFV-860/TestDerivedBinarySortKey.java</code></a> (314 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture of the repro's example, made in parallel with this doc from the probe trace of the same five documents.</p><ul class='paths'><li><a href='../assets/LFV-860/bug.png'><code>assets/LFV-860/bug.png</code></a> (448 KB)</li></ul><p class='meta built'>Built 2026-10-28 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-28. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

@@ -2,6 +2,8 @@
 
 Bug LFV-100 · Area: codecs / quantized vector formats merge (Lucene104 OSQ, Lucene102 BBQ) with index / SortingCodecReader · Priority: medium · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-100.html](../../bugs/LFV-100.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You re-sort an index the way the SortingCodecReader javadoc describes: wrap ever
 
 ## Expected vs actual
 
-- Expected: You expect the re-sort to succeed, as it does with the default non-quantized HNSW format and as an ordinary merge of the same segments does.
-- Actual: The quantized writer's centroid code asks every source reader for field a without checking that reader's FieldInfos, SortingCodecReader wraps the missing (null) values, and addIndexes fails with a NullPointerException at SortingCodecReader.java:252 (an AssertionError at:318 with -ea), so nothing is added.
+- Expected: `addIndexes` succeeds: 6 documents, 3 of them with a `vec` vector, as with the non-quantized format.
+- Actual: `addIndexes` throws `NullPointerException` at `SortingCodecReader.java:252` (`AssertionError` at `:318` with `-ea`) and adds 0 of 6 documents.
 
 ## Files
 
@@ -48,6 +50,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSortingCodecReaderQuantizedMissingField.java](TestSortingCodecReaderQuantizedMissingField.java)
+- [TestSortingCodecReaderMissingVectorField.java](TestSortingCodecReaderMissingVectorField.java)
+- [TestResortQuantizedMissingField.java](TestResortQuantizedMissingField.java)
+- [TestResortQuantizedMissingFieldFp16.java](TestResortQuantizedMissingFieldFp16.java)
 
 ## Feedback
 

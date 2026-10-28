@@ -2,6 +2,8 @@
 
 Bug LFV-240 · Area: suggest / spell checking (DirectSpellChecker.suggestSimilar with a non-default StringDistance; FuzzyTermsEnum competitive-boost pruning) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-240.html](../../bugs/LFV-240.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You give DirectSpellChecker a metric such as LevenshteinDistance or JaroWinklerD
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `lucenes` for every metric, both with `maxInspections` 1 and with default settings; the controls also return the internal-scale answer.
+- Actual: `lucen` for LevenshteinDistance (0.833 instead of 0.857), JaroWinklerDistance (0.972 instead of 0.981) and NGramDistance; 2 of 3 tests fail, the control passes.
 
 ## Files
 
@@ -54,6 +56,12 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDirectSpellCheckerDistancePruning.java](TestDirectSpellCheckerDistancePruning.java)
+- [TestDirectSpellCheckerCustomDistance.java](TestDirectSpellCheckerCustomDistance.java)
+- [TestDscMonotoneDistanceInvariance.java](TestDscMonotoneDistanceInvariance.java)
 
 ## Feedback
 

@@ -32,7 +32,7 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.util.BytesRef;
 
 /**
- * V3 probe: the upstream TestDataSplitter fixture shape (10 random classes, stored text fields,
+ * Probe: the upstream TestDataSplitter fixture shape (10 random classes, stored text fields,
  * sorted doc values on the class field) and the upstream assertSplit oracle (each split index has
  * (int) (maxDoc * ratio) documents within 20), applied to ratios above one half. Also prints a
  * sweep so the cap is visible.

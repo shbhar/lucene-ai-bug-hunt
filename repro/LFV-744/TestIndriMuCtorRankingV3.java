@@ -36,7 +36,7 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.apache.lucene.tests.util.TestUtil;
 
 /**
- * V3 probe: the same mu (2000) gives a different top-1 document through IndexSearcher#search
+ * Probe: the same mu (2000) gives a different top-1 document through IndexSearcher#search
  * depending on which constructor built the similarity. Corpus: |C| = 35 tokens; term t has cf = 3,
  * so p(t|C) = 3/35 (IndriCollectionModel) vs 4/36 (DefaultCollectionModel), and the crossover of
  * doc 0 (tf 1, length 1) and doc 1 (tf 2, length 11) lies between the two.

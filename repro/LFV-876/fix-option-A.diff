@@ -1,0 +1,71 @@
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiCharFilter.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/th/ThaiCharFilter.java
+@@ -64,7 +64,67 @@
+    * @param in the input reader
+    */
+   public ThaiCharFilter(Reader in) {
+-    super(in);
++    // Zero-width removal, deduplication and the Lakkhangyao rule look at one character at a time.
++    // They run in a first stage, so that the multi-character rules in read() match their patterns
++    // against look-ahead characters these rules have already cleaned.
++    super(new SingleCharRules(in));
++  }
++
++  /**
++   * First stage: removes zero-width characters, drops a diacritic or tone mark that repeats the
++   * previous character, and replaces Lakkhangyao with Sara Aa unless it follows Ru or Lu.
++   */
++  private static final class SingleCharRules extends BaseCharFilter {
++    private int outputOff = 0;
++    private int cumulativeDiff = 0;
++    private char prevChar = 0;
++
++    SingleCharRules(Reader in) {
++      super(in);
++    }
++
++    @Override
++    public int read() throws IOException {
++      while (true) {
++        int ch = input.read();
++        if (ch == -1) {
++          return -1;
++        }
++        char c = (char) ch;
++        if (c == '\u200B'
++            || c == '\u200C'
++            || c == '\u200D'
++            || c == '\uFEFF'
++            || (isThaiDiacritic(c) && c == prevChar)) {
++          cumulativeDiff++;
++          addOffCorrectMap(outputOff, cumulativeDiff);
++          continue;
++        }
++        if (c == '\u0E45' && prevChar != '\u0E24' && prevChar != '\u0E26') {
++          c = '\u0E32';
++        }
++        prevChar = c;
++        outputOff++;
++        return c;
++      }
++    }
++
++    @Override
++    public int read(char[] cbuf, int off, int len) throws IOException {
++      if (len <= 0) {
++        return 0;
++      }
++      int numRead = 0;
++      for (int i = off; i < off + len; i++) {
++        int c = read();
++        if (c == -1) {
++          break;
++        }
++        cbuf[i] = (char) c;
++        numRead++;
++      }
++      return numRead == 0 ? -1 : numRead;
++    }
+   }
+ 
+   @Override

@@ -2,16 +2,18 @@
 
 Bug LFV-686 · Area: queryparser / surround (FieldsQuery field prefixes and ^ weights) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-686.html](../../bugs/LFV-686.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You parse the surround query or(title: lucene^3, body: lucene), whose parser documents 'boosting (via ^)', and expect the title match to count three times, exactly like the same weight on the parenthesised field query or((title: lucene)^3, body: lucene). Instead the weight is kept on the parsed term (toString shows title:lucene^3.0), but FieldsQuery.makeLuceneQueryNoBoost builds its operand with makeLuceneQueryFieldNoBoost, so no BoostQuery is created: the title document scores 0.13076457 instead of 0.39229375, no more than the body-only match, which the weight was meant to outrank. Every weight on the direct operand of a field prefix is dropped (a term, an OR, a distance query, with one field or several); only scores and ranking change, never the set of hits.
+You parse the surround query or(title: lucene^3, body: lucene), whose parser documents 'boosting (via ^)', and expect the title match to count three times, exactly like the same weight on the parenthesised field query or((title: lucene)^3, body: lucene). Instead the weight is kept on the parsed term (toString shows title:lucene^3.0), but FieldsQuery.makeLuceneQueryNoBoost builds its operand with makeLuceneQueryFieldNoBoost, so no BoostQuery is created: the title document scores 0.13076457 instead of 0.39229375, no more than the body-only match, which the weight was meant to outrank. Every weight on the direct operand of a field prefix is dropped (a term, an OR, a distance query, with one field or several); only scores and ranking change, never which documents match.
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The weight is kept on the parsed term (toString shows title:lucene^3.0), but FieldsQuery.makeLuceneQueryNoBoost builds its operand with makeLuceneQueryFieldNoBoost, so no BoostQuery is created: the title document scores 0.13076457 instead of 0.39229375, no more than the body-only match, which the weight was meant to outrank.
+- Expected: In the test's index, `or(title: lucene^5, body: lucene)` ranks doc 0 (1.014) above doc 1 (0.408), and `title: lucene^3` scores 0.608, like `lucene^3`.
+- Actual: Doc 0 scores 0.203, its unweighted score, below doc 1 (0.408); `title: lucene^3` scores 0.203; 5 of 6 tests fail.
 
 ## Files
 
@@ -47,6 +49,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSrndFieldPrefixWeight.java](TestSrndFieldPrefixWeight.java)
+- [TestSrndFieldPrefixBoost.java](TestSrndFieldPrefixBoost.java)
 
 ## Feedback
 

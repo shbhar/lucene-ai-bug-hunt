@@ -2,6 +2,8 @@
 
 Bug LFV-646 · Area: suggest / analyzing infix suggester (AnalyzingInfixSuggester.build failure path; inherited unchanged by BlendedInfixSuggester) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-646.html](../../bugs/LFV-646.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You rebuild an AnalyzingInfixSuggester with default settings, build throws an IO
 
 ## Expected vs actual
 
-- Expected: You expect it to serve what its index holds, so that a later add adds exactly one suggestion.
-- Actual: build has already committed the new index (closeIndexWriterOnBuild defaults to true) before it opens the SearcherManager on it; when that open fails, the catch block rolls back (which cannot undo the commit), sets writer = null and keeps the old SearcherManager, so refresh is a no-op, lookups serve the old suggestions ([old apple]) while the directory holds the failed build ([new avocado]), and after the next add lookups return [another apricot, new avocado], with the old suggestion gone.
+- Expected: After the failed `build` and `refresh`, lookups return what the directory holds, and `add("another apricot")` adds exactly one suggestion.
+- Actual: Lookups return `[old apple]` while the directory holds `[new avocado]`; after `add` and `refresh` they return `[another apricot, new avocado]`.
 
 ## Files
 
@@ -43,6 +45,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestAnalyzingInfixSuggesterFailedBuild.java](TestAnalyzingInfixSuggesterFailedBuild.java)
+- [TestInfixFailedBuildAfterCommit.java](TestInfixFailedBuildAfterCommit.java)
+- [TestInfixBuildFailureViews.java](TestInfixBuildFailureViews.java)
+- [InfixBuildFailureTimeline.java](InfixBuildFailureTimeline.java)
 
 ## Feedback
 

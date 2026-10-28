@@ -2,6 +2,8 @@
 
 Bug LFV-747 · Area: queryparser / flexible StandardQueryParser interval functions (StandardSyntaxParser.jj IntervalText and IntervalFuzzyTerm, intervalfn AnalyzedText and FuzzyTerm) · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-747.html](../../bugs/LFV-747.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You parse fn:or(a\:b) (or fn:ordered(a\:b c), fn:fuzzyTerm(a\:b 0), fn:or("a\"b"
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The IntervalText and IntervalFuzzyTerm grammar productions pass the raw token text, backslashes included, to AnalyzedText and FuzzyTerm, so the interval query searches for the text a\:b.
+- Expected: `fn:or(a\:b)` is the query `body:a:b` and finds doc 0 (`a:b c`), like `a\:b` outside `fn:`.
+- Actual: `fn:or(a\:b)` is `body:a\:b` and finds doc 1 (`a\:b c`); all 4 tests fail, with assertions on and off.
 
 ## Files
 
@@ -48,6 +50,12 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestIntervalFunctionTermEscapes.java](TestIntervalFunctionTermEscapes.java)
+- [TestIntervalFnEscapedLiterals.java](TestIntervalFnEscapedLiterals.java)
+- [TestIntervalEscapeScopeProbe.java](TestIntervalEscapeScopeProbe.java)
 
 ## Feedback
 

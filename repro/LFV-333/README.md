@@ -2,16 +2,18 @@
 
 Bug LFV-333 · Area: memory / MemoryIndex term inversion (custom term frequencies: FeatureField, TermFrequencyAttribute streams, DOCS_AND_CUSTOM_FREQS); reached in-tree through monitor single-document batches · Priority: medium · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-333.html](../../bugs/LFV-333.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
 
-You add a document with FeatureField("features", "pagerank", 10f), or a tokenized DOCS_AND_FREQS field whose TokenStream sets TermFrequencyAttribute (for example DelimitedTermFrequencyTokenFilter on 'a|7'), to a MemoryIndex and expect its postings, statistics and scores to equal those of the same document in a one-document IndexWriter index, as they do for ordinary fields. Instead MemoryIndex.storeTerms never reads the attribute and counts every token as frequency 1: FeatureField.newLinearQuery scores 4.5918E-41 instead of 10.0, newSaturationQuery scores exactly 0.0 (MemoryIndex.search's 'no match' value) for a document that matches, and a term with custom frequency 7 reports freq 1, sumTotalTermFreq 1 and a lower BM25 score. Lucene Monitor inherits it: the same FeatureField document scores 10.0 in a two-document batch (IndexWriter path) and 4.5918E-41 when matched alone (MemoryIndex path).
+You add a document with FeatureField("features", "pagerank", 10f), or a tokenized DOCS_AND_FREQS field whose TokenStream sets TermFrequencyAttribute (for example DelimitedTermFrequencyTokenFilter on 'a|7'), to a MemoryIndex and expect its postings, statistics and scores to equal those of the same document in a one-document IndexWriter index, as they do for ordinary fields. Instead MemoryIndex.storeTerms never reads the attribute and counts every token as frequency 1: FeatureField.newLinearQuery scores 4.5918E-41 instead of 10.0, newSaturationQuery with the pivot 10 scores exactly 0.0 (MemoryIndex.search's 'no match' value) for a document that matches, and a term with custom frequency 7 reports freq 1, sumTotalTermFreq 1 and a lower BM25 score. Lucene Monitor inherits it (since 8.6.0): the same FeatureField document scores 10.0 in a two-document batch (IndexWriter path) and 4.5918E-41 when matched alone (MemoryIndex path).
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: MemoryIndex.storeTerms never reads the attribute and counts every token as frequency 1: FeatureField.newLinearQuery scores 4.5918E-41 instead of 10.0, newSaturationQuery scores exactly 0.0 (MemoryIndex.search's 'no match' value) for a document that matches, and a term with custom frequency 7 reports freq 1, sumTotalTermFreq 1 and a lower BM25 score.
+- Expected: The `MemoryIndex` reports what the one-document `IndexWriter` index reports: freq 33344 and score 10.0 for `FeatureField` 10f, saturation score 0.5, freq 7 and BM25 0.2456 for the custom frequency.
+- Actual: Freq 1 everywhere: linear score 4.5918E-41, saturation score 0.0 ("no match") for a matching document, and freq 1, `sumTotalTermFreq` 2, BM25 0.1308 for the custom frequency.
 
 ## Files
 
@@ -45,6 +47,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMemoryIndexCustomTermFrequencies.java](TestMemoryIndexCustomTermFrequencies.java)
+- [TestMonitorFeatureFieldSingleDocument.java](TestMonitorFeatureFieldSingleDocument.java)
+- [TestMemoryIndexCustomTermFrequency.java](TestMemoryIndexCustomTermFrequency.java)
+- [TestMemoryIndexCustomTermFreq.java](TestMemoryIndexCustomTermFreq.java)
 
 ## Feedback
 
