@@ -2,6 +2,8 @@
 
 Bug LFV-858 · Area: highlighter / classic Highlighter fragmenting (SimpleSpanFragmenter.isNewFragment; Highlighter.getBestTextFragments) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-858.html](../../bugs/LFV-858.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You highlight a text with the classic Highlighter, a QueryScorer and SimpleSpanF
 
 ## Expected vs actual
 
-- Expected: You expect every phrase match shorter than the fragment size to stay inside one fragment.
-- Actual: The fragmenter cuts inside the longer phrase ('The museum is near New York City' | ' Hall and the park', 'We flew to New York City' | ' Hall last week', 'I left my big laptop' | ' bag on the train'), so getBestFragment can return only part of the phrase, and in the same-start case listing the longer phrase first in the BooleanQuery makes the phrase come out whole.
+- Expected: Every best fragment holds the whole phrase, as in the 4 controls: `We flew to <B>New</B> <B>York</B> <B>City</B> <B>Hall</B> last`.
+- Actual: 4 of 8 fail, e.g. best fragment `We flew to <B>New</B> <B>York</B> <B>City</B>`; fragments `We flew to New York City` | ` Hall last week` | ` for a conference`.
 
 ## Files
 
@@ -45,6 +47,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSimpleSpanFragmenterPhraseSplit.java](TestSimpleSpanFragmenterPhraseSplit.java)
 
 ## Feedback
 

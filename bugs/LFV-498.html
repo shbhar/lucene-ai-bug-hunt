@@ -1,0 +1,732 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>The UnifiedHighlighter&#x27;s summary of a multi-valued field returns its hidden U+0000 separator, which can push out a sentence</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-498 &middot; uh-summary-counts-multivalue-separator-as-passage</p><h1 id='top'>The UnifiedHighlighter&#x27;s summary of a multi-valued field returns its hidden U+0000 separator, which can push out a sentence</h1><p class='tldr'>When a hit has no match in a multi-valued field, the UnifiedHighlighter's default summary counts its internal U+0000 value separator as a sentence: for <code>First value.</code> and <code>Second value.</code>, 2 passages give <code>First value.</code> plus a raw NUL instead of both. Default settings; affects 6.3.0 to 10.5.2 and main.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 454</span><span class='sub'>With default UnifiedHighlighter settings the no-match summary of a multi-valued field returns a NUL and one passage too few, ordinary data but display text only, so it joins the highlighter output rows after LFV-401.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>6.3.0 (LUCENE-7438, 2016)<span class='sub'>introduced 2016-10-04 &middot; over 10 years</span></dd></div><div><dt>Affected</dt><dd>6.3.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>bounded-exhaustive check of the highlighter's passages against its javadoc</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The highlighter keeps a field's values as one string with an invisible U+0000 between them and finds sentences inside each value. When nothing in the field matches, it shows the field's first few sentences, but the loop that collects them also counts the 1-character separator as a sentence.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: the default summary</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Highlighting shows the sentences of a stored field that contain the query's matches, with the matches marked, for example <code>First &lt;b&gt;value&lt;/b&gt;.</code></span></li><li><span>If a hit has no match in that field, the UnifiedHighlighter shows a default summary instead: the field's first <code class='nw'>maxPassages</code> sentences (a per-call argument; the 3-argument <code class='nw'>highlight</code> call uses 1).</span></li><li><span>A field can hold several values. The highlighter joins them into one string with the invisible character U+0000 between values, and finds sentences inside each value separately, so no sentence spans two values.</span></li></ol></div><figure class='visual' id='uh-summary-counts-multivalue-separator-as-passage-short-visual'><div class='frame'><a class='still' href='../assets/LFV-498/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-498/bug.png' alt='Summary card in three panels. 1, two stored values, no match, 2 passages: the values &#x27;First value.&#x27; and &#x27;Second value.&#x27; in body, a TermQuery on id, and UnifiedHighlighter.builder(searcher, analyzer).build().highlight(&quot;body&quot;, query, topDocs, 2) with the default sentence BreakIterator and maxNoHighlightPassages -1. 2, the summary loop takes the separator as passage 2: the values joined by U+0000, with the SplittingBreakIterator boundaries 0, 12, 13 and 26; passage 1 is &#x27;First value.&#x27;, passage 2 is only the U+0000 between 12 and 13, and the second value is never reached. 3, expected vs actual on main with -ea and -da: expected &#x27;First value.... Second value.&#x27;, actual &#x27;First value.&#x27; followed by \u0000; maxPassages 3 gives the NUL between the two values; an empty first value with the default 1-passage call gives \u0000 alone; single-valued fields, the highlight path, hits, scores and the index are unaffected. Bottom line: the candidate fix skips a 1-character interval holding MULTIVAL_SEP_CHAR; the repro fails on 9 releases from 6.3.0 to 10.5.2 and on main; affected is a summary that asks for more passages than the first value has sentences, when another value follows (an empty first value has none, so even 1 passage gives \u0000).' width='1920' height='1080'></a></div><figcaption>The two values joined with U+0000 at index 12, the sentence boundaries 0, 12, 13 and 26, and the summary loop taking [12, 13), the separator alone, as passage 2: <code>First value.\u0000</code> instead of <code>First value.... Second value.</code> Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>You store two values in one field, <code>First value.</code> and <code>Second value.</code>, run a query that matches the document but nothing in that field, and ask the UnifiedHighlighter, with its default settings, for 2 passages of that field.</span></li><li><span>You expect the documented default summary, the field's first 2 sentences, joined the way highlighted values are joined: <code>First value.... Second value.</code></span></li><li><span>You get <code>First value.\u0000</code>: a raw U+0000, invisible on screen, where the second sentence should be. With 3 passages you get <code>First value.\u0000Second value.</code>; with an empty first value even the default 1-passage call returns only <code class='nw'>\u0000</code>. No error; hits and scores are unchanged.</span></li><li><span>Why: the highlighter joins the values with U+0000 and reports a sentence boundary on both sides of it, at 12 and 13 (the other boundaries are 0 and 26). The summary loop makes a passage of every pair of neighbouring boundaries, so the 1-character gap from 12 to 13, the separator alone, becomes passage 2.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that use the UnifiedHighlighter directly on multi-valued stored fields, with default settings, for hits with no match in that field. Asking for 2 or more passages hits it when the first value has fewer sentences than asked; an empty first value hits even the default 1-passage call. Only the snippet text is wrong.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>647 words</span></summary><div class='body'><p>When a hit has no match in a highlighted field, the UnifiedHighlighter returns a default summary, documented as "the first maxPassages sentences from the field". For a multi-valued stored field it joins the values with its internal separator U+0000 and reports a boundary on both sides of each separator. The summary loop turns every pair of neighbouring boundaries into a passage, so the 1-character separator becomes a passage of its own: it takes one of the requested slots and is copied into the snippet as a raw NUL. Two values <code>First value.</code> and <code>Second value.</code> with 2 passages give <code>First value.\u0000</code>; with an empty first value even the default 1-passage call gives <code class='nw'>\u0000</code>. Hits, scores and the index are unaffected. The code dates from the UnifiedHighlighter's introduction (6.3.0, 2016): the test fails on the 9 releases tried from 6.3.0 to 10.5.2 and on main, and the code is the same at every other tagged release. Skipping that 1-character interval in the summary loop fixes it (7 added lines, one of them an import; validated with the whole highlighter module).</p><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#what-the-bug-is-the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol><li><strong>Values are joined with U+0000.</strong> <code>UnifiedHighlighter.MULTIVAL_SEP_CHAR = (char) 0</code> (<code>UnifiedHighlighter.java:98</code>), appended between the stored values (<code class='nw'>:1463</code>). The example content is <code>First value.</code> + U+0000 + <code>Second value.</code>: 26 characters, the separator at index 12.</li><li><strong>The field's iterator is wrapped.</strong> Every field's <code class='nw'>BreakIterator</code> is wrapped in <code>new SplittingBreakIterator(getBreakIterator(field), MULTIVAL_SEP_CHAR)</code> (<code>UnifiedHighlighter.java:1135</code>), which "virtually slices the text on both sides of every occurrence" of the separator, so that "the enclosed BreakIterator will never 'see' the splitting character" (<code>SplittingBreakIterator.java:24-28</code>). Its <code class='nw'>next()</code> returns the end of value 1 and then, one character later, the start of value 2 (<code class='nw'>:104-124</code>, <code class='nw'>:114</code>). Boundaries: <strong>0, 12, 13, 26</strong>. This is intended and tested (<code>TestSplittingBreakIterator</code>: <code class='nw'>aa|aa</code> gives <code>^ ^^ ^</code>), and the highlight path needs the boundary at 13 so that a passage in value 2 starts at its first character.</li><li><strong>No match, so a summary.</strong> When no passage has a match, <code class='nw'>FieldHighlighter</code> calls <code>getSummaryPassagesNoHighlight(maxNoHighlightPassages == -1 ? maxPassages : maxNoHighlightPassages)</code> (<code>FieldHighlighter.java:89-94</code>); -1 is the default.</li><li><strong>The loop counts the gap.</strong> "By default this just returns the first maxPassages sentences" (<code>FieldHighlighter.java:104-108</code>), but the loop (<code class='nw'>:115-125</code>) makes a passage of every pair of consecutive boundaries: [0, 12) <code>First value.</code>, then [12, 13), which holds only U+0000, then [13, 26) <code>Second value.</code>.</li><li><strong>The formatter copies it.</strong> <code>DefaultPassageFormatter</code> adds its ellipsis <code>"... "</code> only between passages that do not touch (<code>DefaultPassageFormatter.java:66-68</code>); these touch, so the NUL is copied verbatim and no ellipsis appears.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-default-builder-default-sentence-iterator-no-mat'>The numbers (default builder, default sentence iterator, no match in the field)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-default-builder-default-sentence-iterator-no-mat" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-default-builder-default-sentence-iterator-no-mat"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>stored values</th><th>maxPassages</th><th>stock</th><th>with the fix</th></tr></thead><tbody><tr><td><code>First value.</code>, <code>Second value.</code></td><td>1</td><td><code>First value.</code></td><td><code>First value.</code></td></tr><tr><td>same</td><td>2</td><td><code>First value.\u0000</code></td><td><code>First value.... Second value.</code></td></tr><tr><td>same</td><td>3</td><td><code>First value.\u0000Second value.</code></td><td><code>First value.... Second value.</code></td></tr><tr><td>empty, <code>Second value.</code></td><td>1</td><td><code class='nw'>\u0000</code></td><td><code>Second value.</code></td></tr><tr><td>empty, <code>Second value.</code></td><td>2</td><td><code>\u0000Second value.</code></td><td><code>Second value.</code></td></tr><tr><td><code>A one.</code>, <code>B two.</code>, <code>C three.</code></td><td>3</td><td><code>A one.\u0000B two.</code> (third value lost)</td><td><code>A one.... B two.... C three.</code></td></tr><tr><td><code>First one. First two.</code>, <code>Second value.</code></td><td>2</td><td><code>First one. First two.</code></td><td>unchanged</td></tr><tr><td>control: a query matching <code class='nw'>value</code> in both values</td><td>2</td><td><code>First &lt;b&gt;value&lt;/b&gt;.... Second &lt;b&gt;value&lt;/b&gt;.</code></td><td>unchanged</td></tr></tbody></table></div><p>The same with each of the three offset sources (re-analysis, offsets in postings, term vectors), each executed as a test of its own, and with the whole-text iterator; the hunt's exhaustive harness saw it with every iterator family it covered (sentence, word, custom separator, whole, length goal). When every value is empty the summary is <code class='nw'>\u0000</code> alone instead of no passage. All of this assumes stored values without a U+0000 of their own (a stored U+0000 is a separate bug, LFV-599). Every upstream no-match summary test is single-valued, which is why the tests miss it.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>421 words</span></summary><div class='body'><ul><li><strong>Who is hit.</strong> Direct users of Lucene's UnifiedHighlighter on multi-valued stored fields, for hits with no match in the highlighted field (common when several fields are highlighted and the query matches only some), with the default no-match summary, and either 2 or more passages (<code class='nw'>maxPassages</code>, or <code>withMaxNoHighlightPassages(n)</code> with n &gt;= 2) while the first value has fewer sentences than asked, or an empty first value. The default 1-passage call with a non-empty first value is not affected (for stored values without a U+0000 of their own; that case is LFV-599).</li><li><strong>Reach limit</strong> (read). The separator is only added while the field's <code class='nw'>maxLength</code> budget lasts (default 10,000 characters): the stored-field visitor truncates the first value to <code class='nw'>maxLength</code> and adds no further value once the budget is used up (<code>UnifiedHighlighter.java:1446-1452</code>). A custom <code class='nw'>maxLength</code> that ends inside the first value prevents this summary shape.</li><li><strong>Defaults.</strong> Default builder, default sentence iterator, default <code>maxNoHighlightPassages</code> (-1), all three offset sources (each executed separately). <code>UnifiedHighlighter</code> is <code>@lucene.experimental</code>; <code class='nw'>FieldHighlighter</code> is <code class='nw'>@lucene.internal</code>, but users never pick it: the UnifiedHighlighter builds it.</li><li><strong>What happens.</strong> Display text only: a raw U+0000 in the snippet, which takes one of the requested passage slots and so pushes out a real sentence or value whenever the field has one left (2 values and 2 passages: the second value is lost; 3 values and 3 passages: the third). With nothing left to push out, the NUL is still there (2 one-sentence values and 3 passages: <code>First value.\u0000Second value.</code>). Hits, scores and the index are unaffected; nothing throws. The NUL is invisible on screen. An application that writes the snippet into XML without escaping control characters produces a document an XML parser rejects (run only with the JDK's own XML writer and parser as a stand-in; control characters from document text do the same; no real product was run).</li><li><strong>Scale.</strong> Deterministic per document and field, independent of index size.</li><li><strong>Downstream</strong> (by reading their source as examined during the hunt, not run; not a guarantee for their current code). Elasticsearch and OpenSearch override <code>getSummaryPassagesNoHighlight</code> and skip the separator, so in the examined source they are not exposed. Solr's default summary is off unless <code>hl.defaultSummary=true</code>; then Solr's own snippet separator is also U+0000 and it splits on it, which hides the NUL but returns one snippet fewer than <code class='nw'>hl.snippets</code> (emulated).</li><li><strong>Workarounds</strong> (not run). <code>withMaxNoHighlightPassages(0)</code> turns the summary off; or override <code>newFieldHighlighter</code> to return a <code class='nw'>FieldHighlighter</code> whose summary skips the separator. Stripping U+0000 from the snippet afterwards still leaves a sentence missing.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A 5-test JUnit on the public API: one document with two stored values, a query on another field, the default highlighter. Three bug cases and two controls. Copy it into the highlighter's test directory and run the command: it fails 3 of 5, with assertions on or off.</p><figure class='code'><figcaption><span class='fname'>TestUnifiedHighlighterMultiValuedSummary.java (5 tests, 2 controls)</span><span class='meta'>102 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.uhighlight;
+
+import java.io.IOException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * When a hit has no match in a multi-valued field, the default summary is &quot;the first maxPassages
+ * sentences from the field&quot;. The values are joined internally with {@link
+ * UnifiedHighlighter#MULTIVAL_SEP_CHAR}; that separator is not a sentence of the field and must not
+ * appear in the summary or take the place of a sentence.
+ */
+public class TestUnifiedHighlighterMultiValuedSummary extends LuceneTestCase {
+
+  /** Matches the document, but nothing in &quot;body&quot;, so &quot;body&quot; gets the default summary. */
+  private static final Query NO_MATCH_IN_BODY = new TermQuery(new Term(&quot;id&quot;, &quot;1&quot;));
+
+  /** Indexes one document with the given &quot;body&quot; values and highlights &quot;body&quot; for its hit. */
+  private String highlight(Query query, int maxPassages, String... values) throws IOException {
+    Analyzer analyzer = new MockAnalyzer(random(), MockTokenizer.SIMPLE, true);
+    try (Directory dir = newDirectory()) {
+      try (IndexWriter iw = new IndexWriter(dir, newIndexWriterConfig(analyzer))) {
+        Document doc = new Document();
+        doc.add(new StringField(&quot;id&quot;, &quot;1&quot;, Field.Store.NO));
+        for (String value : values) {
+          doc.add(new TextField(&quot;body&quot;, value, Field.Store.YES));
+        }
+        iw.addDocument(doc);
+      }
+      try (IndexReader ir = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = newSearcher(ir);
+        TopDocs topDocs = searcher.search(query, 10);
+        assertEquals(1, topDocs.scoreDocs.length);
+        UnifiedHighlighter highlighter = UnifiedHighlighter.builder(searcher, analyzer).build();
+        String snippet = highlighter.highlight(&quot;body&quot;, query, topDocs, maxPassages)[0];
+        // print the invisible U+0000 separator as an escape in failure messages
+        return snippet == null ? null : snippet.replace(&quot;\u0000&quot;, &quot;\\u0000&quot;);
+      }
+    }
+  }
+
+  public void testSummaryOnePassage() throws IOException {
+    assertEquals(&quot;First value.&quot;, highlight(NO_MATCH_IN_BODY, 1, &quot;First value.&quot;, &quot;Second value.&quot;));
+  }
+
+  public void testSummaryTwoPassages() throws IOException {
+    // before the fix: &quot;First value.&quot; + U+0000, the separator takes the second sentence&#x27;s place
+    assertEquals(
+        &quot;First value.... Second value.&quot;,
+        highlight(NO_MATCH_IN_BODY, 2, &quot;First value.&quot;, &quot;Second value.&quot;));
+  }
+
+  public void testSummaryMorePassagesThanSentences() throws IOException {
+    // before the fix: &quot;First value.&quot; + U+0000 + &quot;Second value.&quot;
+    assertEquals(
+        &quot;First value.... Second value.&quot;,
+        highlight(NO_MATCH_IN_BODY, 3, &quot;First value.&quot;, &quot;Second value.&quot;));
+  }
+
+  public void testSummaryEmptyFirstValue() throws IOException {
+    // maxPassages 1, as used by highlight(field, query, topDocs); before the fix: U+0000 alone
+    assertEquals(&quot;Second value.&quot;, highlight(NO_MATCH_IN_BODY, 1, &quot;&quot;, &quot;Second value.&quot;));
+  }
+
+  public void testHighlightedValuesAreJoinedWithEllipsis() throws IOException {
+    // control: with a match in both values, the formatter&#x27;s ellipsis separates them
+    assertEquals(
+        &quot;First &lt;b&gt;value&lt;/b&gt;.... Second &lt;b&gt;value&lt;/b&gt;.&quot;,
+        highlight(new TermQuery(new Term(&quot;body&quot;, &quot;value&quot;)), 2, &quot;First value.&quot;, &quot;Second value.&quot;));
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:highlighter:test --tests &quot;org.apache.lucene.search.uhighlight.TestUnifiedHighlighterMultiValuedSummary&quot; -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# assertions off: -Ptests.asserts=false (same failures)
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>First value.... Second value.</code> for 2 and for 3 passages, and <code>Second value.</code> when the first value is empty.</dd></div><div class='got'><dt>Observed</dt><dd><code>First value.\u0000</code>, then <code>First value.\u0000Second value.</code>, then <code class='nw'>\u0000</code> alone; both controls pass.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-498/'>repro/LFV-498/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>3 more files (282 lines) · 1,638 words</span></summary><div class='body'><p><code>TestUnifiedHighlighterMultiValuedSummary</code> goes into <code>lucene/highlighter/src/test/org/apache/lucene/search/uhighlight/</code> (google-java-format clean; <code>:lucene:highlighter:check -x test</code> passes with it). Each test indexes one document whose <code class='nw'>body</code> has the given stored values and an <code class='nw'>id</code>, searches <code class='nw'>id:1</code> (a match on the document, none in <code class='nw'>body</code>) and calls <code>highlight("body", query, topDocs, maxPassages)</code> on <code>UnifiedHighlighter.builder(searcher, analyzer).build()</code>. The snippet's U+0000 is printed as the six characters <code class='nw'>\u0000</code>.</p><ul><li><code>testSummaryOnePassage</code> (control): maxPassages 1 gives <code>First value.</code>.</li><li><code>testSummaryTwoPassages</code>: maxPassages 2, expects <code>First value.... Second value.</code>.</li><li><code>testSummaryMorePassagesThanSentences</code>: maxPassages 3, the same expectation.</li><li><code>testSummaryEmptyFirstValue</code>: values <code class='nw'>""</code> and <code>Second value.</code>, maxPassages 1, expects <code>Second value.</code>.</li><li><code>testHighlightedValuesAreJoinedWithEllipsis</code> (control): query <code class='nw'>body:value</code>, expects <code>First &lt;b&gt;value&lt;/b&gt;.... Second &lt;b&gt;value&lt;/b&gt;.</code>.</li></ul><p>The expected ellipsis form is what the fix produces and how the highlight path joins values; the contract only rules out the U+0000 and the missing sentence, so reviewers may choose another rendering. The failures do not depend on the seed (DEADBEEF, 5E9A0498, C0FFEE150 tried). Pass <code class='nw'>-Ptests.asserts</code> explicitly: by default the build picks it from the seed. The same test fails 3 of 5 on 10.5.2, 9.12.3 and 9.1.0, the first release with the APIs it uses; for older releases the hunt has a 2-test port that fails on 6.3.0, 6.6.6, 7.7.3 and 8.11.4.</p><div class="hd hd-3"><h3 id='code-2-h'>The recommended fix (fix-B-skip-separator-on-copy.diff)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The recommended fix (fix-B-skip-separator-on-copy.diff)</span><span class='meta'>32 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/FieldHighlighter.java b/lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/FieldHighlighter.java
+index 2c3635b3fe2..b22582519e7 100644
+--- a/lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/FieldHighlighter.java
++++ b/lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/FieldHighlighter.java
+@@ -18,6 +18,7 @@ package org.apache.lucene.search.uhighlight;
+ 
+ import java.io.IOException;
+ import java.text.BreakIterator;
++import java.text.CharacterIterator;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.Comparator;
+@@ -110,6 +111,8 @@ public class FieldHighlighter {
+     assert breakIterator.current() == breakIterator.first();
+ 
+     List&lt;Passage&gt; passages = new ArrayList&lt;&gt;(Math.min(maxPassages, 10));
++    // a copy, so that reading characters cannot move the break iterator
++    CharacterIterator text = (CharacterIterator) breakIterator.getText().clone();
+     int pos = breakIterator.current();
+     assert pos == 0;
+     while (passages.size() &lt; maxPassages) {
+@@ -117,6 +120,10 @@ public class FieldHighlighter {
+       if (next == BreakIterator.DONE) {
+         break;
+       }
++      if (next - pos == 1 &amp;&amp; text.setIndex(pos) == UnifiedHighlighter.MULTIVAL_SEP_CHAR) {
++        pos = next; // the separator between two values is not a passage
++        continue;
++      }
+       Passage passage = new Passage();
+       passage.setStartOffset(pos);
+       passage.setEndOffset(next);
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>The hunt&#x27;s JUnit (TestUHSummaryMultiValueSeparator.java, 2 tests)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>The hunt&#x27;s JUnit (TestUHSummaryMultiValueSeparator.java, 2 tests)</span><span class='meta'>104 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.uhighlight;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * When a multi-valued field has no match, the UnifiedHighlighter returns a default summary of the
+ * leading passages &quot;as delineated by the BreakIterator&quot; (getMaxNoHighlightPassages javadoc). The
+ * internal value separator (MULTIVAL_SEP_CHAR) is not part of any value, and the user&#x27;s
+ * BreakIterator never sees it (SplittingBreakIterator javadoc), so it must not be returned as one of
+ * those passages.
+ */
+public class TestUHSummaryMultiValueSeparator extends LuceneTestCase {
+
+  public void testSummaryOfMultiValuedFieldDoesNotReturnTheValueSeparator() throws Exception {
+    Analyzer analyzer = new MockAnalyzer(random(), MockTokenizer.SIMPLE, true);
+    Directory dir = newDirectory();
+    IndexWriter iw = new IndexWriter(dir, newIndexWriterConfig(analyzer));
+    Document doc = new Document();
+    doc.add(new TextField(&quot;body&quot;, &quot;First value.&quot;, Field.Store.YES));
+    doc.add(new TextField(&quot;body&quot;, &quot;Second value.&quot;, Field.Store.YES));
+    doc.add(new StringField(&quot;id&quot;, &quot;1&quot;, Field.Store.NO));
+    iw.addDocument(doc);
+    iw.close();
+    try (IndexReader ir = DirectoryReader.open(dir)) {
+    IndexSearcher searcher = new IndexSearcher(ir);
+
+    // the query matches the document but nothing in &quot;body&quot;: the default summary is returned
+    Query query = new TermQuery(new Term(&quot;id&quot;, &quot;1&quot;));
+    TopDocs topDocs = searcher.search(query, 10);
+    assertEquals(1, topDocs.scoreDocs.length);
+    UnifiedHighlighter highlighter = UnifiedHighlighter.builder(searcher, analyzer).build();
+
+    // maxPassages = 2 and maxNoHighlightPassages = -1 (default): the two leading passages are the
+    // two values&#x27; sentences.
+    String snippet = highlighter.highlight(&quot;body&quot;, query, topDocs, 2)[0];
+    String shown = snippet.replace(&quot;\u0000&quot;, &quot;\\u0000&quot;);
+    assertFalse(&quot;the value separator is returned in the summary: &quot; + shown, snippet.contains(&quot;\u0000&quot;));
+    assertTrue(&quot;the second value is missing from a 2-passage summary: &quot; + shown, snippet.contains(&quot;Second value.&quot;));
+
+    } finally {
+      dir.close();
+    }
+  }
+
+  public void testSummaryWithMorePassagesThanSentencesHasNoSeparator() throws Exception {
+    Analyzer analyzer = new MockAnalyzer(random(), MockTokenizer.SIMPLE, true);
+    Directory dir = newDirectory();
+    IndexWriter iw = new IndexWriter(dir, newIndexWriterConfig(analyzer));
+    Document doc = new Document();
+    doc.add(new TextField(&quot;body&quot;, &quot;First value.&quot;, Field.Store.YES));
+    doc.add(new TextField(&quot;body&quot;, &quot;Second value.&quot;, Field.Store.YES));
+    doc.add(new StringField(&quot;id&quot;, &quot;1&quot;, Field.Store.NO));
+    iw.addDocument(doc);
+    iw.close();
+    try (IndexReader ir = DirectoryReader.open(dir)) {
+    IndexSearcher searcher = new IndexSearcher(ir);
+    Query query = new TermQuery(new Term(&quot;id&quot;, &quot;1&quot;));
+    TopDocs topDocs = searcher.search(query, 10);
+    UnifiedHighlighter highlighter = UnifiedHighlighter.builder(searcher, analyzer).build();
+
+    // for highlighted values the formatter separates values with its ellipsis
+    // (TestUnifiedHighlighter#testMaxLengthWithMultivalue); the summary contains the raw separator
+    String snippet = highlighter.highlight(&quot;body&quot;, query, topDocs, 3)[0];
+    assertFalse(
+        &quot;the value separator is returned in the summary: &quot; + snippet.replace(&quot;\u0000&quot;, &quot;\\u0000&quot;),
+        snippet.contains(&quot;\u0000&quot;));
+
+    } finally {
+      dir.close();
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>Independent reproducer&#x27;s JUnit (TestMultiValuedNoMatchSummary.java, 4 tests, 3 offset sources each)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><figure class='code'><figcaption><span class='fname'>Independent reproducer&#x27;s JUnit (TestMultiValuedNoMatchSummary.java, 4 tests, 3 offset sources each)</span><span class='meta'>146 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.uhighlight.visibility;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.tests.analysis.MockAnalyzer;
+import org.apache.lucene.tests.analysis.MockTokenizer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexOptions;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.uhighlight.UnifiedHighlighter;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Independent check (public API only, outside the uhighlight package): when a hit has no match in
+ * a multi-valued field, the UnifiedHighlighter&#x27;s default summary is documented as &quot;the first
+ * maxPassages sentences from the field&quot;. The values are joined internally with a separator
+ * character; that separator should not become a summary passage of its own.
+ */
+public class TestMultiValuedNoMatchSummary extends LuceneTestCase {
+
+  private static final char NUL = &#x27;\u0000&#x27;;
+
+  /** Three ways to index the highlighted field: re-analysis, postings offsets, term vectors. */
+  private static FieldType[] bodyTypes() {
+    FieldType analysis = new FieldType(TextField.TYPE_STORED);
+    analysis.freeze();
+    FieldType postings = new FieldType(TextField.TYPE_STORED);
+    postings.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
+    postings.freeze();
+    FieldType vectors = new FieldType(TextField.TYPE_STORED);
+    vectors.setStoreTermVectors(true);
+    vectors.setStoreTermVectorPositions(true);
+    vectors.setStoreTermVectorOffsets(true);
+    vectors.freeze();
+    return new FieldType[] {analysis, postings, vectors};
+  }
+
+  private static String escape(String s) {
+    return s == null ? &quot;null&quot; : s.replace(String.valueOf(NUL), &quot;\\u0000&quot;);
+  }
+
+  /**
+   * Indexes one document whose &quot;body&quot; has the given values and whose &quot;id&quot; is &quot;x&quot;, then highlights
+   * &quot;body&quot; for the hit of a query on the &quot;id&quot; field (so there is no match in &quot;body&quot;).
+   */
+  private String summarize(FieldType bodyType, int maxPassages, Query query, String... values)
+      throws Exception {
+    Analyzer analyzer = new MockAnalyzer(random(), MockTokenizer.SIMPLE, true);
+    try (Directory dir = newDirectory();
+        IndexWriter w = new IndexWriter(dir, newIndexWriterConfig(analyzer))) {
+      Document doc = new Document();
+      doc.add(new StringField(&quot;id&quot;, &quot;x&quot;, Field.Store.NO));
+      for (String v : values) {
+        doc.add(new Field(&quot;body&quot;, v, bodyType));
+      }
+      w.addDocument(doc);
+      w.commit();
+      try (IndexReader r = DirectoryReader.open(dir)) {
+        IndexSearcher searcher = newSearcher(r);
+        TopDocs top = searcher.search(query, 10);
+        assertEquals(1, top.scoreDocs.length);
+        UnifiedHighlighter uh = UnifiedHighlighter.builder(searcher, analyzer).build();
+        String[] snippets =
+            uh.highlightFields(
+                    new String[] {&quot;body&quot;},
+                    query,
+                    new int[] {top.scoreDocs[0].doc},
+                    new int[] {maxPassages})
+                .get(&quot;body&quot;);
+        assertEquals(1, snippets.length);
+        return snippets[0];
+      }
+    }
+  }
+
+  /** Control: a query that matches both values renders them with the ellipsis, no NUL. */
+  public void testControlHighlightPathOfTwoValues() throws Exception {
+    for (FieldType ft : bodyTypes()) {
+      String s =
+          summarize(
+              ft, 2, new TermQuery(new Term(&quot;body&quot;, &quot;value&quot;)), &quot;First value.&quot;, &quot;Second value.&quot;);
+      assertEquals(&quot;First &lt;b&gt;value&lt;/b&gt;.... Second &lt;b&gt;value&lt;/b&gt;.&quot;, s);
+    }
+  }
+
+  /** Default sentence iterator, two one-sentence values, no match in body, maxPassages = 2. */
+  public void testNoMatchSummaryTwoPassages() throws Exception {
+    for (FieldType ft : bodyTypes()) {
+      String s =
+          summarize(
+              ft, 2, new TermQuery(new Term(&quot;id&quot;, &quot;x&quot;)), &quot;First value.&quot;, &quot;Second value.&quot;);
+      assertEquals(
+          &quot;summary has the internal value separator: &quot; + escape(s), -1, s.indexOf(NUL));
+      assertTrue(
+          &quot;summary of 2 passages lacks the second sentence: &quot; + escape(s),
+          s.contains(&quot;Second value.&quot;));
+    }
+  }
+
+  /** Same, maxPassages = 3: two sentences exist, both should be there, still without the NUL. */
+  public void testNoMatchSummaryThreePassages() throws Exception {
+    for (FieldType ft : bodyTypes()) {
+      String s =
+          summarize(
+              ft, 3, new TermQuery(new Term(&quot;id&quot;, &quot;x&quot;)), &quot;First value.&quot;, &quot;Second value.&quot;);
+      assertEquals(
+          &quot;summary has the internal value separator: &quot; + escape(s), -1, s.indexOf(NUL));
+    }
+  }
+
+  /** Empty first value, maxPassages = 1 (the default of highlight(field, query, topDocs)). */
+  public void testNoMatchSummaryEmptyFirstValue() throws Exception {
+    for (FieldType ft : bodyTypes()) {
+      String s = summarize(ft, 1, new TermQuery(new Term(&quot;id&quot;, &quot;x&quot;)), &quot;&quot;, &quot;Only value.&quot;);
+      assertEquals(
+          &quot;summary has the internal value separator: &quot; + escape(s), -1, s.indexOf(NUL));
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main 645d4fe14a20 (gradle); the same test also fails 3 of 5 on 10.5.2, 9.12.3 and 9.1.0</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>./gradlew :lucene:highlighter:test --tests &quot;org.apache.lucene.search.uhighlight.TestUnifiedHighlighterMultiValuedSummary&quot; -Ptests.seed=DEADBEEF -Ptests.asserts=true
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, main 645d4fe14a20, seed DEADBEEF, -Ptests.asserts=true: the fact checker&#x27;s run of exactly this command (the same three failures with -Ptests.asserts=false and seeds 7F3E21AB, 5E9A0498, C0FFEE150)
+TestUnifiedHighlighterMultiValuedSummary &gt; testSummaryTwoPassages FAILED
+    org.junit.ComparisonFailure: expected:&lt;First value.[... Second value.]&gt; but was:&lt;First value.[\u0000]&gt;
+TestUnifiedHighlighterMultiValuedSummary &gt; testSummaryEmptyFirstValue FAILED
+    org.junit.ComparisonFailure: expected:&lt;[Second value.]&gt; but was:&lt;[\u0000]&gt;
+TestUnifiedHighlighterMultiValuedSummary &gt; testSummaryMorePassagesThanSentences FAILED
+    org.junit.ComparisonFailure: expected:&lt;First value.[... ]Second value.&gt; but was:&lt;First value.[\u0000]Second value.&gt;
+5 tests completed, 3 failed (testSummaryOnePassage and testHighlightedValuesAreJoinedWithEllipsis pass)
+
+# with the recommended fix (or option A): 5 tests, 0 failed, assertions on and off</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc promises "the first maxPassages sentences from the field"; U+0000 is not from the field, and the sentence iterator is documented never to see it.</li><li>With a match, the same document joins its values with the formatter's ellipsis, as a test asserts.</li><li>No test covers a multi-valued summary; one skips values containing the separator ("will throw things off").</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>220 words</span></summary><div class='body'><ul><li><strong>The public contract.</strong> <code>highlight(field, query, topDocs, maxPassages)</code>: "If no highlights were found for a document, the first maxPassages sentences from the field will be returned" (<code>UnifiedHighlighter.java:759-761</code>); the 3-argument form: "the first sentence for the field" (<code class='nw'>:742</code>). The separator is inserted by the highlighter (<code class='nw'>:1463</code>), and <code>SplittingBreakIterator</code> promises that the user's iterator "will never 'see' the splitting character" (<code>SplittingBreakIterator.java:28</code>).</li><li><strong>The highlight path.</strong> For the same document with a matching query, values come out as separate passages joined by the ellipsis: <code>TestUnifiedHighlighter.java:339</code> asserts <code>highlightedValue + "... " + highlightedValue</code>. LUCENE-7438 (#8490), which introduced the highlighter: "a passage will never span across values".</li><li><strong>Lucene's own tests treat the separator as non-content.</strong> <code>TestUnifiedHighlighterMTQ.java:1139</code> skips random values that contain it ("will throw things off"). Every no-match summary test is single-valued. No javadoc, CHANGES or MIGRATE entry sanctions a separator in the summary or a dropped value.</li><li><strong>Downstream fixed it for themselves.</strong> Elasticsearch's override of the summary method (2017) skips leading separators and ends the passage at the next one (code reading).</li><li><strong>Origin, not intent.</strong> The loop is a near-verbatim copy of <code>PostingsHighlighter.getEmptyHighlight</code>, whose multi-value separator was a visible, configurable space (<code>getMultiValuedSeparator</code> returned <code>' '</code>) that its iterator saw. LUCENE-7438 replaced it with a hidden control character and did not adapt the loop.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>241 words</span></summary><div class='body'><p>Strongest case for "intended" (built by the cross-model reviews, the independent reproducer, the devil's advocate and the adjudication): <code>getMaxNoHighlightPassages</code> says "the number of leading passages (as delineated by the BreakIterator)", and the iterator <code class='nw'>FieldHighlighter</code> holds is the <code>SplittingBreakIterator</code>, which deliberately reports both sides of each separator (javadoc and <code>TestSplittingBreakIterator</code>), so [12, 13) is literally a delineated passage; the loop came from the PostingsHighlighter, where summaries contained the visible separator; <code class='nw'>FieldHighlighter</code> is <code class='nw'>@lucene.internal</code>, the UnifiedHighlighter and <code>SplittingBreakIterator</code> are <code>@lucene.experimental</code>, and the summary method is a protected override hook; Solr's U+0000 snippet separator hides the NUL.</p><p>Why it fails: the iterator's boundaries are fine, the summary loop's use of them is the defect, and the more specific public promise is sentences "from the field"; the literal reading also does not explain why a real sentence is pushed out. The PostingsHighlighter lineage explains where the bug came from, not that anyone wanted it. The labels allow API change; they do not make the output correct. Solr still loses a snippet (emulated), and Elasticsearch replaced the loop. The cross-model reviews rated the intended case moderate; the devil's advocate and the adjudication rejected it. <strong>Verdict: a defect</strong>; expect the literal reading to come up, and answer it with the <code class='nw'>highlight()</code> javadoc and the dropped value. In the end it is a contract call for the maintainers: the boundaries are documented and tested, but nothing documents the separator as a summary passage.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>B. Skip the separator interval in the summary loop, reading the character from a copy</strong></p><p class='short'>In the summary loop, skip a boundary pair that encloses exactly the U+0000 separator, so it never counts as a passage, and read that character from a copy of the iterator's text: +7 lines in <code class='nw'>FieldHighlighter</code>. The test passes, and so do the module's other 722 tests and its checks.</p><pre class='snippet' tabindex='0'><code>     List&lt;Passage&gt; passages = new ArrayList&lt;&gt;(Math.min(maxPassages, 10));
++    // a copy, so that reading characters cannot move the break iterator
++    CharacterIterator text = (CharacterIterator) breakIterator.getText().clone();
+     int pos = breakIterator.current();
+     ...
+       if (next == BreakIterator.DONE) {
+         break;
+       }
++      if (next - pos == 1 &amp;&amp; text.setIndex(pos) == UnifiedHighlighter.MULTIVAL_SEP_CHAR) {
++        pos = next; // the separator between two values is not a passage
++        continue;
++      }
+       Passage passage = new Passage();</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 762 words</span></summary><div class='body'><p>Two options were applied and tested with gradle on main <code class='nw'>645d4fe14a20</code> (option B recommended, option A hunt's original); two more were considered and not run. A and B skip exactly the same interval; they differ only in how they read the character.</p><div class="hd hd-3"><h3 id='fix-skip-on-copy'>B. Skip the separator interval in the summary loop, reading the character from a copy <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-skip-on-copy" target="_self" aria-label="Link to this section" aria-describedby="fix-skip-on-copy"><span aria-hidden="true">#</span></a></div><p>In <code>FieldHighlighter.getSummaryPassagesNoHighlight</code> (<code>FieldHighlighter.java:109-128</code>), take a copy of the iterator's text once before the loop and skip a boundary pair of length 1 whose character is <code>MULTIVAL_SEP_CHAR</code>. +7 lines, one of them the import of <code>java.text.CharacterIterator</code>.</p><p><strong>What it changes.</strong> Only the no-match summary. The separator interval no longer counts toward <code class='nw'>maxPassages</code>, so the next value's first sentence takes the slot; the two values' passages no longer touch (12 != 13), so the formatter puts its ellipsis between them, as on the highlight path. An empty first value gives the second value's first sentence; when every value is empty there is no passage and the snippet is <code class='nw'>null</code>, as with <code>maxNoHighlightPassages</code> 0 (<code>FieldHighlighter.java:96-100</code>, read, not run). Single-valued fields (whose value holds no U+0000) and matched highlighting are unchanged.</p><pre class='snippet' tabindex='0'><code>     List&lt;Passage&gt; passages = new ArrayList&lt;&gt;(Math.min(maxPassages, 10));
++    // a copy, so that reading characters cannot move the break iterator
++    CharacterIterator text = (CharacterIterator) breakIterator.getText().clone();
+     int pos = breakIterator.current();
+     ...
+       if (next == BreakIterator.DONE) {
+         break;
+       }
++      if (next - pos == 1 &amp;&amp; text.setIndex(pos) == UnifiedHighlighter.MULTIVAL_SEP_CHAR) {
++        pos = next; // the separator between two values is not a passage
++        continue;
++      }
+       Passage passage = new Passage();</code></pre><p class='k'>Trade-offs</p><ul><li>One <code class='nw'>getText()</code> and one <code class='nw'>clone()</code> per summary call (two small <code>StringCharacterIterator</code> objects with the default iterator).</li><li>It recognises the separator by its value, so a stored value that itself contains U+0000 is still mis-split; that is a separate known bug (LFV-599).</li><li>No CHANGES entry is drafted. Engines that override the summary method are unaffected either way.</li></ul><p class='k'>What the checks validated</p><ul><li>Gradle in a scratch worktree of main <code class='nw'>645d4fe14a20</code>: the 5-test repro passes with assertions on and off and with 3 seeds (stock: 3 of 5 fail); every <code class='nw'>uhighlight</code> class, 15 classes and 476 tests (470 upstream), 0 failures; all of <code>:lucene:highlighter:test</code>, 36 classes and 728 tests (722 upstream), 0 failures.</li><li><code>:lucene:highlighter:check -x test</code> passes with the repro added (google-java-format, ecjLint, forbiddenApis).</li><li>With the fixed class shadowed in the repro harness on <code class='nw'>645d4fe14a20</code>: the hunt's test passes 2 of 2 and the independent reproducer's test 4 of 4 (3 offset sources); stock they fail 2 of 2 and 3 of 4.</li></ul><div class="hd hd-3"><h3 id='fix-skip-via-gettext'>A. The same skip, reading the character through breakIterator.getText() (the hunt's 5-line form) <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-skip-via-gettext" target="_self" aria-label="Link to this section" aria-describedby="fix-skip-via-gettext"><span aria-hidden="true">#</span></a></div><p>Five added lines in the same loop: <code>if (next - pos == 1 &amp;&amp; breakIterator.getText().setIndex(pos) == UnifiedHighlighter.MULTIVAL_SEP_CHAR) { pos = next; continue; }</code>. With the highlighter's own wrapping it is correct, because <code>SplittingBreakIterator.getText()</code> returns a new <code>StringCharacterIterator</code> each time (<code>SplittingBreakIterator.java:59-64</code>).</p><pre class='snippet' tabindex='0'><code>+      if (next - pos == 1
++          &amp;&amp; breakIterator.getText().setIndex(pos) == UnifiedHighlighter.MULTIVAL_SEP_CHAR) {
++        pos = next; // the separator between two values is not a passage
++        continue;
++      }</code></pre><p class='k'>Trade-offs</p><ul><li><strong>Breaks custom iterators (executed).</strong> A <code class='nw'>FieldHighlighter</code> can get any <code class='nw'>BreakIterator</code> through the protected <code>newFieldHighlighter</code> hook. A JDK <code>RuleBasedBreakIterator</code> (the sentence and word instances) returns its live <code>CharacterIterator</code> from <code class='nw'>getText()</code>, so <code class='nw'>setIndex(pos)</code> moves the iterator back and the next <code class='nw'>next()</code> repeats a boundary. With a raw JDK word iterator over the same two values and 8 passages, A gives <code>[0,5)[5,6)[6,6)[6,11)[11,12)[12,12)[13,13)[13,19)</code>, three of them empty; stock gives <code>[0,5)[5,6)[6,11)[11,12)[12,13)[13,19)[19,20)[20,25)</code> and B <code>[0,5)[5,6)[6,11)[11,12)[13,19)[19,20)[20,25)[25,26)</code>.</li><li>That is a custom, <code class='nw'>@lucene.internal</code> configuration, but option B avoids it at no cost.</li></ul><p class='k'>What the checks validated</p><ul><li>The same results as option B for the repro (assertions on and off, 3 seeds), the 476 <code class='nw'>uhighlight</code> tests and the 728 module tests (722 upstream), and <code>check -x test</code>.</li></ul><div class="hd hd-3"><h3 id='fix-one-sided-splitting'>C. Make SplittingBreakIterator report one boundary per separator (not run)</h3><a class="hlink" href="#fix-one-sided-splitting" target="_self" aria-label="Link to this section" aria-describedby="fix-one-sided-splitting"><span aria-hidden="true">#</span></a></div><p>Remove the second boundary, so the separator is never an interval of its own.</p><p class='k'>Trade-offs</p><p>Not recommended: the two-sided boundaries are documented and tested (<code>TestSplittingBreakIterator</code>), and the highlight path relies on the boundary at a value's start (<code>breakIterator.preceding(...)</code>, <code>FieldHighlighter.java:178-182</code>) so that a passage in a later value does not begin with the separator.</p><div class="hd hd-3"><h3 id='fix-by-position'>D. Skip by position or by iterator type (not run)</h3><a class="hlink" href="#fix-by-position" target="_self" aria-label="Link to this section" aria-describedby="fix-by-position"><span aria-hidden="true">#</span></a></div><p>Compute the separator positions from the content, or test <code>breakIterator instanceof SplittingBreakIterator</code>.</p><p class='k'>Trade-offs</p><p>The protected <code>getSummaryPassagesNoHighlight(int)</code> has no content parameter, and changing its signature would break the overrides downstream engines ship; B gets the same result without that.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>In the source examined during the hunt, Elasticsearch and OpenSearch replace this summary method and are not exposed; Solr's default summary is off, and with <code>hl.defaultSummary=true</code> it shows one snippet fewer (by reading their code and an emulation, not run).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive check of the real highlighter against a reference written from its javadoc. For every 2-3 value content of up to 5 characters and 61 iterator configurations, the oracle "the summary is the first N sentences of the values, never the separator" failed for every iterator family, on multi-valued content only. A public-API JUnit followed.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>159 words</span></summary><div class='body'><p><strong>Method (semi-formal): bounded-exhaustive translation validation</strong> of the real highlighter jar against a reference semantics written from the javadoc, not from the code.</p><ul><li>The reference says: when no passage has a match, the summary is the first N passages of the values in order, as delineated by the user's BreakIterator, and never the separator (N = maxPassages when maxNoHighlightPassages &lt; 0).</li><li>Multi-valued tiers: every content of 2-3 values over <code class='nw'>a</code>, space and <code class='nw'>.</code> up to 5 characters (8,657 contents, 7 plain and 54 length-goal iterator configurations, 3,168,462 checks), and with a supplementary character up to 4 characters (2,096 contents, 31 configurations, 584,784 checks).</li><li>The failure class <code>P2-summary-separator-passage</code> appeared for every iterator family (sentence, word, custom separator, whole, length goal), on multi-valued content only; the same class also caught the all-values-empty case. The hypothesis came first from reading <code>getSummaryPassagesNoHighlight</code> while the reference was written; the harness confirmed it on its first multi-valued scope. The finder then wrote the public-API JUnit.</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-26, refreshed 2026-10-29: GitHub issues, PRs and commits, JIRA, the Lucene and Solr lists, downstream repositories, the web and all 408 open PRs' files). Closest: apache/solr#5126 notes a related U+0000 symptom on highlighted matches, which is a different bug.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p><strong>Closest, all different</strong> (16 hits classified, none the same bug):</p><ul><li><strong>apache/solr#5126</strong> (by dsmiley, merged 2026-10-27): its description notes that with <code>hl.method=unified</code>, multi-valued fields can return a leading empty snippet because Lucene's value separator and Solr's snippet separator are both U+0000, and that this "deserves its own issue". Their example is a highlighted match; an executed emulation reproduces it only with <code>LengthGoalBreakIterator</code> on the match path (the sibling bug LFV-494), not with this summary loop. It never mentions the default summary or a dropped value; no follow-up issue was found. Worth citing as a neighbouring observation.</li><li><strong>Elasticsearch and OpenSearch</strong> override <code>getSummaryPassagesNoHighlight</code> and skip the separator (since 2017): a workaround in code, with no issue text describing the Lucene defect.</li><li><strong>#8490 / LUCENE-7438</strong>: the introduction ("a passage will never span across values").</li><li><strong>#10135 / LUCENE-9093</strong>: changed <code>LengthGoalBreakIterator</code> for the default summary; single-valued.</li></ul><p>Gaps: downstream trackers were searched by keyword, not exhaustively; private reports cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues and PRs (apache/lucene, apache/lucene-solr, apache/solr, elastic/elasticsearch, opensearch-project/OpenSearch, hibernate/hibernate-search, apache/lucenenet)</th><td class='when'>2026-10-26</td><td>53 manual searches (for example getSummaryPassagesNoHighlight, MULTIVAL_SEP_CHAR, SplittingBreakIterator, maxNoHighlightPassages, defaultSummary multivalued, unified highlighter null character)</td><td>no report; apache/solr#5126 is the closest (a different bug)</td></tr><tr><th scope='row'>The hunt's scripted prior-report search (GitHub issues, PRs and commits, downstream repositories, dev@, java-user@, issues@ and commits@, the JIRA archive, the web)</th><td class='when'>2026-10-26</td><td>three runs, 45, 51 and 45 queries; 243, 332 and 119 distinct hits</td><td>no report; #8490 and #10135 the most relevant</td></tr><tr><th scope='row'>Open apache/lucene PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 408 open PRs</td><td>none touches the summary loop or SplittingBreakIterator</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR, Hibernate), mailing lists, web</th><td class='when'>2026-10-26</td><td>13 JQL queries, 23 list queries, 9 web queries</td><td>no report</td></tr><tr><th scope='row'>Refresh: apache/lucene and apache/solr</th><td class='when'>2026-10-29</td><td>the same key terms plus highlighter items created since 2026-10-25 and Solr snippet-separator issues since 2026-10-01; apache/solr#5126 re-read</td><td>nothing new (#5126 merged 2026-10-27 with the same note)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since the UnifiedHighlighter was added: LUCENE-7438 (<code class='nw'>722e82712435</code>, 2016-10-04), first released in 6.3.0. Executed on 6.3.0, 6.6.6, 7.7.3, 8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main: affected everywhere. Not a regression, never fixed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>6 rows</span></summary><div class='body'><p><strong>Introduced by</strong> LUCENE-7438 "UnifiedHighlighter" (now #8490): commit <code class='nw'>722e82712435</code> on master and its branch_6x cherry-pick <code class='nw'>4b6794368df</code>, both 2016-10-04, by dsmiley. It added the whole <code class='nw'>uhighlight</code> package, including all three pieces the bug needs: the summary loop, the two-sided <code>SplittingBreakIterator.next()</code> and the wrapping on <code>(char) 0</code>. The contribution PR apache/lucene-solr#79 was closed without a GitHub merge; the code was committed directly. Later edits to the loop (LUCENE-7559, LUCENE-8145, #16056) are cosmetic. At every release tag from 6.3.0 to 10.5.2 in the history clone the code is the same (read; 8.8.2 to 8.11.3 are not tagged there, so they are inferred from 8.8.1, read, and 8.11.4, executed); <code class='nw'>branch_10_6</code> has the same summary loop and iterator (read, not run).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the doc's JUnit fails 3 of 5 (gradle, assertions on and off, 3 seeds); the hunt's and the reproducer's tests fail</td></tr><tr><th scope='row'>10.5.2, 9.12.3, 9.1.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the doc's JUnit fails 3 of 5; the hunt's fails 2 of 2</td></tr><tr><th scope='row'>10.0.0, 9.0.0, 8.11.4, 7.7.3, 6.6.6</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the hunt's JUnit (or its pre-9.1 port) fails 2 of 2</td></tr><tr><th scope='row'>6.3.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> first release</span></td><td>fails 2 of 2 with assertions on and off; passes with the fix applied to the 6.3.0 source</td></tr><tr><th scope='row'>6.2.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no UnifiedHighlighter</span></td><td>the API does not exist (the test does not compile)</td></tr><tr><th scope='row'>fix B / fix A on <code class='nw'>645d4fe14a20</code></th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the JUnit passes, and so do the 722 upstream highlighter tests</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, two reviews by a reviewer from another model family, a devil's advocate, an adjudication and a credibility audit re-ran or re-read it; every executed check reproduced it. This doc re-ran it through gradle on the latest main and validated two fixes.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>402 words</span></summary><div class='body'><p>Each check had a lens; the adjudication then re-ran both tests, the reproducer's with a new seed.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>Cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not real (low), procedural</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6), reading only: its protocol says "not real" without its own run. Root cause agrees, inputs in contract, intended case moderate; a separate re-run failed 2 of 2.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Its own JUnit, 3 offset sources, outside the <code class='nw'>uhighlight</code> package: 3 of 4 fail on main (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), 10.5.2 and 9.12.3; 30 of 30 bug cases with 10 iterations; <code class='nw'>main()</code> variants fail on 8.11.4 and 6.3.0; 4 of 4 pass with the fix.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>The same reviewer, reading only; the step's own probe showed the separator with the sentence and whole-text iterators, with 2 and 3 values and an empty first value, and single-valued output unchanged by the fix.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium-high)</span></td><td>Built the strongest works-as-designed case and rejected it; its probe showed that the default 1-passage call is hit only with an empty first value, and that a NUL-splitting consumer still loses a value.</td></tr><tr><th scope='row'>Adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high), minor</span></td><td>Re-ran the reproducer's test with a new seed (<code class='nw'>-da</code>, 3 of 4 fail) and the hunt's (<code class='nw'>-ea</code>, 2 of 2 fail).</td></tr><tr><th scope='row'>Follow-up and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>History sweep over 9 releases and main, a security differential probe (none), a prior-art search (new); the audit re-ran the hunt's test on main and 10.5.2 and kept impact class minor.</td></tr><tr><th scope='row'>This doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; two fixes validated</span></td><td>Gradle on main <code class='nw'>645d4fe14a20</code>, stock and with fixes A and B; the hunt's and the reproducer's tests through the harness on <code class='nw'>645d4fe14a20</code>; the new test on 10.5.2, 9.12.3 and 9.1.0; a probe that found option A's problem with live-text iterators.</td></tr><tr><th scope='row'>Fact checks of this doc</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> wording fixed; nothing refuted</span></td><td>An independent fact check (re-ran the gradle command, both fixes and the harness), a cross-model fact check by a reviewer from another model family (OpenAI GPT-5.6, reading only) and a diagram check. They found tagging and wording overclaims (releases run vs read, the observed-output excerpt, offset sources, 'one sentence fewer'), now fixed; a follow-up probe ran each offset source as its own test (6 of 6 fail on main, pass with fix B).</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-498/bug.png' download='uh-summary-counts-multivalue-separator-as-passage-bug.png' target='_self'>PNG</a> <span class='n'>529 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,571 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-498, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>UnifiedHighlighter's no-match summary of a multi-valued field counts the internal U+0000 value separator as a passage, so the summary contains a NUL character and shows one value or sentence fewer than requested</dd></div><div><dt>Area</dt><dd>highlighter / UnifiedHighlighter default summary (FieldHighlighter.getSummaryPassagesNoHighlight over the SplittingBreakIterator that splits multi-valued fields on MULTIVAL_SEP_CHAR)</dd></div><div><dt>Priority</dt><dd>Low, rank 454: With default UnifiedHighlighter settings the no-match summary of a multi-valued field returns a NUL and one passage too few, ordinary data but display text only, so it joins the highlighter output rows after LFV-401.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Applications on any release from 6.3.0 through 10.5.2 or on main that highlight a multi-valued stored field with the UnifiedHighlighter in its default configuration (default sentence BreakIterator, default maxNoHighlightPassages -1) get a wrong default summary for every hit with no match in that field whenever maxPassages (or maxNoHighlightPassages) is 2 or more and the leading passages reach a value boundary, or whenever the first value is empty (then even the default 1-passage call returns just U+0000): the snippet contains a raw U+0000 and one value or sentence fewer than requested; hits, scores and the index are unaffected, nothing throws, no index size is needed, and by code reading Elasticsearch and OpenSearch (which override the summary method) and Solr with its default hl.defaultSummary=false are not exposed.</dd></div><div><dt>Summary</dt><dd>You store two values in one field ('First value.' and 'Second value.'), run a query that matches the document but not that field, and ask the UnifiedHighlighter for 2 passages; you expect the documented default summary, the first 2 sentences from the field (for example 'First value.... Second value.', the way the highlight path joins values). Instead you get 'First value.\u0000': the highlighter joins the values with an internal U+0000 separator, its SplittingBreakIterator reports a boundary on both sides of that character, and FieldHighlighter.getSummaryPassagesNoHighlight turns the 1-character gap into a passage, so the NUL is returned and takes the second value's slot (3 passages give 'First value.\u0000Second value.'). With an empty first value even 1 passage returns just '\u0000'.</dd></div><div><dt>Introduced</dt><dd>722e82712435ecf46c9868137d885484152f749b on master and its branch_6x twin 4b6794368df (LUCENE-7438 'New UnifiedHighlighter' by dsmiley, 2016-10-04; JIRA issue now GitHub #8490; the contribution PR apache/lucene-solr#79 by Timothy055 was closed without a GitHub merge, the code was committed directly) [read: git blame of the summary loop and of SplittingBreakIterator#next(), git log -G for the wrapping line, git tag --contains in the full-history clone; exec: the repro fails on 6.3.0, the first release with the API, and does not compile on 6.2.1, where the API is absent]. The commit added all three pieces the bug needs: the summary loop that makes a passage of every consecutive pair of boundaries, SplittingBreakIterator#next() reporting both sides of the separator, and UnifiedHighlighter wrapping every field iterator in a SplittingBreakIterator on MULTIVAL_SEP_CHAR = (char) 0. Later edits to the loop (LUCENE-7559 c51e89014ac, LUCENE-8145 9422609a5d4, #16056 dbf0d1426f1) are cosmetic. Not a regression (2016-10-04)</dd></div><div><dt>First affected version</dt><dd>6.3.0 [exec] (first release with the UnifiedHighlighter, from branch_6x commit 4b6794368df; release commit a66a44513ee8, 2016-11-02); 6.2.1 has no org.apache.lucene.search.uhighlight package (the repro does not compile there) [exec]</dd></div><div><dt>Affected versions</dt><dd>every release with the UnifiedHighlighter, 6.3.0 through 10.5.2, and main ea57360912ed [exec: the finder's JUnit, or its pre-9.1 port with identical test bodies, fails 2 of 2 on 6.3.0, 6.6.6, 7.7.3, 8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main, also with -da on 6.3.0, 9.0.0, 9.12.3, 10.5.2 and main; the independent reproduction's JUnit fails 3 of 4 on main (-ea, -da), 10.5.2 and 9.12.3, and its main() variants fail on 8.11.4 and 6.3.0; read: at every release tag from 6.3.0 to 10.5.2 the wrapping, the (char) 0 separator and the summary loop without a separator check are present, and SplittingBreakIterator#next() is identical after whitespace normalisation (8.8.2 to 8.11.4 are not tagged in the history clone; 8.11.4 was executed)]; not affected: releases up to 6.2.1, which have no UnifiedHighlighter [exec]; not fixed upstream [read, not executed: at upstream main a9779ef3c193 the last commit on FieldHighlighter.java is dbf0d1426f13 (#16056) and on SplittingBreakIterator.java 6faa4f98e048 (2020), and no open PR touches the summary loop or the separator handling]</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check, code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, the prior-report record, plus the finder's run: three runs of the scripted prior-report search (45, 51 and 45 queries over apache/lucene issues and PRs, commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web; 243, 332 and 119 distinct hits, none this bug); 53 manual GitHub searches over apache/lucene, apache/lucene-solr, apache/solr, elastic/elasticsearch, opensearch-project/OpenSearch, hibernate/hibernate-search and apache/lucenenet; the changed files of all 408 open apache/lucene PRs; 13 JIRA queries (SOLR, LUCENE) plus the Hibernate JIRA; 23 list queries; 9 web queries; 16 hits classified, all same_bug false); not fixed upstream (read, not executed: upstream main a9779ef3c193, no CHANGES entry, no open PR touches the code); closest items, not reports: apache/solr#5126 (open, by dsmiley, 2026-10-13: notes that with hl.method=unified multi-valued fields can return a leading empty snippet because Lucene's value separator and Solr's snippet separator are both U+0000; an executed emulation shows that their example needs LengthGoalBreakIterator on the match path, the sibling candidate's code, not this summary loop), the Elasticsearch and OpenSearch CustomFieldHighlighter override of getSummaryPassagesNoHighlight (a downstream workaround in code from 2017; no issue or PR text describes the Lucene defect), and #8490 / LUCENE-7438 (the introduction: 'a passage will never span across values')</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (2026-10-28) through gradle in a scratch worktree (removed afterwards), seeds DEADBEEF, 5E9A0498 and C0FFEE150, assertions on and off: stock, the 5-test JUnit fails 3 of 5 (its 2 controls pass); with fix B and, separately, fix A it passes, together with every <code class='nw'>uhighlight</code> test class (470 upstream tests) and all of <code>:lucene:highlighter:test</code> (722 upstream tests), and <code>:lucene:highlighter:check -x test</code> passes with the repro added. Through the repro harness: the new JUnit on 10.5.2, 9.12.3 and 9.1.0 (3 of 5 fail each); the hunt's and an independent reproducer's JUnit on <code class='nw'>645d4fe14a20</code>, stock (fail) and with fix B (pass); a probe with one test per offset source (re-analysis, postings offsets, term vectors) on <code class='nw'>645d4fe14a20</code>, 6 of 6 fail with assertions on and off and pass with fix B. The hunt, its checks and the history sweep ran on main <code class='nw'>ea57360912ed</code>, whose highlighter module is identical, and on 6.3.0, 6.6.6, 7.7.3, 8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0 and 10.5.2. OpenJDK 25.0.3, Linux aarch64.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/FieldHighlighter.java:88-94 (at ea57360912ed) (no passages -&gt; getSummaryPassagesNoHighlight(maxNoHighlightPassages == -1 ? maxPassages : maxNoHighlightPassages)), :104-108 (javadoc: &#x27;By default this just returns the first maxPassages sentences&#x27;), :109-128 (summary loop: a Passage for every consecutive pair of breakIterator.next() boundaries, no separator check)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/SplittingBreakIterator.java:23-31 (at ea57360912ed) (class javadoc: slices &#x27;on both sides of every occurrence&#x27;; &#x27;the enclosed BreakIterator will never &quot;see&quot; the splitting character&#x27;; @lucene.experimental), :103-124 (next(): end of value k, then sliceStartIdx = sliceEndIdx + 1, the start of value k+1)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:98 (at ea57360912ed) (MULTIVAL_SEP_CHAR = (char) 0), :634-639 (getMaxNoHighlightPassages javadoc: &#x27;the number of leading passages (as delineated by the BreakIterator)&#x27;, default -1 = maxPassages), :742-748 (highlight(field, query, topDocs) = maxPassages 1, &#x27;the first sentence&#x27;), :759-761 (highlight(..., maxPassages): &#x27;the first maxPassages sentences from the field will be returned&#x27;), :1135 (every field iterator wrapped in new SplittingBreakIterator(getBreakIterator(field), MULTIVAL_SEP_CHAR)), :1410 and :1463 (LimitedStoredFieldVisitor appends the separator between stored values)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/DefaultPassageFormatter.java:66-68 (at ea57360912ed) (no ellipsis between connected passages, so the separator passage is copied verbatim); lucene/highlighter/src/test/org/apache/lucene/search/uhighlight/TestUnifiedHighlighter.java:339 (testMaxLengthWithMultivalue asserts value + &#x27;... &#x27; + value on the highlight path)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:98, :1135, :1410, :1463</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/SplittingBreakIterator.java:24-28 (class javadoc), :104-124 (next), :114</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/FieldHighlighter.java:89-94 (summary call), :104-108 (javadoc), :109-128 (summary loop), :178-182 (highlight path passage start via preceding)</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/DefaultPassageFormatter.java:39-40 (default ellipsis), :66-68 (no ellipsis between touching passages)</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/test/org/apache/lucene/search/uhighlight/TestSplittingBreakIterator.java:58-60; TestUnifiedHighlighter.java:759, :823, :858 (single-valued summary tests)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:94 (@lucene.experimental), :116 (default -1), :401 (withMaxNoHighlightPassages), :1143-1161 (newFieldHighlighter); FieldHighlighter.java:32 (@lucene.internal)</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:100 (DEFAULT_MAX_LENGTH 10000), :1446-1452 (maxLength budget in LimitedStoredFieldVisitor)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/UnifiedHighlighter.java:635-638 (getMaxNoHighlightPassages javadoc), :742, :759-761, :1463</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/SplittingBreakIterator.java:24-31</code></li><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/test/org/apache/lucene/search/uhighlight/TestUnifiedHighlighter.java:339; TestUnifiedHighlighterMTQ.java:1139; TestSplittingBreakIterator.java:58-60</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>a Lucene main checkout (645d4fe14a20) lucene/highlighter/src/java/org/apache/lucene/search/uhighlight/FieldHighlighter.java:96-100, :109-128, :178-182; SplittingBreakIterator.java:59-64; UnifiedHighlighter.java:1143-1161</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>a Lucene clone origin/branch_10_6 4ae946e5a9b9 (git diff against 645d4fe14a20 over the four uhighlight files: cosmetic only)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestUnifiedHighlighterMultiValuedSummary.java (5 tests, 2 controls): <a href='../repro/LFV-498/TestUnifiedHighlighterMultiValuedSummary.java'><code>repro/LFV-498/TestUnifiedHighlighterMultiValuedSummary.java</code></a> (102 lines)</li><li>The recommended fix (fix-B-skip-separator-on-copy.diff): <a href='../repro/LFV-498/fix-B-skip-separator-on-copy.diff'><code>repro/LFV-498/fix-B-skip-separator-on-copy.diff</code></a> (32 lines)</li><li>The hunt&#x27;s JUnit (TestUHSummaryMultiValueSeparator.java, 2 tests): <a href='../repro/LFV-498/TestUHSummaryMultiValueSeparator.java'><code>repro/LFV-498/TestUHSummaryMultiValueSeparator.java</code></a> (104 lines)</li><li>Independent reproducer&#x27;s JUnit (TestMultiValuedNoMatchSummary.java, 4 tests, 3 offset sources each): <a href='../repro/LFV-498/TestMultiValuedNoMatchSummary.java'><code>repro/LFV-498/TestMultiValuedNoMatchSummary.java</code></a> (146 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A summary still (bug.png) from the user's call to the joined string, the boundaries, the summary loop, expected vs actual, and the fix. Values and line numbers come from the code at <code class='nw'>645d4fe14a20</code> and an executed probe.</p><ul class='paths'><li><a href='../assets/LFV-498/bug.png'><code>assets/LFV-498/bug.png</code></a> (529 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

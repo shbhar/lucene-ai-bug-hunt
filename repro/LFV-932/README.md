@@ -2,6 +2,8 @@
 
 Bug LFV-932 · Area: analysis / hunspell (Dictionary FLAG UTF-8 parsing under the SET encoding) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-932.html](../../bugs/LFV-932.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You load a Hunspell dictionary whose affix file says FLAG UTF-8 (flags are UTF-8
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Lucene reads the flags from text already decoded with the SET charset, so each 2-byte flag becomes two characters and an affix rule keeps only the first one, the shared lead byte: both classes merge, spell accepts the forbidden forms (kote, lasa in the repro) and the stemmer returns kot for kote, with no error.
+- Expected: `kota` and `lase` accepted, `kote` and `lasa` rejected and `stem("kote")` empty for every SET value, as with SET ISO8859-1.
+- Actual: 7 of 8 tests fail: `kote` is accepted under ISO8859-2, -15, -5 and -14 (and `żółwe` next to an ISO8859-2 word), `stem("kote")` is `[kot]`, and ISO8859-3 throws `UnmappableCharacterException`.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestFlagUtf8WithEightBitSet.java](TestFlagUtf8WithEightBitSet.java)
+- [TestFlagUtf8With8BitSet.java](TestFlagUtf8With8BitSet.java)
+- [TestFlagUtf8Under8BitSet.java](TestFlagUtf8Under8BitSet.java)
+- [FlagUtf8SetFlagsProbe.java](FlagUtf8SetFlagsProbe.java)
 
 ## Feedback
 

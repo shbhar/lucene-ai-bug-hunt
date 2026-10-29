@@ -2,6 +2,8 @@
 
 Bug LFV-645 · Area: core / document (DateTools date-to-string term encoding: timeToString/dateToString and stringToTime/stringToDate) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-645.html](../../bugs/LFV-645.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You convert a date before AD 1 or after 9999 with DateTools.timeToString (or dat
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The SimpleDateFormat pattern 'yyyy...' prints the year of era with no era and at least four digits: 2 BC-01-01 becomes "00020101", which sorts after AD 1's "00010101" and parses back as AD 2-01-01 (at YEAR resolution 1 BC and AD 1 both give "0001"), and 10000-01-01 becomes "100000101", which sorts before "20260101" and makes stringToTime throw ParseException, because the parser is chosen by string length.
+- Expected: 2 BC sorts before AD 1 and reads back as 2 BC, 10000 sorts after 2026 and reads back, and AD 1000..1500 matches no 1200 BC document.
+- Actual: `00020101` sorts after `00010101` and reads back as AD 2, `100000101` sorts before `20260101` and throws `ParseException`, and the range matches the 1200 BC document: 5 of 6 fail.
 
 ## Files
 
@@ -41,6 +43,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDateToolsYearRange.java](TestDateToolsYearRange.java)
+- [TestDateToolsOrderOutsideFourDigitYears.java](TestDateToolsOrderOutsideFourDigitYears.java)
+- [TestDateToolsYearRangeV1.java](TestDateToolsYearRangeV1.java)
+- [TestDateToolsReachability.java](TestDateToolsReachability.java)
+- [DateToolsYearProbe.java](DateToolsYearProbe.java)
 
 ## Feedback
 

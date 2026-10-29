@@ -2,6 +2,8 @@
 
 Bug LFV-720 · Area: analysis / ICU (DefaultICUTokenizerConfig syllable rules MyanmarSyllable.rbbi / MyanmarSyllable.brk, used for Myanmar text when myanmarAsWords=false; ICUTokenizerFactory 'icu' with myanmarAsWords="false") · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-720.html](../../bugs/LFV-720.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You tokenize Myanmar-script text with ICUTokenizer in syllable mode (new Default
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Syllable mode gives [က] for both, a mark on its own gives no token, and 'ကောင်း µm' gives [ကောင်း, m] (the space and µ are Common script, so the script iterator keeps them in the Myanmar run), all without an error.
+- Expected: Every letter in some token, as in the default mode: ကꧦ → `[ကꧦ]` (or `[က, ꧦ]`), and ꧦ alone → one token.
+- Actual: ကꧦ → `[က]`, ကꩰ → `[က]`, ꧦ → no token: 4 of 6 tests fail ("U+A9E6 of "ကꧦ" is in no token"), with no exception.
 
 ## Files
 
@@ -44,6 +46,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-icu also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestMyanmarSyllableKeepsLetters.java](TestMyanmarSyllableKeepsLetters.java)
+- [TestMyanmarSyllableDropsLetters.java](TestMyanmarSyllableDropsLetters.java)
+- [TestSyllableModeKeepsLetters.java](TestSyllableModeKeepsLetters.java)
+- [MyanmarSyllableHistoryProbe.java](MyanmarSyllableHistoryProbe.java)
+- [Lfv720Probe.java](Lfv720Probe.java)
 
 ## Feedback
 

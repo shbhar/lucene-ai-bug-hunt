@@ -2,6 +2,8 @@
 
 Bug LFV-756 · Area: highlighter / UnifiedHighlighter (highlightWithoutSearcher entry point, maxLength option) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-756.html](../../bugs/LFV-756.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a UnifiedHighlighter without a searcher (builderWithoutSearcher, optio
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The whole text is analyzed and highlighted: with maxLength 20, the 48-char text 'Alpha beta gamma.
+- Expected: Both cases return `Alpha beta gamma. ` with nothing marked, the same as through a searcher.
+- Actual: Both return `<b>Lucene</b> is here.`: 2 of 3 tests fail, with assertions on and off, on main, 10.5.2 and 10.0.0.
 
 ## Files
 
@@ -44,6 +46,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestHighlightWithoutSearcherMaxLength.java](TestHighlightWithoutSearcherMaxLength.java)
 
 ## Feedback
 

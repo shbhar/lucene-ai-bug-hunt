@@ -1,6 +1,8 @@
-# Nori's DictionaryBuilder rejects a left context id of 8192 or more but silently accepts such a right context id, which its 14-bit field cannot hold, so the compiled dictionary returns a wrapped right id (changing segmentation) or makes KoreanTokenizer throw IndexOutOfBoundsException
+# Nori's DictionaryBuilder rejects a left context id of 8192 or more but silently accepts such a right context id, which does not round-trip through the compiled format, so the compiled dictionary returns a wrapped right id (changing segmentation) or makes KoreanTokenizer throw IndexOutOfBoundsException
 
 Bug LFV-710 · Area: analysis / nori system dictionary builder (DictionaryBuilder, TokenInfoDictionaryEntryWriter; custom system dictionaries) · Priority: low · Impact: silent wrong results · Novelty: new
+
+Bug page: [../../bugs/LFV-710.html](../../bugs/LFV-710.html)
 
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
@@ -10,8 +12,8 @@ You compile a custom nori system dictionary with DictionaryBuilder from MeCab-fo
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The builder accepts it and packs the id into a 14-bit field without any check (TokenInfoDictionaryEntryWriter.java:137), so Dictionary.getRightId returns 1 and KoreanTokenizer uses the connection costs of right id 1: in the repro '가나다' is split [가나, 다] instead of [가, 나다].
+- Expected: Each out-of-range right id is rejected at build time, or reads back as written: 16385 stays 16385, and `가나다` is split `[가, 나다]`.
+- Actual: 4 of 6 tests fail: 16385 reads back as 1 and `가나다` becomes `[가나, 다]`; -1 reads back as 1073741823; right id 8192 makes tokenizing throw `IndexOutOfBoundsException`.
 
 ## Files
 
@@ -51,6 +53,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-nori also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDictionaryBuilderRightId.java](TestDictionaryBuilderRightId.java)
+- [fix-with-test-optionA.diff](fix-with-test-optionA.diff)
+- [TestNoriBuilderRightIdLimit.java](TestNoriBuilderRightIdLimit.java)
+- [TestNoriRightIdRange.java](TestNoriRightIdRange.java)
+- [RightIdBandsProbe.java](RightIdBandsProbe.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/cjk-compiled-dictionary-source-round-trip/](../../models/cjk-compiled-dictionary-source-round-trip/)
 

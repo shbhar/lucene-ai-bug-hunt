@@ -1,0 +1,566 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>CapitalizationFilter never changes the case of letters outside the BMP, so Adlam, Osage and Deseret words are neither capitalized nor lower-cased</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-533 &middot; capitalization-filter-charwise-case-mapping-supplementary</p><h1 id='top'>CapitalizationFilter never changes the case of letters outside the BMP, so Adlam, Osage and Deseret words are neither capitalized nor lower-cased</h1><p class='tldr'><code>CapitalizationFilter</code> changes case one UTF-16 char at a time, so letters stored as two chars (Adlam, Osage and six more scripts) keep their case: <code class='nw'>PARIS</code> and <code class='nw'>paris</code> become one term, but an Adlam word in capitals and in small letters stays two, so a query finds 1 of 2 documents.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 441</span><span class='sub'>CapitalizationFilter ignores case for supplementary-plane cased scripts such as Adlam and Osage, a tiny share of text in a niche filter, so it follows its sibling LFV-535.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>4.0.0-ALPHA (2012), the first release with the class; the code is from Solr 1.3 (2007-2008)<span class='sub'>introduced 2007-07-14 &middot; over 19 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>4.0.0-ALPHA to 10.5.2 and main; executed on 4.0.0-ALPHA, 4.0.0, 8.11.4, 9.12.3, 10.5.2 and main; the 129 cached release jars 4.0.0 to 10.5.1 make the same four char calls</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>a bounded-exhaustive comparison with a code-point reference written from the javadoc (semi-formal)</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code class='nw'>processWord</code> changes case with <code>Character.toUpperCase(char)</code> and <code>toLowerCase(char)</code>, one 16-bit char at a time (<code>CapitalizationFilter.java:152</code>, <code class='nw'>:159</code>, <code class='nw'>:190</code>, <code class='nw'>:193</code>). A letter outside the BMP is two chars; each half alone has no case and comes back unchanged. <code class='nw'>LowerCaseFilter</code> and <code class='nw'>UpperCaseFilter</code> map whole code points.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>Background: letters stored as two chars</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Java stores text as 16-bit <code class='nw'>char</code> values. Most letters of everyday text, Latin, Greek and Cyrillic included, fit in one char: they are in the Basic Multilingual Plane (BMP).</span></li><li><span>Letters above U+FFFF, such as those of Adlam, Osage and Deseret, take two chars, a surrogate pair: the Adlam small alif U+1E922 is U+D83A U+DD22.</span></li><li><span>A surrogate alone is not a letter. <code>Character.toUpperCase(char)</code> returns U+D83A unchanged; <code>Character.toUpperCase(int)</code> on the whole code point U+1E922 returns the capital U+1E900.</span></li></ol></div><figure class='visual' id='capitalization-filter-charwise-case-mapping-supplementary-short-visual'><div class='frame'><a class='still' href='../assets/LFV-533/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-533/bug.png' alt='Diagram of the bug: CapitalizationFilter with the default settings turns &quot;aB&quot; + U+104B0 (Osage capital letter A) into &quot;Ab&quot; + U+104B0 instead of &quot;Ab&quot; + U+104D8. In memory the token is four chars, 0061 0042 D801 DCB0; line 190 upper-cases &#x27;a&#x27; to &#x27;A&#x27;, line 193 lower-cases &#x27;B&#x27; to &#x27;b&#x27;, and the surrogate halves D801 and DCB0 map to themselves, so the result is 0041 0062 D801 DCB0, while the expected small letter is D801 DCD8. The same happens at lines 152, 159, 190 and 193. In a CustomAnalyzer field with the keyword tokenizer and the capitalization filter, kitten, KITTEN and Kitten give one term, Kitten, found 3 of 3 times, but three Osage case forms give three terms and a query for the capitalized form finds 1 of 3. Mapping whole code points fixes it: one term, 3 of 3.' width='1920' height='1080'></a></div><figcaption>How the token "aB" + Osage capital A (U+104B0) is stored as four chars, 0061 0042 D801 DCB0, why changing the case of each char alone leaves the Osage letter capital (actual D801 DCB0, expected D801 DCD8), the same calls in every branch, and an index where three Osage case forms give three terms instead of one. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>You analyse a field with <code class='nw'>KeywordTokenizer</code> + <code>CapitalizationFilter</code> (default settings), documented to "make the first letter capital and the rest lower case", and index four values: <code class='nw'>PARIS</code>, <code class='nw'>paris</code>, and the Adlam letters alif + daali in capitals (U+1E900 U+1E901) and in small letters (U+1E922 U+1E923).</span></li><li><span>You expect 2 terms, <code class='nw'>Paris</code> and U+1E900 U+1E923 (capital alif, small daali), and a query for either Adlam spelling to find both Adlam documents.</span></li><li><span>You get 3 terms: <code class='nw'>Paris</code>, U+1E900 U+1E901 and U+1E922 U+1E923. The query <code class='nw'>paris</code> finds 2 documents; the query U+1E922 U+1E923 finds 1.</span></li><li><span>Why: each Adlam letter is two Java chars, a surrogate pair. The filter passes each char alone to <code>Character.toUpperCase</code> or <code class='nw'>toLowerCase</code>; half of a pair has no case and comes back unchanged. BMP letters in the same token are mapped: <code class='nw'>aB</code> + Osage U+104B0 gives <code class='nw'>Ab</code> + U+104B0, not <code class='nw'>Ab</code> + U+104D8.</span></li><li><span>No exception in any run, and the terms stay valid UTF-16. Every path of the filter does it: the first letter, the rest of the word, later words (<code class='nw'>onlyFirstWord</code>, on by default) and keep words with <code class='nw'>forceFirstLetter</code>.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Any chain with <code>CapitalizationFilter</code> or the <code class='nw'>capitalization</code> factory (schemas, <code class='nw'>CustomAnalyzer</code>). It needs text in one of eight cased scripts outside the BMP, such as Adlam (a living script for Fulani) or Osage; there it happens every time: case variants stay separate terms and facet values (with a case-sensitive keep list, some merge into a kept word instead).</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>624 words</span></summary><div class='body'><p>The javadoc of <code>CapitalizationFilter</code> says "It will make the first letter capital and the rest lower case" (<code>CapitalizationFilter.java:26-28</code>). Its <code class='nw'>processWord</code> changes case with <code>Character.toUpperCase(char)</code> and <code>Character.toLowerCase(char)</code>, one UTF-16 char at a time (<code class='nw'>:152</code>, <code class='nw'>:159</code>, <code class='nw'>:190</code>, <code class='nw'>:193</code>). Letters outside the Basic Multilingual Plane (BMP) are stored as two chars, a surrogate pair, and each half alone has no case, so the 564 cased code points of Adlam, Deseret, Garay, Medefaidrin, Old Hungarian, Osage, Vithkuqi and Warang Citi are never capitalized and never lower-cased, while BMP letters in the same token are. In a field analysed with <code class='nw'>KeywordTokenizer</code> + <code>CapitalizationFilter</code>, <code class='nw'>PARIS</code> and <code class='nw'>paris</code> become one term, <code class='nw'>Paris</code>, but the Adlam letters alif + daali in capitals and in small letters stay two terms, neither capitalized, and a query for one spelling finds 1 of the 2 documents. No run threw, and the output is valid UTF-16 of the same length. The char-wise lines come from the Solr original (2007-2008), were moved into Lucene unchanged in 2010 and are in every release since 4.0.0-ALPHA; mapping code points, as <code class='nw'>LowerCaseFilter</code> and <code class='nw'>UpperCaseFilter</code> do, fixes it.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>UTF-16 char</strong>: Java stores text as 16-bit <code class='nw'>char</code> values. Most letters fit in one char: they are in the <strong>Basic Multilingual Plane (BMP)</strong>.</li><li><strong>Supplementary character</strong>: a code point above U+FFFF, stored as two chars, a <strong>surrogate pair</strong>. The Adlam small alif U+1E922 is U+D83A U+DD22. A surrogate alone is not a letter and has no case.</li><li><strong>Code-point case mapping</strong>: <code>Character.toUpperCase(int)</code> and <code class='nw'>toLowerCase(int)</code> map a whole code point (U+1E922 to U+1E900). The <code class='nw'>char</code> overloads cannot: the JDK documents that they "cannot handle supplementary characters".</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>incrementToken</code> splits the term into words at chars <code>&lt;= ' '</code> and <code class='nw'>.</code> and calls <code class='nw'>processWord</code> on each word, editing the term buffer in place (<code>CapitalizationFilter.java:102-143</code>).</li><li><code class='nw'>processWord</code> (<code class='nw'>:145-196</code>) maps case with the <code class='nw'>char</code> overloads at four places: <code class='nw'>:152</code>, every char of a later word when <code class='nw'>onlyFirstWord</code> is true (the default); <code class='nw'>:159</code>, the first char of a keep word with <code class='nw'>forceFirstLetter</code>; <code class='nw'>:190</code>, <code>buffer[offset] = Character.toUpperCase(buffer[offset]);</code>, the first letter; <code class='nw'>:193</code>, every other char of the word, lower-cased.</li><li>For a surrogate both overloads return the char unchanged (all 2,048 surrogate units checked), so a supplementary letter keeps its case. BMP letters in the same word are mapped.</li><li>The code-point helpers exist next door: <code>CharacterUtils.toLowerCase</code> and <code class='nw'>toUpperCase</code> (<code>CharacterUtils.java:54-70</code>, <code class='nw'>:105-113</code>), used by <code class='nw'>LowerCaseFilter</code> (<code class='nw'>:38</code>) and <code class='nw'>UpperCaseFilter</code> (<code class='nw'>:48</code>). This filter's own case-insensitive keep set compares per code point too (<code>CharArrayMap.java:231-290</code>).</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>input (one token, <code class='nw'>KeywordTokenizer</code>)</th><th>expected</th><th>stock filter</th><th>path</th></tr></thead><tbody><tr><td>U+1E922 U+1E923 (Adlam, small)</td><td>U+1E900 U+1E923</td><td><strong>U+1E922</strong> U+1E923</td><td>first letter: high half <code class='nw'>:190</code>, low half <code class='nw'>:193</code></td></tr><tr><td>U+1E900 U+1E901 (Adlam, capitals)</td><td>U+1E900 U+1E923</td><td>U+1E900 <strong>U+1E901</strong></td><td>rest of the word, <code class='nw'>:193</code></td></tr><tr><td><code class='nw'>aB</code> U+104B0 (Osage capital A)</td><td><code class='nw'>Ab</code> U+104D8</td><td><code class='nw'>Ab</code> <strong>U+104B0</strong></td><td>rest of the word, <code class='nw'>:193</code></td></tr><tr><td><code class='nw'>hEy</code> space U+10400 U+10401 (Deseret capitals)</td><td><code class='nw'>Hey</code> space U+10428 U+10429</td><td><code class='nw'>Hey</code> space <strong>U+10400 U+10401</strong></td><td>later word, <code class='nw'>:152</code></td></tr><tr><td>keep word U+10428 <code class='nw'>x</code>, <code class='nw'>forceFirstLetter</code></td><td>U+10400 <code class='nw'>x</code></td><td><strong>U+10428</strong> <code class='nw'>x</code></td><td>keep word, <code class='nw'>:159</code></td></tr><tr><td><code class='nw'>kiTTEN</code>, <code>hEy yOU</code> (controls)</td><td><code class='nw'>Kitten</code>, <code>Hey you</code></td><td><code class='nw'>Kitten</code>, <code>Hey you</code></td><td>BMP</td></tr></tbody></table></div><p>In an index (<code class='nw'>KeywordTokenizer</code> + <code>CapitalizationFilter</code>, four documents <code class='nw'>PARIS</code>, <code class='nw'>paris</code>, U+1E900 U+1E901, U+1E922 U+1E923): expected terms <code>[Paris, U+1E900 U+1E923]</code>, actual <code>[Paris, U+1E900 U+1E901, U+1E922 U+1E923]</code>; the query <code class='nw'>paris</code> finds 2 documents, the query U+1E922 U+1E923 finds 1 instead of 2.</p><p>The supplementary code points with a case mapping (JDK 25 tables): 564 in eight scripts, Adlam 68, Deseret 80, Garay 44, Medefaidrin 64, Old Hungarian 102, Osage 72, Vithkuqi 70, Warang Citi 64. Emoji and CJK ideographs have no case and are not affected.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>356 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Chains built with the constructors, the <code class='nw'>capitalization</code> factory in a <code class='nw'>CustomAnalyzer</code> (reached with the stock <code class='nw'>standard</code>, <code class='nw'>whitespace</code> and <code class='nw'>keyword</code> tokenizers: 9 of 9 cases unmapped, while <code class='nw'>lowercase</code> in the same pipeline lower-cases the capitals) or a schema field type like the factory's javadoc example. Every path that changes case is affected (the default settings, <code>onlyFirstWord=false</code> and a keep word with <code class='nw'>forceFirstLetter</code> were run). The filter is opt-in and in no stock analyzer.</li><li><strong>What it takes.</strong> Text in Adlam (a living script for Fulani), Osage, or historic or rarely used Deseret, Old Hungarian, Warang Citi, Medefaidrin, Vithkuqi or Garay.</li><li><strong>What changes for the user.</strong> Usually, case variants of such words stay separate terms (3 instead of 2 in the repro), separate facet values, and a query in one case misses the other (1 hit instead of 2). The capitalized display form the filter exists for is never produced for them. In one configuration the opposite also happens: with a case-sensitive keep list and <code class='nw'>forceFirstLetter</code>, the stock filter turns <code>[a, U+10400]</code> into the kept word <code>[A, U+10400]</code> instead of <code>[A, U+10428]</code>, merging case variants that the fixed filter keeps apart (35 stock terms in that configuration of the security probe, none in the other four).</li><li><strong>What does not happen.</strong> In a bounded probe over 7,380 tokens and 5 configurations, assertions on and off: no exception, no change in term length, valid UTF-16; the filter keeps no state across tokens or documents.</li><li><strong>Scale.</strong> Deterministic, with assertions on or off. The result depends only on the token text and the settings, so index size should not matter; only small indexes were run.</li><li><strong>JDK dependence.</strong> Deseret (Unicode 3.1) shows it on every JDK Lucene supported; Adlam and Osage need Unicode 9.0 tables, which first came with JDK 11 (JDK 9 and 10 have Unicode 8.0; JDK 11 has Unicode 10.0, JEP 327). Only JDK 25 was run for the repro; a JDK 11 sanity run maps Adlam and Osage too.</li><li><strong>How likely.</strong> Rare: the documented searches found no public report since Solr 1.3.0 (2008), and it needs those scripts in a field with this filter.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>One public-API JUnit class in the filter's package: the default filter on Adlam, Osage and Deseret tokens, a keep word with <code class='nw'>forceFirstLetter</code>, and a four-document index with term and hit counts. The controls (BMP input, the JDK's own case mapping of the same letters) pass on stock Lucene.</p><figure class='code'><figcaption><span class='fname'>TestCapitalizationFilterSupplementary.java (JUnit, analysis-common, package org.apache.lucene.analysis.miscellaneous)</span><span class='meta'>196 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.miscellaneous;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.core.KeywordTokenizer;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.MultiTerms;
+import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.QueryBuilder;
+
+/**
+ * CapitalizationFilter changes case one UTF-16 char at a time, so cased letters outside the BMP
+ * (Adlam, Osage, Deseret, ...) keep their case, while BMP letters in the same token are mapped.
+ */
+public class TestCapitalizationFilterSupplementary extends BaseTokenStreamTestCase {
+
+  // Adlam alif and daali, Osage a, Deseret long i and long e: capital / small letter pairs
+  private static final int ADLAM_ALIF = 0x1E900, ADLAM_ALIF_SMALL = 0x1E922;
+  private static final int ADLAM_DAALI = 0x1E901, ADLAM_DAALI_SMALL = 0x1E923;
+  private static final int OSAGE_A = 0x104B0, OSAGE_A_SMALL = 0x104D8;
+  private static final int DESERET_I = 0x10400, DESERET_I_SMALL = 0x10428;
+  private static final int DESERET_E = 0x10401, DESERET_E_SMALL = 0x10429;
+
+  private static String s(int... codePoints) {
+    return new String(codePoints, 0, codePoints.length);
+  }
+
+  /** All-ASCII text as is; otherwise one item per code point, ASCII letters as themselves. */
+  private static String show(String text) {
+    if (text.chars().allMatch(c -&gt; c &lt; 128)) {
+      return text;
+    }
+    List&lt;String&gt; items = new ArrayList&lt;&gt;();
+    text.codePoints()
+        .forEach(
+            cp -&gt;
+                items.add(
+                    Character.isLetter(cp) &amp;&amp; cp &lt; 128
+                        ? String.valueOf((char) cp)
+                        : String.format(Locale.ROOT, &quot;U+%04X&quot;, cp)));
+    return String.join(&quot; &quot;, items);
+  }
+
+  /** Runs one token (KeywordTokenizer) through the given filter. */
+  private static String capitalize(String text, Function&lt;Tokenizer, TokenStream&gt; filter)
+      throws IOException {
+    Tokenizer tokenizer = new KeywordTokenizer();
+    tokenizer.setReader(new StringReader(text));
+    TokenStream ts = filter.apply(tokenizer);
+    CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+    ts.reset();
+    assertTrue(ts.incrementToken());
+    String out = term.toString();
+    assertFalse(ts.incrementToken());
+    ts.end();
+    ts.close();
+    return out;
+  }
+
+  private static final Function&lt;Tokenizer, TokenStream&gt; DEFAULTS = CapitalizationFilter::new;
+
+  /** Controls: the filter works on BMP letters, and the JDK maps the letters used below. */
+  public void testControls() throws IOException {
+    assertEquals(&quot;Kitten&quot;, capitalize(&quot;kiTTEN&quot;, DEFAULTS));
+    assertEquals(&quot;Hey you&quot;, capitalize(&quot;hEy yOU&quot;, DEFAULTS));
+    assertEquals(ADLAM_ALIF, Character.toUpperCase(ADLAM_ALIF_SMALL));
+    assertEquals(ADLAM_DAALI_SMALL, Character.toLowerCase(ADLAM_DAALI));
+    assertEquals(OSAGE_A_SMALL, Character.toLowerCase(OSAGE_A));
+    assertEquals(DESERET_I_SMALL, Character.toLowerCase(DESERET_I));
+  }
+
+  /** Default settings: first letter capital, the rest (and later words) lower case. */
+  public void testDefaultSettings() throws IOException {
+    String[][] cases = {
+      // first letter not capitalized (CapitalizationFilter.java:190)
+      {s(ADLAM_ALIF_SMALL, ADLAM_DAALI_SMALL), s(ADLAM_ALIF, ADLAM_DAALI_SMALL)},
+      // rest of the word not lower-cased (:193)
+      {s(ADLAM_ALIF, ADLAM_DAALI), s(ADLAM_ALIF, ADLAM_DAALI_SMALL)},
+      // the BMP letters of the same token are mapped, the Osage capital is not
+      {s(&#x27;a&#x27;, &#x27;B&#x27;, OSAGE_A), s(&#x27;A&#x27;, &#x27;b&#x27;, OSAGE_A_SMALL)},
+      // a later word, lower-cased because onlyFirstWord is true by default (:152)
+      {
+        s(&#x27;h&#x27;, &#x27;E&#x27;, &#x27;y&#x27;, &#x27; &#x27;, DESERET_I, DESERET_E),
+        s(&#x27;H&#x27;, &#x27;e&#x27;, &#x27;y&#x27;, &#x27; &#x27;, DESERET_I_SMALL, DESERET_E_SMALL)
+      }
+    };
+    List&lt;String&gt; wrong = new ArrayList&lt;&gt;();
+    for (String[] c : cases) {
+      String actual = capitalize(c[0], DEFAULTS);
+      if (!actual.equals(c[1])) {
+        wrong.add(show(c[0]) + &quot; -&gt; &quot; + show(actual) + &quot;, expected &quot; + show(c[1]));
+      }
+    }
+    assertTrue(String.join(&quot;\n&quot;, wrong), wrong.isEmpty());
+  }
+
+  /** A keep word with forceFirstLetter=true gets a capital first letter (:159). */
+  public void testKeepWordForceFirstLetter() throws IOException {
+    String word = s(DESERET_I_SMALL, &#x27;x&#x27;);
+    CharArraySet keep = new CharArraySet(List.of(word), false);
+    String actual =
+        capitalize(
+            word,
+            t -&gt;
+                new CapitalizationFilter(
+                    t,
+                    true,
+                    keep,
+                    true,
+                    null,
+                    0,
+                    CapitalizationFilter.DEFAULT_MAX_WORD_COUNT,
+                    CapitalizationFilter.DEFAULT_MAX_TOKEN_LENGTH));
+    assertEquals(show(s(DESERET_I, &#x27;x&#x27;)), show(actual));
+  }
+
+  /**
+   * End to end: a field analyzed with KeywordTokenizer + CapitalizationFilter, as for facet values.
+   * Two spellings of a Latin word become one term; two spellings of an Adlam word stay two terms
+   * (neither is the capitalized form), so a query in one spelling finds 1 of the 2 documents.
+   */
+  public void testIndexedTermsAndSearch() throws IOException {
+    Analyzer analyzer =
+        new Analyzer() {
+          @Override
+          protected TokenStreamComponents createComponents(String fieldName) {
+            Tokenizer tokenizer = new KeywordTokenizer();
+            return new TokenStreamComponents(tokenizer, new CapitalizationFilter(tokenizer));
+          }
+        };
+    String adlamUpper = s(ADLAM_ALIF, ADLAM_DAALI);
+    String adlamLower = s(ADLAM_ALIF_SMALL, ADLAM_DAALI_SMALL);
+    Directory dir = newDirectory();
+    RandomIndexWriter writer = new RandomIndexWriter(random(), dir, analyzer);
+    for (String text : new String[] {&quot;PARIS&quot;, &quot;paris&quot;, adlamUpper, adlamLower}) {
+      Document doc = new Document();
+      doc.add(new TextField(&quot;city&quot;, text, Field.Store.NO));
+      writer.addDocument(doc);
+    }
+    IndexReader reader = writer.getReader();
+    writer.close();
+    List&lt;String&gt; terms = new ArrayList&lt;&gt;();
+    TermsEnum te = MultiTerms.getTerms(reader, &quot;city&quot;).iterator();
+    for (BytesRef t = te.next(); t != null; t = te.next()) {
+      terms.add(show(t.utf8ToString()));
+    }
+    IndexSearcher searcher = newSearcher(reader);
+    QueryBuilder qb = new QueryBuilder(analyzer);
+    String actual =
+        &quot;terms=&quot;
+            + terms
+            + &quot; hits(paris)=&quot;
+            + searcher.count(qb.createBooleanQuery(&quot;city&quot;, &quot;paris&quot;))
+            + &quot; hits(&quot;
+            + show(adlamLower)
+            + &quot;)=&quot;
+            + searcher.count(qb.createBooleanQuery(&quot;city&quot;, adlamLower));
+    reader.close();
+    dir.close();
+    analyzer.close();
+    assertEquals(&quot;terms=[Paris, U+1E900 U+1E923] hits(paris)=2 hits(U+1E922 U+1E923)=2&quot;, actual);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cd $LUCENE
+cp $REPRO/TestCapitalizationFilterSupplementary.java lucene/analysis/common/src/test/org/apache/lucene/analysis/miscellaneous/
+./gradlew :lucene:analysis:common:test --tests &#x27;org.apache.lucene.analysis.miscellaneous.TestCapitalizationFilter*&#x27; -Ptests.asserts=true
+# assertions off (production-like): -Ptests.asserts=false instead
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code class='nw'>PARIS</code>/<code class='nw'>paris</code> and the two Adlam spellings give 2 terms, <code class='nw'>Paris</code> and U+1E900 U+1E923, and the query U+1E922 U+1E923 finds 2 documents; every token gets a capital first letter and a lower-case rest.</dd></div><div class='got'><dt>Observed</dt><dd>3 of 4 tests fail: 3 terms (both Adlam spellings kept, neither capitalized), the Adlam query finds 1 document, and every supplementary letter in the token cases keeps its case.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-533/'>repro/LFV-533/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>253 words</span></summary><div class='body'><p>Fixed inputs, no randomness in the assertions: <code class='nw'>testControls</code> checks the BMP behaviour (<code class='nw'>kiTTEN</code> to <code class='nw'>Kitten</code>, <code>hEy yOU</code> to <code>Hey you</code>) and that the JDK maps the letters used; <code>testDefaultSettings</code> lists every wrong token in one message (first letter, rest of the word, a mixed token, a later word); <code>testKeepWordForceFirstLetter</code> covers the keep-word path; <code>testIndexedTermsAndSearch</code> indexes <code class='nw'>PARIS</code>, <code class='nw'>paris</code> and the two Adlam spellings and prints the terms and two hit counts.</p><p>The <code>--tests 'org.apache.lucene.analysis.miscellaneous.TestCapitalizationFilter*'</code> pattern also runs the upstream <code>TestCapitalizationFilter</code> (6 tests) and <code>TestCapitalizationFilterFactory</code> (23), which pass with and without the fix. The test passes <code>checkGoogleJavaFormat</code>, <code class='nw'>ecjLintTest</code> and <code>forbiddenApisTest</code>. The same three failures with the standalone JUnit runner on main (assertions on and off) and on the 10.5.2 and 9.12.3 release jars.</p><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); the same test fails on the 10.5.2 and 9.12.3 release jars</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64</code></td></tr></tbody></table></div><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestCapitalizationFilterSupplementary &gt; testDefaultSettings FAILED
+    java.lang.AssertionError: U+1E922 U+1E923 -&gt; U+1E922 U+1E923, expected U+1E900 U+1E923
+    U+1E900 U+1E901 -&gt; U+1E900 U+1E901, expected U+1E900 U+1E923
+    a B U+104B0 -&gt; A b U+104B0, expected A b U+104D8
+    h E y U+0020 U+10400 U+10401 -&gt; H e y U+0020 U+10400 U+10401, expected H e y U+0020 U+10428 U+10429
+TestCapitalizationFilterSupplementary &gt; testKeepWordForceFirstLetter FAILED
+    org.junit.ComparisonFailure: expected:&lt;U+104[00] x&gt; but was:&lt;U+104[28] x&gt;
+TestCapitalizationFilterSupplementary &gt; testIndexedTermsAndSearch FAILED
+    org.junit.ComparisonFailure: expected:&lt;...Paris, U+1E900 U+1E9[23] hits(paris)=2 hits(U+1E922 U+1E923)=2]&gt; but was:&lt;...Paris, U+1E900 U+1E9[01, U+1E922 U+1E923] hits(paris)=2 hits(U+1E922 U+1E923)=1]&gt;
+:lucene:analysis:common:test (FAILURE): 33 tests, 3  failures
+
+# with the fix: 33 tests, 0 failures (assertions on and off)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The javadoc promises "the first letter capital and the rest lower case", with no BMP limit; the JDK says the <code class='nw'>char</code> overloads "cannot handle supplementary characters".</li><li><code class='nw'>LowerCaseFilter</code>, <code class='nw'>UpperCaseFilter</code> and this filter's own keep set work per code point; tests require it for Deseret.</li><li>The same defect was fixed in <code class='nw'>LowerCaseFilter</code> (LUCENE-2069) and, as bugs, in <code>TruncateTokenFilter</code> (#15900) and <code>DecimalDigitFilter</code> (LUCENE-6914).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>263 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> "A filter to apply normal capitalization rules to Tokens. It will make the first letter capital and the rest lower case." (<code>CapitalizationFilter.java:26-28</code>). No script, BMP or UTF-16-unit limit in the class or the factory javadoc. Where Lucene means UTF-16 units it says so: <code>LengthFilter.java:26</code>, "Length is calculated as the number of UTF-16 code units".</li><li><strong>The API used cannot do it.</strong> The JDK javadoc of <code>Character.toUpperCase(char)</code> and <code>toLowerCase(char)</code>: "This method cannot handle supplementary characters. To support all Unicode characters, including supplementary characters, use the toUpperCase(int) method."</li><li><strong>Siblings and their tests.</strong> <code>TestAnalyzers.testLowerCaseFilter</code> and <code>testUpperCaseFilter</code> ("handles entire unicode range correctly") require Deseret to be mapped (<code>TestAnalyzers.java:135-169</code>). The filter's own <code class='nw'>keepIgnoreCase</code> set folds case per code point.</li><li><strong>Policy before the class moved in.</strong> <code>CHANGES.txt:17927-17928</code> (3.1.0): "LUCENE-2069: Added Unicode 4 support to LowerCaseFilter. Due to the switch to Java 5, supplementary characters are now lowercased correctly." That commit (2009) is an ancestor of the 2010 move of this class into Lucene, which copied the char loop verbatim.</li><li><strong>Same defect class treated as a bug.</strong> <code>CHANGES.txt:1198-1200</code> (10.5.0 Bug Fixes): "GITHUB#15899, GITHUB#15900: Improve TruncateTokenFilter to truncate on codepoints not chars and no longer produce half surrogates"; on #15899 uschindler wrote "We modified all other similar filters in the past (like ngrams), they all work correctly". <code class='nw'>CHANGES.txt:8852</code>: "LUCENE-6914: Fixed DecimalDigitFilter in case of supplementary code points."</li><li><strong>Nothing presents it as a choice.</strong> No test, javadoc, CHANGES or MIGRATE entry, commit message or JIRA discussion (SOLR-248, SOLR-468 and LUCENE-2413, read in full) marks the char loop as BMP-only. <code>TestCapitalizationFilter.testRandomString</code> checks token-stream consistency, not case.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>187 words</span></summary><div class='body'><p>The strongest case for "intended" (the intended-behaviour check and the cross-model reviewer): a legacy, display-oriented char-buffer filter from Solr 1.3 ("useful to build nice looking facet parameters"), never updated, whose fix changes indexed output; on #15900 uschindler argued at one point that half surrogates from char-based truncation are "expected", "exactly the same like if you use <code>String#substring(n,m)</code>" (earlier in the same thread, uschindler had called that filter "somehow broken in general"), and both LUCENE-2069 and #15900 kept a legacy path.</p><p>Why it fails: nothing documents a BMP limit; the JDK documents the overloads used as unable to do the job; the sibling case filters and this filter's own keep set work per code point; on #15900 rmuir wrote "Nobody expects that behavior and doing this based on codepoints is a better api" (before the "expected" remark), and that fix shipped under Bug Fixes. Every verifier who assessed the argument rated it weak (the intended-behaviour check: no intended argument survives). What survives is the narrow reach and the reindex cost: reasons for low priority and a CHANGES note, perhaps a legacy option, not for keeping the behaviour.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>A: map code points, as LowerCaseFilter and UpperCaseFilter do</strong></p><p class='short'>Map code points, as <code class='nw'>LowerCaseFilter</code> does: <code>CharacterUtils.toLowerCase</code> for the rest and later words, <code>Character.toUpperCase(int)</code> on the first code point (+11/-9 lines). The repro passes with assertions on and off; the whole analysis-common test task (1,913 tests, assertions on) and lint pass; lone surrogates stay unchanged. Indexed terms change for these scripts: mention reindexing.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 636 words</span></summary><div class='body'><p>One fix, the finder's patch, was rebuilt and validated in a scratch worktree at <code class='nw'>a9779ef3c193</code>; it applies unchanged.</p><div class="hd hd-3"><h3 id='fix-codepoints'>A: map code points, as LowerCaseFilter and UpperCaseFilter do <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-codepoints" target="_self" aria-label="Link to this section" aria-describedby="fix-codepoints"><span aria-hidden="true">#</span></a></div><p>Replace the two char loops with <code>CharacterUtils.toLowerCase(buffer, from, to)</code> and the two first-letter statements with a small helper that reads the first code point, upper-cases it with <code>Character.toUpperCase(int)</code> and writes it back with <code>Character.toChars</code>. All three paths of <code class='nw'>processWord</code> are covered.</p><pre class='snippet' tabindex='0'><code>--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilter.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilter.java
+@@ -19,6 +19,7 @@
+ import java.io.IOException;
+ import java.util.Collection;
+ import org.apache.lucene.analysis.CharArraySet;
++import org.apache.lucene.analysis.CharacterUtils;
+ import org.apache.lucene.analysis.TokenFilter;
+ import org.apache.lucene.analysis.TokenStream;
+ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+@@ -148,15 +149,13 @@
+     }
+ 
+     if (onlyFirstWord &amp;&amp; wordCount &gt; 0) {
+-      for (int i = 0; i &lt; length; i++) {
+-        buffer[offset + i] = Character.toLowerCase(buffer[offset + i]);
+-      }
++      CharacterUtils.toLowerCase(buffer, offset, offset + length);
+       return;
+     }
+ 
+     if (keep != null &amp;&amp; keep.contains(buffer, offset, length)) {
+       if (wordCount == 0 &amp;&amp; forceFirstLetter) {
+-        buffer[offset] = Character.toUpperCase(buffer[offset]);
++        upperCaseFirstCodePoint(buffer, offset, length);
+       }
+       return;
+     }
+@@ -187,11 +186,14 @@
+     /*char[] chars = w.toCharArray();
+     StringBuilder word = new StringBuilder( w.length() );
+     word.append( Character.toUpperCase( chars[0] ) );*/
+-    buffer[offset] = Character.toUpperCase(buffer[offset]);
+-
+-    for (int i = 1; i &lt; length; i++) {
+-      buffer[offset + i] = Character.toLowerCase(buffer[offset + i]);
+-    }
++    int firstLen = upperCaseFirstCodePoint(buffer, offset, length);
++    CharacterUtils.toLowerCase(buffer, offset + firstLen, offset + length);
+     // return word.toString();
+   }
++
++  /** Upper-cases the first code point of the word; returns its length in chars. */
++  private static int upperCaseFirstCodePoint(char[] buffer, int offset, int length) {
++    int cp = Character.codePointAt(buffer, offset, offset + length);
++    return Character.toChars(Character.toUpperCase(cp), buffer, offset);
++  }
+ }</code></pre><p class='k'>Trade-offs</p><ul><li>Output changes only for supplementary letters; BMP text gives the same chars as before. Indexes built with this filter need reindexing for exact consistency, so a CHANGES note should say so.</li><li>The in-place edit relies on case mapping keeping each code point's UTF-16 length; that holds for all 1,112,064 non-surrogate code points with JDK 25, and <code>CharacterUtils.toLowerCase</code> (used by <code class='nw'>LowerCaseFilter</code>) relies on the same.</li><li>With a case-sensitive keep list, the stock filter maps <code>[a, U+10400]</code> onto a kept word <code>[A, U+10400]</code>; the fixed filter keeps them apart (<code>[A, U+10428]</code>). Worth one sentence in the PR.</li></ul><p class='k'>What the checks validated</p><ul><li>Stock main: the paste-ready test fails 3 of 4, assertions on and off; the 29 upstream <code>TestCapitalizationFilter*</code> tests pass.</li><li>With fix A, <code>TestCapitalizationFilter*</code>: 3 classes, 33 tests, 0 failures, assertions on and off.</li><li>With fix A, the whole <code>:lucene:analysis:common:test</code> task: 340 classes, 1,913 tests, 0 failures, 18 skipped (skips not examined).</li><li><code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code>, <code>checkGoogleJavaFormat</code>, <code>forbiddenApisMain</code> and <code>forbiddenApisTest</code> of the module pass.</li><li>The standalone runner with the fixed class shadowed: 4 of 4 on main, <code class='nw'>-ea</code> and <code class='nw'>-da</code>; earlier, the finder's test (4 of 4) and the 29 upstream tests on <code class='nw'>ea57360912ed</code>.</li><li>Malformed UTF-16: all 137,257 strings of 0-6 chars over {<code class='nw'>a</code>, <code class='nw'>B</code>, space, <code class='nw'>.</code>, U+D801, U+DCB0, U+DCD8} (128,166 with an unpaired surrogate) through the stock and the fixed filter, three configurations, <code class='nw'>-ea</code> and <code class='nw'>-da</code>: no exception, the same length, lone surrogates unchanged, and without a valid pair the fixed output equals the stock output.</li></ul><div class="hd hd-3"><h3 id='fix-legacy-switch'>B: A plus a legacy option (not built)</h3><a class="hlink" href="#fix-legacy-switch" target="_self" aria-label="Link to this section" aria-describedby="fix-legacy-switch"><span aria-hidden="true">#</span></a></div><p>Keep the char-wise path behind an option, as #15900 did for TruncateTokenFilter ("new factory parameters available to configure legacy prefix chars and new codepoint behaviour") or LUCENE-2069 did with a <code class='nw'>Version</code> argument.</p><p class='k'>Trade-offs</p><p>More API surface for 564 code points; only worth it if maintainers want old terms to stay exactly as they are without reindexing.</p><div class="hd hd-3"><h3 id='fix-document-limit'>C: keep the code and document a BMP-only limit (not recommended)</h3><a class="hlink" href="#fix-document-limit" target="_self" aria-label="Link to this section" aria-describedby="fix-document-limit"><span aria-hidden="true">#</span></a></div><p>A javadoc note that only BMP letters change case.</p><p class='k'>Trade-offs</p><p>Cheap, but contradicts <code class='nw'>LowerCaseFilter</code>, <code class='nw'>UpperCaseFilter</code>, the filter's own keep set and the project's past fixes.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Search servers built on Lucene that expose the factory in a schema, as its javadoc example <code class='nw'>text_cptlztn</code> does, inherit the behaviour.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Semi-formal. A bounded-exhaustive comparison ran the stock filter against a per-code-point reference written from its javadoc, on every token of up to 4 code points over a, B, space and two Deseret letters, with both <code class='nw'>onlyFirstWord</code> settings: 836 of 1,414 checks differed, each at a supplementary letter. A public-API JUnit then confirmed it on the stock jar.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>179 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation</strong> (the hunt's semi-formal tier). The finder wrote two references for <code>CapitalizationFilter</code> from its javadoc, one that maps case per char and one per code point, and compared the stock filter with them:</p><ul><li>with the per-char reference, on every token of up to 5 chars over {a, B, space, '.', U+0131} under 1,440 parameter combinations (7,874,496 checks): the mismatches found the sibling word-boundary bug (LFV-535);</li><li>with the per-code-point reference, on every token of up to 4 code points over {a, B, space, U+10428, U+10400}, with the default parameters and with <code>onlyFirstWord=false</code>, restricted to checks (a token with one <code class='nw'>onlyFirstWord</code> setting) where the per-char reference agrees, so the sibling bug is excluded: <strong>836 of 1,414 checks differ, each at a supplementary letter</strong>; 880 of all 1,562 checks (781 tokens x 2 settings) still differ after the sibling's fix.</li></ul><p>A public-API JUnit on the stock main jar then confirmed it (found 2026-10-26). The same reference was used to find and to check, so the exhaustive count is not independent evidence; the verifiers wrote their own tests.</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found: four scripted prior-report search runs (GitHub, JIRA, the Lucene and old Solr lists, the web), 64 GitHub and 16 JIRA searches and the files of all 408 open PRs (2026-10-26), and a GitHub re-check on 2026-10-28. Nearest: #2763, the 2009 policy for supplementary characters in char-based code, which never names this class. Not fixed upstream.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>The documented searches found no issue, PR, review, commit message, JIRA entry, mailing-list thread or web page that reports that <code>CapitalizationFilter</code> maps case per char or leaves supplementary letters unchanged. Every CapitalizationFilter issue on record is about other behaviour: SOLR-248 (origin), SOLR-468 (keep semantics), SOLR-1317 (NPE), SOLR-1320 and SOLR-1342 (term-buffer length), SOLR-1660 (maxWordCount crash) and LUCENE-5559 = #6621 (argument validation). Context and precedent: #2763 (LUCENE-1689, the 2009 umbrella; it names only Lucene classes, and this class was in Solr until 2010), #3145 (LUCENE-2069, <code class='nw'>LowerCaseFilter</code>), #6433 (LUCENE-5369, <code class='nw'>UpperCaseFilter</code>), #7972 (LUCENE-6914) and #15899 / #15900 (<code>TruncateTokenFilter</code>). If you read the 2009 umbrella as covering every char-based class, the label becomes "known". LFV-685 (<code>IrishLowerCaseFilter</code>) has the same pattern with a different fix site; consider filing them together.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), downstream repositories</th><td class='when'>2026-10-26</td><td>the scripted prior-report search, the finder's run (45 queries) and the follow-up's (58: GitHub 20, commits 3, downstream 2, lists 20, JIRA 4, web 9), plus 64 GraphQL issue and PR searches over apache/lucene, apache/solr, Elasticsearch, OpenSearch, Lucene.NET and all of GitHub</td><td>no report; only #6621 and #6108 mention the class (in the body or comments), neither about this</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-26</td><td>the changed files of all 408 open apache/lucene PRs</td><td>only #16911 (decommission branch_10x) lists the file; not a fix</td></tr><tr><th scope='row'>JIRA archive and mailing lists</th><td class='when'>2026-10-26</td><td>16 JQL searches over SOLR and LUCENE, 19 issues read in full; dev@, java-user@, issues@, commits@, solr-user@, solr-dev@, general@ and java-dev@ (two more tool runs, 24 queries on the old Solr lists)</td><td>no report; a 2010 solr-user thread about '.' splitting words belongs to the sibling LFV-535</td></tr><tr><th scope='row'>Web</th><td class='when'>2026-10-26</td><td>9 general web searches (titles and snippets)</td><td>no report; one 2011 Q&amp;A page, 'Solr CapitalizationFilterFactory not working', could not be opened</td></tr><tr><th scope='row'>GitHub re-check</th><td class='when'>2026-10-28</td><td>read-only searches for CapitalizationFilter and capitalization issues and PRs, the file lists of the 15 open PRs created since 2026-10-26, and the commits on the file</td><td>nothing new (of the 15 new open PRs only #16911, the branch_10x decommission, touches the file: it deletes it there; not a fix); the file's last upstream commit is from 2020-12-28 (LUCENE-9570, formatting)</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>As old as the code: char-wise since the Solr original <code class='nw'>777e0c81608</code> (SOLR-248, 2007); the current lines are from <code class='nw'>ac58a1a4dd4</code> (SOLR-468, 2008), moved into Lucene unchanged by <code class='nw'>8f71031ac88</code> (LUCENE-2413, 2010). First Lucene release 4.0.0-ALPHA; never changed since, and every release tested reproduces it.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>9 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>777e0c81608</code> (Solr, SOLR-248, svn r556196, 2007-07-14, "SOLR-248 -- Added CapitalizationFilterFactory"), whose first letter, rest-of-word and keep-word paths were already char-wise; only the later-words path used <code>String.toLowerCase()</code>, which maps code points. <code class='nw'>ac58a1a4dd4</code> (SOLR-468, svn r630572, 2008-02-24) rewrote <code class='nw'>processWord</code> to edit the <code class='nw'>char[]</code> in place, which produced the four statements on main and made the later-words path char-wise too. <code class='nw'>8f71031ac88</code> (LUCENE-2413 = #3488, svn r957162, 2010-06-23, "consolidate remaining solr tokenstreams into modules/analysis") copied it into Lucene verbatim. svn era, no pull request. Later commits only changed the path, argument validation (LUCENE-5559), an import (LUCENE-7318), licence headers, two javadoc doclint fixes (<code class='nw'>bab0b463371</code>, <code class='nw'>376256316b0</code>) and formatting (LUCENE-9570). All 133 release-tag versions of the file (Solr 1.3.0-3.6.2, Lucene 4.0.0-ALPHA-10.5.2) have the four char-wise statements. The history clone has no tags for 8.8.2-8.11.4, so the release jars were checked too: in the 129 release jars 4.0.0 to 10.5.1 of the hunt's jar cache (SHA-1 checked) the bytecode of <code class='nw'>processWord</code> calls <code>Character.toUpperCase(char)</code> twice and <code>Character.toLowerCase(char)</code> twice, and no code-point overload. Not a regression: <code class='nw'>LowerCaseFilter</code> already mapped code points (LUCENE-2069, 2009) when the class moved in. Upstream <code class='nw'>main</code> <code class='nw'>645d4fe14a20</code>, <code class='nw'>branch_10x</code> and <code class='nw'>branch_10_6</code> have the same file blob as the tested commit (2026-10-28).</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>Lucene 3.6.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> no class</span></td><td><code>ClassNotFoundException</code>: the Lucene class does not exist before 4.0.0-ALPHA</td></tr><tr><th scope='row'>Solr 1.3.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> Solr&#x27;s class</span></td><td>none of 4 supplementary cases (Adlam x2, Osage, Deseret) mapped; BMP control OK</td></tr><tr><th scope='row'>4.0.0-ALPHA, 4.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>a release-portable main(): 3 of 3 supplementary cases wrong, control OK</td></tr><tr><th scope='row'>8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the same main(): the same 3 cases wrong</td></tr><tr><th scope='row'>4.0.0 to 10.5.1 (129 release jars)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> bytecode</span></td><td><code>javap -c</code> of <code class='nw'>processWord</code>: 2 x <code>toUpperCase(char)</code>, 2 x <code>toLowerCase(char)</code>, no code-point call, in every release jar, 8.8.2-8.11.4 included</td></tr><tr><th scope='row'>9.12.3, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test: 4 run, 3 failed (-da), the same messages as main; the hunt's and the independent reproduction's tests fail too</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the hunt's test 3 of 4 and the independent reproduction's 5 of 7 fail, -ea and -da</td></tr><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test: 3 of 4 fail through gradle and the JUnit runner, -ea and -da</td></tr><tr><th scope='row'>main + fix A</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix</span></td><td>33 of 33 (gradle, -ea and -da); whole analysis-common module 1,913 tests, 0 failures (-ea)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>The finder, an independent reproducer, an intended-behaviour devil's advocate, the adjudication and a credibility audit all ran code and said real. A reviewer from another model family (OpenAI GPT-5.6) could only read, not run: real once, and once not_real for that procedural reason alone. This doc wrote a new test and validated the fix through gradle.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>327 words</span></summary><div class='body'><p>The hunt's checks ran on main <code class='nw'>ea57360912ed</code>, this doc's on <code class='nw'>a9779ef3c193</code>; the filter and its factory are byte-identical in both. Every run used JDK 25.0.3.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder: exhaustive check and JUnit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> 836 of 1,414 checks wrong</span></td><td>All at a supplementary letter. The JUnit fails 3 of 4 on main (-ea, -da), 10.5.2 and 9.12.3; with the fix 4 of 4 pass, and the 29 upstream tests pass.</td></tr><tr><th scope='row'>cross-model reviewer, intended lens (OpenAI GPT-5.6)</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real, medium</span></td><td>Reading only (its client could not start Java); intended argument weak; a separate re-run of the repro failed 3 of 4.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 7-test JUnit with Deseret letters fails 5 of 7 on main (-ea, -da), 10.5.2 and 9.12.3; oracle and BMP controls pass; it also covers the onlyFirstWord and keep-word paths.</td></tr><tr><th scope='row'>Cross-model reviewer, refute lens (OpenAI GPT-5.6)</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> not_real, low (procedural)</span></td><td>Could not execute; agreed on the root cause and the contract, rated the intended argument weak and noted "Static evidence strongly favors a real defect"; a separate re-run failed 3 of 4.</td></tr><tr><th scope='row'>Intended-behaviour devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; no intended argument survives</span></td><td>Reached it through CustomAnalyzer with the stock standard, whitespace and keyword tokenizers: 9 of 9 cases unmapped, while 'lowercase' maps them (-ea, -da).</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed, high</span></td><td>New seed: the independent reproduction's test 5 of 7 fail (-ea and -da), the finder's 3 of 4.</td></tr><tr><th scope='row'>registry re-run and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>3 of 4 fail with -ea and -da, 4 of 4 pass with the fix; the audit re-ran with a fresh seed and advises a low-priority correctness fix.</td></tr><tr><th scope='row'>this doc</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed; fix validated</span></td><td>New format-clean test fails 3 of 4 through gradle (-ea, -da) and the runner (main, 10.5.2, 9.12.3); with the fix it passes, as do the whole analysis-common test task (assertions on) and the module's lint, format and forbidden-API checks; the fix also holds on malformed UTF-16.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-533/bug.png' download='capitalization-filter-charwise-case-mapping-supplementary-bug.png' target='_self'>PNG</a> <span class='n'>443 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,325 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-533, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>CapitalizationFilter changes case one UTF-16 char at a time, so cased letters outside the BMP (Adlam, Osage, Deseret and five other scripts) are neither capitalized nor lower-cased, while BMP letters in the same token are</dd></div><div><dt>Area</dt><dd>analysis-common / miscellaneous (CapitalizationFilter case mapping)</dd></div><div><dt>Priority</dt><dd>Low, rank 441: CapitalizationFilter ignores case for supplementary-plane cased scripts such as Adlam and Osage, a tiny share of text in a niche filter, so it follows its sibling LFV-535.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits applications that put the opt-in CapitalizationFilter (directly, or by its 'capitalization' factory name in a schema or CustomAnalyzer) on a field that holds text in one of the eight cased scripts encoded outside the BMP (Adlam, Osage, Deseret, Old Hungarian, Warang Citi, Medefaidrin, Vithkuqi, Garay): every such letter that should change case keeps its case, on every release since 4.0.0-ALPHA, deterministically with -ea and -da and at any scale, so case variants of one word stay separate terms and facet values and a query in the other case misses; the output stays valid UTF-16, nothing is thrown or corrupted, and BMP text, emoji and CJK ideographs are not affected.</dd></div><div><dt>Summary</dt><dd>You add CapitalizationFilter, documented to 'make the first letter capital and the rest lower case', and give it a word in a cased script outside the BMP, for example the Adlam word U+1E922 U+1E923 (two small letters), and expect U+1E900 U+1E923 (capital first letter). Instead every supplementary letter keeps its case: U+1E922 U+1E923 comes out unchanged, U+1E900 U+1E901 is not lower-cased to U+1E900 U+1E923, and 'aB' followed by the Osage capital U+104B0 gives 'Ab' + U+104B0, because processWord applies Character.toUpperCase(char) and toLowerCase(char) to single UTF-16 units and a surrogate unit maps to itself. BMP letters in the same token are mapped, nothing is thrown, and the onlyFirstWord and keep-word forceFirstLetter paths behave the same way.</dd></div><div><dt>Introduced</dt><dd>777e0c81608b331e766c9d283778186e8fb4c7ab (Solr, JIRA SOLR-248, svn r556196; the first version of the filter, with char-wise first-letter, rest-of-word and keep-word case mapping); the four statements now on main come from ac58a1a4dd4b (SOLR-468, svn r630572, the in-place char[] rewrite, which also made the onlyFirstWord later-words path char-wise) and were copied verbatim into Lucene by 8f71031ac88e (LUCENE-2413 = #3488, svn r957162) [read: git blame -w -C -C -M of main lines 152, 159, 190 and 193 and per-commit diffs in the full-history clone]; svn era, no pull request; never changed since (later commits touched only the path, argument validation, an import, license headers and formatting) (2007-07-14 (Solr origin; current line form 2008-02-24; moved into Lucene 2010-06-23))</dd></div><div><dt>First affected version</dt><dd>4.0.0-ALPHA [exec] (the first Lucene release with the class, 2012-06-29; first GA release 4.0.0 [exec]); the same code shipped earlier as Solr's own class from Solr 1.3.0 [exec]; Lucene 3.6.2 has no such class [exec: ClassNotFoundException]</dd></div><div><dt>Affected versions</dt><dd>every Lucene release with the class, 4.0.0-ALPHA through 10.5.2, and main ea57360912ed: JUnit fails on main (-ea and -da), 10.5.2 and 9.12.3 [exec, finder and the independent reproduction], and a release-portable main() fails on 8.11.4, 4.0.0 [exec, finder] and 4.0.0-ALPHA and Solr 1.3.0 [exec, follow-up history check]; the four char-wise statements are unchanged in all 133 release-tag file versions scanned (Solr 1.3.0-3.6.2, Lucene 4.0.0-ALPHA-10.5.2) [read]; not fixed upstream: upstream main ffa9d816eeb4 has a byte-identical file and branch_10x, branch_10_6 and branch_10_5 have the same lines [read, 2026-10-26]; unaffected: Lucene before 4.0.0-ALPHA (no class) [exec on 3.6.2]</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, the prior-report record verdict new, all read-only: the finder's scripted prior-report search (45 queries) and the follow-up's (58 queries over GitHub issues and PRs, commits, downstream repositories, the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web, every source finished), two more scripted prior-report searches over the ASF and old Solr lists (24 queries on solr-user@, solr-dev@, general@ and java-dev@), 64 GitHub GraphQL issue and PR searches (apache/lucene, apache/solr, Elasticsearch, OpenSearch, Lucene.NET and all of GitHub), 16 JQL searches with 19 SOLR and LUCENE issues read in full, the file lists of all 408 open apache/lucene PRs, the solr.apache.org lists, full-history git searches and 9 web searches; gap: Q&amp;A sites only through web search, and one 2011 Q&amp;A page titled 'Solr CapitalizationFilterFactory not working' could not be opened); every CapitalizationFilter issue on record (SOLR-248, SOLR-468, SOLR-1317, SOLR-1320, SOLR-1342, SOLR-1660, LUCENE-5559 = #6621) is about other behaviour; related prior items, context and precedent only: #2763 (LUCENE-1689, the 2009 umbrella 'supplementary character handling', which set the policy that char-based analysis code must handle supplementary characters; it names only Lucene classes, and CapitalizationFilter was a Solr class until 2010), #3145 (LUCENE-2069, the same defect fixed in LowerCaseFilter), #6433 (LUCENE-5369, UpperCaseFilter maps per code point), #3144, #3259 and #3170 (LUCENE-2068, -2183, -2094), SOLR-1593, #7972 and #8417 (LUCENE-6914, LUCENE-7363, DecimalDigitFilter), #6106 (LUCENE-5042), #15899 and #15900 (TruncateTokenFilter on code points, 10.5.0 Bug Fixes; in #15899 uschindler wrote that all other similar filters work correctly), #3488 (LUCENE-2413, moved the class into Lucene); not fixed upstream: upstream main ffa9d816eeb4 has a byte-identical file and no open PR changes it (#16911, the branch_10x decommission, deletes it on that branch only and is not a fix)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (gradle in a scratch worktree, assertions on and off, and the standalone JUnit runner); the release jars 10.5.2 and 9.12.3 (this doc's test); main <code class='nw'>ea57360912ed</code>, 8.11.4, 4.0.0, 4.0.0-ALPHA and Solr 1.3.0 (the hunt's tests and the history probe); the fix on main (gradle: the <code>TestCapitalizationFilter*</code> classes and the whole <code>:lucene:analysis:common:test</code> task, plus the module's lint, format and forbidden-API checks). JDK 25.0.3 on Linux aarch64 only.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>a Lucene main checkout lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilter.java:26-31 (class javadoc: &#x27;It will make the first letter capital and the rest lower case&#x27;; &#x27;nice looking facet parameters&#x27;), :145-196 (processWord), :152, :159, :190, :193 (Character.toLowerCase(char) / toUpperCase(char) on single UTF-16 units), :107 and :116 (termAtt.length(), in UTF-16 units, compared with maxTokenLength)</code></li><li><code>a Lucene main checkout lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilterFactory.java (factory javadoc, no BMP or code-unit limit; no normalize() override)</code></li><li><code>a Lucene main checkout lucene/analysis/common/src/test/org/apache/lucene/analysis/core/TestAnalyzers.java:136-166 (LowerCaseFilter and UpperCaseFilter must map Deseret letters)</code></li><li><code>a Lucene main checkout lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/LengthFilter.java:26 (&#x27;Length is calculated as the number of UTF-16 code units&#x27;); lucene/analysis/common/src/java/org/apache/lucene/analysis/ga/IrishLowerCaseFilter.java:55 (side observation, char overload, not executed)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilter.java:26-31 (javadoc), :102-143 (incrementToken), :145-196 (processWord; char overloads at :152, :159, :190, :193)</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/CharacterUtils.java:54-70, :105-113; lucene/core/src/java/org/apache/lucene/analysis/LowerCaseFilter.java:38; lucene/analysis/common/src/java/org/apache/lucene/analysis/core/UpperCaseFilter.java:48</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/CharArrayMap.java:231-290 (code-point case folding of the keep set)</code></li><li><code>JDK 25 src.zip java.base/java/lang/Character.java:11210-11213 (toLowerCase(char)), :11270-11273 (toUpperCase(char)): &#x27;cannot handle supplementary characters&#x27;</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilterFactory.java:49-58 (schema example), :65 (SPI name)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilter.java:26-31</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilterFactory.java:28-61 (factory javadoc)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/LengthFilter.java:26</code></li><li><code>JDK 25 src.zip java.base/java/lang/Character.java:11210-11213, :11270-11273</code></li><li><code>lucene/analysis/common/src/test/org/apache/lucene/analysis/core/TestAnalyzers.java:135-169</code></li><li><code>lucene/core/src/java/org/apache/lucene/analysis/CharArrayMap.java:231-290</code></li><li><code>lucene/CHANGES.txt:17927-17928 (3.1.0, LUCENE-2069), :1198-1200 (10.5.0 Bug Fixes, GITHUB#15899/#15900), :8852 (LUCENE-6914)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:1198-1200 (#15900 legacy parameters), :17927-17931 (LUCENE-2069 Version argument)</code></li></ul></dd></div><div><dt>Prior reports</dt><dd><ul class='paths'><li><code>gh api repos/apache/lucene/commits?path=.../CapitalizationFilter.java; gh search issues/prs --repo apache/lucene CapitalizationFilter; gh pr list --search created:&gt;=2026-10-26 (read-only, 2026-10-28)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>gh api repos/apache/lucene/contents/.../CapitalizationFilter.java?ref=645d4fe14a20, branch_10x, branch_10_6: blob 08b46c3191e5 (= a9779ef3c193) (read-only, 2026-10-28)</code></li></ul></dd></div><div><dt>Diagrams</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/miscellaneous/CapitalizationFilter.java:27-28, :30, :120-134, :145-196 (:152, :159, :190, :193)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestCapitalizationFilterSupplementary.java (JUnit, analysis-common, package org.apache.lucene.analysis.miscellaneous): <a href='../repro/LFV-533/TestCapitalizationFilterSupplementary.java'><code>repro/LFV-533/TestCapitalizationFilterSupplementary.java</code></a> (196 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A step-by-step picture made from an executed probe on main <code class='nw'>a9779ef3c193</code> (stock jars and the fixed class, assertions on and off); every value drawn comes from that probe and the source at that commit. It uses the Osage example (left to right, BMP and supplementary letters in one token) rather than the Adlam one of the repro; the defect is the same for all eight scripts. The PNG is the final summary frame.</p><ul class='paths'><li><a href='../assets/LFV-533/bug.png'><code>assets/LFV-533/bug.png</code></a> (443 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

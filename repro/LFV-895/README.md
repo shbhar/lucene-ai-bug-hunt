@@ -2,6 +2,8 @@
 
 Bug LFV-895 · Area: analysis-common / util CSVUtil (CSV line parsing for the kuromoji user dictionary and the kuromoji/nori dictionary builders) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-895.html](../../bugs/LFV-895.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You parse a CSV line whose last field is quoted, for example CSVUtil.parse("x," 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The last field comes back raw, enclosing quotes and doubled inner quotes included: parse("\"a,b\",\"c,d\"") returns [a,b, "c,d"], and the dictionary line "abcd","a b cd","foo1 foo2 foo3","bar" yields tokens whose part-of-speech is "bar" with the quotes.
+- Expected: `parse("\"p,q\",\"p,q\",\"p,q\"")` gives `[p,q, p,q, p,q]`, and the fully quoted dictionary entry gives part-of-speech `bar`.
+- Actual: `[p,q, p,q, "p,q"]` and part-of-speech `"bar"`: 3 of 3 and 2 of 3 tests fail, with assertions on and off.
 
 ## Files
 
@@ -51,6 +53,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-kuromoji also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestCSVUtilQuotedLastField.java](TestCSVUtilQuotedLastField.java)
+- [TestUserDictionaryQuotedPartOfSpeech.java](TestUserDictionaryQuotedPartOfSpeech.java)
+- [TestCSVUtilLastField.java](TestCSVUtilLastField.java)
+- [TestQuotedLastField.java](TestQuotedLastField.java)
 
 ## Feedback
 

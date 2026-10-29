@@ -2,6 +2,8 @@
 
 Bug LFV-397 · Area: highlighter / original Highlighter, QueryScorer and WeightedSpanTermExtractor (phrase-to-span conversion) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-397.html](../../bugs/LFV-397.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyse 'the quick brown fox jumps' with a stop-word analyzer, search for th
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: getBestFragment returns null, with no error: WeightedSpanTermExtractor rewrites the phrase as new SpanNearQuery(clauses, slop + positionGaps, inorder) with a plain int sum, the removed stop word counts as one position gap, the sum wraps to -2147483648, and a span query with that slop accepts no match, so no term is marked.
+- Expected: Every case returns `the <B>quick</B> brown <B>fox</B> jumps` (UnifiedHighlighter: `the <b>quick</b> brown <b>fox</b> jumps`), as both controls do.
+- Actual: 3 of 5 fail: the typed `"quick ? fox"~2147483647` and the MultiPhraseQuery give `null`; the UnifiedHighlighter returns `the quick brown fox jumps` with nothing marked.
 
 ## Files
 
@@ -46,6 +48,10 @@ java -da -dsa -Dtests.asserts=false --add-modules jdk.incubator.vector --enable-
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestHighlighterPhraseHugeSlop.java](TestHighlighterPhraseHugeSlop.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/overflow-at-scale-2/](../../models/overflow-at-scale-2/)
 

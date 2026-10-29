@@ -6,8 +6,8 @@ These are the working models and scripts this part of the hunt used. Some encode
 
 ## Bugs found
 
-- Nori's DictionaryBuilder checks that rows sharing a left context id have the same part of speech only with a Java assert, so with assertions off a custom system dictionary silently gives those words the part of speech of another row and KoreanPartOfSpeechStopFilter drops or keeps them wrongly (bug LFV-717; [repro](../../repro/LFV-717/))
-- Nori's DictionaryBuilder rejects a left context id of 8192 or more but silently accepts such a right context id, which its 14-bit field cannot hold, so the compiled dictionary returns a wrapped right id (changing segmentation) or makes KoreanTokenizer throw IndexOutOfBoundsException (bug LFV-710; [repro](../../repro/LFV-710/))
+- Nori's DictionaryBuilder checks that rows sharing a left context id have the same part of speech only with a Java assert, so with assertions off a custom system dictionary silently gives those words the part of speech of another row and KoreanPartOfSpeechStopFilter drops or keeps them wrongly (bug LFV-717; [repro](../../repro/LFV-717/), [bug page](../../bugs/LFV-717.html))
+- Nori's DictionaryBuilder rejects a left context id of 8192 or more but silently accepts such a right context id, which does not round-trip through the compiled format, so the compiled dictionary returns a wrapped right id (changing segmentation) or makes KoreanTokenizer throw IndexOutOfBoundsException (bug LFV-710; [repro](../../repro/LFV-710/), [bug page](../../bugs/LFV-710.html))
 
 ## Files
 

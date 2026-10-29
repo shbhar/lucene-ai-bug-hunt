@@ -2,6 +2,8 @@
 
 Bug LFV-498 · Area: highlighter / UnifiedHighlighter default summary (FieldHighlighter.getSummaryPassagesNoHighlight over the SplittingBreakIterator that splits multi-valued fields on MULTIVAL_SEP_CHAR) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-498.html](../../bugs/LFV-498.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You store two values in one field ('First value.' and 'Second value.'), run a qu
 
 ## Expected vs actual
 
-- Expected: You expect the documented default summary, the first 2 sentences from the field (for example 'First value....
-- Actual: You get 'First value.\u0000': the highlighter joins the values with an internal U+0000 separator, its SplittingBreakIterator reports a boundary on both sides of that character, and FieldHighlighter.getSummaryPassagesNoHighlight turns the 1-character gap into a passage, so the NUL is returned and takes the second value's slot (3 passages give 'First value.\u0000Second value.').
+- Expected: `First value.... Second value.` for 2 and for 3 passages, and `Second value.` when the first value is empty.
+- Actual: `First value.\u0000`, then `First value.\u0000Second value.`, then `\u0000` alone; both controls pass.
 
 ## Files
 
@@ -44,6 +46,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestUnifiedHighlighterMultiValuedSummary.java](TestUnifiedHighlighterMultiValuedSummary.java)
+- [fix-B-skip-separator-on-copy.diff](fix-B-skip-separator-on-copy.diff)
+- [TestUHSummaryMultiValueSeparator.java](TestUHSummaryMultiValueSeparator.java)
+- [TestMultiValuedNoMatchSummary.java](TestMultiValuedNoMatchSummary.java)
 
 ## Feedback
 

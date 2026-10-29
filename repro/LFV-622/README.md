@@ -2,6 +2,8 @@
 
 Bug LFV-622 · Area: analysis / opennlp OpenNLPSentenceBreakIterator (java.text.BreakIterator implementation, next(int)) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-622.html](../../bugs/LFV-622.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You set a text on an OpenNLPSentenceBreakIterator and call next(n) to jump n sen
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: `next(1)` from `first` returns 27, like `next`; `next(3)` from `first` returns 102, the end of the text.
+- Actual: Both return -1 (`DONE`): 2 of 3 tests fail, with assertions on and off; the controls pass, and `current` is 102 after `next(3)`.
 
 ## Files
 
@@ -45,6 +47,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-opennlp also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestOpenNLPSentenceBreakIteratorNextN.java](TestOpenNLPSentenceBreakIteratorNextN.java)
+- [test-additions.diff](test-additions.diff)
+- [fix-option-A.diff](fix-option-A.diff)
+- [TestSentenceBreakIteratorNextN.java](TestSentenceBreakIteratorNextN.java)
+- [NextNHistoryProbe.java](NextNHistoryProbe.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-749 · Area: analysis / kuromoji and nori Viterbi tokenizers, discardPunctuation (ja.ViterbiNBest.isPunctuation and its three discard sites, ko.Viterbi.shouldFilterToken) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-749.html](../../bugs/LFV-749.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You tokenize '日本 😀 日本' or '한국 𐄀 한국' (U+1F600, U+10100) wit
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: The supplementary character is kept as a token ([日本, 😀, 日本], [한국, 𐄀, 한국]): isPunctuation(char) calls Character.getType on the high surrogate alone, whose type is SURROGATE, so the discard test at the token start never sees the real category.
+- Expected: Every punctuation or symbol between the two words is dropped, BMP or not: `[日本, 日本]` and `[한국, 한국]`, with position increment +1.
+- Actual: 5 of 5 tests fail: all 24 kuromoji and 8 nori supplementary cases keep the character (`[日本, 𐄀, 日本]`), `JapaneseAnalyzer` gives +2, and `😀𠮷` stays one token; every BMP control passes.
 
 ## Files
 
@@ -45,6 +47,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-kuromoji, analysis-nori also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestJapaneseDiscardSupplementaryPunctuation.java](TestJapaneseDiscardSupplementaryPunctuation.java)
+- [TestKoreanDiscardSupplementaryPunctuation.java](TestKoreanDiscardSupplementaryPunctuation.java)
 
 ## Feedback
 

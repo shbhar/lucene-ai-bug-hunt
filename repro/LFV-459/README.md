@@ -13,7 +13,7 @@ You analyze a long run of text that kuromoji or nori treat as one unknown word, 
 ## Expected vs actual
 
 - Expected: Every term is valid UTF-16, and in EXTENDED mode the emoji at char 1023 is a token [1023,1025), as it is at 1022 and 1024.
-- Actual: 4 of 4 tests fail: terms [0,1024) and [1024,1200) are invalid UTF-16 in every kuromoji mode and in the default `KoreanAnalyzer`, and the emoji at char 1023 is no token.
+- Actual: 4 of 4 tests fail: terms [0,1024) and [1024,1200) are invalid UTF-16 in SEARCH and NORMAL mode and in the default `KoreanAnalyzer`, the unigrams [1023,1024) and [1024,1025) in EXTENDED mode and in nori's unigram mode, and the emoji at char 1023 is no token.
 
 ## Files
 

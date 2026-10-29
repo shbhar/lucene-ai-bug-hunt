@@ -1,0 +1,547 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>A reused classic Highlighter with SimpleSpanFragmenter cuts the next text differently, because start() does not reset waitForPos</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-861 &middot; simplespanfragmenter-start-does-not-reset-waitforpos</p><h1 id='top'>A reused classic Highlighter with SimpleSpanFragmenter cuts the next text differently, because start() does not reset waitForPos</h1><p class='tldr'><code>SimpleSpanFragmenter.start()</code> resets every per-text field except <code class='nw'>waitForPos</code>, its "do not cut yet" position, so after a text that ends with a phrase match a reused <code class='nw'>Highlighter</code> makes the next text's first 12 words one 70-character fragment, where a new one cuts about every 20 characters. Hits and scores are unaffected.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 453</span><span class='sub'>This sibling of LFV-859 in the opt-in SimpleSpanFragmenter only changes snippet layout, and it fires whenever a reused Highlighter&#x27;s previous text ended in a phrase match, which is more ordinary than LFV-858&#x27;s overlapping-phrase case.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>minor</span></dd></div><div><dt>Since</dt><dd>2.4.0 (2008, LUCENE-794)<span class='sub'>introduced 2008-04-29 &middot; over 18 years</span></dd></div><div><dt>Affected</dt><dd>2.4.0 to 10.5.2, branch_10_6 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>confirmed</span></dd></div><div class='wide'><dt>Found by</dt><dd>code reading while modelling the fragment loop, confirmed by a bounded-exhaustive differential check</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>The classic <code class='nw'>Highlighter</code> keeps one fragmenter and calls its <code class='nw'>start()</code> before every text. <code>SimpleSpanFragmenter</code> remembers in <code class='nw'>waitForPos</code> a position before which it must not cut, so a phrase match stays whole; <code class='nw'>start()</code> resets everything except that.</p><div class='part' id='background'><div class="hd hd-3"><h3 id='background-h'>How the classic Highlighter cuts a text into fragments</h3><a class="hlink" href="#background" target="_self" aria-label="Link to this section" aria-describedby="background-h"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>The Highlighter walks the text token by token and, from the second token on, asks its fragmenter: start a new fragment here?</span></li><li><span><code>SimpleSpanFragmenter</code> says yes when the text so far passes the next multiple of the fragment size (20, 40, 60 characters, ...), unless a query match is in progress: when a match starts, it sets <code class='nw'>waitForPos</code> to the position after the match and says no until its counter gets there.</span></li><li><span>Before each text the Highlighter calls the fragmenter's <code class='nw'>start()</code>, documented as "Initializes the Fragmenter".</span></li></ol></div><figure class='visual' id='simplespanfragmenter-start-does-not-reset-waitforpos-short-visual'><div class='frame'><a class='still' href='../assets/LFV-861/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-861/bug.png' alt='Diagram of the classic Highlighter with SimpleSpanFragmenter, fragment size 20, phrase &quot;search library&quot;. Text 1, &quot;Lucene is an open source project that ships a search library&quot;, ends with the match, which sets waitForPos to 11; the text ends before the counter gets there. start() for text 2 resets position to -1 and currentNumFrags to 1 but keeps waitForPos 11. Text 2 with a new Highlighter: &quot;Highlighting picks&quot; | &quot; short fragments of&quot; | &quot; text around each&quot; | &quot; match so that a reader&quot; | ... With the reused Highlighter: one 70-character fragment &quot;Highlighting picks short fragments of text around each match so that a&quot;, then &quot; reader&quot; | &quot; of&quot; | &quot; the&quot;. The fix adds waitForPos = -1 to start().' width='1920' height='1080'></a></div><figcaption>Hit 1 ends with the phrase and leaves <code>waitForPos = 11</code>; <code class='nw'>start()</code> for hit 2 keeps it, so the reused Highlighter makes no cut until its counter reaches 11: one 70-character fragment, then one-word fragments, where a new Highlighter cuts about every 20 characters. The fix is one line in <code class='nw'>start()</code>. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><div class="hd hd-3"><h3 id='the-bug-step-by-step'>The bug, step by step</h3><a class="hlink" href="#the-bug-step-by-step" target="_self" aria-label="Link to this section" aria-describedby="the-bug-step-by-step"><span aria-hidden="true">#</span></a></div><ol class='steps'><li><span>Build one classic <code class='nw'>Highlighter</code> with a <code class='nw'>QueryScorer</code> and <code>SimpleSpanFragmenter(scorer, 20)</code> for the phrase <code>"search library"</code> (<code class='nw'>StandardAnalyzer</code>), and reuse it for every hit, as <code class='nw'>Highlighter</code> is designed for.</span></li><li><span>Highlight hit 1, <code>Lucene is an open source project that ships a search library</code>. At the phrase the fragmenter sets <code>waitForPos = 11</code>: no new fragment until its position counter reaches 11. The text ends first, so <code class='nw'>waitForPos</code> stays 11.</span></li><li><span>Highlight hit 2, <code>Highlighting picks short fragments of text around each match so that a reader of the search library manual ...</code>. You expect what a new Highlighter gives: <code>Highlighting picks | short fragments of | text around each | match so that a reader | ...</code>.</span></li><li><span>You get <code>Highlighting picks short fragments of text around each match so that a</code> (70 characters), then <code>reader | of | the</code>, one word each: <code class='nw'>start()</code> reset the counter for hit 2 but not <code class='nw'>waitForPos</code>, so no cut came before the counter reached 11, and then the fragment count caught up word by word.</span></li><li><span>No error, and only snippets change, never hits or scores; they depend on what the same Highlighter saw before. In the test's longer case at the default fragment size 100, the best fragment grows from 114 to 491 characters.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Code that reuses one classic <code class='nw'>Highlighter</code> with the opt-in <code>SimpleSpanFragmenter</code> for several hits, fields or values, and highlights a phrase, multi-phrase or span query; term queries never trigger it and the default <code class='nw'>SimpleFragmenter</code> is safe. Snippet layout only: hits and scores are unchanged. Every release since 2.4.0; rare.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>763 words</span></summary><div class='body'><p>The classic <code class='nw'>Highlighter</code> keeps one <code class='nw'>Fragmenter</code> and calls its <code>start(text, tokenStream)</code>, documented as "Initializes the Fragmenter", before every text. <code>SimpleSpanFragmenter</code>, the span-aware fragmenter that keeps phrase matches whole, stores in <code class='nw'>waitForPos</code> the position just after a match that has started and refuses to start a new fragment until its position counter gets there. Its <code class='nw'>start()</code> resets the counter, the fragment count, the text size and the attributes, but not <code class='nw'>waitForPos</code>.</p><p>So when a phrase, multi-phrase or span match ends a text, the next text highlighted by the same Highlighter inherits the pending position: no fragment boundary until the counter reaches it, then one-word fragments while the fragment count catches up, a different best fragment, and sometimes a phrase split in two. With the phrase <code>"search library"</code> at size 20 the next text's first fragment is 70 characters; at the default size 100 the best fragment is 491 characters instead of 114. Search hits and scores are unaffected. The omission dates from the class's creation in 2008 (2.4.0) and reproduces on every release to 10.5.2 and on main; the fix is one line.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>Fragmenter</strong>: the policy that cuts a text into fragments. <code class='nw'>Highlighter</code> holds one (<code>Highlighter.java:44</code>, default <code class='nw'>SimpleFragmenter</code>; <code>setTextFragmenter</code>, <code class='nw'>:423-425</code>) and calls <code>start(text, tokenStream)</code> at the start of every <code>getBestTextFragments</code> call (<code class='nw'>:194</code>), which every <code>getBestFragment(s)</code> method reaches. <code class='nw'>Fragmenter#start</code>: "Initializes the Fragmenter. You can grab references to the Attributes you are interested in from tokenStream and then access the values in <code class='nw'>isNewFragment()</code>" (<code>Fragmenter.java:28-35</code>).</li><li><strong><code>SimpleSpanFragmenter</code></strong>: "breaks text up into same-size fragments but does not split up {@link Spans}. This is a simple sample class." (<code>SimpleSpanFragmenter.java:26-29</code>). It gets the query's matches in the current text from <code class='nw'>QueryScorer</code>, which re-extracts them for every text in <code class='nw'>init</code> (<code>QueryScorer.java:170-181</code>, called at <code>Highlighter.java:175</code>) and stores each as <code>PositionSpan(start, end)</code> with an inclusive end (<code>WeightedSpanTermExtractor.java:332</code>).</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li><code class='nw'>isNewFragment()</code> adds the token's position increment to <code class='nw'>position</code> (<code>SimpleSpanFragmenter.java:63</code>). While <code>waitForPos &gt; position</code> it returns false at once, before the span lookup and the size test (<code class='nw'>:65-69</code>).</li><li>When a span of the current token starts at <code class='nw'>position</code>, it sets <code>waitForPos = positionSpan.end + 1</code> (<code class='nw'>:76-81</code>).</li><li>Otherwise a new fragment starts when the token's end offset reaches <code>fragmentSize * currentNumFrags</code> and at least half a fragment of text is left (<code class='nw'>:84-90</code>).</li><li>The Highlighter calls <code class='nw'>isNewFragment()</code> only when a new token arrives (<code>Highlighter.java:209-224</code>) and flushes the last token group without another call (<code class='nw'>:241-254</code>). A span that ends the text therefore leaves <code class='nw'>waitForPos</code> set.</li><li><code class='nw'>start()</code> resets <code>position = -1</code>, <code>currentNumFrags = 1</code>, <code class='nw'>textSize</code> and the three attributes (<code class='nw'>:98-106</code>), not <code class='nw'>waitForPos</code> (<code class='nw'>:36</code>). The next text gets no boundary until its counter reaches the old value; then the size test, still at the first fragment's limit, fires at every token until <code class='nw'>currentNumFrags</code> catches up; and while the stale wait holds, a match that starts is never registered, so it can be cut in two.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers-stock-main-645d4fe14a20-assertions-on-and-off'>The numbers (stock main <code class='nw'>645d4fe14a20</code>, assertions on and off)</h3><a class="hlink" href="#what-the-bug-is-the-numbers-stock-main-645d4fe14a20-assertions-on-and-off" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers-stock-main-645d4fe14a20-assertions-on-and-off"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>case</th><th>new Highlighter</th><th>reused Highlighter</th></tr></thead><tbody><tr><td>hit 2 after hit 1 (size 20)</td><td><code>Highlighting picks</code> \</td><td><code> short fragments of</code> \</td><td><code> text around each</code> \</td><td><code> match so that a reader</code> \</td><td><code> of the &lt;B&gt;search&lt;/B&gt; &lt;B&gt;library&lt;/B&gt; manual</code> \</td><td><code> sees why a document matched</code></td><td><code>Highlighting picks short fragments of text around each match so that a</code> (70 characters) \</td><td><code> reader</code> \</td><td><code> of</code> \</td><td><code> the</code> \</td><td><code> &lt;B&gt;search&lt;/B&gt; &lt;B&gt;library&lt;/B&gt; manual</code> \</td><td><code> sees why a document matched</code></td></tr><tr><td>hit 2 without the phrase</td><td><code>Highlighting picks</code> \</td><td><code> short fragments of</code> \</td><td><code> text around each</code> \</td><td><code> match so that a reader</code> \</td><td><code> sees why a document matched</code></td><td><code>Highlighting picks short fragments of text around each match so that a</code> \</td><td><code> reader</code> \</td><td><code> sees</code> \</td><td><code> why</code> \</td><td><code> a document matched</code></td></tr><tr><td>hit 1 highlighted twice</td><td>1st call: <code>Lucene is an open</code> \</td><td><code> source project that</code> \</td><td><code> ships a &lt;B&gt;search&lt;/B&gt; &lt;B&gt;library&lt;/B&gt;</code></td><td>2nd call: the whole 60-character text as one fragment</td></tr><tr><td>default size 100, <code class='nw'>getBestFragment</code>, phrase <code>"quick fox"</code></td><td>114 characters: <code> x52 ... x59 &lt;B&gt;quick&lt;/B&gt; &lt;B&gt;fox&lt;/B&gt; y0 ... y16</code></td><td>491 characters: <code>x0 x1 ... x59 &lt;B&gt;quick&lt;/B&gt; &lt;B&gt;fox&lt;/B&gt; y0 ... y61</code></td></tr><tr><td>control: <code>SimpleFragmenter(20)</code> reused</td><td>same as new</td><td>same as new</td></tr></tbody></table></div><p>In hit 1, <code>"search library"</code> is at token positions 9-10. The fragmenter's counter runs one token behind (the sibling LFV-859), so it sees the match start at <code class='nw'>library</code> and sets <code>waitForPos = 10 + 1 = 11</code>. In hit 2 the counter reaches 11 at the 13th word, <code class='nw'>reader</code>: the first 12 words are one fragment.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>263 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Code that reuses one classic <code class='nw'>Highlighter</code> with <code>SimpleSpanFragmenter</code> (opt-in; the default is <code class='nw'>SimpleFragmenter</code>, <code>Highlighter.java:44</code>) for several texts: hits, fields, or the values of a multi-valued field. Reuse is the Highlighter's design (one fragmenter field, <code class='nw'>start()</code> per text) and the package example's pattern (<code>package-info.java:36-59</code>, one Highlighter for 10 hits and two fields, with the default fragmenter).</li><li><strong>What it takes.</strong> A positional query (phrase, <code class='nw'>MultiPhraseQuery</code> or span query, also inside a <code class='nw'>BooleanQuery</code>) whose match ends the previous text (its last token, or with the stock counter also the second-to-last), and a previous text long enough that the stale position lies beyond the next text's first fragment boundary (at size 100 roughly more than one fragment of previous text, by reading). A plain <code class='nw'>TermQuery</code> or <code class='nw'>SynonymQuery</code> has no position spans and never sets <code class='nw'>waitForPos</code>.</li><li><strong>What the damage looks like.</strong> One oversized fragment (70 characters at size 20; 491 instead of 114 at the default size 100), then one-word fragments, a different best fragment, and sometimes a phrase split across fragments (1,632 such splits in the finder's bounded check of tiny texts). Repeating <code class='nw'>getBestFragments</code> on the same text gives a different answer the second time. Silent: no error.</li><li><strong>What is not affected.</strong> Search hits, counts and scores; <code class='nw'>SimpleFragmenter</code> and <code class='nw'>NullFragmenter</code> reused (same output as new ones).</li><li><strong>How likely.</strong> Rare: opt-in fragmenter, reuse, a positional query and a previous text that ends with a match. No user report has been attributed to it in 18 years.</li><li><strong>Scale.</strong> Nothing depends on index size or concurrency; two short strings reproduce it.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A JUnit test on the public API (<code class='nw'>StandardAnalyzer</code>, <code class='nw'>PhraseQuery</code>) that compares a reused Highlighter with a new one. On stock main, 10.5.2 and 9.12.3 four cases fail, with assertions on and off; a control with <code class='nw'>SimpleFragmenter</code> passes. Copy it into the highlighter tests and run one gradle command.</p><figure class='code'><figcaption><span class='fname'>TestReusedHighlighterFragments.java (JUnit, public API)</span><span class='meta'>138 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.highlight;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.search.PhraseQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * A Highlighter keeps one Fragmenter and calls Fragmenter#start (&quot;Initializes the Fragmenter&quot;) for
+ * every text, so a Highlighter that is reused for a text must cut it into the same fragments as a
+ * new Highlighter. Public API only.
+ */
+public class TestReusedHighlighterFragments extends LuceneTestCase {
+  private static final String FIELD = &quot;body&quot;;
+  private static final Query QUERY = new PhraseQuery(FIELD, &quot;search&quot;, &quot;library&quot;);
+
+  /** The phrase match is the end of this text. */
+  private static final String ENDS_WITH_MATCH =
+      &quot;Lucene is an open source project that ships a search library&quot;;
+
+  private static final String NEXT =
+      &quot;Highlighting picks short fragments of text around each match so that a reader of the&quot;
+          + &quot; search library manual sees why a document matched&quot;;
+
+  private static final String NEXT_WITHOUT_MATCH =
+      &quot;Highlighting picks short fragments of text around each match so that a reader sees why&quot;
+          + &quot; a document matched&quot;;
+
+  private static Highlighter spanHighlighter(Query query, int fragmentSize) {
+    QueryScorer scorer = new QueryScorer(query, FIELD);
+    Highlighter highlighter = new Highlighter(scorer);
+    highlighter.setTextFragmenter(new SimpleSpanFragmenter(scorer, fragmentSize));
+    return highlighter;
+  }
+
+  /** All fragments of the text, in text order. */
+  private static List&lt;String&gt; fragments(Highlighter highlighter, Analyzer analyzer, String text)
+      throws Exception {
+    TextFragment[] frags =
+        highlighter.getBestTextFragments(analyzer.tokenStream(FIELD, text), text, false, 100);
+    Arrays.sort(frags, Comparator.comparingInt(TextFragment::getFragNum));
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    for (TextFragment frag : frags) {
+      out.add(frag.toString());
+    }
+    return out;
+  }
+
+  private static String words(String prefix, int n) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i &lt; n; i++) {
+      sb.append(prefix).append(i).append(&#x27; &#x27;);
+    }
+    return sb.toString();
+  }
+
+  public void testNextTextIsCutLikeWithANewHighlighter() throws Exception {
+    try (Analyzer analyzer = new StandardAnalyzer()) {
+      List&lt;String&gt; expected = fragments(spanHighlighter(QUERY, 20), analyzer, NEXT);
+      Highlighter reused = spanHighlighter(QUERY, 20);
+      fragments(reused, analyzer, ENDS_WITH_MATCH);
+      assertEquals(expected, fragments(reused, analyzer, NEXT));
+    }
+  }
+
+  public void testNextTextWithoutMatch() throws Exception {
+    try (Analyzer analyzer = new StandardAnalyzer()) {
+      List&lt;String&gt; expected = fragments(spanHighlighter(QUERY, 20), analyzer, NEXT_WITHOUT_MATCH);
+      Highlighter reused = spanHighlighter(QUERY, 20);
+      fragments(reused, analyzer, ENDS_WITH_MATCH);
+      assertEquals(expected, fragments(reused, analyzer, NEXT_WITHOUT_MATCH));
+    }
+  }
+
+  public void testSameTextTwice() throws Exception {
+    try (Analyzer analyzer = new StandardAnalyzer()) {
+      Highlighter highlighter = spanHighlighter(QUERY, 20);
+      List&lt;String&gt; first = fragments(highlighter, analyzer, ENDS_WITH_MATCH);
+      assertEquals(first, fragments(highlighter, analyzer, ENDS_WITH_MATCH));
+    }
+  }
+
+  /** The default fragment size (100) and getBestFragment, the most common call. */
+  public void testBestFragmentWithDefaultFragmentSize() throws Exception {
+    Query query = new PhraseQuery(FIELD, &quot;quick&quot;, &quot;fox&quot;);
+    String previous = words(&quot;w&quot;, 120) + &quot;the quick fox&quot;;
+    String next = words(&quot;x&quot;, 60) + &quot;quick fox &quot; + words(&quot;y&quot;, 80) + &quot;quick fox &quot; + words(&quot;z&quot;, 10);
+    try (Analyzer analyzer = new StandardAnalyzer()) {
+      QueryScorer scorer = new QueryScorer(query, FIELD);
+      Highlighter reused = new Highlighter(scorer);
+      reused.setTextFragmenter(new SimpleSpanFragmenter(scorer));
+      reused.getBestFragment(analyzer, FIELD, previous);
+      String actual = reused.getBestFragment(analyzer, FIELD, next);
+
+      QueryScorer freshScorer = new QueryScorer(query, FIELD);
+      Highlighter fresh = new Highlighter(freshScorer);
+      fresh.setTextFragmenter(new SimpleSpanFragmenter(freshScorer));
+      String expected = fresh.getBestFragment(analyzer, FIELD, next);
+
+      assertEquals(&quot;length of the best fragment&quot;, expected.length(), actual.length());
+      assertEquals(expected, actual);
+    }
+  }
+
+  /** Control: the same reuse with SimpleFragmenter gives the same fragments as a new one. */
+  public void testControlSimpleFragmenter() throws Exception {
+    try (Analyzer analyzer = new StandardAnalyzer()) {
+      Highlighter fresh = new Highlighter(new QueryScorer(QUERY, FIELD));
+      fresh.setTextFragmenter(new SimpleFragmenter(20));
+      List&lt;String&gt; expected = fragments(fresh, analyzer, NEXT);
+      Highlighter reused = new Highlighter(new QueryScorer(QUERY, FIELD));
+      reused.setTextFragmenter(new SimpleFragmenter(20));
+      fragments(reused, analyzer, ENDS_WITH_MATCH);
+      assertEquals(expected, fragments(reused, analyzer, NEXT));
+    }
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>./gradlew :lucene:highlighter:test --tests org.apache.lucene.search.highlight.TestReusedHighlighterFragments -Ptests.asserts=true
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>Each text is cut as a new Highlighter cuts it: <code>Highlighting picks | short fragments of | text around each | ...</code>; best fragment 114 characters at the default size.</dd></div><div class='got'><dt>Observed</dt><dd>4 of 5 tests fail: <code>Highlighting picks short fragments of text around each match so that a | reader | of | the | ...</code>; best fragment 491 characters; the control passes.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-861/'>repro/LFV-861/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>1 more file (72 lines) · 889 words</span></summary><div class='body'><p><code>TestReusedHighlighterFragments</code> (138 lines with the license header, formatted with the module's <code class='nw'>tidy</code>): four cases (hit 2 after hit 1 at size 20; hit 2 without the phrase; the same text twice; the default size 100 with <code class='nw'>getBestFragment</code>) and one control (<code class='nw'>SimpleFragmenter</code> reused). Its inputs are fixed (no randomized input); runs with other seeds gave the same result. It uses the <code>org.apache.lucene.tests</code> framework, which first ships in 9.1.0, so it compiles against 9.1 and later; for 8.x and 9.0, import <code>org.apache.lucene.util.LuceneTestCase</code> instead.</p><p>Executed with <code>--no-daemon --max-workers=4 -Ptests.jvms=2 --continue -Ptests.seed=DEADBEEF</code> in a scratch worktree at <code class='nw'>645d4fe14a20</code> (assertions on and off), and with the standalone JUnit runner on main <code class='nw'>645d4fe14a20</code> (on and off), the 10.5.2 jars (on and off) and the 9.12.3 jars: 4 of 5 fail every time, the same 4. The independent fact check got the same 4 of 5 with seeds 1F2E3D4C (gradle) and 0A1B2C3D (runner) and on the 9.1.0 jars; unchanged, the file does not compile against 9.0.0 or 8.11.4. The finder's original one-case test is the second file; other angles: the independent reproduction's 5-test JUnit with 2 controls (a long previous text gives one 81-character fragment at size 10) and the audit's default-size <code class='nw'>main()</code> (495 vs 114 characters with <code>getBestFragments(..., 3)</code>, 517 on a repeated call on the same text).</p><div class="hd hd-3"><h3 id='code-2-h'>The finder&#x27;s original test (one case, size 20)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>Fails 1 of 1 on main, branch_10_6, 10.5.2, 9.12.3 and 8.11.4 with assertions on and off, and on 8.0.0, 9.0.0, 9.1.0 and 10.0.0 with assertions on (on 8.x and 9.0.0 as a port that changes only the <code class='nw'>LuceneTestCase</code> import).</p><figure class='code'><figcaption><span class='fname'>The finder&#x27;s original test (one case, size 20)</span><span class='meta'>72 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.search.highlight;
+
+import java.util.Arrays;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.search.PhraseQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.tests.util.LuceneTestCase;
+
+/**
+ * Fragmenter#start &quot;Initializes the Fragmenter&quot;, and Highlighter reuses its fragmenter for every
+ * call. SimpleSpanFragmenter#start resets its position and fragment count but not waitForPos, so a
+ * span still open at the end of one text keeps suppressing fragment boundaries in the next text
+ * highlighted with the same Highlighter.
+ */
+public class TestSimpleSpanFragmenterReuse extends LuceneTestCase {
+
+  private static final Query QUERY = new PhraseQuery(&quot;body&quot;, &quot;search&quot;, &quot;library&quot;);
+  private static final int SIZE = 20;
+
+  private static String fragments(Highlighter highlighter, Analyzer analyzer, String text)
+      throws Exception {
+    TextFragment[] frags =
+        highlighter.getBestTextFragments(analyzer.tokenStream(&quot;body&quot;, text), text, false, 100);
+    Arrays.sort(frags, (a, b) -&gt; Integer.compare(a.getFragNum(), b.getFragNum()));
+    return Arrays.toString(Arrays.stream(frags).map(TextFragment::toString).toArray());
+  }
+
+  private static Highlighter newHighlighter() {
+    QueryScorer scorer = new QueryScorer(QUERY, &quot;body&quot;);
+    Highlighter highlighter = new Highlighter(scorer);
+    highlighter.setTextFragmenter(new SimpleSpanFragmenter(scorer, SIZE));
+    return highlighter;
+  }
+
+  public void testSecondTextIsFragmentedLikeWithAFreshHighlighter() throws Exception {
+    try (Analyzer analyzer = new StandardAnalyzer()) {
+      String first = &quot;Lucene is an open source project that ships a search library&quot;;
+      String second =
+          &quot;Highlighting picks short fragments of text around each match so that a reader of the&quot;
+              + &quot; search library manual sees why a document matched&quot;;
+
+      Highlighter reused = newHighlighter();
+      fragments(reused, analyzer, first); // the phrase is still &quot;open&quot; when this text ends
+      String actual = fragments(reused, analyzer, second);
+      String expected = fragments(newHighlighter(), analyzer, second);
+      assertEquals(expected, actual);
+
+      Highlighter reusedBest = newHighlighter();
+      reusedBest.getBestFragment(analyzer, &quot;body&quot;, first);
+      assertEquals(
+          newHighlighter().getBestFragment(analyzer, &quot;body&quot;, second),
+          reusedBest.getBestFragment(analyzer, &quot;body&quot;, second));
+    }
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main 645d4fe14a20 (11.0.0-SNAPSHOT); the same test fails on the 10.5.2 and 9.12.3 release jars</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestReusedHighlighterFragments.java \
+   $LUCENE/lucene/highlighter/src/test/org/apache/lucene/search/highlight/
+cd $LUCENE
+./gradlew :lucene:highlighter:test \
+    --tests org.apache.lucene.search.highlight.TestReusedHighlighterFragments -Ptests.asserts=true
+# assertions off (production-like): -Ptests.asserts=false instead
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code>TestReusedHighlighterFragments &gt; testSameTextTwice FAILED
+    java.lang.AssertionError: expected:&lt;[Lucene is an open,  source project that,  ships a &lt;B&gt;search&lt;/B&gt; &lt;B&gt;library&lt;/B&gt;]&gt; but was:&lt;[Lucene is an open source project that ships a &lt;B&gt;search&lt;/B&gt; &lt;B&gt;library&lt;/B&gt;]&gt;
+TestReusedHighlighterFragments &gt; testBestFragmentWithDefaultFragmentSize FAILED
+    java.lang.AssertionError: length of the best fragment expected:&lt;114&gt; but was:&lt;491&gt;
+TestReusedHighlighterFragments &gt; testNextTextWithoutMatch FAILED
+    java.lang.AssertionError: expected:&lt;[Highlighting picks,  short fragments of,  text around each,  match so that a reader,  sees why a document matched]&gt; but was:&lt;[Highlighting picks short fragments of text around each match so that a,  reader,  sees,  why,  a document matched]&gt;
+TestReusedHighlighterFragments &gt; testNextTextIsCutLikeWithANewHighlighter FAILED
+    java.lang.AssertionError: expected:&lt;[Highlighting picks,  short fragments of,  text around each,  match so that a reader,  of the &lt;B&gt;search&lt;/B&gt; &lt;B&gt;library&lt;/B&gt; manual,  sees why a document matched]&gt; but was:&lt;[Highlighting picks short fragments of text around each match so that a,  reader,  of,  the,  &lt;B&gt;search&lt;/B&gt; &lt;B&gt;library&lt;/B&gt; manual,  sees why a document matched]&gt;
+5 tests completed, 4 failed
+
+# the two best fragments of the default-size case (ProbeDefaultSize, main 645d4fe14a20)
+fresh  best (114): [ x52 x53 x54 x55 x56 x57 x58 x59 &lt;B&gt;quick&lt;/B&gt; &lt;B&gt;fox&lt;/B&gt; y0 y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15 y16]
+reused best (491): [x0 x1 x2 ... x58 x59 &lt;B&gt;quick&lt;/B&gt; &lt;B&gt;fox&lt;/B&gt; y0 y1 ... y60 y61]
+
+# with waitForPos = -1 in start(): all 5 pass (and the whole highlighter test task)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li><code class='nw'>Fragmenter#start</code> "Initializes the Fragmenter"; <code class='nw'>Highlighter</code> calls it on its one fragmenter before every text (<code>Highlighter.java:44</code>, <code class='nw'>:194</code>).</li><li><code class='nw'>start()</code> resets every other per-text field; an upstream test reuses one <code>SimpleSpanFragmenter</code> for two documents; its synonym query has no phrase, so it never sees the bug.</li><li>A "fragment way too long" <code class='nw'>waitForPos</code> bug was fixed before (LUCENE-2229, 5.4.1).</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>261 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> <code class='nw'>Fragmenter#start</code>: "Initializes the Fragmenter" (<code>Fragmenter.java:28-35</code>). <code class='nw'>Highlighter</code> keeps one fragmenter (<code class='nw'>:44</code>, <code class='nw'>:423-425</code>) and calls <code class='nw'>start</code> for every text (<code class='nw'>:194</code>). The contract is implicit: no javadoc says in so many words that a reused fragmenter must cut a text as a new one does; the case rests on <code class='nw'>start()</code> being the per-text initializer, the one-fragmenter design and the points below.</li><li><strong>The class itself.</strong> <code class='nw'>start()</code> resets <code class='nw'>position</code>, <code class='nw'>currentNumFrags</code>, <code class='nw'>textSize</code> and the attributes (<code>SimpleSpanFragmenter.java:100-105</code>). <code class='nw'>waitForPos</code> holds a position of the previous text, which means nothing in the next one: <code class='nw'>QueryScorer.init</code> re-extracts the spans for every text (<code>QueryScorer.java:170-181</code>). <code>SimpleFragmenter.start</code> resets its own state (<code>SimpleFragmenter.java:47-50</code>).</li><li><strong>Tests.</strong> <code>TestHighlighter#testHighlightingSynonymQuery</code> reuses one Highlighter and one <code>SimpleSpanFragmenter</code> for documents 2 and 3 (<code>TestHighlighter.java:238-258</code>, reuse at <code class='nw'>:248-256</code>); a <code class='nw'>SynonymQuery</code> has no position spans, so it never sees the bug. No test or javadoc says a fragmenter is single-use.</li><li><strong>Intent.</strong> Michael McCandless asked on LUCENE-1685 (#2759, 2009-06-12) for a way "to not have to make a SpanScorer (and, by extension, fragmenter) per query, but instead make it up-front", and later "Should we also default the fragmenter to SimpleSpanFragmenter?" LUCENE-1685 made the span-aware <code class='nw'>QueryScorer</code> reusable in 2.9.0; the fragmenter's own state was not discussed.</li><li><strong>Precedent.</strong> LUCENE-2229 (#3305): "Fix Highlighter's SimpleSpanFragmenter when multiple adjacent stop words following a span can unduly make the fragment way too long" (<code>lucene/CHANGES.txt:9891-9893</code>, 5.4.1), with the test assertion "Fragment must be less than 60 characters long" (<code>TestHighlighter.java:435</code>). It changed the same <code class='nw'>waitForPos</code> check, within one text.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>134 words</span></summary><div class='body'><p>The intended-behaviour checker's strongest case: the javadoc calls the class "a simple sample class", and most upstream tests build a new <code>SimpleSpanFragmenter</code> per document, which could suggest single use.</p><p>Why it fails: the per-document line in those tests is a leftover of the 2008 design, when the <code class='nw'>SpanScorer</code> took one text's token stream in its constructor and had to be built per document, together with its fragmenter; in the LUCENE-1685 commit <code class='nw'>10b41d2dce2</code> the <code class='nw'>HighlighterTest</code> diff moves the scorer and the Highlighter out of the loop and keeps the <code>setTextFragmenter(new SimpleSpanFragmenter(...))</code> line inside it, changing only its argument. The class is maintained public API (LUCENE-1389 changed it in 2.9.0, LUCENE-2229 fixed it in 5.4.1), "sample" does not license output that depends on an unrelated earlier text, and the cross-model reviewer rated the intended-behaviour argument weak.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Reset waitForPos in start() (one line)</strong></p><p class='short'>Add <code>waitForPos = -1;</code> to <code>SimpleSpanFragmenter.start()</code>. All 5 tests then pass, and so does the whole highlighter test task (722 upstream tests), with assertions on and off; the module's lint and format checks pass. A fragmenter's first text behaves as before (the field already starts at -1).</p><pre class='snippet' tabindex='0'><code>   public void start(String originalText, TokenStream tokenStream) {
+     position = -1;
++    waitForPos = -1;
+     currentNumFrags = 1;
+     textSize = originalText.length();</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>3 options · 322 words</span></summary><div class='body'><p>One fix, validated with gradle on <code class='nw'>645d4fe14a20</code>; a workaround for released versions; and one alternative that is not recommended.</p><div class="hd hd-3"><h3 id='fix-reset-in-start'>Reset waitForPos in start() (one line) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-reset-in-start" target="_self" aria-label="Link to this section" aria-describedby="fix-reset-in-start"><span aria-hidden="true">#</span></a></div><p>one added line after <code>position = -1;</code> in <code>SimpleSpanFragmenter.start()</code>. It makes <code class='nw'>start()</code> initialize the last per-text field it missed.</p><pre class='snippet' tabindex='0'><code>   public void start(String originalText, TokenStream tokenStream) {
+     position = -1;
++    waitForPos = -1;
+     currentNumFrags = 1;
+     textSize = originalText.length();</code></pre><p class='k'>Trade-offs</p><p>None found. The first text of every fragmenter is unchanged; later texts get what a new fragmenter gives; no cost. Independent of the sibling fixes (LFV-858, LFV-859): the finder's test and 2 of the independent reproduction's tests still fail with both sibling fixes applied, and pass with this one.</p><p class='k'>What the checks validated</p><ul><li>Gradle, scratch worktree at <code class='nw'>645d4fe14a20</code>: the fix plus the paste-ready test plus the finder's and the independent reproduction's tests, the whole <code>:lucene:highlighter:test</code> task with assertions on and off: 37 classes, 733 tests, 0 failures (34 upstream classes with 722 tests, <code class='nw'>TestHighlighter</code> 59; the 3 reproducing classes 5 + 1 + 5 tests).</li><li><code class='nw'>ecjLintMain</code>, <code class='nw'>ecjLintTest</code> and <code>checkGoogleJavaFormat</code> of the highlighter module pass (<code class='nw'>eclint</code> and error-prone were not configured in that run and did not apply).</li><li>Before the fix the paste-ready test fails 4 of 5 (the control passes). The same reset shadowed into 2.4.0, 2.9.0 and main makes the history repro pass.</li></ul><div class="hd hd-3"><h3 id='fix-new-fragmenter-per-text'>Workaround for released versions: a new fragmenter per text <span class='n'>(validated by the checks)</span></h3><a class="hlink" href="#fix-new-fragmenter-per-text" target="_self" aria-label="Link to this section" aria-describedby="fix-new-fragmenter-per-text"><span aria-hidden="true">#</span></a></div><p>Call <code>highlighter.setTextFragmenter(new SimpleSpanFragmenter(scorer, size))</code> before each text.</p><p class='k'>Trade-offs</p><p>One allocation per text; every caller has to know about it.</p><p class='k'>What the checks validated</p><p>The history repro's control does exactly this and matched a new Highlighter in every run.</p><div class="hd hd-3"><h3 id='fix-document-single-use'>Document SimpleSpanFragmenter as single-use (not recommended)</h3><a class="hlink" href="#fix-document-single-use" target="_self" aria-label="Link to this section" aria-describedby="fix-document-single-use"><span aria-hidden="true">#</span></a></div><p>A javadoc note instead of a code change.</p><p class='k'>Trade-offs</p><p>Contradicts <code class='nw'>Fragmenter#start</code> ("Initializes the Fragmenter"), the one-fragmenter design of <code class='nw'>Highlighter</code> and the upstream test that reuses one; a one-line reset is simpler than a new usage rule.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Downstream servers whose opt-in plain highlighter keeps one <code class='nw'>Highlighter</code> with a <code>SimpleSpanFragmenter</code> per field for all hits of a fetch phase, as Elasticsearch's and OpenSearch's do by a reading of their code (not executed), would show it across hits and the values of multi-valued fields.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>Found while modelling the classic Highlighter's fragment loop: writing a corrected copy of <code>SimpleSpanFragmenter</code> showed that <code class='nw'>start()</code> resets every per-text field except <code class='nw'>waitForPos</code>. A bounded-exhaustive check on the stock jar then found 160,425 of 1,048,320 small text pairs where a reused Highlighter cuts the second text differently from a new one.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>153 words</span></summary><div class='body'><p><strong>Method: model-based, bounded-exhaustive differential check on the stock jar</strong> (the study's "semi-formal" tier). A hunt unit, a transducer model of <code>Highlighter.getBestTextFragments</code> composed with <code>SimpleSpanFragmenter</code>, 2026-10-28, main <code class='nw'>a9779ef3c193</code>.</p><ul><li>While writing the fix-sketch shadow class for the model, the finder read that <code class='nw'>start()</code> resets <code class='nw'>position</code> and <code class='nw'>currentNumFrags</code> but not <code class='nw'>waitForPos</code>.</li><li><code class='nw'>ReuseProbe</code> then ran every pair (first text of at most 4 tokens, second text of at most 6 tokens, over {a, c, x}) with <code>PhraseQuery(a c)</code> and fragment sizes 1 to 8 through a reused and a new Highlighter: 160,425 of 1,048,320 second-text results differ, 1,632 of them split the phrase only when reused. Smallest example: size 4, first text <code>a c</code>, second text <code>a a a a</code>: reused <code>|a a a a|</code>, new <code>|a a| a a|</code>.</li><li>An AI finder then wrote the public-API JUnit; independent AI tools reproduced, reviewed, judged and audited it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (searched 2026-10-28, re-checked 2026-10-29): GitHub issues, PRs and commits, the JIRA archive, the dev@ and java-user@ lists, downstream trackers and the web. The nearest item, LUCENE-2229 (#3305), is a different <code class='nw'>waitForPos</code> bug, fixed in 5.4.1.</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Nothing reports that <code>SimpleSpanFragmenter</code> keeps <code class='nw'>waitForPos</code> from one text to the next, or that a reused Highlighter fragments a text differently from a new one. The last commit to <code>SimpleSpanFragmenter.java</code> on main is <code class='nw'>54fba99cb13</code> (2022-09-24, formatting); no open PR touches it.</p><p><strong>Related, not the same bug:</strong> #3305 / LUCENE-2229 (fixed 5.4.1: the same field, a stop-word gap within one text); #6083 / LUCENE-5019 (open: long fragments after a stop word within one text); #2463 / LUCENE-1389 (2008: changed <code class='nw'>start()</code> without resetting <code class='nw'>waitForPos</code>); #2759 / LUCENE-1685 (made <code class='nw'>QueryScorer</code> reusable); #1869 / LUCENE-794 (introduced the class); #15333 and open PR #15346 (zero-score fragment merging); #6444 / LUCENE-5381; #3661 / LUCENE-2587; java-user threads of 2015-08, 2019-05, 2011-07, 2009-11, 2016-10 and 2010-05 (other causes); elastic/elasticsearch #7944, #11820 and #1072 (LUCENE-2229 era). Lucene.NET's port has the same omission, with no issue there.</p><p><strong>Possibly related, unverified:</strong> later comments on elastic/elasticsearch#9442 (downstream releases 5.4.1, 5.5.0, 6.2.3) report oversized plain-highlighter fragments that go away with the simple fragmenter, with no repro or cause; they fit this bug and equally other causes.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene)</th><td class='when'>2026-10-28</td><td>three runs of a scripted prior-report search (identifiers, symptoms, downstream; 16 issue/PR and 3 commit queries each) and 27 manual searches, plus the changed-file lists of all 410 open PRs</td><td>no report; nearest #3305 (LUCENE-2229), a different mechanism</td></tr><tr><th scope='row'>Mailing lists and JIRA archive</th><td class='when'>2026-10-28</td><td>20 list queries per tool run over dev@, java-user@, issues@ and commits@; 4 JIRA queries per run; threads read in full</td><td>no report; six java-user threads with other causes</td></tr><tr><th scope='row'>Downstream trackers and the web</th><td class='when'>2026-10-28</td><td>elastic/elasticsearch, opensearch-project/OpenSearch, apache/solr and apache/lucenenet on GitHub; 18 web queries</td><td>no report naming the cause; elastic/elasticsearch#9442 possibly related, unverified</td></tr><tr><th scope='row'>Re-check (GitHub REST listing; the search API was rate-limited)</th><td class='when'>2026-10-29</td><td>the 25 issues and PRs updated since 2026-10-28 and the files of their PRs; commits to the file and the package</td><td>nothing about this bug; #16936 edits the package example only</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since the class was written (<code class='nw'>35c7eb36dfb</code>, LUCENE-794, 2008-04-29) and first released in 2.4.0. A history repro fails on all 149 releases from 2.4.0 to 10.5.2, on branch_10_6 and on main; never fixed, not a regression.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>35c7eb36dfb</code> "Commit of LUCENE-794 patch - adding phrase/span query support to highlighter" (svn r652164, 2008-04-29; LUCENE-794 is #1869; no CHANGES entry). Git records Mark Harwood (@markharwood) as author; the patch is Mark Miller's (@markrmiller), who opened #1869 with it, and Mark Harwood closed the issue with "Committed as part of r652164". It created <code>SimpleSpanFragmenter</code> with <code>private int waitForPos = -1;</code> and a <code class='nw'>start()</code> that reset only <code class='nw'>position</code> and <code class='nw'>currentNumFrags</code>; <code>git log -S waitForPos</code> finds no later commit that adds a reset.</p><p>In 2.4.x the span scorer was bound to one text, so the leak showed when the same text was highlighted again after <code>SpanScorer.reset()</code>. Since 2.9.0 (LUCENE-1695 <code class='nw'>f73a4f43242</code>, LUCENE-1685 <code class='nw'>10b41d2dce2</code> / #2759) one Highlighter is reused across texts without any reset call. LUCENE-1389 (<code class='nw'>c2f7d554a3e</code>, 2.9.0) and LUCENE-2229 (5.4.1) changed the logic around the field without fixing it.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>645d4fe14a20</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 4 of 5 (gradle and runner, assertions on and off)</td></tr><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code>, branch_10_6 <code class='nw'>4ae946e5a9b9</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test fails 1 of 1 (assertions on and off) and the independent reproduction's 3 of 5 (main on and off; branch_10_6 with assertions on)</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test fails 4 of 5 (10.5.2 also with assertions off); the finder's and the independent reproduction's tests fail too</td></tr><tr><th scope='row'>8.0.0, 8.11.4, 9.0.0, 9.1.0, 10.0.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test fails 1 of 1 (assertions on; 8.11.4 also off; on 8.x and 9.0.0 as a port that changes only the <code class='nw'>LuceneTestCase</code> import); this doc's test fails 4 of 5 on 9.1.0</td></tr><tr><th scope='row'>2.4.0 to 10.5.2 (149 releases)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> history repro</span></td><td>a version-independent <code class='nw'>main()</code> repro fails on every release; from 2.9.0 on with byte-identical fragments</td></tr><tr><th scope='row'>2.3.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>no <code>SimpleSpanFragmenter</code>; the repro does not compile</td></tr><tr><th scope='row'>2.4.0, 2.9.0, main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fixed</span></td><td>the repros pass with <code>waitForPos = -1</code> in <code class='nw'>start()</code></td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer and a credibility audit wrote and ran their own tests, a devil's advocate and the adjudication re-ran them, and all found it real; the adjudication confirmed it with high confidence. Reviews by another model family could not run code; the one with a verdict read the code and agreed.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>312 words</span></summary><div class='body'><p>Every check except the cross-model reviews ran its own test against the stock jars; "(on and off)" marks runs with assertions both on and off.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Public-API JUnit fails 1 of 1 on main (on and off), branch_10_6, 10.5.2 and 9.12.3, and still with both sibling fixes applied; passes with the one-line fix.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own JUnit fails 3 of 5 on main (on and off), 10.5.2, 9.12.3 and branch_10_6; its 2 controls pass; the fix passes 5 of 5; 2 of 5 still fail with only the sibling fixes.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> no review (procedural)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6): No command ran, so its "not real" is procedural; its own notes call it "a procedural <code class='nw'>not_real</code>, not a substantive refutation" and ask for a rerun when command execution works.</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> real (medium), read only</span></td><td>OpenAI GPT-5.6 reading only: root cause agrees, inputs in contract, intended-behaviour argument weak; it ran no code and had seen the independent reproduction and the intended-behaviour check verdicts.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Rebutted "simple sample class", per-document tests, misuse and unreachability; the finder's test fails on main (on and off), 10.5.2 and 9.12.3.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the independent reproduction's test with seed C0FFEE31: 3 of 5 fail on and off; the fix passes 5 of 5. Classed minor (layout only).</td></tr><tr><th scope='row'>registry re-run and credibility audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Registry re-runs fail as before (seed 5EED0329); the audit's own default-size <code class='nw'>main()</code> gives 495 vs 114 characters on main and 10.5.2 and passes with the reset.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> reproduced; fix validated</span></td><td>New test fails 4 of 5 on main <code class='nw'>645d4fe14a20</code> (gradle and runner, on and off), 10.5.2 and 9.12.3; with the fix the whole highlighter test task passes.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-861/bug.png' download='simplespanfragmenter-start-does-not-reset-waitforpos-bug.png' target='_self'>PNG</a> <span class='n'>546 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,427 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-861, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>Classic Highlighter's SimpleSpanFragmenter.start() does not reset waitForPos, so a Highlighter reused for the next text (or for the same text again) keeps suppressing fragment boundaries after a phrase match that ended the previous text: one oversized fragment, then one-word fragments and a different best fragment, depending on what was highlighted before</dd></div><div><dt>Area</dt><dd>highlighter / classic Highlighter fragmenting (SimpleSpanFragmenter.start, state carried across texts)</dd></div><div><dt>Priority</dt><dd>Low, rank 453: This sibling of LFV-859 in the opt-in SimpleSpanFragmenter only changes snippet layout, and it fires whenever a reused Highlighter&#x27;s previous text ended in a phrase match, which is more ordinary than LFV-858&#x27;s overlapping-phrase case.</dd></div><div><dt>Impact class</dt><dd>minor</dd></div><div><dt>Impact note</dt><dd>Applications that reuse one classic Highlighter with QueryScorer and SimpleSpanFragmenter for several texts (opt-in fragmenter; reusing one Highlighter is the pattern of the package example, and a downstream plain highlighter caches one per field, read not executed) and run a phrase, span or multi-phrase query get different fragment boundaries in a text whenever the previous text ended with a match and was long enough for the stale position to pass the next text's first boundary; highlighting output only (hits and scores are unaffected), no error, no scale needed, in every release since 2.4.0.</dd></div><div><dt>Summary</dt><dd>You reuse one classic Highlighter with a QueryScorer and a SimpleSpanFragmenter for several texts (Highlighter keeps one fragmenter and calls its start(), documented as 'Initializes the Fragmenter', for every text) and expect each text to be cut into the same fragments as with a fresh Highlighter. Instead start() resets the position and fragment count but not waitForPos, the position the fragmenter is still waiting for, so when a phrase match ended the previous text no boundary is allowed in the next text until it reaches that old position: with the phrase 'search library' at the end of the first text and fragment size 20, the next text starts with one 70-character fragment 'Highlighting picks short fragments of text around each match so that a', then one-word fragments ', reader', ', of', ', the', where a fresh Highlighter gives 'Highlighting picks', ' short fragments of', ' text around each', and getBestFragment also differs. Hits and scores are unaffected; only the snippet layout changes, and it depends on what the same Highlighter highlighted before.</dd></div><div><dt>Introduced</dt><dd>35c7eb36dfb07ff919147d7570158433e48cd092 (svn r652164, 'Commit of LUCENE-794 patch - adding phrase/span query support to highlighter'; LUCENE-794 = apache/lucene#1869, patch by markrmiller, committed by markharwood; no CHANGES entry) [read: git blame -w -M -C and git log -S/-G waitForPos in the history clone: the commit creates SimpleSpanFragmenter with 'private int waitForPos = -1;' and a start() that resets only position and currentNumFrags, and no later commit on any ref adds a reset; plus a shadow run of the commit's 24 highlighter classes over the 2.4.0 jars, which fails]. Not a regression. Cross-text reuse became the normal usage in 2.9.0 (f73a4f43242 LUCENE-1695, Scorer.init per text; 10b41d2dce2 LUCENE-1685 / #2759, reusable QueryScorer); before that the leak shows on the documented repeat call on the same text after SpanScorer.reset() (2008-04-29 (35c7eb36dfb, author date = commit date 2008-04-29T22:07:18Z))</dd></div><div><dt>First affected version</dt><dd>2.4.0 [exec] (tagged 2008-10-08; 2.3.2, the last earlier release, has no SimpleSpanFragmenter: the history repro does not compile there)</dd></div><div><dt>Affected versions</dt><dd>Every release from 2.4.0 to 10.5.2, the branch_10_6 head 4ae946e5a9b9 (10.6.0, in its release vote) and main a9779ef3c193 [exec: the history repro SpanFragmenterReuseHistory (main(), WhitespaceAnalyzer, PhraseQuery 'search library', fragment size 20; five API-era source variants with the same logic) fails on all 149 releases 2.4.0-10.5.2, on branch_10_6 and on main with -ea (151 runs) and on the 12 versions also run with -da; from 2.9.0 on every run prints byte-identical fragments; in 2.4.x only the same-text-twice leg applies; the finder's JUnit fails on 8.0.0-main (14 runs, -ea and -da), the independent reproduction's JUnit fails 3 of 5 on main (-ea, -da), branch_10_6, 10.5.2 and 9.12.3; the one-line fix shadowed in passes on 2.4.0, 2.9.0 and main]. Not fixed: no upstream commit to SimpleSpanFragmenter.java since 54fba99cb13 (author and commit date 2022-09-24, formatting) on main (head c5ab3e57b9b) or branch_10_6 [read, GitHub API, 2026-10-28].</dd></div><div><dt>Status</dt><dd>confirmed <span class='n'>(independent verifiers agreed)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check, code reading</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-28, read-only; the prior-report record, verdict new: three scripted prior-report searches (identifiers, symptoms, downstream), each with 16 GitHub issue/PR queries on apache/lucene, 3 commit queries, 2 downstream-repository queries, 20 mailing-list queries over dev@, java-user@, issues@ and commits@ and 4 JIRA-archive queries, plus 18 web queries; 27 distinct manual GitHub searches over apache/lucene, apache/lucenenet, apache/solr, elastic/elasticsearch and opensearch-project/OpenSearch; the file lists of all 410 open apache/lucene PRs. re-check through the REST API (the search API was rate-limited): the 15 apache/lucene PRs created since 2026-10-26 (#16907 to #16926) touch no highlighter file; no title among the 76 issues and PRs updated since 2026-10-26 mentions highlighting, fragments or spans; the last commit to SimpleSpanFragmenter.java is 54fba99cb13 (author and commit date 2022-09-24, formatting), the last to the highlight package bfe5c847d3c (2026-07-27, unrelated) on main and 056feb02df6 (2026-05-14, unrelated) on branch_10_6. No issue, PR, review comment, JIRA entry, list thread or downstream report says that SimpleSpanFragmenter keeps waitForPos from one text to the next, or that a reused Highlighter fragments a text differently from a fresh one. Related, different: #3305 / LUCENE-2229 (fixed 2015, the same field, a within-text stop-word gap, '==' -&gt; '&lt;='), #6083 / LUCENE-5019 (open, long fragments after a stop word within one text), #2463 / LUCENE-1389 (2008, changed start() without resetting waitForPos), #2759 / LUCENE-1685 (made QueryScorer reusable; supports that reuse is intended), #1869 / LUCENE-794 (introduced the class), #15333 and open PR #15346 (zero-score fragment merging), #6444 / LUCENE-5381, #3661 / LUCENE-2587; java-user threads of 2015-08 (end-of-text half-fragment rule), 2019-05, 2011-07, 2009-11, 2016-10 and 2010-05 (other causes); elastic/elasticsearch #7944, #11820 and #1072 (LUCENE-2229 era). Possibly related, unverified: later comments on elastic/elasticsearch#9442 (downstream releases 5.4.1, 5.5.0 and 6.2.3) report oversized plain-highlighter fragments that go away with the simple fragmenter, with no repro or cause; they are symptom-compatible with this bug and equally with other causes. Lucene.NET's port has the same omission, with no issue. Not filed.</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>645d4fe14a20</code> (commit of 2026-10-28; tested 2026-10-29) through gradle in a scratch worktree and through the standalone JUnit runner, assertions on and off; the 10.5.2 (on and off) and 9.12.3 release jars. The hunt's own runs: main <code class='nw'>a9779ef3c193</code> (identical highlighter sources), branch_10_6 <code class='nw'>4ae946e5a9b9</code>, seven releases from 8.0.0 to 10.5.2 (JUnit), and a history <code class='nw'>main()</code> repro on all 149 releases 2.4.0-10.5.2. The fix was validated with gradle on <code class='nw'>645d4fe14a20</code>.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/SimpleSpanFragmenter.java:26-29 (at a9779ef3c193) (class javadoc &#x27;breaks text up into same-size fragments but does not split up {@link Spans}. This is a simple sample class.&#x27;), :36 (&#x27;private int waitForPos = -1;&#x27;), :65-69 (while waitForPos &gt; position, return false before the span lookup and the size test), :76-80 (waitForPos = positionSpan.end + 1), :98-106 (start() resets position, currentNumFrags, textSize and the attributes, not waitForPos)</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/Fragmenter.java:28-35 (at a9779ef3c193) (start: &#x27;Initializes the Fragmenter.&#x27;); Highlighter.java:44 (one textFragmenter field), :194 (textFragmenter.start(text, tokenStream) on every getBestTextFragments call), :423-425 (setTextFragmenter); package-info.java:37-52 (example reuses one Highlighter for 10 hits and two fields); lucene/highlighter/src/test/org/apache/lucene/search/highlight/TestHighlighter.java testHighlightingSynonymQuery (one SimpleSpanFragmenter reused for two documents, lines 248-256)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/SimpleSpanFragmenter.java:26-29, (at 645d4fe14a20) :36, :62-93 (:63, :65-69, :76-81, :84-90), :98-106</code></li><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/Fragmenter.java:28-35; (at 645d4fe14a20) Highlighter.java:44, :175, :194, :209-224, :241-254, :423-425; QueryScorer.java:170-181; WeightedSpanTermExtractor.java:332</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/Highlighter.java:44, (at 645d4fe14a20) :194, :423-425; package-info.java:36-59</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/highlighter/src/java/org/apache/lucene/search/highlight/Fragmenter.java:28-35; (at 645d4fe14a20) Highlighter.java:44, :194, :423-425; SimpleSpanFragmenter.java:26-29, :100-105; QueryScorer.java:170-181; SimpleFragmenter.java:47-50</code></li><li><code>lucene/highlighter/src/test/org/apache/lucene/search/highlight/TestHighlighter.java:238-258 (at 645d4fe14a20) (testHighlightingSynonymQuery), :415-437 (LUCENE-2229 test, :435)</code></li><li><code>lucene/CHANGES.txt:9859 (at 645d4fe14a20) (5.4.1 section), :9891-9893 (LUCENE-2229)</code></li><li><code>https://github.com/apache/lucene/issues/2759 (LUCENE-1685 comments of 2009-06-12 and 2009-08-06 by Michael McCandless; read via the GitHub API 2026-10-29)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>https://github.com/apache/lucene/issues/1869 (LUCENE-794, migrated from JIRA, by Mark Miller; comment of 2008-04-29 by Mark Harwood &quot;Committed as part of r652164&quot;; read via the GitHub API 2026-10-29)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestReusedHighlighterFragments.java (JUnit, public API): <a href='../repro/LFV-861/TestReusedHighlighterFragments.java'><code>repro/LFV-861/TestReusedHighlighterFragments.java</code></a> (138 lines)</li><li>The finder&#x27;s original test (one case, size 20): <a href='../repro/LFV-861/TestSimpleSpanFragmenterReuse.java'><code>repro/LFV-861/TestSimpleSpanFragmenterReuse.java</code></a> (72 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A light, step-by-step picture of the size-20 example, made in parallel with this doc from executed runs on main <code class='nw'>645d4fe14a20</code> and the code.</p><ul class='paths'><li><a href='../assets/LFV-861/bug.png'><code>assets/LFV-861/bug.png</code></a> (546 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

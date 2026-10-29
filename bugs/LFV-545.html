@@ -1,0 +1,552 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>SimplePatternTokenizer and SimplePatternSplitTokenizer retry a failed match in the middle of an emoji, so 🔥hot is indexed as U+FFFD + hot and so🔥hot is cut in two</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-545 &middot; simplepattern-false-alarm-retry-splits-surrogate-pair</p><h1 id='top'>SimplePatternTokenizer and SimplePatternSplitTokenizer retry a failed match in the middle of an emoji, so 🔥hot is indexed as U+FFFD + hot and so🔥hot is cut in two</h1><p class='tldr'>With the pattern <code>🔥[0-9]+|[^🔥 ]+</code>, <code>SimplePatternTokenizer</code> turns <code>🔥hot deal</code> into <code class='nw'>\uDD25hot</code>, <code class='nw'>deal</code>, so a search for <code class='nw'>hot</code> misses the document. After a failed match at an emoji, it retries one Java <code class='nw'>char</code> later, inside the emoji.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 437</span><span class='sub'>A surrogate pair is split only with a narrow pattern shape in the opt-in simple-pattern tokenizers, a rare-input surrogate-cut analysis row like LFV-459.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>6.5.0 (LUCENE-7465, committed 2017-02-13)<span class='sub'>introduced 2017-02-13 &middot; about 9 years</span></dd></div><div><dt>Affected</dt><dd>6.5.0 to 10.5.2 and main</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div><dt>Found by</dt><dd>bounded-exhaustive translation validation</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'><code>SimplePatternTokenizer</code> tries its pattern at each character and keeps the longest match. An emoji is one character to the pattern but two <code class='nw'>char</code>s in Java. When a try that started at an emoji fails, the tokenizer should move on to the next character; it moves on by one <code class='nw'>char</code> and lands inside the emoji.</p><figure class='visual' id='simplepattern-false-alarm-retry-splits-surrogate-pair-short-visual'><div class='frame'><a class='still' href='../assets/LFV-545/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-545/bug.png' alt='The text 🔥hot deal shown as ten UTF-16 units, with the emoji as two halves at offsets 0 and 1. A failed try starts at the emoji and dies at h. An arrow shows where the retry should start (offset 2, h) and where it does start (offset 1, the second half of the emoji), giving the token \uDD25hot instead of hot.' width='1920' height='1080'></a></div><figcaption><code>🔥hot deal</code> as UTF-16 units: the try at 🔥 (units 0-1) dies at <code class='nw'>h</code>. The retry should start at <code class='nw'>h</code> (offset 2) but starts at the emoji's second half (offset 1), so the token is <code class='nw'>\uDD25hot</code> [1,5) instead of <code class='nw'>hot</code> [2,5), and the index holds <code class='nw'>\uFFFDhot</code>. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>Index <code>🔥hot deal</code> with <code>SimplePatternTokenizer</code> (factory name <code class='nw'>simplePattern</code>) and the pattern <code>🔥[0-9]+|[^🔥 ]+</code>: 🔥 followed by digits (like <code class='nw'>🔥5</code>), or a run of characters other than 🔥 and space. In Java, 🔥 (U+1F525) is two <code class='nw'>char</code>s, a surrogate pair, at offsets 0 and 1.</span></li><li><span>You expect <code class='nw'>hot</code> [2,5) and <code class='nw'>deal</code> [6,10): no match starts at 🔥 (no digit follows), so the next try starts at <code class='nw'>h</code>. The same tokenizer gives exactly that with <code>[^🔥 ]+</code> alone, and so does <code class='nw'>PatternTokenizer</code> with the same regex.</span></li><li><span>You get <code class='nw'>\uDD25hot</code> [1,5) and <code class='nw'>deal</code>. After the failed try at 🔥 the tokenizer steps back to one <code class='nw'>char</code> past the start, which is the emoji's second half, and <code>[^🔥 ]</code> accepts that half. The index stores <code class='nw'>\uFFFDhot</code>, so a <code class='nw'>TermQuery</code> for <code class='nw'>hot</code> finds 0 documents instead of 1.</span></li><li><span><code>🔥 x</code> gives an extra token <code class='nw'>\uDD25</code> [1,2) before <code class='nw'>x</code>. <code>SimplePatternSplitTokenizer</code> with the separators <code class='nw'>[^a-z🔥]+|🔥!</code> cuts <code>so🔥hot now</code> into <code class='nw'>so\uD83D</code>, <code class='nw'>hot</code>, <code class='nw'>now</code> instead of <code class='nw'>so🔥hot</code>, <code class='nw'>now</code>. The tokenizers do not throw; they emit these tokens with assertions on or off.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Users of the opt-in, experimental <code class='nw'>simplePattern</code> or <code>simplePatternSplit</code> tokenizers whose pattern can start a longer alternative at an emoji or other supplementary character and also accepts its second half (a negated class that excludes it, or a range reaching into the surrogate block). Text then hits it whenever the character is not followed by the rest of its alternative.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>1,002 words</span></summary><div class='body'><p><code>SimplePatternTokenizer</code> and <code>SimplePatternSplitTokenizer</code> read their input one code point at a time, so an emoji is one step of the automaton even though it is two Java <code class='nw'>char</code>s ("The runDFA operates in Unicode space, not UTF16", <code>SimplePatternTokenizer.java:114</code>). When a match attempt that started at such a character fails after reading further, the false-alarm branch pushes back all but <strong>one <code class='nw'>char</code></strong> of what it read (<code>pushBack(tokenUpto - 1)</code>, <code class='nw'>:155</code>; <code>pushBack(sepUpto - 1)</code>, <code>SimplePatternSplitTokenizer.java:166</code>), so the next attempt starts at the emoji's low surrogate, which the reader returns as a code point of its own.</p><p>If another part of the pattern accepts that half, typically a negated class that excludes the emoji or a range that reaches into the surrogate block (such as <code class='nw'>[\u0080-\uFFFF]</code>; the pattern need not name a supplementary character), the tokenizer emits a token that starts inside the pair (<code class='nw'>\uDD25hot</code> [1,5) instead of <code class='nw'>hot</code> [2,5)), or an extra token made of half the emoji; the split tokenizer ends a token after the first half (<code class='nw'>so\uD83D</code>) and loses the word <code class='nw'>so🔥hot</code>. The index stores the lone halves as U+FFFD, so exact-term searches for the affected words miss. The line is in the classes' first commit (6.5.0) and fails on every release run, up to 10.5.2 and main. The fix changes two lines per class: push back all but the first code point.</p><div class="hd hd-3"><h3 id='what-the-bug-is-how-the-tokenizer-scans'>How the tokenizer scans</h3><a class="hlink" href="#what-the-bug-is-how-the-tokenizer-scans" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-how-the-tokenizer-scans"><span aria-hidden="true">#</span></a></div><p><code>SimplePatternTokenizer.incrementToken()</code> (<code>SimplePatternTokenizer.java:104-162</code> at <code class='nw'>a9779ef3c193</code>) on <code>🔥hot deal</code>, whose UTF-16 units are 0:D83D 1:DD25 2:h 3:o 4:t 5:space 6:d 7:e 8:a 9:l:</p><ol><li><strong>Read one code point and start the automaton</strong> (<code class='nw'>:116</code>, <code class='nw'>:121</code>). <code class='nw'>nextCodePoint()</code> (<code class='nw'>:242-253</code>) sees the high surrogate and joins it with the next unit (<code class='nw'>:248-249</code>), so <code class='nw'>ch</code> = U+1F525 and two units are in the term buffer. <code>step(0, U+1F525)</code> is live (it begins <code class='nw'>🔥[0-9]+</code>) but not accepting.</li><li><strong>Look ahead</strong> (<code class='nw'>:126-139</code>). <code class='nw'>h</code> is not a digit, so the automaton dies. Nothing was accepted and the input did not end: the false-alarm branch (<code class='nw'>:153-156</code>).</li><li><strong>The false alarm rewinds by <code class='nw'>char</code>s.</strong> <code>pushBack(tokenUpto - 1)</code> (<code class='nw'>:155</code>, <code class='nw'>tokenUpto</code> = 3 units) pushes back U+DD25 and <code class='nw'>h</code>; the next line, <code>tokenUpto = 0</code> (<code class='nw'>:156</code>), discards the high surrogate already read, so the next try starts at offset 1, inside the pair. The comment says "push back all but the first character we scanned", but the first thing scanned was a two-unit code point.</li><li><strong>The retry starts inside the pair.</strong> The next <code class='nw'>nextCodePoint()</code> reads U+DD25, which is not a high surrogate, so it is returned as the code point U+DD25 (<code class='nw'>:248-252</code>). Lucene <code class='nw'>RegExp</code> negated classes are any code point from 0 to 0x10FFFF minus the listed ones (<code class='nw'>RegExp.java:1302</code>, <code>Automata.java:105-106</code>), so <code>[^🔥 ]</code> accepts it, and the token is <code class='nw'>\uDD25hot</code> [1,5) (<code class='nw'>:141-150</code>).</li><li><strong>The other no-match branch does it right.</strong> When the first step already fails (<code>state == -1</code>, <code class='nw'>:158-160</code>), the whole code point is dropped: with <code>[^🔥 ]+</code> alone both units of 🔥 are skipped and the next try starts at <code class='nw'>h</code>. So whether 🔥 is stepped over correctly depends on whether some alternative can start with it.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-split-tokenizer'>The split tokenizer</h3><a class="hlink" href="#what-the-bug-is-the-split-tokenizer" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-split-tokenizer"><span aria-hidden="true">#</span></a></div><p><code>SimplePatternSplitTokenizer</code> (<code>SimplePatternSplitTokenizer.java:99-170</code>) looks for separators the same way, and every code point that does not start one stays in the pending token (<code class='nw'>:213-220</code>). On <code>so🔥hot now</code> the try at 🔥 starts <code class='nw'>🔥!</code>, dies at <code class='nw'>h</code>, and <code>pushBack(sepUpto - 1)</code> (<code class='nw'>:163-167</code>) leaves <code class='nw'>so\uD83D</code> in the pending token (here the high surrogate is kept). The retry reads U+DD25, which <code class='nw'>[^a-z🔥]+</code> accepts as a one-unit separator, so <code class='nw'>so\uD83D</code> [0,3) is emitted and <code class='nw'>hot</code> [4,7) starts a new token.</p><div class="hd hd-3"><h3 id='what-the-bug-is-exact-trigger'>Exact trigger</h3><a class="hlink" href="#what-the-bug-is-exact-trigger" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-exact-trigger"><span aria-hidden="true">#</span></a></div><p>All three are needed; naming a supplementary character is not. (a) An attempt that starts at a supplementary character goes live and then dies after reading further, before the end of the input: some alternative starts with the character, by naming it (<code class='nw'>🔥[0-9]+</code>, <code class='nw'>🔥[a-z]+</code>, <code class='nw'>🔥!</code>, <code class='nw'>🔥🔥</code>) or through a class that contains it followed by more (<code class='nw'>.[0-9]+</code>, <code>[^a-z ][0-9]+</code>, <code>[^ ]+!</code>). (b) Nothing was accepted in that attempt: a top-level <code class='nw'>.</code> or <code>[^ ]+</code> accepts the whole character, so the longest match is the token and no retry happens (<code class='nw'>😀ab|.</code> on <code class='nw'>😀x</code> and <code>🔥[0-9]+|[^ ]+</code> are correct). (c) Another part of the pattern accepts a match that starts with the exposed low surrogate: a negated class that excludes the character (<code>[^🔥 ]</code>), any range that reaches into the surrogate block U+D800-U+DFFF (the common "non-ASCII" <code class='nw'>[\u0080-\uFFFF]</code>, or <code class='nw'>[\u3000-\uFFEF]</code>), or a hand-built automaton that accepts surrogate code points. (<code class='nw'>\uXXXX</code> here stands for the character itself, as a Java string literal gives it; Lucene <code class='nw'>RegExp</code> rejects <code class='nw'>\u</code> as an escape.)</p><p>Executed on main without naming any supplementary character (the doc's fact and diagram checks): <code>.[0-9]+|[\u0080-\uFFFF]+|[a-z]+</code> on <code>🔥hot deal</code> gives an extra <code class='nw'>\uDD25</code> [1,2) before <code class='nw'>hot</code>, <code class='nw'>deal</code>; <code>[^ ]+!|[\u3000-\uFFEF]+</code> on <code>🔥中 b</code> gives <code class='nw'>\uDD25中</code> [1,3) where <code class='nw'>PatternTokenizer</code> gives <code class='nw'>中</code> [2,3); the split tokenizer with <code>[\u0080-\uFFFF]+|.!</code> cuts <code>so🔥hot now</code> into <code class='nw'>so\uD83D</code>, <code>hot now</code>. With the fix the diagram check's cases are correct.</p><p>If any of the three fails, the tokens are correct: a retry at the low surrogate that accepts nothing ends at the next code point, as a code-point retry would (<code class='nw'>:153-160</code>). Executed correct: <code>[^🔥 ]+</code> alone, <code>🔥[0-9]+|[^ ]+</code> and <code class='nw'>.[0-9]+|[a-z]+</code>. The hunt's 39-pattern pool had no explicit range reaching into the surrogate block (its negated classes contain the block), so its counts say nothing about the range shapes: its 13,741 lone-surrogate mismatches per tokenizer were recorded (one example per class and pattern) only for the 2 pool patterns that meet all three conditions, while 3 more patterns that name the emoji were correct. When the try reaches the end of the input instead, another branch runs (<code class='nw'>:151-152</code>): that is the sibling bug LFV-525.</p></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>309 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Users of either tokenizer, directly or through the factories (SPI names <code class='nw'>simplePattern</code> and <code>simplePatternSplit</code>, for example in <code class='nw'>CustomAnalyzer</code> or a Solr schema), or through downstream tokenizers built on them, whose pattern has the shape above. A typical intent: keep an emoji-plus-something token such as <code class='nw'>🔥5</code>, and otherwise strip the emoji from words.</li><li><strong>Opt-in.</strong> Both classes and factories are <code>@lucene.experimental</code>, and no Lucene analyzer uses them by default.</li><li><strong>What it takes.</strong> With such a pattern, ordinary text triggers it every time the character is not followed by the rest of a live alternative and the try does not reach the end of the input: the emoji right before a word (<code class='nw'>🔥hot</code>) or a space (<code>🔥 x</code>), or inside a word for the split tokenizer (<code class='nw'>so🔥hot</code>). <code class='nw'>🔥5</code>, where the alternative matches, is tokenized correctly.</li><li><strong>Effect.</strong> Silent wrong tokens with offsets inside a surrogate pair, at any index size, with assertions on or off: an extra junk term (U+FFFD), the next word indexed under a U+FFFD-prefixed term (a search for the word misses the document), or a word cut into two terms (a search for the whole word misses, one for its tail matches). <code class='nw'>IndexWriter</code> replaces lone surrogates with U+FFFD as documented, <code class='nw'>CheckIndex</code> stays clean, and highlight snippets can contain unpaired surrogates of the document's own text. In the runs only the tokens of the value being tokenized changed. No hang was seen: in the hunt's cost probe (up to 2.4M chars, one aarch64 host) the per-char cost of stock and fixed code did not grow with input size.</li><li><strong>How likely.</strong> Rare, by judgement: it needs all three pattern conditions (the wider shapes found by the doc's checks were not counted), and no report since 6.5.0 (2017) was found in the public sources searched. Real deployments were not surveyed.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A 5-test JUnit for the analysis-common test tree that uses the two public factories. The two controls pass; the three bug tests fail on main and 10.5.2 (assertions on and off) and on 9.12.3. In the two unused-alternative tests the first assert passes and the second fails.</p><figure class='code'><figcaption><span class='fname'>TestSimplePatternSupplementaryRetry.java (analysis-common, public API)</span><span class='meta'>129 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.pattern;
+
+import java.io.StringReader;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
+import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+
+/**
+ * The simple pattern tokenizers step their automaton over code points. When a match attempt that
+ * started at a supplementary character (two UTF-16 units) fails after reading further, they retry
+ * one UTF-16 unit later, inside the surrogate pair, instead of at the next code point.
+ */
+public class TestSimplePatternSupplementaryRetry extends BaseTokenStreamTestCase {
+
+  /** U+1F525, two UTF-16 units: high surrogate U+D83D, low surrogate U+DD25. */
+  private static final String FIRE = new String(Character.toChars(0x1F525));
+
+  /** A token is FIRE followed by digits, or a run of characters other than FIRE and space. */
+  private static final String WORDS = FIRE + &quot;[0-9]+|[^&quot; + FIRE + &quot; ]+&quot;;
+
+  /** A separator is a run of characters other than a-z and FIRE, or FIRE followed by &#x27;!&#x27;. */
+  private static final String SEPARATORS = &quot;[^a-z&quot; + FIRE + &quot;]+|&quot; + FIRE + &quot;!&quot;;
+
+  private static Tokenizer tokenizer(String pattern, String text) {
+    Map&lt;String, String&gt; args = new HashMap&lt;&gt;();
+    args.put(&quot;pattern&quot;, pattern);
+    Tokenizer t = new SimplePatternTokenizerFactory(args).create();
+    t.setReader(new StringReader(text));
+    return t;
+  }
+
+  private static Tokenizer splitTokenizer(String pattern, String text) {
+    Map&lt;String, String&gt; args = new HashMap&lt;&gt;();
+    args.put(&quot;pattern&quot;, pattern);
+    Tokenizer t = new SimplePatternSplitTokenizerFactory(args).create();
+    t.setReader(new StringReader(text));
+    return t;
+  }
+
+  /** Control: when the FIRE alternative matches, both tokenizers are right. */
+  public void testControlFireAlternativeMatches() throws Exception {
+    assertTokenStreamContents(
+        tokenizer(WORDS, FIRE + &quot;5 hot deal&quot;),
+        new String[] {FIRE + &quot;5&quot;, &quot;hot&quot;, &quot;deal&quot;},
+        new int[] {0, 4, 8},
+        new int[] {3, 7, 12},
+        12);
+    assertTokenStreamContents(
+        splitTokenizer(SEPARATORS, &quot;so&quot; + FIRE + &quot;!hot now&quot;),
+        new String[] {&quot;so&quot;, &quot;hot&quot;, &quot;now&quot;},
+        new int[] {0, 5, 9},
+        new int[] {2, 8, 12},
+        12);
+  }
+
+  /** Control: PatternTokenizer (java.util.regex) with the same regexes keeps the pair intact. */
+  public void testControlPatternTokenizer() throws Exception {
+    Tokenizer t = new PatternTokenizer(Pattern.compile(WORDS), 0);
+    t.setReader(new StringReader(FIRE + &quot;hot deal&quot;));
+    assertTokenStreamContents(
+        t, new String[] {&quot;hot&quot;, &quot;deal&quot;}, new int[] {2, 6}, new int[] {5, 10}, 10);
+    Tokenizer split = new PatternTokenizer(Pattern.compile(SEPARATORS), -1);
+    split.setReader(new StringReader(&quot;so&quot; + FIRE + &quot;hot now&quot;));
+    assertTokenStreamContents(
+        split, new String[] {&quot;so&quot; + FIRE + &quot;hot&quot;, &quot;now&quot;}, new int[] {0, 8}, new int[] {7, 11}, 11);
+  }
+
+  /** An alternative that matches nowhere in the text must not change the tokens. */
+  public void testUnusedAlternativeChangesTokens() throws Exception {
+    String text = FIRE + &quot;hot deal&quot;;
+    // without the FIRE alternative: &quot;hot&quot; [2,5) and &quot;deal&quot; [6,10) (this assert passes)
+    assertTokenStreamContents(
+        tokenizer(&quot;[^&quot; + FIRE + &quot; ]+&quot;, text),
+        new String[] {&quot;hot&quot;, &quot;deal&quot;},
+        new int[] {2, 6},
+        new int[] {5, 10},
+        10);
+    // with FIRE[0-9]+ added, which matches nowhere in this text, &quot;hot&quot; must stay the same
+    assertTokenStreamContents(
+        tokenizer(WORDS, text),
+        new String[] {&quot;hot&quot;, &quot;deal&quot;},
+        new int[] {2, 6},
+        new int[] {5, 10},
+        10);
+  }
+
+  /** FIRE followed by a space: no token may consist of half of FIRE. */
+  public void testNoTokenFromHalfAnEmoji() throws Exception {
+    assertTokenStreamContents(
+        tokenizer(WORDS, FIRE + &quot; x&quot;), new String[] {&quot;x&quot;}, new int[] {3}, new int[] {4}, 4);
+  }
+
+  /** Split tokenizer: FIRE not followed by &#x27;!&#x27; is no separator, so the word stays whole. */
+  public void testSplitKeepsWordWithEmoji() throws Exception {
+    String text = &quot;so&quot; + FIRE + &quot;hot now&quot;;
+    // without the FIRE! alternative (this assert passes)
+    assertTokenStreamContents(
+        splitTokenizer(&quot;[^a-z&quot; + FIRE + &quot;]+&quot;, text),
+        new String[] {&quot;so&quot; + FIRE + &quot;hot&quot;, &quot;now&quot;},
+        new int[] {0, 8},
+        new int[] {7, 11},
+        11);
+    // with FIRE! added, which occurs nowhere in this text, the tokens must stay the same
+    assertTokenStreamContents(
+        splitTokenizer(SEPARATORS, text),
+        new String[] {&quot;so&quot; + FIRE + &quot;hot&quot;, &quot;now&quot;},
+        new int[] {0, 8},
+        new int[] {7, 11},
+        11);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code># $REPRO = the directory holding TestSimplePatternSupplementaryRetry.java (this bug&#x27;s repro/org/apache/lucene/analysis/pattern/)
+cp $REPRO/TestSimplePatternSupplementaryRetry.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.pattern.TestSimplePatternSupplementaryRetry -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false: the same 3 failures
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd><code>🔥hot deal</code> gives <code class='nw'>hot</code> [2,5), <code class='nw'>deal</code>; <code>🔥 x</code> gives <code class='nw'>x</code> [3,4); split <code>so🔥hot now</code> gives <code class='nw'>so🔥hot</code> [0,7), <code class='nw'>now</code>.</dd></div><div class='got'><dt>Observed</dt><dd><code class='nw'>\uDD25hot</code> [1,5), <code class='nw'>deal</code> (<code>expected:&lt;[]hot&gt; but was:&lt;[?]hot&gt;</code>); <code class='nw'>\uDD25</code> [1,2), <code class='nw'>x</code> (<code>expected:&lt;[x]&gt; but was:&lt;[?]&gt;</code>); split <code class='nw'>so\uD83D</code> [0,3), <code class='nw'>hot</code>, <code class='nw'>now</code> (<code>expected:&lt;so?[?hot]&gt; but was:&lt;so?[]&gt;</code>).</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-545/'>repro/LFV-545/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>1 more file (38 lines) · 680 words</span></summary><div class='body'><p>Public API only (<code>SimplePatternTokenizerFactory</code>, <code>SimplePatternSplitTokenizerFactory</code>, and <code class='nw'>PatternTokenizer</code> for a control) plus the test framework's <code>BaseTokenStreamTestCase</code>; about 2 s. The file is google-java-format clean (<code>checkGoogleJavaFormat</code> passes with it in the test tree). Each <code class='nw'>?</code> in the failure messages is one surrogate half the console cannot print: <code class='nw'>[?]hot</code> is <code class='nw'>\uDD25hot</code>, <code class='nw'>so?[]</code> is <code class='nw'>so\uD83D</code>.</p><p>In the failing runs the build's test-output writer also reports <code>java.nio.charset.MalformedInputException</code> ("Gradle Test Run ... FAILED"), because the failure messages contain the lone surrogates. It is a side effect of printing the malformed tokens, not something the tokenizer throws, and does not occur with the fix.</p><p>Below it, one method for each of the two existing upstream suites, for a PR: both fail on stock main and pass with the fix.</p><div class="hd hd-3"><h3 id='code-2-h'>test-upstream.diff (one method each for TestSimplePatternTokenizer and TestSimplePatternSplitTokenizer)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>On stock main (assertions on) both new methods fail; with the fix <code>TestSimplePattern*</code> runs 36 tests with 0 failures, assertions on and off.</p><figure class='code'><figcaption><span class='fname'>test-upstream.diff (one method each for TestSimplePatternTokenizer and TestSimplePatternSplitTokenizer)</span><span class='meta'>38 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>diff --git a/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternSplitTokenizer.java b/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternSplitTokenizer.java
+index f5fc6a0881e..d1dec1f1e41 100644
+--- a/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternSplitTokenizer.java
++++ b/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternSplitTokenizer.java
+@@ -248,4 +248,13 @@ public class TestSimplePatternSplitTokenizer extends BaseTokenStreamTestCase {
+     t.setReader(new StringReader(&quot;aba&quot;));
+     assertTokenStreamContents(t, new String[] {&quot;a&quot;}, new int[] {2}, new int[] {3}, 3);
+   }
++
++  /** A failed separator attempt at a supplementary character must retry at the next code point. */
++  public void testFailedAttemptAtSupplementaryCharacter() throws Exception {
++    String fire = new String(Character.toChars(0x1F525)); // two UTF-16 units
++    Tokenizer t = new SimplePatternSplitTokenizer(&quot;[^a-z&quot; + fire + &quot;]+|&quot; + fire + &quot;!&quot;);
++    t.setReader(new StringReader(&quot;so&quot; + fire + &quot;hot now&quot;));
++    assertTokenStreamContents(
++        t, new String[] {&quot;so&quot; + fire + &quot;hot&quot;, &quot;now&quot;}, new int[] {0, 8}, new int[] {7, 11}, 11);
++  }
+ }
+diff --git a/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java b/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java
+index 6a6584be56d..128fa9481f3 100644
+--- a/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java
++++ b/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java
+@@ -209,4 +209,15 @@ public class TestSimplePatternTokenizer extends BaseTokenStreamTestCase {
+     t.setReader(new StringReader(&quot;aba&quot;));
+     assertTokenStreamContents(t, new String[] {&quot;ab&quot;}, new int[] {0}, new int[] {2}, 3);
+   }
++
++  /** A failed attempt at a supplementary character must retry at the next code point. */
++  public void testFailedAttemptAtSupplementaryCharacter() throws Exception {
++    String fire = new String(Character.toChars(0x1F525)); // two UTF-16 units
++    Tokenizer t = new SimplePatternTokenizer(fire + &quot;[0-9]+|[^&quot; + fire + &quot; ]+&quot;);
++    t.setReader(new StringReader(fire + &quot;hot deal&quot;));
++    assertTokenStreamContents(
++        t, new String[] {&quot;hot&quot;, &quot;deal&quot;}, new int[] {2, 6}, new int[] {5, 10}, 10);
++    t.setReader(new StringReader(fire + &quot; x&quot;));
++    assertTokenStreamContents(t, new String[] {&quot;x&quot;}, new int[] {3}, new int[] {4}, 4);
++  }
+ }
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT), gradle and standalone runs; 10.5.2 and 9.12.3 release jars: the same 3 failures; 6.5.0 to 10.5.2 (10 releases): the finder&#x27;s test and a portable probe fail</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux, aarch64 (pure Java)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code># $LUCENE = a Lucene checkout of main; JAVA_HOME = a JDK 25
+# $REPRO = the directory holding TestSimplePatternSupplementaryRetry.java (this bug&#x27;s repro/org/apache/lucene/analysis/pattern/)
+cp $REPRO/TestSimplePatternSupplementaryRetry.java $LUCENE/lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:common:test --tests org.apache.lucene.analysis.pattern.TestSimplePatternSupplementaryRetry -Ptests.seed=DEADBEEF -Ptests.asserts=true
+# also with -Ptests.asserts=false: the same 3 failures
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># main a9779ef3c193, gradle, -Ptests.seed=DEADBEEF -Ptests.asserts=true (identical with =false)
+TestSimplePatternSupplementaryRetry &gt; testUnusedAlternativeChangesTokens FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;[]hot&gt; but was:&lt;[?]hot&gt;
+TestSimplePatternSupplementaryRetry &gt; testSplitKeepsWordWithEmoji FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;so?[?hot]&gt; but was:&lt;so?[]&gt;
+TestSimplePatternSupplementaryRetry &gt; testNoTokenFromHalfAnEmoji FAILED
+    org.junit.ComparisonFailure: term 0 expected:&lt;[x]&gt; but was:&lt;[?]&gt;
+5 tests completed, 3 failed
+# plus, from the build&#x27;s test-output writer: java.nio.charset.MalformedInputException: Input length = 1 (gone with the fix)
+# with the upstream suites: TestSimplePattern* 34 tests completed, 3 failed (the 29 upstream tests pass)
+
+# standalone JUnit runner, the same test: main -ea and -da, 10.5.2 -ea and -da, 9.12.3 -da: 5 run, 3 failed
+
+# token streams and index terms, main -da (probe):
+simplePattern 🔥[0-9]+|[^🔥 ]+  on &#x27;🔥hot deal&#x27;  -&gt; &#x27;\uDD25hot&#x27;[1,5) &#x27;deal&#x27;[6,10)
+simplePattern 🔥[0-9]+|[^🔥 ]+  on &#x27;🔥 x&#x27;        -&gt; &#x27;\uDD25&#x27;[1,2) &#x27;x&#x27;[3,4)
+simplePattern [^🔥 ]+           on &#x27;🔥hot deal&#x27;  -&gt; &#x27;hot&#x27;[2,5) &#x27;deal&#x27;[6,10)
+simplePatternSplit [^a-z🔥]+|🔥! on &#x27;so🔥hot now&#x27; -&gt; &#x27;so\uD83D&#x27;[0,3) &#x27;hot&#x27;[4,7) &#x27;now&#x27;[8,11)
+indexed terms: deal, \uFFFDhot (ef bf bd 68 6f 74); TermQuery body:hot count=0   (1 with the fix)
+split indexed terms: hot, now, so\uFFFD; TermQuery body:so🔥hot count=0, body:hot count=1   (1 and 0 with the fix)</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The code says the automaton runs "in Unicode space, not UTF16", reads 🔥 as one code point, and skips it whole when the first step fails.</li><li>An alternative that matches nowhere changes the output: <code>[^🔥 ]+</code> gives <code class='nw'>hot</code>, <code>🔥[0-9]+|[^🔥 ]+</code> gives <code class='nw'>\uDD25hot</code>.</li><li><code class='nw'>PatternTokenizer</code> and <code class='nw'>String.split</code> keep the pair intact; Lucene fixed the same output as bugs in other analysis components.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>350 words</span></summary><div class='body'><ul><li><strong>The code works in code points.</strong> <code>SimplePatternTokenizer.java:114</code> and <code>SimplePatternSplitTokenizer.java:111</code>: "The runDFA operates in Unicode space, not UTF16 (java's char)". <code class='nw'>nextCodePoint()</code> joins surrogate pairs, and the first-step-fails branch (<code class='nw'>:158-160</code>) skips the whole code point. On well-formed text a lone surrogate exists only because the false alarm rewinds into a code point that was read whole.</li><li><strong>Contract</strong> (no javadoc sentence mentions surrogates, defines where a retry starts or promises code-point-aligned boundaries: that this is not intended is inferred from the code and the comparisons, not from a documented contract). Class javadoc (<code>SimplePatternTokenizer.java:34-35</code>): "The matching is greedy: the longest match at a given start point will be the next token." Factory javadoc (<code>SimplePatternTokenizerFactory.java:41-43</code>): "the longest token matching at a given point is created." The split tokenizer is "just like SimplePatternTokenizer except that the pattern should make valid token separator characters, like String.split" (<code>SimplePatternSplitTokenizer.java:33-34</code>).</li><li><strong>An unused alternative changes the tokens.</strong> Within <code>🔥hot deal</code>, <code>[^🔥 ]+</code> and <code>🔥[0-9]+|[^🔥 ]+</code> match the same substrings, yet the first gives <code class='nw'>hot</code>, <code class='nw'>deal</code> and the second <code class='nw'>\uDD25hot</code>, <code class='nw'>deal</code>. The same holds for <code class='nw'>[^a-z🔥]+</code> vs <code class='nw'>[^a-z🔥]+|🔥!</code> on <code>so🔥hot now</code>. No start-point rule allows that.</li><li><strong>The documented comparisons keep the pair.</strong> <code class='nw'>PatternTokenizer</code> (group 0) gives <code class='nw'>hot</code>, <code class='nw'>deal</code> and <code class='nw'>x</code>; in split mode (group -1) and with <code class='nw'>String.split</code>, <code>so🔥hot now</code> gives <code class='nw'>so🔥hot</code>, <code class='nw'>now</code>.</li><li><strong>Supplementary input is in scope.</strong> Upstream <code class='nw'>testOneToken</code> and <code class='nw'>testNoTokens</code> feed <code>TestUtil.randomUnicodeString</code> through both tokenizers (with <code class='nw'>.*</code>, which never fails a try); no dedicated test uses a failing alternative that starts with a supplementary character. <code class='nw'>TestRandomChains</code> can build these tokenizers from random regexps that may contain surrogate pairs, but it checks consistency and offsets, not surrogate integrity.</li><li><strong>Precedent.</strong> <code>lucene/CHANGES.txt</code> lists as bug fixes "LUCENE-8325: Fixed the smartcn tokenizer to not split UTF-16 surrogate pairs" and "GITHUB#15899, GITHUB#15900: Improve TruncateTokenFilter to truncate on codepoints not chars and no longer produce half surrogates".</li><li><strong>History.</strong> The false-alarm line is in the first commit (<code class='nw'>93fa72f77bd</code>, LUCENE-7465) next to the Unicode-space comment; the issue (#8517) never discusses surrogates or where a retry starts.</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>133 words</span></summary><div class='body'><p>The strongest case for "intended": the pattern itself accepts lone surrogate code points (<code>[^🔥 ]</code> does), so the tokenizer only does what the automaton allows; both classes are <code>@lucene.experimental</code>; buffers and offsets count <code class='nw'>char</code>s; and the comment says "push back all but the first <em>character</em>".</p><p>Why it fails: on well-formed text the automaton would never see a lone surrogate if the tokenizer kept the code points it read whole; <code class='nw'>java.util.regex</code> gives <code>[^🔥 ]</code> the same meaning yet keeps the pair intact on these inputs; the same loop skips whole code points on its other no-match path; and the unused-alternative example shows the output is not a function of the pattern's language. <code>@lucene.experimental</code> marks API instability, not permission for malformed terms. Cross-model reviews (reading only) rated the works-as-designed case weak.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Push back all but the first code point (validated)</strong></p><p class='short'>Push back all but the first <strong>code point</strong> on a false alarm: record <code>Character.charCount(ch)</code> of the attempt's first code point and call <code>pushBack(tokenUpto - firstLen)</code> (<code>sepUpto - firstLen</code> in the split tokenizer). Two lines per class; the repro, the pattern package and the whole analysis-common module (1,914 tests) pass with assertions on and off.</p><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>5 options · 949 words</span></summary><div class='body'><p>The recommended change was built at <code class='nw'>a9779ef3c193</code> and validated with gradle in a scratch worktree (the repro, <code>TestSimplePattern*</code>, the pattern package, the whole analysis-common module, assertions on and off, the module's static checks and <code class='nw'>TestRandomChains</code>), and against the stock jars with the patched classes shadowed (this doc's repro, the finder's and a verifier's). It is code-identical to the hunt's fix, which the bounded-exhaustive check showed removes exactly this mismatch class. A verifier's independent fix is the unit-count variant below, also run. Ship it together with the sibling LFV-525 fix in the same function.</p><div class="hd hd-3"><h3 id='fix-code-point-retry'>Push back all but the first code point (validated) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-code-point-retry" target="_self" aria-label="Link to this section" aria-describedby="fix-code-point-retry"><span aria-hidden="true">#</span></a></div><p><code>surrogate-retry-fix.diff</code>, +9/-5 over both classes: after the first step, record how many UTF-16 units the attempt's first code point has, and on a false alarm push back all but that many. The retry then starts at the next code point, as the first-step-fails branch already does.</p><pre class='snippet' tabindex='0'><code>diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java
+index 1914875560d..13704d4ce64 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java
+@@ -119,6 +119,8 @@ public final class SimplePatternSplitTokenizer extends Tokenizer {
+         }
+       }
+       int state = runDFA.step(0, ch);
++      // UTF-16 length of the code point this attempt starts at
++      final int firstLen = Character.charCount(ch);
+ 
+       if (state != -1) {
+         // a token separator just possibly started; keep scanning to see if the token is accepted:
+@@ -161,9 +163,9 @@ public final class SimplePatternSplitTokenizer extends Tokenizer {
+             return false;
+           }
+         } else {
+-          // false alarm: there was no token separator here; push back all but the first character
+-          // we scanned
+-          pushBack(sepUpto - 1);
++          // false alarm: there was no token separator here; push back all but the first code
++          // point we scanned
++          pushBack(sepUpto - firstLen);
+         }
+       }
+     }
+diff --git a/lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java b/lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java
+index 61812a21ece..b67b219a8b4 100644
+--- a/lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java
++++ b/lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java
+@@ -119,6 +119,8 @@ public final class SimplePatternTokenizer extends Tokenizer {
+       }
+ 
+       int state = runDFA.step(0, ch);
++      // UTF-16 length of the code point this attempt starts at
++      final int firstLen = Character.charCount(ch);
+ 
+       if (state != -1) {
+         // a token just possibly started; keep scanning to see if the token is accepted:
+@@ -151,8 +153,8 @@ public final class SimplePatternTokenizer extends Tokenizer {
+         } else if (ch == -1) {
+           return false;
+         } else {
+-          // false alarm: there was no token here; push back all but the first character we scanned
+-          pushBack(tokenUpto - 1);
++          // false alarm: there was no token here; push back all but the first code point we scanned
++          pushBack(tokenUpto - firstLen);
+           tokenUpto = 0;
+         }
+       } else {</code></pre><p class='k'>Trade-offs</p><ul><li>None found: one local per method, no new state.</li><li>Cost: in the hunt's cost probe (<code class='nw'>-da</code>, one aarch64 host, 300k-2.4M chars where every emoji takes the retry) the per-char cost did not grow with input size; at 1.2M and 2.4M chars 6.2-13.9 ns/char with the fix vs 13.0-19.3 on stock.</li></ul><p class='k'>What the checks validated</p><ul><li>gradle at <code class='nw'>a9779ef3c193</code>: the repro 5 of 5; <code>TestSimplePattern*</code> 34 tests; <code>org.apache.lucene.analysis.pattern.*</code> 87 tests (2 skipped); the whole analysis-common module 1,914 tests, 18 skipped, 0 failures; each with assertions on and off. <code>check -x test</code> (lint, forbidden APIs, formatting) passes; <code class='nw'>TestRandomChains</code> passes with 2 seeds.</li><li>The new upstream-suite methods pass; on stock both fail.</li><li>Shadowed on the stock jars: this doc's repro 5 of 5 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>), the finder's 2 of 2, a verifier's 8 of 8. The hunt's bounded-exhaustive check (4,140,572 checks): this mismatch class goes from 13,741 runs per tokenizer to 0, the sibling's end-of-input class stays; with both fixes, 0 mismatches. The same fix applied to the 6.5.0 sources passes there.</li></ul><div class="hd hd-3"><h3 id='fix-with-lfv525'>Land it with the end-of-input fix of LFV-525 (validated)</h3><a class="hlink" href="#fix-with-lfv525" target="_self" aria-label="Link to this section" aria-describedby="fix-with-lfv525"><span aria-hidden="true">#</span></a></div><p>The sibling bug LFV-525 (a lookahead that reaches the end of the input without a match ends tokenization) is in the same function; both of its fix options already contain this change, and this doc's repro passes 5 of 5 with its recommended patch shadowed.</p><p class='k'>Trade-offs</p><p>File the two separately and cross-link them. If the end-of-input fix landed without this one, this bug would fire more often (15,432 instead of 13,741 runs per tokenizer in the exhaustive check), because more attempts reach the false-alarm retry.</p><div class="hd hd-3"><h3 id='fix-unit-count'>Variant: count the units the first read consumed (a verifier's fix, run)</h3><a class="hlink" href="#fix-unit-count" target="_self" aria-label="Link to this section" aria-describedby="fix-unit-count"><span aria-hidden="true">#</span></a></div><p><code>final int firstLen = tokenUpto;</code> (<code class='nw'>sepUpto</code> in the split tokenizer) right after the first <code class='nw'>nextCodePoint()</code>, then the same <code>pushBack(... - firstLen)</code>. This is the independent fix of verifier: its own 8-test JUnit passes 8 of 8 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>) and the upstream suites 29 of 29 on main <code class='nw'>ea57360912ed</code>, and this doc's repro passes 5 of 5 with it shadowed on main <code class='nw'>a9779ef3c193</code> (<code class='nw'>-ea</code>, <code class='nw'>-da</code>).</p><p class='k'>Trade-offs</p><p>The same as <code>Character.charCount(ch)</code> on well-formed text. On malformed text (an unpaired high surrogate, which <code class='nw'>nextCodePoint()</code> joins with the next unit unchecked) it still counts exactly the units read; that is reasoned from the code, not tested.</p><div class="hd hd-3"><h3 id='fix-workaround'>Workaround without a Lucene change: exclude the surrogate range (validated on stock)</h3><a class="hlink" href="#fix-workaround" target="_self" aria-label="Link to this section" aria-describedby="fix-workaround"><span aria-hidden="true">#</span></a></div><p>For patterns built in Java code, add <code class='nw'>\uD800-\uDFFF</code> to every negated class, so a retry at a lone half dies at its first step and is skipped whole: <code>🔥[0-9]+|[^🔥 \uD800-\uDFFF]+</code> and <code>[^a-z🔥\uD800-\uDFFF]+|🔥!</code> give the expected tokens on all five inputs of this doc on stock main.</p><p class='k'>Trade-offs</p><p>Needs lone surrogate characters in the pattern string, which text configuration formats may not carry (not tried there); every user must know about it.</p><div class="hd hd-3"><h3 id='fix-document'>Document the current behaviour (not recommended)</h3><a class="hlink" href="#fix-document" target="_self" aria-label="Link to this section" aria-describedby="fix-document"><span aria-hidden="true">#</span></a></div><p>State that a failed try at a supplementary character retries at its second <code class='nw'>char</code>.</p><p class='k'>Trade-offs</p><p>Keeps malformed terms and the unused-alternative inconsistency, when the fix is two lines per class.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>Elasticsearch and OpenSearch build their <code class='nw'>simple_pattern</code> and <code>simple_pattern_split</code> tokenizers on these classes, so the same patterns give the same wrong tokens there (read in their sources, not run there).</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive check ran both real tokenizers on every string of up to 6 code points over {a, b, space, -, 😀} with 39 patterns and compared them with the javadoc's longest-match rule. 13,741 runs per tokenizer produced a lone surrogate, all from 2 patterns; reading the code then located the false-alarm push-back.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>183 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation</strong> (the hunt's semi-formal tier). The checker ran the real <code>SimplePatternTokenizer</code> and <code>SimplePatternSplitTokenizer</code> on all 19,531 strings of up to 6 code points over {a, b, space, -, U+1F600}, for 39 <code class='nw'>RegExp</code> patterns (4,140,572 checks, including <code class='nw'>PatternTokenizer</code> controls), against a reference written from the class javadoc: the greedy longest match per start point, with membership decided by <code class='nw'>java.util.regex</code>. The mismatch class "lone surrogate in token" (13,741 runs per tokenizer) came only from the 2 pool patterns that start an alternative with the emoji and exclude it from a negated class (<code>😀a|[^😀a ]+</code>, <code>😀😀|[^😀 ]\-</code>). Reading the code then located <code>pushBack(tokenUpto - 1)</code> / <code>pushBack(sepUpto - 1)</code>. The pool had no explicit range reaching into the surrogate block, so the check did not cover the range shapes of the trigger that the doc's checks found later.</p><p>The finder then wrote a JUnit through the public constructors (2 of 2 fail on main with assertions on and off, 10.5.2 and 9.12.3) and the one-line fix, which removes exactly this class from the check. Independent checks followed (below).</p></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report: 102 tool queries over GitHub issues, PRs and commits, downstream trackers, the mailing lists, JIRA and the web, 43 manual GitHub, JIRA and list searches, and the files of all 409 open PRs (2026-10-26). Closest: the same defect class fixed in other components (TruncateTokenFilter, smartcn).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>5 searches</span></summary><div class='body'><p>No report of this bug by anyone was found; the nearest items are the issue that added the classes, the 2017 end-of-input fix in the same branch, and surrogate-splitting fixes in other components. Limits: GitHub search is token based and only first result pages were read; GitHub's search rate limit slowed a verifier; private reports cannot be searched.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene), downstream repositories (Elasticsearch, OpenSearch, Solr), mailing lists (dev@, java-user@, issues@, commits@), JIRA archive, web</th><td class='when'>2026-10-26</td><td>the hunt's prior-report tool in two runs, 102 queries</td><td>no report</td></tr><tr><th scope='row'>GitHub (apache/lucene, Elasticsearch, OpenSearch, Solr)</th><td class='when'>2026-10-26</td><td>21 manual searches: class and factory names with surrogate, emoji, supplementary; simple_pattern, simple_pattern_split; LUCENE-7465</td><td>no report</td></tr><tr><th scope='row'>JIRA (LUCENE, SOLR) and mailing lists (including the Solr lists)</th><td class='when'>2026-10-26</td><td>13 JIRA and 9 list queries</td><td>no report</td></tr><tr><th scope='row'>Open PRs and upstream branches</th><td class='when'>2026-10-26</td><td>the changed files of all 409 open apache/lucene PRs; both files read on main, branch_10x and branch_10_6</td><td>two PRs touch analysis/pattern, neither this code (#12613, #16911); the line is unchanged on all three branches</td></tr><tr><th scope='row'>Related items (read)</th><td class='when'>2026-10-26</td><td>issue threads and commits read in full</td><td>#8517 (LUCENE-7465, added the classes; nothing on surrogates); commit 2d03aa21a2b (end-of-input case); #15899 / PR #15900 (TruncateTokenFilter), #9372 (LUCENE-8325, smartcn), LUCENE-7363 (DecimalDigitFilter): the same defect class elsewhere</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Introduced with both classes by LUCENE-7465 (<code class='nw'>93fa72f77bd</code>, 2017-02-13), first released in 6.5.0. Fails the same way on all 10 releases run from 6.5.0 to 10.5.2 and on main; the line has never changed.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>93fa72f77bd</code> (2017-02-13, LUCENE-7465 "add SimplePatternTokenizer and SimpleSplitPatternTokenizer", @mikemccand; a JIRA patch, no PR; issue migrated as #8517) and the branch_6x backport <code class='nw'>c24e03e6bf4</code> (byte-identical tokenizer files). They already have the "Unicode space, not UTF16" comment, <code class='nw'>nextCodePoint()</code> and <code>pushBack(tokenUpto-1)</code> / <code>pushBack(sepUpto-1)</code>. <code>git blame</code> credits <code class='nw'>9a1702a8f5b</code> (a byte-identical restore after a merge revert) and <code class='nw'>8ef6a0da568</code> (reformatting); <code>git log -L</code> shows no other change. The 2017 follow-up <code class='nw'>2d03aa21a2b</code> (end-of-input lookahead) did not touch the push-back count. Not a regression.</p><p>By source the line is at every release tag 6.5.0-10.5.2 of the history clone (8.8.2-8.11.4 are not tagged there; 8.11.4 was run) and on upstream main, branch_10x and branch_10_6 (read 2026-10-26). Never fixed.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 3 of 5 fail (gradle with assertions on and off; standalone -ea and -da); TermQuery body:hot finds 0 documents</td></tr><tr><th scope='row'>main <code class='nw'>ea57360912ed</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test 2 of 2 and a verifier's 6 of 8 fail (-ea and -da); the portable probe's 2 bug cases fail, its controls pass</td></tr><tr><th scope='row'>10.5.2, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>this doc's test 3 of 5 (10.5.2 -ea and -da, 9.12.3 -da); the finder's 2 of 2; the probe</td></tr><tr><th scope='row'>6.5.0 to 10.0.0 (8 releases: 6.5.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 10.0.0)</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the finder's test 2 of 2 and the probe's 2 bug cases fail with byte-identical wrong tokens; controls pass (-da too on 6.5.0)</td></tr><tr><th scope='row'>6.5.0 + the fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> fix check</span></td><td>the fix applied to the 6.5.0 sources: the test and the probe pass</td></tr><tr><th scope='row'>6.4.2</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>no SimplePattern* classes (the repro does not compile)</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the repro passes; the analysis-common module, 1,914 tests, passes with assertions on and off</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a second executed probe, a devil's advocate and an adjudication said real and re-ran it with assertions on and off. Reviews by another model family (reading only) agreed on the root cause; one said "not real" only because it could not run code. An audit kept it.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>468 words</span></summary><div class='body'><p>Each check ran or re-ran a repro on the stock jars, except the reading-only reviews, for which a separate run re-ran the finder's repro; the verdicts below are each check's own.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>JUnit through the public constructors fails 2 of 2 on main (-ea and -da), 10.5.2 and 9.12.3; with the fix 2 of 2 pass and the upstream TestSimplePatternTokenizer and TestSimplePatternSplitTokenizer pass 29 of 29.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v warn'><span aria-hidden='true'>&#9680;</span> not real (low), procedural</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6, reading only) could not run code, so its rubric defaulted to not real; it agreed with the root cause, judged the inputs in contract and rated the intended-behaviour case weak. A separate run re-ran the repro: fail 2 of 2.</td></tr><tr><th scope='row'>cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (medium)</span></td><td>The same reviewer family, reading only: the best works-as-designed case (char-unit buffers and offsets, the 'all but the first character' comment, @lucene.experimental) is weak.</td></tr><tr><th scope='row'>The cross-model review, executed probe for the reading-only lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Through the RegExp String constructors and the factory: 3 of 3 fail on main (-ea, -da) and 10.5.2, pass with the fix.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 8-test JUnit with U+1F600: 6 of 8 fail on main (-ea, -da), 10.5.2 and 9.12.3, including the unused-alternative check and a random invariant (1,371 of 5,324 tokens bad); its own fix passes 8 of 8 and keeps the upstream tests at 29 of 29.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>Built the strongest intended-behaviour case and showed why it fails; PatternTokenizer, Matcher.find and String.split keep the pair intact on the same inputs.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (high)</span></td><td>Re-ran the finder's JUnit (-ea and -da: 2 of 2 fail), the independent reproduction's (6 of 8 fail) and the finder's with the fix (2 of 2 pass); asked that the filing say openly that no javadoc mentions surrogates.</td></tr><tr><th scope='row'>audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>Re-ran the finder's JUnit on main (-ea and -da: 2 of 2 fail) and an own probe through the factory: <code>😀[a-z]+|[^😀 ]+</code> on <code>hi 😀 there</code> gives an extra <code class='nw'>\uDE00</code> token, <code class='nw'>java.util.regex</code> gives only <code class='nw'>hi</code>, <code class='nw'>there</code>. Committer view: a small PR with a test would be easy to accept.</td></tr><tr><th scope='row'>this doc's runs</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; fix validated</span></td><td>A new public-factory repro fails 3 of 5 on main a9779ef3c193 (gradle and standalone, assertions on and off), 10.5.2 and 9.12.3; the fix passes it and the whole analysis-common module.</td></tr><tr><th scope='row'>doc fact checks</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real; wording corrected</span></td><td>Re-ran this doc's gradle command at <code class='nw'>a9779ef3c193</code> (5 tests, 3 failed, assertions on and off) and the fix's suites, and found executed counterexamples that widened the trigger: patterns that name no supplementary character are affected too. A cross-model check (reading only) and a diagram check agreed; the doc was corrected.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-545/bug.png' download='simplepattern-false-alarm-retry-splits-surrogate-pair-bug.png' target='_self'>PNG</a> <span class='n'>455 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,444 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-545, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>SimplePatternTokenizer and SimplePatternSplitTokenizer restart a failed match one UTF-16 unit after a supplementary start character, so they can emit tokens that start or end inside a surrogate pair</dd></div><div><dt>Area</dt><dd>analysis / pattern tokenizers (analysis-common: SimplePatternTokenizer, SimplePatternSplitTokenizer and their simplePattern / simplePatternSplit factories)</dd></div><div><dt>Priority</dt><dd>Low, rank 437: A surrogate pair is split only with a narrow pattern shape in the opt-in simple-pattern tokenizers, a rare-input surrogate-cut analysis row like LFV-459.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits only applications that choose SimplePatternTokenizer or SimplePatternSplitTokenizer (directly or through the simplePattern / simplePatternSplit factories) with a pattern that starts a longer alternative with a supplementary character (an emoji or other non-BMP literal or range) and elsewhere accepts that character's low surrogate (typically a negated class that excludes the character, '.', or a hand-built automaton): then each attempt that starts at that character and dies before the end of the input restarts inside the surrogate pair, so SimplePatternTokenizer emits an extra lone-surrogate term or glues the low surrogate onto the next word (stored as U+FFFD, offsets inside the pair) and SimplePatternSplitTokenizer cuts a term after the high surrogate and loses the original term, at any scale, with -ea and -da and no exception; patterns that do not name supplementary characters, or whose classes treat the character and its surrogates alike (for example [^ ]+), are not affected.</dd></div><div><dt>Summary</dt><dd>You tokenize 'E x', where E is an emoji such as U+1F525, with SimplePatternTokenizer and the pattern E[a-z]+|[^E ]+ (E followed by letters, or a run of characters other than E and space) and expect the single token 'x' [3,4): the attempt at E dies at the space, and the tokenizer, which steps its automaton over code points, should move on to the next code point (PatternTokenizer and java.util.regex give exactly [x]). Instead it also emits a token made of E's lone low surrogate U+DD25 at offsets [1,2), which the index stores as U+FFFD, because the failed-attempt branch pushes back all but one UTF-16 unit and so restarts in the middle of the pair. SimplePatternSplitTokenizer has the same step: separator Ea|[^Ea ]+ on 'Eb' yields the lone high surrogate [0,1) instead of the token 'E' [0,2), and with separator [^a-zE]+|E! the text 'abEcd' becomes 'ab' plus a lone high surrogate, then 'cd', instead of the one token 'abEcd'; nothing throws.</dd></div><div><dt>Introduced</dt><dd>93fa72f77bd024aa09eef043c65c64a6524613dc (LUCENE-7465 'add SimplePatternTokenizer and SimpleSplitPatternTokenizer, for tokenization using Lucene's regexp/automaton implementation', by GitHub mikemccand; JIRA patch, no pull request; issue migrated as apache/lucene#8517; branch_6x backport c24e03e6bf4d09e6f31eee8192bb6c0c4b2b6d27 with byte-identical tokenizer files) [read: the commit already has the 'Unicode space, not UTF16' comment, nextCodePoint() and the false-alarm pushBack(tokenUpto-1) / pushBack(sepUpto-1); git blame on main credits 9a1702a8f5b, a byte-identical restore after the merge revert 325cbf00185, and 8ef6a0da568 (LUCENE-9570 reformatting only); git log -L shows no other change to these lines; exec: the one-line fix applied to the 6.5.0 sources makes the JUnit and the probe pass on 6.5.0]. Not a regression: the line is as old as the classes (2017-02-13 (master 93fa72f and branch_6x c24e03e6bf4))</dd></div><div><dt>First affected version</dt><dd>6.5.0 [exec] (6.4.2 has no SimplePattern* classes [exec: compile error])</dd></div><div><dt>Affected versions</dt><dd>6.5.0 through 10.5.2 (the latest release; latest 9.x 9.12.3, latest 8.x 8.11.4) and main ea57360912ed; never fixed. [exec] the candidate JUnit (fails 2 of 2) and a portable main() probe (both bug cases wrong with byte-identical output, both controls correct) on 10 releases, 6.5.0, 6.6.6, 7.0.0, 7.7.3, 8.0.0, 8.11.4, 9.0.0, 9.12.3, 10.0.0 and 10.5.2, and on main, with -da also on 6.5.0, 9.12.3, 10.5.2 and main (JUnit import adapted for 6.5.0-9.0.0, JUnitCore runner for 6.5.0-7.0.0); the independent reproduction's JUnit fails 6 of 8 on main (-ea, -da), 10.5.2 and 9.12.3. [read] the false-alarm line is in both files at every release tag 6.5.0-10.5.2 of the history clone (8.8.2-8.11.4 are untagged there; 8.8.1 read, 8.11.4 executed), and upstream main, branch_10x and branch_10_6 still have it (contents API, 2026-10-26).</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that could only read the code (its low-confidence “not real” is procedural), an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal: exhaustive check</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-26, read-only; the prior-report record, verdict new; plus the finder's and the independent reproduction's and the intended-behaviour check's searches): a scripted prior-report search in two runs (102 queries) over apache/lucene GitHub issues, PRs and commits, downstream repositories (Elasticsearch, OpenSearch, Solr), the dev@, java-user@, issues@ and commits@ lists, the JIRA archive and the web; 21 manual GitHub searches (class and factory names with surrogate, emoji and supplementary, simple_pattern / simple_pattern_split, LUCENE-7465), 13 JIRA and 9 mailing-list queries (Solr lists included); contents-API reads showing the lines unchanged on upstream main, branch_10x and branch_10_6; the changed files of all 409 open apache/lucene PRs (two touch analysis/pattern, neither this code: #12613 PatternReplaceFilterFactory, #16911 branch_10x decommission). Related, not this bug: apache/lucene#8517 (LUCENE-7465, closed: added both classes; body and all comments read, nothing on surrogates or the retry start), commit 2d03aa21a2b (2017, end-of-input lookahead fix; does not touch the push-back count), and precedents for the same defect class in other components: apache/lucene#15899 and PR #15900 (TruncateTokenFilter half surrogates, merged 2026-04), apache/lucene#9372 (LUCENE-8325, smartcn tokenizer) and LUCENE-7363 (DecimalDigitFilter)</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (2026-10-28): this doc's test through gradle in a scratch worktree with assertions on and off, stock and with the fix (also the pattern package, the whole analysis-common module and its static checks), and through the standalone JUnit runner with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; the 10.5.2 (<code class='nw'>-ea</code>, <code class='nw'>-da</code>) and 9.12.3 (<code class='nw'>-da</code>) release jars. Earlier pipeline runs (2026-10-26): main <code class='nw'>ea57360912ed</code>, whose two tokenizer files are byte-identical, and 10 releases from 6.5.0 to 10.5.2 (the finder's test and a portable probe).</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:30-39 (at ea57360912ed) (class javadoc: &#x27;The matching is greedy: the longest match at a given start point will be the next token&#x27;, &#x27;like String.split&#x27;; @lucene.experimental), :41-45 (TODO: &#x27;on failing to match a token, we skip one character forward and try again&#x27;), :114 (&#x27;The runDFA operates in Unicode space, not UTF16 (java&#x27;s char)&#x27;), :116 and :134 (nextCodePoint), :121 and :158-160 (state == -1 at the first step: the whole code point is consumed, no push-back), :153-156 (false alarm: &#x27;push back all but the first character we scanned&#x27;, pushBack(tokenUpto - 1) at :155), :242-253 (nextCodePoint joins a surrogate pair)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:30-38 (at ea57360912ed) (javadoc: &#x27;just like SimplePatternTokenizer except that the pattern should make valid token separator characters, like String.split&#x27;; @lucene.experimental), :111 (Unicode-space comment), :112 and :134 (nextCodePoint), :163-167 (false alarm, pushBack(sepUpto - 1) at :166)</code></li><li><code>lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizerFactory.java:54, (at ea57360912ed) :62, :71-75 and SimplePatternSplitTokenizerFactory.java:56, :64, :73-77 (@lucene.experimental, SPI names simplePattern and simplePatternSplit, the factories determinize the RegExp)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:104-162 (incrementToken; 114 Unicode-space comment, 116 and 134 nextCodePoint, 121 first step, 126-139 lookahead, 141-150 accept, 151-152 end-of-input branch, 153-156 false alarm with pushBack(tokenUpto - 1) at 155, 158-160 first step fails), 182-202 (pushBack), 242-253 (nextCodePoint)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:99-170 (incrementToken; 111 comment, 121 first step, 141-155 separator found, 156-162 end of input, 163-167 false alarm with pushBack(sepUpto - 1) at 166), 213-220 (appendToToken)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/core/src/java/org/apache/lucene/util/automaton/RegExp.java:1302 (negated class = makeAnyChar minus the class); lucene/core/src/java/org/apache/lucene/util/automaton/Automata.java:105-106 (makeAnyChar = MIN_CODE_POINT..MAX_CODE_POINT)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizerFactory.java:54, 62 and SimplePatternSplitTokenizerFactory.java:56, 64 (@lucene.experimental, SPI names)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:38 and lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:37 (@lucene.experimental)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/resources/META-INF/services/org.apache.lucene.analysis.TokenizerFactory:25-26 (SPI registration only)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/core/src/java/org/apache/lucene/index/IndexWriter.java:1483-1485 (malformed surrogate pairs are replaced with U+FFFD)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizer.java:30-39 (javadoc), 114, 153-160</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternSplitTokenizer.java:30-38 (javadoc), 111, 163-167</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/java/org/apache/lucene/analysis/pattern/SimplePatternTokenizerFactory.java:41-43 (factory javadoc)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis/common/src/test/org/apache/lucene/analysis/pattern/TestSimplePatternTokenizer.java:58-63 and TestSimplePatternSplitTokenizer.java:69-74 (testOneToken, testNoTokens with randomUnicodeString and .*)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/analysis.tests/src/test/org/apache/lucene/analysis/tests/TestRandomChains.java:448-452 (Automaton arguments from AutomatonTestUtil.randomRegexp) and lucene/test-framework/src/java/org/apache/lucene/tests/util/automaton/AutomatonTestUtil.java:100-105 (random regexp strings with surrogate pairs)</code></li><li><code>a Lucene main checkout (a9779ef3c193) lucene/CHANGES.txt:1198-1199 (GITHUB#15899, GITHUB#15900), 7479 (LUCENE-8325), 8421 (LUCENE-7465)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestSimplePatternSupplementaryRetry.java (analysis-common, public API): <a href='../repro/LFV-545/TestSimplePatternSupplementaryRetry.java'><code>repro/LFV-545/TestSimplePatternSupplementaryRetry.java</code></a> (129 lines)</li><li>test-upstream.diff (one method each for TestSimplePatternTokenizer and TestSimplePatternSplitTokenizer): <a href='../repro/LFV-545/test-upstream.diff'><code>repro/LFV-545/test-upstream.diff</code></a> (38 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A small diagram, made in parallel with this doc from the code at <code class='nw'>a9779ef3c193</code> and a probe executed on main. This caption describes the bug they show; see the diagram notes for exactly what is on screen.</p><ul class='paths'><li><a href='../assets/LFV-545/bug.png'><code>assets/LFV-545/bug.png</code></a> (455 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

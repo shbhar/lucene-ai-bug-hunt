@@ -2,6 +2,8 @@
 
 Bug LFV-738 · Area: analysis / UAX29URLEmailTokenizer JFlex URL rules (FTPurl production; analysis-common) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-738.html](../../bugs/LFV-738.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You run text such as 'get it from ftp://ftp.example.com today' or 'ftp://localho
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It emits 'ftp' as &lt;ALPHANUM&gt; followed by the rest on its own ('ftp.example.com' as &lt;URL&gt;, 'localhost' as &lt;ALPHANUM&gt;, '192.0.2.10' as &lt;NUM&gt;, '//anonymous@ftp.example.org' as &lt;EMAIL&gt;), because the grammar's FTPurl rule makes the '/'-led FTPorFILEpath mandatory while the http rule beside it makes its path optional.
+- Expected: Each path-less ftp URL is one `<URL>` token, e.g. `[ftp://localhost <URL>]`, like `[http://localhost <URL>]`.
+- Actual: `ftp://localhost` gives `[ftp <ALPHANUM>, localhost <ALPHANUM>]` (a `<NUM>` and an `<EMAIL>` for the IPv4 and userinfo forms): 5 of 6 tests fail, assertions on and off.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestUAX29URLEmailFtpNoPath.java](TestUAX29URLEmailFtpNoPath.java)
+- [TestFtpUrlWithoutPath.java](TestFtpUrlWithoutPath.java)
+- [TestFtpUrlNoPath.java](TestFtpUrlNoPath.java)
+- [FtpNoPathProbe.java](FtpNoPathProbe.java)
 
 ## Feedback
 

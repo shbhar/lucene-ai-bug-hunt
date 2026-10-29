@@ -2,6 +2,8 @@
 
 Bug LFV-845 · Area: queryparser / classic and flexible standard grammars (Range lexical state, RANGE_GOOP token) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-845.html](../../bugs/LFV-845.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You parse 'date:[20200101&lt;TAB&gt;TO&lt;TAB&gt;20201231]' or the multi-line 'd
 
 ## Expected vs actual
 
-- Expected: You expect the same query as with spaces.
-- Actual: The range-bound token RANGE_GOOP, which excludes only U+0020 and the closing brackets, swallows any of these characters that touches a bound: the first query throws ParseException ('Was expecting: "TO"'), and the second parses without error into a TermRangeQuery whose bounds are '&lt;LF&gt;20200101' and '20201231&lt;LF&gt;', so it also matches 20191231 (4 hits instead of 3).
+- Expected: `date:[<LF>20200101 TO 20201231<LF>]` matches the same 3 dates as the space form, and `date:[20200101<TAB>TO<TAB>20201231]` parses.
+- Actual: 4 hits (20191231 too), 2 instead of 1 and 0 instead of 3 for the other shapes, and a ParseException in both parsers: 5 of 6 tests fail.
 
 ## Files
 
@@ -48,6 +50,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) facet also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestRangeBoundWhitespace.java](TestRangeBoundWhitespace.java)
+- [TestRangeWhitespaceSeparators.java](TestRangeWhitespaceSeparators.java)
+- [TestRangeWhitespaceV1.java](TestRangeWhitespaceV1.java)
+- [RangeBoundProbe.java](RangeBoundProbe.java)
 
 ## Feedback
 

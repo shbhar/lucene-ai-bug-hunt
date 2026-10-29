@@ -2,6 +2,8 @@
 
 Bug LFV-685 · Area: analysis-common / ga (IrishLowerCaseFilter and IrishAnalyzer case mapping) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-685.html](../../bugs/LFV-685.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You index text with IrishAnalyzer (or put IrishLowerCaseFilter in a chain), whos
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: While the bug is present the test fails; the failure message states expected against actual.
+- Expected: The filter maps U+1E900 to U+1E922 (and the other capitals to their small letters), and the `IrishAnalyzer` search for U+1E922 U+1E923 finds the document: 1 hit.
+- Actual: 3 of 4 tests fail: all five filter cases keep their capital (U+1E900 U+1E923 stays U+1E900 U+1E923), `normalize` keeps U+1E900, and the lower-case search finds 0 hits; the capitalised spelling finds 1.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestIrishLowerCaseFilterSupplementary.java](TestIrishLowerCaseFilterSupplementary.java)
 
 ## Feedback
 

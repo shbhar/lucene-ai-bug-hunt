@@ -2,6 +2,8 @@
 
 Bug LFV-775 · Area: highlighter / UnifiedHighlighter stored-value loading (LimitedStoredFieldVisitor maxLength cut) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-775.html](../../bugs/LFV-775.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You store the value 'Hello U+1F600 world' (the emoji takes UTF-16 indexes 6 and 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: LimitedStoredFieldVisitor keeps exactly 7 UTF-16 units, so the content and the snippet end with the first half of the emoji, '&lt;b&gt;Hello&lt;/b&gt; \uD83D', which String.getBytes(UTF_8) turns into '&lt;b&gt;Hello&lt;/b&gt; ?' and a strict UTF-8 encoder rejects.
+- Expected: Every case returns `<b>hello</b> ` (the later value: `<b>world</b> `), as the cut just before the emoji does.
+- Actual: 5 of 6 fail: each case ends in the lone first half, `<b>hello</b> \uD83D` (the later value: `<b>world</b> \uD83D`); the control passes.
 
 ## Files
 
@@ -44,6 +46,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestUnifiedHighlighterMaxLengthSurrogates.java](TestUnifiedHighlighterMaxLengthSurrogates.java)
+- [TestUHMaxLengthSurrogatePair.java](TestUHMaxLengthSurrogatePair.java)
+- [TestMaxLengthCutsSurrogatePair.java](TestMaxLengthCutsSurrogatePair.java)
+- [TestProbeEncodeSnippet.java](TestProbeEncodeSnippet.java)
 
 ## Feedback
 

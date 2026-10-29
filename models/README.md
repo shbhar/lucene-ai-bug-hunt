@@ -1,6 +1,6 @@
 # Formal models and scripts
 
-AI-assisted findings, confirmed by automated checks, not yet triaged by a human Lucene committer; this site files nothing upstream.
+AI-assisted findings, confirmed by automated checks; apart from the bugs whose page names a maintainer triage, not yet triaged by a human Lucene committer; this site files nothing upstream.
 
 The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT queries, exhaustive checkers, scanners) of the parts of the hunt that found a public bug. A unit lists the bugs its files were used for; that a unit holds a model does not mean the model gave the first signal (each bug's record names its first finder).
 
@@ -26,6 +26,7 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [directio-nrtcaching-dirs](directio-nrtcaching-dirs/) | Python | LFV-226, LFV-224 |
 | [dismax-synonym-combined](dismax-synonym-combined/) | Python | LFV-272 |
 | [distance-feature-pruning](distance-feature-pruning/) | SMT-LIB (Z3/cvc5), Python | LFV-379 |
+| [docandscorequery-public-factory-count-and-iterator-contracts](docandscorequery-public-factory-count-and-iterator-contracts/) | Python | LFV-955 |
 | [document-field-factories](document-field-factories/) | Python | LFV-140 |
 | [dv-norms-cursor-coherence](dv-norms-cursor-coherence/) | Python | LFV-415, LFV-419, LFV-418 |
 | [dw-flush-control-deletequeue-tla](dw-flush-control-deletequeue-tla/) | TLA+/TLC | LFV-473, LFV-471, LFV-474 |
@@ -36,10 +37,13 @@ The small text models (TLA+, Alloy, SMT-LIB, Dafny) and Python scripts (SMT quer
 | [failed-commit-then-crash-durability-single-fault](failed-commit-then-crash-durability-single-fault/) | TLA+/TLC | LFV-839 |
 | [feature-saturation-sigmoid-cancellation](feature-saturation-sigmoid-cancellation/) | SMT-LIB (Z3/cvc5) | LFV-898 |
 | [featurefield](featurefield/) | SMT-LIB (Z3/cvc5) | LFV-258 |
+| [frequent-terms-span-rewrite-size-edges-16484](frequent-terms-span-rewrite-size-edges-16484/) | Python | LFV-944 |
 | [frozen-updates-apply-merge-carryover-tla](frozen-updates-apply-merge-carryover-tla/) | TLA+/TLC | LFV-596 |
 | [function-queries-bmw](function-queries-bmw/) | SMT-LIB (Z3/cvc5), Python | LFV-211, LFV-203, LFV-189, LFV-214, LFV-221 |
 | [fuzzy-levenshtein](fuzzy-levenshtein/) | Python | LFV-350 |
 | [geo-tessellator-shapes](geo-tessellator-shapes/) | Python | LFV-204 |
+| [geo-text-parsers-deep-nesting-vm-errors-siblings-of-16423](geo-text-parsers-deep-nesting-vm-errors-siblings-of-16423/) | Python | LFV-952 |
+| [grouping-offset-plus-limit-overflow](grouping-offset-plus-limit-overflow/) | Python | LFV-964, LFV-958, LFV-960 |
 | [groupingsearch-cache-limit-applied-per-slice-10-6](groupingsearch-cache-limit-applied-per-slice-10-6/) | Python | LFV-910 |
 | [hardlink-copy-unwrap-bypasses-intermediate-directory-wrappers](hardlink-copy-unwrap-bypasses-intermediate-directory-wrappers/) | TLA+/TLC | LFV-912 |
 | [hnsw-10x-merge-reuse-maxconn-mismatch](hnsw-10x-merge-reuse-maxconn-mismatch/) | Python | LFV-811 |

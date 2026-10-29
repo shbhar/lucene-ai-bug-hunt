@@ -2,6 +2,8 @@
 
 Bug LFV-477 · Area: analysis / phonetic (DoubleMetaphoneFilter#incrementToken alternate-code branch; DoubleMetaphoneFilterFactory, SPI name doubleMetaphone) · Priority: low · Impact: minor · Novelty: new
 
+Bug page: [../../bugs/LFV-477.html](../../bugs/LFV-477.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You run text through DoubleMetaphoneFilter, documented as 'supporting secondary 
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: When a token's text already equals its own primary code, the filter keeps the token as the primary but never emits the alternate: 'jr' gives JR and AR, 'JR' gives only JR, in both inject modes and at every maxCodeLength where the token equals its code.
+- Expected: "JR" gives JR/1 AR/0 in both inject modes, like "jr" (likewise JFK/AFK, SMS/XMS, J/A), and `TermQuery` AR finds 2 documents.
+- Actual: 2 of 3 tests fail: each upper-case word gets only its primary code ("JR" -&gt; [JR/1]), and `TermQuery` AR finds 1 document; JR finds 2.
 
 ## Files
 
@@ -45,6 +47,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-phonetic also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestDoubleMetaphoneFilterTokenEqualsCode.java](TestDoubleMetaphoneFilterTokenEqualsCode.java)
 
 ## Feedback
 

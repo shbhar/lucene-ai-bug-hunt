@@ -2,6 +2,8 @@
 
 Bug LFV-752 · Area: analysis-common / Sorani normalizer (SoraniNormalizer.normalize; SoraniNormalizationFilter, SoraniAnalyzer and the 'soraniNormalization' factory) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-752.html](../../bugs/LFV-752.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You analyze Sorani Kurdish text with the stock SoraniAnalyzer or SoraniNormaliza
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It calls Character.getType on one UTF-16 char at a time, so a format character outside the BMP (for example U+E0001 or a tag character), which Java stores as two surrogate chars, is never recognized: it stays in the term, and the word no longer matches the same word without it, with no error.
+- Expected: Every format character is removed: کورد + U+E0001 + ستان becomes کوردستان, and the plain word finds all 3 documents.
+- Actual: 3 of 4 tests fail: U+E0001, U+E0067, U+1BCA0 and U+1D173 stay in the term, `normalize` keeps U+E0001, and the plain word finds 1 of 3 documents.
 
 ## Files
 
@@ -42,6 +44,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSoraniSupplementaryFormatRemoval.java](TestSoraniSupplementaryFormatRemoval.java)
 
 ## Feedback
 

@@ -2,6 +2,8 @@
 
 Bug LFV-545 · Area: analysis / pattern tokenizers (analysis-common: SimplePatternTokenizer, SimplePatternSplitTokenizer and their simplePattern / simplePatternSplit factories) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-545.html](../../bugs/LFV-545.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You tokenize 'E x', where E is an emoji such as U+1F525, with SimplePatternToken
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: It also emits a token made of E's lone low surrogate U+DD25 at offsets [1,2), which the index stores as U+FFFD, because the failed-attempt branch pushes back all but one UTF-16 unit and so restarts in the middle of the pair.
+- Expected: `🔥hot deal` gives `hot` [2,5), `deal`; `🔥 x` gives `x` [3,4); split `so🔥hot now` gives `so🔥hot` [0,7), `now`.
+- Actual: `\uDD25hot` [1,5), `deal` (`expected:<hot> but was:<[?]hot>`); `\uDD25` [1,2), `x` (`expected:<[x]> but was:<[?]>`); split `so\uD83D` [0,3), `hot`, `now` (`expected:<so?[?hot]> but was:<so?>`).
 
 ## Files
 
@@ -42,6 +44,11 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestSimplePatternSupplementaryRetry.java](TestSimplePatternSupplementaryRetry.java)
+- [test-upstream.diff](test-upstream.diff)
 
 ## Feedback
 

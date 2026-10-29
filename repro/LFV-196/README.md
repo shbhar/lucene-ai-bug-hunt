@@ -2,6 +2,8 @@
 
 Bug LFV-196 · Area: search / phrase matching (ExactPhraseMatcher, SloppyPhraseMatcher and PhrasePositions position arithmetic; PhraseQuery.Builder and MultiPhraseQuery.Builder accept the positions) · Priority: low · Impact: hang · Novelty: new
 
+Bug page: [../../bugs/LFV-196.html](../../bugs/LFV-196.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You build a PhraseQuery with term a at position 0 and term b at position Integer
 
 ## Expected vs actual
 
-- Expected: You expect 0 hits, because no indexed position can be that far from a.
-- Actual: The exact matcher adds a's document position 1 and b's offset Integer.MAX_VALUE in int, the sum wraps to a negative number, both of its advance steps then leave its state unchanged, and IndexSearcher#count never returns, even with a 1 s IndexSearcher#setTimeout; with slop 1 the same kind of overflow makes the sloppy matcher return the document 'b x x a' as a hit.
+- Expected: Every search returns at once: count 0 (1 for the control), and the timed search returns 0 hits.
+- Actual: Four searches never return within 10 s, the 1 s timeout included, and the two sloppy queries count 1: 6 of 7 tests fail.
 
 ## Files
 
@@ -42,6 +44,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestPhrasePositionOverflow.java](TestPhrasePositionOverflow.java)
+- [2-TestPhrasePositionOverflow.java](2-TestPhrasePositionOverflow.java)
+- [PhraseOffsetOverflowV1Test.java](PhraseOffsetOverflowV1Test.java)
+- [TestPhraseOverflowDocSide.java](TestPhraseOverflowDocSide.java)
 
 ## Feedback
 

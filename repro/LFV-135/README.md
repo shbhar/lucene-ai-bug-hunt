@@ -2,7 +2,7 @@
 
 Bug LFV-135 · Area: store / MMapDirectory (MemorySegmentIndexInput absolute reads, error reporting) · Priority: low · Impact: wrong error · Novelty: new
 
-AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
+AI-assisted finding, confirmed by automated checks. Maintainer triage: Won't fix, triaged by Uwe Schindler (Lucene PMC) on 2026-10-28 (https://lists.apache.org/thread/qhqk32y1ot85rrm8t6m9x62brlv6pjdy). Known to Uwe Schindler but never fixed: the exception itself is valid and only the reported offset is wrong (which can make debugging harder), and multi-chunk MMap inputs need a segment larger than 16 GiB, which no longer happens unless you force-merge. Uwe recommends ignoring it. This site files nothing upstream.
 
 ## What it shows
 

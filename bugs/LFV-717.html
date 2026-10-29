@@ -1,0 +1,1030 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='color-scheme' content='light'><base target='_blank'><title>Nori&#x27;s DictionaryBuilder only asserts that rows sharing a left id have one part of speech, so a custom dictionary silently gives words another row&#x27;s tag</title><style>
+:root{color-scheme:light;
+--paper:oklch(98.5% 0.004 95);--panel:oklch(95.8% 0.006 95);--code:oklch(96.6% 0.005 95);
+--ink:oklch(23% 0.018 265);--mute:oklch(45% 0.018 265);--rule:oklch(86% 0.008 95);
+--accent:oklch(48% 0.16 32);--ok:oklch(44% 0.1 150);--warn:oklch(49% 0.11 75);--bad:oklch(47% 0.16 27);--info:oklch(43% 0.06 250);
+--serif:Charter,"Bitstream Charter","Sitka Text",Cambria,"Noto Serif","DejaVu Serif",Georgia,serif;
+--mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+--s1:.25rem;--s2:.5rem;--s3:.75rem;--s4:1rem;--s5:1.5rem;--s6:2rem;--s7:3rem;--s8:4rem;--s9:6rem;
+--step--1:clamp(.84rem,.82rem + .1vw,.9rem);--step-0:clamp(1.02rem,.98rem + .2vw,1.125rem);
+--step-1:clamp(1.15rem,1.08rem + .3vw,1.32rem);--step-2:clamp(1.35rem,1.22rem + .6vw,1.7rem);
+--step-3:clamp(1.65rem,1.38rem + 1.2vw,2.4rem);--measure:68ch}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);overflow-x:clip}
+body{font-family:var(--serif);font-size:var(--step-0);line-height:1.62;min-height:100dvh;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,kbd{font-family:var(--mono);font-size:.86em}
+:not(pre)>code{overflow-wrap:anywhere}
+.skip{position:absolute;left:var(--s4);top:-4rem;background:var(--ink);color:var(--paper);padding:var(--s2) var(--s4);z-index:100}
+.skip:focus-visible{top:var(--s4)}
+.page{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "nav" "main" "foot";
+grid-template-rows:auto auto 1fr auto;
+width:100%;max-width:80rem;margin-inline:auto;min-height:100dvh;
+padding:clamp(var(--s5),4vw,var(--s8)) clamp(var(--s4),4vw,var(--s7)) var(--s6);column-gap:clamp(var(--s6),4vw,var(--s8))}
+@media (min-width:76rem){.page{grid-template-columns:10.5rem minmax(0,1fr);grid-template-areas:"nav head" "nav main" "nav foot";
+grid-template-rows:auto 1fr auto}
+.toc{position:sticky;top:var(--s6);align-self:start;max-height:calc(100dvh - var(--s7));overflow:auto}}
+header.head{grid-area:head;min-width:0}
+main{grid-area:main;min-width:0;max-width:62rem}
+footer{grid-area:foot;max-width:62rem;margin-top:var(--s8);padding-top:var(--s4);border-top:1px solid var(--rule)}
+footer p{margin:0;font-size:var(--step--1);color:var(--mute)}
+p,li,dd{max-width:var(--measure);text-wrap:pretty}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:var(--s2)}
+.kicker{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:0 0 var(--s3)}
+h1{font-size:var(--step-3);line-height:1.12;letter-spacing:-.012em;margin:0 0 var(--s4);max-width:30ch;text-wrap:balance;overflow-wrap:break-word}
+h2{font-size:var(--step-2);line-height:1.2;margin:0 0 var(--s4);text-wrap:balance}
+h3{font-size:var(--step-1);line-height:1.3;margin:var(--s6) 0 var(--s2);text-wrap:balance}
+.hd-2{margin:0 0 var(--s4)}
+.hd-3{margin:var(--s6) 0 var(--s2)}
+h4,h5,h6{font-size:var(--step-0);margin:var(--s5) 0 var(--s2)}
+.tldr{font-size:var(--step-1);line-height:1.5;max-width:58ch;margin:0 0 var(--s5)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,12.5rem),1fr));gap:var(--s4) var(--s5);
+margin:0;padding:var(--s4) 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.facts>div{min-width:0}
+.facts>.wide{grid-column:1/-1}
+@media (min-width:44rem){.facts>.wide{grid-column:span 2}}
+.facts dt,.card dt,.outcome dt,.k{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+.facts dd{margin:var(--s1) 0 0;line-height:1.4;overflow-wrap:anywhere}
+.sub{display:block;font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin-top:var(--s1)}
+.sec-sensitive{color:var(--bad);font-weight:700}
+.live{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);margin:var(--s3) 0 0}
+.triage{margin:var(--s4) 0 0;padding:var(--s2) var(--s4);border-left:3px solid var(--info);background:var(--panel);
+max-width:var(--measure)}
+.triage p{margin:0;font-size:var(--step--1);line-height:1.5}
+.toc{grid-area:nav;font-family:var(--mono);font-size:var(--step--1);margin:var(--s5) 0 0}
+.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4)}
+.toc li+li{margin:0}
+@media (min-width:76rem){.toc{margin:0}.toc ol{display:block}.toc li{margin:0 0 var(--s2)}.toc .all{margin-top:var(--s4)}}
+.toc a{color:var(--ink);text-decoration:none}
+.toc a:hover{color:var(--accent);text-decoration:underline}
+.toc .all{margin-top:var(--s3)}
+main>section{margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--rule)}
+main>section:first-child{margin-top:var(--s7)}
+.lead{font-size:var(--step-1);line-height:1.5}
+figure{margin:var(--s5) 0}
+.visual .frame{border:1px solid var(--rule);background:var(--panel)}
+.visual img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:var(--panel)}
+figcaption{font-size:var(--step--1);color:var(--mute);line-height:1.5;margin-top:var(--s2);max-width:var(--measure)}
+.ai{font-family:var(--mono)}
+ol.steps{list-style:none;margin:var(--s5) 0 0;padding:0;counter-reset:st;max-width:var(--measure)}
+ol.steps>li{counter-increment:st;display:grid;grid-template-columns:1.75rem minmax(0,1fr);column-gap:var(--s3);margin:0 0 var(--s3)}
+ol.steps>li::before{content:counter(st);font-family:var(--mono);font-weight:700;color:var(--accent);line-height:1.62}
+.short{margin:0 0 var(--s4)}
+ul.short{padding-left:1.2em}
+.outcome{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s4) 0;max-width:var(--measure)}
+.outcome>div{display:contents}
+.outcome dt{padding-top:.2em}
+.outcome dd{margin:0}
+.outcome .got dt{color:var(--accent);font-weight:700}
+.rec{margin:0 0 var(--s2)}
+.rec .k{margin-right:var(--s2)}
+.disclosure{font-weight:600}
+figure.code{border:1px solid var(--rule);background:var(--code);margin:var(--s4) 0}
+figure.code figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s4);margin:0;padding:var(--s2) var(--s3);
+border-bottom:1px solid var(--rule);font-family:var(--mono);color:var(--ink);max-width:none}
+.fname{font-weight:700}
+.meta,.n{font-family:var(--mono);font-size:var(--step--1);color:var(--mute)}
+figure.code pre{margin:0;padding:var(--s3) var(--s4);overflow:auto;max-height:min(28rem,60dvh);line-height:1.45}
+figure.code.cmd pre{max-height:none}
+pre.observed,pre.snippet,.body pre:not(figure pre){background:var(--code);border:1px solid var(--rule);padding:var(--s3) var(--s4);
+overflow:auto;max-height:60dvh;line-height:1.45;margin:var(--s3) 0}
+button{font:inherit;font-family:var(--mono);font-size:var(--step--1);color:var(--ink);background:var(--paper);
+border:1px solid var(--ink);padding:var(--s1) var(--s3);cursor:pointer}
+button:hover{color:var(--accent);border-color:var(--accent)}
+.copy{margin-left:auto}
+.copy-st{color:var(--mute)}
+details{margin:var(--s3) 0;max-width:100%}
+details>summary{cursor:pointer;list-style:none;display:block;padding:var(--s2) 0 var(--s2) 2ch;text-indent:-2ch;
+font-family:var(--mono);font-size:var(--step--1);color:var(--accent)}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"+";display:inline-block;width:2ch;text-indent:0;font-weight:700}
+details>summary .n{margin-left:var(--s3)}
+details[open]>summary::before{content:"\2212"}
+details>summary:hover .t{text-decoration:underline}
+details>.body{border-left:1px solid var(--rule);padding:var(--s1) 0 var(--s2) var(--s4);margin-left:.4ch}
+.body>:first-child{margin-top:var(--s2)}
+.body>.hd-3:first-child{margin-top:var(--s3)}
+.k{margin:var(--s4) 0 var(--s1)}
+blockquote{margin:var(--s4) 0;padding:var(--s2) var(--s4);border:1px solid var(--rule);background:var(--panel);max-width:var(--measure)}
+.tbl{overflow-x:auto;margin:var(--s4) 0;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:var(--step--1);font-variant-numeric:tabular-nums}
+caption{text-align:left;color:var(--mute);font-family:var(--mono);padding-bottom:var(--s2)}
+th,td{text-align:left;vertical-align:top;padding:var(--s2) var(--s3)}
+thead th{color:var(--mute);font-weight:600;border-bottom:1px solid var(--mute);font-family:var(--mono)}
+tbody tr+tr>*{border-top:1px solid var(--rule)}
+tbody th{font-weight:600}
+td.when{white-space:nowrap}
+table.env th{width:8rem;color:var(--mute);font-family:var(--mono);font-weight:400}
+table.checks td:last-child{min-width:18rem}
+.v{font-family:var(--mono);white-space:nowrap}
+.v.ok{color:var(--ok)}.v.bad{color:var(--bad)}.v.warn{color:var(--warn)}.v.info{color:var(--info)}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,25rem),1fr));gap:var(--s6) var(--s5);margin-top:var(--s4)}
+.chapter{min-width:0}
+.chapter h3{font-size:var(--step-0);line-height:1.35}
+.chapter .hd-3{margin:0}
+.cno{font-family:var(--mono);color:var(--mute);font-weight:400;margin-right:var(--s2)}
+.dur{font-family:var(--mono);font-weight:400;font-size:var(--step--1);color:var(--mute);margin-left:var(--s2)}
+.chapter .q{margin:var(--s1) 0 var(--s2);font-size:var(--step--1);line-height:1.5}
+.player{width:100%}
+.pending{font-style:italic;color:var(--mute)}
+#record>.part:first-of-type .hd-3{margin-top:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+#record .short{margin-bottom:var(--s1)}
+.files{list-style:none;margin:var(--s3) 0 0;padding:0;display:flex;flex-wrap:wrap;gap:var(--s2) var(--s6);font-family:var(--mono);font-size:var(--step--1)}
+.files li+li{margin:0}
+.files a{font-weight:700}
+.over{color:var(--bad)}
+#sources{border-top:1px solid var(--ink)}
+details.sources>summary{max-width:none}
+details.sources>.body{font-size:var(--step--1)}
+.card{display:grid;grid-template-columns:minmax(8rem,12rem) minmax(0,1fr);gap:var(--s2) var(--s4);margin:var(--s3) 0}
+.card>div{display:contents}
+.card dd{margin:0;overflow-wrap:anywhere;max-width:90ch}
+@media (max-width:40rem){.card{grid-template-columns:1fr;gap:0}.card dd{margin-bottom:var(--s2)}}
+.paths{margin:var(--s1) 0 var(--s3);padding-left:1.2em;overflow-wrap:anywhere}
+.paths li+li{margin-top:var(--s1)}
+.built{margin-top:var(--s5)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{.toc,button,.player,.skip{display:none}}
+
+.hd{display:flex;align-items:baseline;gap:var(--s2);position:relative}
+.hd>h2,.hd>h3{margin:0;min-width:0}
+.hlink{flex:none;display:inline-grid;place-items:center;inline-size:1.5rem;block-size:1.5rem;margin:0;padding:0;
+  font:400 var(--step--1)/1 var(--mono);color:var(--mute);text-decoration:none;opacity:0;align-self:center}
+.hd:hover>.hlink,.hlink:focus,.hlink:focus-visible{opacity:1}
+.hlink:hover{color:var(--accent)}
+@media (hover:none){.hlink{opacity:.6}}
+.hlink-note{position:absolute;top:100%;left:0;z-index:var(--z-note,250);margin-top:2px;padding:var(--s1) var(--s2);
+  max-inline-size:100%;background:var(--paper);color:var(--ink);border:1px solid var(--ink);
+  font:400 var(--step--1)/1.35 var(--mono);white-space:nowrap}
+.hlink-note.is-manual{white-space:normal}
+.hlink-note label{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2)}
+.hlink-note input{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--mute);border-radius:0;
+  padding:2px var(--s1);inline-size:min(46ch,100%);min-inline-size:0;margin:0}
+.hlink-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0;padding:0;margin:-1px}
+@media print{.hlink,.hlink-note{display:none}}
+
+.kicker a{color:var(--mute)}
+.ai-note{font-family:var(--mono);font-size:var(--step--1);color:var(--mute);max-width:var(--measure);margin:var(--s3) 0 0}
+footer p+p{margin-top:var(--s2)}
+.visual .still{display:block}
+.visual .still img{aspect-ratio:auto}
+p.ext-video{margin:var(--s2) 0 0;font-size:var(--step--1)}
+.fname{min-width:0;overflow-wrap:anywhere}
+code.nw{white-space:nowrap}
+.sitefiles{font-size:var(--step--1);color:var(--mute)}
+h2,h3,li,p,dd,figcaption{overflow-wrap:break-word}
+</style></head><body><a class='skip' href='#what-the-bug-is' target='_self'>Skip to the bug in 30 seconds</a><span id="hlink-live" class="hlink-sr" role="status" aria-live="polite"></span><div class='page'><header class='head'><p class='kicker'><a href='../index.html' target='_self'>All bugs</a> &middot; Lucene bug &middot; LFV-717 &middot; nori-builder-left-id-pos-collision-assert-only</p><h1 id='top'>Nori&#x27;s DictionaryBuilder only asserts that rows sharing a left id have one part of speech, so a custom dictionary silently gives words another row&#x27;s tag</h1><p class='tldr'>Nori's dictionary builder only asserts that rows sharing a left context id have one part of speech: with assertions off, a custom dictionary where the noun 가 (NNG) and the particle 는 (JX) share id 1 builds fine, then 가 is tagged JX and the default stop filter drops it.</p><h2 class='sr-only' id='summary-h'>Summary</h2><dl class='facts' id='summary'><div class='wide'><dt>Priority</dt><dd><span data-live='priority'>Low, rank 435</span><span class='sub'>Nori&#x27;s DictionaryBuilder checks for left-id part-of-speech collisions only with an assert, which matters only for custom dictionaries with hand-assigned ids.</span></dd></div><div><dt>Impact</dt><dd><span data-live='impact_class'>silent wrong results</span></dd></div><div><dt>Since</dt><dd>7.4.0 (LUCENE-8231, 2018), nori's first release<span class='sub'>introduced 2018-04-13 &middot; about 8 years</span></dd></div><div class='wide'><dt>Affected</dt><dd>7.4.0 to 10.5.2 and main; custom system dictionaries only</dd></div><div><dt>Status</dt><dd><span data-live='status'>documented</span></dd></div><div class='wide'><dt>Found by</dt><dd>translation validation of the bundled nori dictionary, then a two-row JUnit</dd></div></dl><p class='ai-note'>AI-assisted page: this bug was first signalled by a semi-formal check (an exact check of the real jar, or a modelling hypothesis that a tool then witnessed) and then checked with AI tools; the checks it went through, and what each found, are under <a href='#record' target='_self'>Prior reports, history and checks</a>. Not yet triaged by a human. Snapshot of 2026-10-29.</p></header><nav class='toc' id='contents' aria-label='On this page'><ol><li><a href='#what-the-bug-is' target='_self'>In 30 seconds</a></li><li><a href='#minimal-repro' target='_self'>Repro</a></li><li><a href='#not-intended' target='_self'>Not intended</a></li><li><a href='#fixes' target='_self'>Fix</a></li><li><a href='#downstream' target='_self'>Downstream</a></li><li><a href='#how-it-was-found' target='_self'>How found</a></li><li><a href='#record' target='_self'>Prior reports</a></li><li><a href='#diagrams' target='_self'>Diagrams</a></li><li><a href='#sources' target='_self'>Sources</a></li><li><a href='../index.html' target='_self'>All bugs</a></li></ol><button type='button' class='all' id='toggle-all' aria-pressed='false'>Expand all</button></nav><main id='main'><section id='what-the-bug-is' aria-labelledby='what-the-bug-is-h'><div class="hd hd-2"><h2 id='what-the-bug-is-h'>The bug in 30 seconds</h2><a class="hlink" href="#what-the-bug-is" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-h"><span aria-hidden="true">#</span></a></div><p class='lead'>Nori stores a word's part of speech in a table with one slot per left context id, a number many words share. When two dictionary rows share an id but carry different tags, the builder only asserts that they agree, then overwrites the slot, so all words on that id get the tag of the row written last.</p><figure class='visual' id='nori-builder-left-id-pos-collision-assert-only-short-visual'><div class='frame'><a class='still' href='../assets/LFV-717/bug.png' target='_self' title='Open the still at full size'><img src='../assets/LFV-717/bug.png' alt='Diagram of nori&#x27;s dictionary builder: the rows 가 NNG and 는 JX both have left context id 1; the compiled posDict table has one slot for id 1; the builder writes NNG, then overwrites it with JX because 는 sorts last, and the assert that should catch this is off; at analysis time 가 reports JX and KoreanPartOfSpeechStopFilter with the default stop tags removes it, giving 0 tokens instead of [가]. With the fix the builder throws IllegalArgumentException: Multiple parts of speech found for leftId=1.' width='1920' height='1080'></a></div><figcaption>The two source rows on left id 1, the single slot they share in the compiled table, the overwrite by the row that sorts last, and the noun 가 dropped by the default stop filter; then the fix that rejects the source. Select the still to open it at full size. <span class='ai'>Generated with AI, checked against the code.</span></figcaption></figure><ol class='steps'><li><span>You compile your own nori system dictionary with <code>DictionaryBuilder</code> from two rows that share left context id 1: the noun 가 (tag NNG) and the topic particle 는 (tag JX). You load it into <code class='nw'>KoreanTokenizer</code> and filter with <code>KoreanPartOfSpeechStopFilter</code> and its default stop tags.</span></li><li><span>The compiled format keeps one part of speech per left id, not per word, so it cannot hold both. You expect the builder to reject the source, as kuromoji's builder does ("Multiple entries found for leftID"), or else each word to keep its own tag.</span></li><li><span>With assertions off (the JVM default) the build succeeds. The only check is <code>assert existing == null || existing.equals(fullPOSData)</code> (<code>TokenInfoDictionaryEntryWriter.java:100</code>); the next line overwrites the slot, so it keeps JX from 는, the row that sorts last by surface.</span></li><li><span>The noun 가 now reports left POS JX, and JX is a default stop tag: tokenizing <code class='nw'>가</code> gives 0 tokens instead of <code class='nw'>[가]</code>. With the tags swapped (a particle on a noun's id), the particle is kept instead.</span></li><li><span>With <code class='nw'>-ea</code> the build stops with a bare <code class='nw'>AssertionError</code> at that line, naming neither the id nor the rows. The bundled dictionary has no such collision in its 816,283 rows, so the default <code class='nw'>KoreanAnalyzer</code> is unaffected.</span></li></ol><div class='part' id='why-it-matters'><div class="hd hd-3"><h3 id='why-it-matters-h'>Who is affected</h3><a class="hlink" href="#why-it-matters" target="_self" aria-label="Link to this section" aria-describedby="why-it-matters-h"><span aria-hidden="true">#</span></a></div><p class='short'>Applications that compile a custom system dictionary with <code>DictionaryBuilder</code> and load it into <code class='nw'>KoreanTokenizer</code> (via the experimental constructor since 8.5.0, or ahead of the bundled one on the classpath), when two rows share a left id but differ in part of speech. The bundled dictionary and <code class='nw'>KoreanAnalyzer</code> are unaffected. Silently, nouns vanish from the index or particles get indexed.</p></div><details class='more'><summary><span class='t'>Mechanism, terms and numbers</span><span class='n'>678 words</span></summary><div class='body'><p>Nori's compiled system dictionary stores a word's left part of speech in a table indexed by <strong>left context id</strong> (<code class='nw'>posDict</code>), not per word: <code>TokenInfoMorphData.getLeftPOS</code> returns <code>posDict[getLeftId(morphId)]</code> (<code>TokenInfoMorphData.java:73-76</code>). When the public <code>DictionaryBuilder</code> writes a row, <code>TokenInfoDictionaryEntryWriter.putEntry</code> compares the row's part of speech and semantic class with what the slot already holds only through <code>assert existing == null || existing.equals(fullPOSData)</code> (<code>TokenInfoDictionaryEntryWriter.java:100</code>) and then overwrites the slot (<code class='nw'>:101</code>). With assertions off, the JVM default and how the project's own <code class='nw'>regenerate</code> task runs the builder, a source in which two rows share a left id but have different parts of speech builds without error, and every word on that id reports the part of speech of the row that sorts last by surface. In the repro the noun 가 (NNG) shares left id 1 with the topic particle 는 (JX): 가 reports JX, and <code>KoreanPartOfSpeechStopFilter</code> with <code>DEFAULT_STOP_TAGS</code> drops it (0 tokens instead of <code class='nw'>[가]</code>); with <code class='nw'>-ea</code> the build stops with a bare <code class='nw'>AssertionError</code>. Kuromoji's builder throws <code>IllegalArgumentException("Multiple entries found for leftID=")</code> for the same case since LUCENE-8863; LUCENE-8904, "the Nori version" of that change, converted nori's neighbouring builder asserts but left this one. Only custom system dictionaries are affected (loaded through the <code>@lucene.experimental</code> custom-dictionary <code class='nw'>KoreanTokenizer</code> constructor since 8.5.0; the release sweep reached older releases by putting the compiled files ahead of the bundled dictionary on the classpath): the bundled mecab-ko-dic 2.1.1 has no colliding left id, so the default <code class='nw'>KoreanTokenizer</code> and <code class='nw'>KoreanAnalyzer</code> are not. Every release from 7.4.0 to 10.5.2 and main has it. The recommended fix replaces the assert with an <code>IllegalArgumentException</code> that compares only the part of speech, the one value the format stores.</p><div class="hd hd-3"><h3 id='what-the-bug-is-terms'>Terms</h3><a class="hlink" href="#what-the-bug-is-terms" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-terms"><span aria-hidden="true">#</span></a></div><ul><li><strong>System dictionary source</strong>: MeCab-format CSV rows, 12 columns: surface, left id, right id, cost, part of speech, semantic class, coda flag, reading, type (<code class='nw'>*</code>, Compound, Inflect, Preanalysis), first and last part of speech, expression (<code>TokenInfoDictionaryEntryWriter.java:39-60</code>). <code>DictionaryBuilder.build(inputDir, outputDir, encoding, normalize)</code> compiles it (<code>DictionaryBuilder.java:23-39</code>).</li><li><strong>Left context id</strong>: the id that the connection-cost matrix uses for the word's left side. Many words share one id.</li><li><strong><code class='nw'>posDict</code></strong>: the compiled table that maps a left id to one part of speech. <code class='nw'>getLeftPOS</code> reads it (<code>TokenInfoMorphData.java:73-76</code>), and <code class='nw'>getRightPOS</code> returns the same value for plain and compound words and words with a single part of speech (<code class='nw'>:78-87</code>).</li><li><strong><code>KoreanPartOfSpeechStopFilter</code></strong>: removes a token whose left part of speech is a stop tag (<code>KoreanPartOfSpeechStopFilter.java:91-95</code>); <code>DEFAULT_STOP_TAGS</code> contains the particles (JX among them, <code class='nw'>:52</code>) and not the nouns.</li></ul><div class="hd hd-3"><h3 id='what-the-bug-is-the-bug'>The bug</h3><a class="hlink" href="#what-the-bug-is-the-bug" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-bug"><span aria-hidden="true">#</span></a></div><ol><li>The builder sorts all rows by surface with a stable sort (<code>TokenInfoDictionaryBuilder.java:89-90</code>) and writes them in that order. 가 (U+AC00) comes before 는 (U+B294).</li><li>For each row, <code class='nw'>putEntry</code> builds <code>fullPOSData = leftPOS.name() + "," + semantic class</code> (<code>TokenInfoDictionaryEntryWriter.java:98</code>), checks it against the slot with <code>assert existing == null || existing.equals(fullPOSData)</code> (<code class='nw'>:100</code>) and sets the slot (<code class='nw'>:101</code>). Row 가 sets slot 1 to <code class='nw'>NNG,*</code>; row 는 overwrites it with <code class='nw'>JX,*</code>.</li><li><code class='nw'>writePosDict</code> writes one byte per left id, the part of speech only (<code class='nw'>:174-189</code>).</li><li>At analysis time 가 reports JX, and the default stop tags remove it. The same tag also feeds the tokenizer's space penalty (<code>Viterbi.java:344-346</code>; read, not run).</li><li>With <code class='nw'>-ea</code>, the assert fires inside <code>DictionaryBuilder.build</code> with no message. Lucene's gradle test task turns assertions on for about 75% of seeds unless <code class='nw'>-Ptests.asserts</code> is given, so pass <code>-Ptests.asserts=false</code> to see the silent result.</li></ol><div class="hd hd-3"><h3 id='what-the-bug-is-the-numbers'>The numbers</h3><a class="hlink" href="#what-the-bug-is-the-numbers" target="_self" aria-label="Link to this section" aria-describedby="what-the-bug-is-the-numbers"><span aria-hidden="true">#</span></a></div><div class="tbl"><table><thead><tr><th>source rows (left id)</th><th>build, assertions off</th><th>가 reports</th><th><code class='nw'>가</code> after <code>DEFAULT_STOP_TAGS</code></th><th>build, assertions on</th></tr></thead><tbody><tr><td>가 NNG (1), 는 JX (1)</td><td>accepted</td><td>JX</td><td><code class='nw'>[]</code></td><td><code class='nw'>AssertionError</code> at <code class='nw'>:100</code></td></tr><tr><td>가 NNG (1), 는 JX (4), control</td><td>accepted</td><td>NNG</td><td><code class='nw'>[가]</code></td><td>not run with these rows (no shared id); the independent reproducer's distinct-id control passes with <code class='nw'>-ea</code></td></tr><tr><td>가 JKS (4), 나무 NNG (4)</td><td>accepted</td><td>가 reports NNG</td><td><code class='nw'>[가]</code>, a particle kept</td><td><code class='nw'>AssertionError</code></td></tr><tr><td>with the fix: 가 NNG (1), 는 JX (1)</td><td><code>IllegalArgumentException: Multiple parts of speech found for leftId=1: NNG,* vs JX,*</code></td><td>-</td><td>-</td><td>same</td></tr></tbody></table></div></div></details><details class='more'><summary><span class='t'>Exposure and likelihood</span><span class='n'>341 words</span></summary><div class='body'><ul><li><strong>Who is exposed.</strong> Code that calls <code>DictionaryBuilder</code> (in the jar since 8.3.0) and loads the result through the <code class='nw'>Path</code> constructors and the custom-dictionary <code class='nw'>KoreanTokenizer</code> constructor (8.5.0+, <code>@lucene.experimental</code>), whose javadoc says it "provides an entry point for users that want to construct custom language models that can be used as input to {@link DictionaryBuilder}" (<code>KoreanTokenizer.java:138-152</code>). Before 8.5.0 there is no such constructor; the release sweep loaded the compiled files by putting them ahead of the bundled dictionary on the classpath. <code>KoreanTokenizerFactory</code> takes only a user dictionary, so factory-configured chains cannot load a custom system dictionary.</li><li><strong>Not exposed.</strong> The bundled mecab-ko-dic 2.1.1: 0 left ids with more than one part of speech over all 816,283 rows, so the default <code class='nw'>KoreanTokenizer</code> and <code class='nw'>KoreanAnalyzer</code> are clean. The user dictionary uses a fixed left id and tag (<code>UserMorphData.java:25-26</code>, <code class='nw'>:62-63</code>).</li><li><strong>What the damage looks like.</strong> Silent with assertions off: every word on the shared id reports the tag of the row that sorts last by surface. With the default stop tags a noun disappears from the index (the repro) or a particle is indexed (the reverse case). With <code class='nw'>-ea</code>, a bare <code class='nw'>AssertionError</code> that names neither the id nor the rows.</li><li><strong>Why assertions are usually off.</strong> The JVM default, and the project's own <code class='nw'>regenerate</code> task runs the builder through <code class='nw'>javaexec</code> with only <code class='nw'>-Xmx1G</code> (<code>lucene/analysis/nori/build.gradle:34-42</code>).</li><li><strong>How likely.</strong> Rare. In mecab-ko-dic's own tooling the left context is the part of speech and semantic class (its <code class='nw'>rewrite.def</code> and <code class='nw'>left-id.def</code>), so a collision usually needs hand-assigned or copied ids; what other dictionary compilers emit was not surveyed. One path through its conventions exists: <code class='nw'>Preanalysis</code> rows whose first-POS column is <code class='nw'>*</code> with semantic class 지명 map to the wildcard left id 1, while nori takes their tag from column 4, which can differ (two such rows, NNG and NNP: the NNG word reports NNP). In the bundled data all 7 such rows are NNP. No public report was found in the documented searches.</li><li><strong>Scale.</strong> Two rows reproduce it; deterministic; no size or timing factor.</li></ul></div></details></section><section id='minimal-repro' aria-labelledby='minimal-repro-h'><div class="hd hd-2"><h2 id='minimal-repro-h'>Minimal repro</h2><a class="hlink" href="#minimal-repro" target="_self" aria-label="Link to this section" aria-describedby="minimal-repro-h"><span aria-hidden="true">#</span></a></div><span id='brief' aria-hidden='true'></span><p class='short'>A two-test JUnit of public calls, in nori's <code class='nw'>dict</code> test package (needed because <code>getMorphAttributes()</code> returns a package-private type). It builds the two-row dictionary, checks each word's tag and runs <code class='nw'>KoreanTokenizer</code> with the default stop filter on <code class='nw'>가</code>. It passes if the builder throws <code>IllegalArgumentException</code> or both words keep their tags. Run with <code>-Ptests.asserts=false</code> for the silent result.</p><figure class='code'><figcaption><span class='fname'>TestNoriBuilderLeftIdPosCollision.java (lucene/analysis/nori, dict test package)</span><span class='meta'>129 lines</span><button type='button' class='copy' data-copy='code-1' data-status='code-1-st'>Copy</button><span class='copy-st' id='code-1-st' role='status' aria-live='polite'></span></figcaption><pre id='code-1' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.ko.dict;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.ko.KoreanPartOfSpeechStopFilter;
+import org.apache.lucene.analysis.ko.KoreanTokenizer;
+import org.apache.lucene.analysis.ko.POS;
+import org.apache.lucene.analysis.morph.BinaryDictionary;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.IntsRef;
+
+/**
+ * Nori stores one part of speech per left context id. Two dictionary rows with the same left id but
+ * different parts of speech are checked only by a Java assert in the dictionary builder, so a build
+ * without -ea silently gives every word with that left id the part of speech of the last row
+ * written. (Kuromoji&#x27;s builder throws IllegalArgumentException for the same situation.) Uses only
+ * public API: DictionaryBuilder.build, the path constructors of the dictionaries, KoreanTokenizer
+ * and KoreanPartOfSpeechStopFilter.
+ */
+public class TestNoriBuilderLeftIdPosCollision extends LuceneTestCase {
+
+  private static Path file(Path dir, Class&lt;?&gt; clazz, String suffix) {
+    return dir.resolve(clazz.getName().replace(&#x27;.&#x27;, &#x27;/&#x27;) + suffix);
+  }
+
+  /** 가 (a noun, NNG) and 는 (a topic particle, JX) share left id 1. */
+  private Path build() throws IOException {
+    Path dir = createTempDir();
+    Files.write(
+        dir.resolve(&quot;test.csv&quot;),
+        List.of(&quot;가,1,1,0,NNG,*,F,가,*,*,*,*&quot;, &quot;는,1,1,0,JX,*,T,는,*,*,*,*&quot;),
+        StandardCharsets.UTF_8);
+    Files.write(dir.resolve(&quot;char.def&quot;), List.of(&quot;DEFAULT 0 1 0&quot;, &quot;SPACE 0 1 0&quot;, &quot;0x0020 SPACE&quot;));
+    Files.write(
+        dir.resolve(&quot;unk.def&quot;),
+        List.of(&quot;DEFAULT,2,2,10000,SY,*,*,*,*,*,*,*&quot;, &quot;SPACE,3,3,0,SP,*,*,*,*,*,*,*&quot;),
+        StandardCharsets.UTF_8);
+    Files.write(dir.resolve(&quot;matrix.def&quot;), List.of(&quot;4 4&quot;), StandardCharsets.US_ASCII);
+    DictionaryBuilder.build(dir, dir, &quot;utf-8&quot;, false);
+    return dir;
+  }
+
+  private static TokenInfoDictionary systemDict(Path dir) throws IOException {
+    return new TokenInfoDictionary(
+        file(dir, TokenInfoDictionary.class, BinaryDictionary.TARGETMAP_FILENAME_SUFFIX),
+        file(dir, TokenInfoDictionary.class, BinaryDictionary.POSDICT_FILENAME_SUFFIX),
+        file(dir, TokenInfoDictionary.class, BinaryDictionary.DICT_FILENAME_SUFFIX),
+        file(dir, TokenInfoDictionary.class, TokenInfoDictionary.FST_FILENAME_SUFFIX));
+  }
+
+  /** Either the builder rejects the rows, or each word keeps the part of speech of its row. */
+  public void testEachWordKeepsItsPartOfSpeech() throws Exception {
+    Path dir;
+    try {
+      dir = build();
+    } catch (IllegalArgumentException rejected) {
+      return; // rejecting the dictionary, as kuromoji does, is a correct outcome
+    }
+    TokenInfoDictionary dict = systemDict(dir);
+    IntsRef ref = new IntsRef();
+    dict.lookupWordIds(0, ref); // source id 0 = 가 (surfaces are sorted)
+    assertEquals(POS.Tag.NNG, dict.getMorphAttributes().getLeftPOS(ref.ints[ref.offset]));
+    dict.lookupWordIds(1, ref); // source id 1 = 는
+    assertEquals(POS.Tag.JX, dict.getMorphAttributes().getLeftPOS(ref.ints[ref.offset]));
+  }
+
+  /**
+   * The noun 가 must survive the default part-of-speech stop filter (JX is a stop tag, NNG is not).
+   */
+  public void testNounSurvivesDefaultStopTags() throws Exception {
+    Path dir;
+    try {
+      dir = build();
+    } catch (IllegalArgumentException rejected) {
+      return;
+    }
+    UnknownDictionary unk =
+        new UnknownDictionary(
+            file(dir, UnknownDictionary.class, BinaryDictionary.TARGETMAP_FILENAME_SUFFIX),
+            file(dir, UnknownDictionary.class, BinaryDictionary.POSDICT_FILENAME_SUFFIX),
+            file(dir, UnknownDictionary.class, BinaryDictionary.DICT_FILENAME_SUFFIX));
+    ConnectionCosts costs = new ConnectionCosts(file(dir, ConnectionCosts.class, &quot;.dat&quot;));
+    KoreanTokenizer tok =
+        new KoreanTokenizer(
+            TokenStream.DEFAULT_TOKEN_ATTRIBUTE_FACTORY,
+            systemDict(dir),
+            unk,
+            costs,
+            null,
+            KoreanTokenizer.DecompoundMode.DISCARD,
+            false,
+            true);
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts =
+        new KoreanPartOfSpeechStopFilter(tok, KoreanPartOfSpeechStopFilter.DEFAULT_STOP_TAGS)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      tok.setReader(new StringReader(&quot;가&quot;));
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    assertEquals(List.of(&quot;가&quot;), out);
+  }
+}
+</code></pre></figure><figure class='code cmd'><figcaption><span class='fname'>Command</span><button type='button' class='copy' data-copy='command' data-status='command-st'>Copy</button><span class='copy-st' id='command-st' role='status' aria-live='polite'></span></figcaption><pre id='command' tabindex='0'><code>cp $REPRO/TestNoriBuilderLeftIdPosCollision.java $LUCENE/lucene/analysis/nori/src/test/org/apache/lucene/analysis/ko/dict/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:nori:test --tests TestNoriBuilderLeftIdPosCollision -Ptests.asserts=false
+# with -Ptests.asserts=true both tests fail with a bare AssertionError inside DictionaryBuilder.build
+</code></pre></figure><dl class='outcome'><div><dt>Expected</dt><dd>The builder rejects the two rows with an exception naming left id 1, or 가 keeps NNG and survives the default stop tags as <code class='nw'>[가]</code>.</dd></div><div class='got'><dt>Observed</dt><dd>Assertions off: the build succeeds, 가 reports JX and the stop filter returns <code class='nw'>[]</code>; assertions on: a bare <code class='nw'>AssertionError</code> at <code>TokenInfoDictionaryEntryWriter.java:100</code>.</dd></div></dl><p class='meta repro-dir'>All files of this repro: <a href='../repro/LFV-717/'>repro/LFV-717/</a></p><details class='more'><summary><span class='t'>More files, environment, full output</span><span class='n'>4 more files (540 lines) · 2,960 words</span></summary><div class='body'><p>The test writes <code class='nw'>test.csv</code> with <code>가,1,1,0,NNG,*,F,가,*,*,*,*</code> and <code>는,1,1,0,JX,*,T,는,*,*,*,*</code>, a minimal <code class='nw'>char.def</code>, <code class='nw'>unk.def</code> and <code class='nw'>matrix.def</code>, calls <code>DictionaryBuilder.build(dir, dir, "utf-8", false)</code>, and loads the result through the <code class='nw'>Path</code> constructors of <code>TokenInfoDictionary</code>, <code>UnknownDictionary</code> and <code class='nw'>ConnectionCosts</code>. <code>testEachWordKeepsItsPartOfSpeech</code> looks up both words and asserts NNG and JX; <code>testNounSurvivesDefaultStopTags</code> runs the custom-dictionary <code class='nw'>KoreanTokenizer</code> and <code>KoreanPartOfSpeechStopFilter(DEFAULT_STOP_TAGS)</code> on <code class='nw'>가</code> and expects <code class='nw'>[가]</code>. Both accept an <code>IllegalArgumentException</code> from the builder as correct. The inputs are fixed; nothing depends on the seed. This file is the finder's test with one javadoc comment reflowed by <code>applyGoogleJavaFormat</code> (no code change), the same copy as in the validated fix diff, and it passes <code>checkGoogleJavaFormat</code>; re-run as is, it fails 2 of 2 on main with assertions off and on and passes 2 of 2 with the fix. From another package the chained <code>getMorphAttributes().getLeftPOS(...)</code> call does not compile (the return type is package-private); a <code class='nw'>KoMorphData</code> variable or the token's <code>PartOfSpeechAttribute</code> works there.</p><p>Without <code class='nw'>-Ptests.asserts</code>, gradle turns assertions on for about 75% of seeds; with them on, both tests fail inside the builder with a bare <code class='nw'>AssertionError</code>, which is the other half of the report.</p><p>The other files: an independent reproducer's 5-test JUnit with both directions and 2 controls; the 9.x variant (9.1.0 to 9.12.3, tag <code class='nw'>J</code>); the wildcard-left-id-1 probe; and the version-independent two-phase driver used for the release sweep back to 7.4.0.</p><div class="hd hd-3"><h3 id='code-2-h'>TestNoriLeftIdPosCollision.java (independent reproducer, both directions, with controls)</h3><a class="hlink" href="#code-2-h" target="_self" aria-label="Link to this section" aria-describedby="code-2-h"><span aria-hidden="true">#</span></a></div><p>사과 NNG + 을 JKO on left id 3 (the noun dropped) and 가 JKS + 나무 NNG on left id 4 (the particle kept); 3 of 5 fail on main, 10.5.2 and 9.12.3 with assertions on and off; the 2 controls (distinct ids; shared id with one tag) pass; 5 of 5 pass with the fix.</p><figure class='code'><figcaption><span class='fname'>TestNoriLeftIdPosCollision.java (independent reproducer, both directions, with controls)</span><span class='meta'>212 lines</span><button type='button' class='copy' data-copy='code-2' data-status='code-2-st'>Copy</button><span class='copy-st' id='code-2-st' role='status' aria-live='polite'></span></figcaption><pre id='code-2' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.ko.dict;
+
+import static org.apache.lucene.analysis.ko.dict.TokenInfoDictionary.FST_FILENAME_SUFFIX;
+import static org.apache.lucene.analysis.morph.BinaryDictionary.DICT_FILENAME_SUFFIX;
+import static org.apache.lucene.analysis.morph.BinaryDictionary.POSDICT_FILENAME_SUFFIX;
+import static org.apache.lucene.analysis.morph.BinaryDictionary.TARGETMAP_FILENAME_SUFFIX;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.ko.KoreanPartOfSpeechStopFilter;
+import org.apache.lucene.analysis.ko.KoreanTokenizer;
+import org.apache.lucene.analysis.ko.POS;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.IntsRef;
+import org.apache.lucene.util.IntsRefBuilder;
+import org.apache.lucene.util.fst.Util;
+
+/**
+ * Independent verifier test (V1). A nori system dictionary source in which two rows share a left
+ * context id but carry different parts of speech. The binary format keeps one part of speech per
+ * left id (TokenInfoDictionaryEntryWriter.writePosDict, TokenInfoMorphData.getLeftPOS), so such a
+ * source cannot be represented. Acceptable outcomes: DictionaryBuilder.build rejects the source
+ * with an IllegalArgumentException (as kuromoji&#x27;s builder does for the same table), or every word
+ * keeps the part of speech of its own row. Silently giving one word the other row&#x27;s part of speech
+ * is the defect under test.
+ */
+public class TestNoriLeftIdPosCollision extends LuceneTestCase {
+
+  private static final String[] UNK_CLASSES = {
+    &quot;DEFAULT&quot;, &quot;SPACE&quot;, &quot;SYMBOL&quot;, &quot;NUMERIC&quot;, &quot;ALPHA&quot;, &quot;CYRILLIC&quot;, &quot;GREEK&quot;, &quot;HIRAGANA&quot;,
+    &quot;KATAKANA&quot;, &quot;KANJI&quot;, &quot;HANGUL&quot;, &quot;HANJA&quot;, &quot;HANJANUMERIC&quot;
+  };
+
+  /** Compiled dictionaries, or null if DictionaryBuilder rejected the source with an IAE. */
+  private static final class Compiled {
+    final TokenInfoDictionary system;
+    final UnknownDictionary unknown;
+    final ConnectionCosts costs;
+
+    Compiled(TokenInfoDictionary system, UnknownDictionary unknown, ConnectionCosts costs) {
+      this.system = system;
+      this.unknown = unknown;
+      this.costs = costs;
+    }
+  }
+
+  private Compiled compile(String... rows) throws IOException {
+    Path src = createTempDir(&quot;nori-src&quot;);
+    Path out = createTempDir(&quot;nori-bin&quot;);
+    Files.write(src.resolve(&quot;words.csv&quot;), Arrays.asList(rows), StandardCharsets.UTF_8);
+    List&lt;String&gt; unk = new ArrayList&lt;&gt;();
+    for (String cls : UNK_CLASSES) {
+      // unk.def has 10 columns; all unknown entries share left/right id 2 and one part of speech
+      unk.add(cls + &quot;,2,2,30000,UNKNOWN,*,*,*,*,*&quot;);
+    }
+    Files.write(src.resolve(&quot;unk.def&quot;), unk, StandardCharsets.UTF_8);
+    Files.write(src.resolve(&quot;char.def&quot;), new byte[0]);
+    // 8 x 8 connection matrix, every transition cost 0
+    Files.write(src.resolve(&quot;matrix.def&quot;), List.of(&quot;8 8&quot;), StandardCharsets.US_ASCII);
+    try {
+      DictionaryBuilder.build(src, out, &quot;utf-8&quot;, false);
+    } catch (IllegalArgumentException rejected) {
+      // rejecting an unrepresentable source is an acceptable outcome
+      return null;
+    }
+    String sys = TokenInfoDictionary.class.getName().replace(&#x27;.&#x27;, &#x27;/&#x27;);
+    String unkName = UnknownDictionary.class.getName().replace(&#x27;.&#x27;, &#x27;/&#x27;);
+    String cc = ConnectionCosts.class.getName().replace(&#x27;.&#x27;, &#x27;/&#x27;);
+    return new Compiled(
+        new TokenInfoDictionary(
+            out.resolve(sys + TARGETMAP_FILENAME_SUFFIX),
+            out.resolve(sys + POSDICT_FILENAME_SUFFIX),
+            out.resolve(sys + DICT_FILENAME_SUFFIX),
+            out.resolve(sys + FST_FILENAME_SUFFIX)),
+        new UnknownDictionary(
+            out.resolve(unkName + TARGETMAP_FILENAME_SUFFIX),
+            out.resolve(unkName + POSDICT_FILENAME_SUFFIX),
+            out.resolve(unkName + DICT_FILENAME_SUFFIX)),
+        new ConnectionCosts(out.resolve(cc + ConnectionCosts.FILENAME_SUFFIX)));
+  }
+
+  /** Left part of speech of the single entry for {@code surface} in the compiled dictionary. */
+  private static POS.Tag leftPOS(TokenInfoDictionary dict, String surface) throws IOException {
+    IntsRefBuilder in = new IntsRefBuilder();
+    for (int i = 0; i &lt; surface.length(); i++) {
+      in.append(surface.charAt(i));
+    }
+    Long ord = Util.get(dict.getFST().getInternalFST(), in.get());
+    assertNotNull(&quot;surface not in FST: &quot; + surface, ord);
+    IntsRef ids = new IntsRef();
+    dict.lookupWordIds(ord.intValue(), ids);
+    assertEquals(&quot;one entry per surface&quot;, 1, ids.length);
+    return dict.getMorphAttributes().getLeftPOS(ids.ints[ids.offset]);
+  }
+
+  private static List&lt;String&gt; analyze(Compiled c, String text) throws IOException {
+    KoreanTokenizer tok =
+        new KoreanTokenizer(
+            TokenStream.DEFAULT_TOKEN_ATTRIBUTE_FACTORY,
+            c.system,
+            c.unknown,
+            c.costs,
+            null,
+            KoreanTokenizer.DecompoundMode.DISCARD,
+            false,
+            true);
+    List&lt;String&gt; terms = new ArrayList&lt;&gt;();
+    try (TokenStream ts =
+        new KoreanPartOfSpeechStopFilter(tok, KoreanPartOfSpeechStopFilter.DEFAULT_STOP_TAGS)) {
+      tok.setReader(new StringReader(text));
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      ts.reset();
+      while (ts.incrementToken()) {
+        terms.add(term.toString());
+      }
+      ts.end();
+    }
+    return terms;
+  }
+
+  // 사과 (noun &quot;apple&quot;, NNG) and 을 (object particle, JKO) share left id 3.
+  // Rows are sorted by surface; 을 (U+C744) sorts after 사과 (U+C0AC), so 을 is written last.
+  private static final String NOUN_FIRST_NNG = &quot;사과,3,3,100,NNG,*,F,사과,*,*,*,*&quot;;
+  private static final String NOUN_FIRST_JKO = &quot;을,3,3,100,JKO,*,T,을,*,*,*,*&quot;;
+
+  /** The noun must keep NNG (or the source must be rejected). */
+  public void testNounKeepsItsOwnPartOfSpeech() throws Exception {
+    Compiled c = compile(NOUN_FIRST_NNG, NOUN_FIRST_JKO);
+    if (c == null) {
+      return; // rejected with IllegalArgumentException: acceptable
+    }
+    assertEquals(POS.Tag.JKO, leftPOS(c.system, &quot;을&quot;));
+    assertEquals(&quot;left POS of 사과&quot;, POS.Tag.NNG, leftPOS(c.system, &quot;사과&quot;));
+  }
+
+  /** End to end: the default stop tags must not drop the noun. */
+  public void testDefaultStopTagsKeepTheNoun() throws Exception {
+    Compiled c = compile(NOUN_FIRST_NNG, NOUN_FIRST_JKO);
+    if (c == null) {
+      return;
+    }
+    assertEquals(List.of(&quot;사과&quot;), analyze(c, &quot;사과&quot;));
+  }
+
+  // Reverse direction: 가 (subject particle, JKS) and 나무 (noun &quot;tree&quot;, NNG) share left id 4.
+  // 나무 (U+B098) sorts after 가 (U+AC00), so the noun is written last.
+  private static final String PARTICLE_FIRST_JKS = &quot;가,4,4,100,JKS,*,F,가,*,*,*,*&quot;;
+  private static final String PARTICLE_FIRST_NNG = &quot;나무,4,4,100,NNG,*,F,나무,*,*,*,*&quot;;
+
+  /** The particle must keep JKS, so that the default stop tags remove it. */
+  public void testParticleKeepsItsOwnPartOfSpeech() throws Exception {
+    Compiled c = compile(PARTICLE_FIRST_JKS, PARTICLE_FIRST_NNG);
+    if (c == null) {
+      return;
+    }
+    assertEquals(POS.Tag.NNG, leftPOS(c.system, &quot;나무&quot;));
+    assertEquals(&quot;left POS of 가&quot;, POS.Tag.JKS, leftPOS(c.system, &quot;가&quot;));
+    assertEquals(List.of(), analyze(c, &quot;가&quot;));
+  }
+
+  /** Control: the same words with distinct left ids are compiled and filtered correctly. */
+  public void testControlDistinctLeftIds() throws Exception {
+    Compiled c =
+        compile(
+            &quot;사과,3,3,100,NNG,*,F,사과,*,*,*,*&quot;,
+            &quot;을,5,5,100,JKO,*,T,을,*,*,*,*&quot;,
+            &quot;가,4,4,100,JKS,*,F,가,*,*,*,*&quot;,
+            &quot;나무,6,6,100,NNG,*,F,나무,*,*,*,*&quot;);
+    assertNotNull(&quot;a valid source must not be rejected&quot;, c);
+    assertEquals(POS.Tag.NNG, leftPOS(c.system, &quot;사과&quot;));
+    assertEquals(POS.Tag.JKO, leftPOS(c.system, &quot;을&quot;));
+    assertEquals(POS.Tag.JKS, leftPOS(c.system, &quot;가&quot;));
+    assertEquals(POS.Tag.NNG, leftPOS(c.system, &quot;나무&quot;));
+    assertEquals(List.of(&quot;사과&quot;), analyze(c, &quot;사과&quot;));
+    assertEquals(List.of(), analyze(c, &quot;을&quot;));
+    assertEquals(List.of(), analyze(c, &quot;가&quot;));
+    assertEquals(List.of(&quot;나무&quot;), analyze(c, &quot;나무&quot;));
+  }
+
+  /** Control: sharing a left id with the same part of speech and semantic class is fine. */
+  public void testControlSharedLeftIdSamePartOfSpeech() throws Exception {
+    Compiled c = compile(&quot;사과,3,3,100,NNG,*,F,사과,*,*,*,*&quot;, &quot;나무,3,3,100,NNG,*,F,나무,*,*,*,*&quot;);
+    assertNotNull(&quot;a valid source must not be rejected&quot;, c);
+    assertEquals(POS.Tag.NNG, leftPOS(c.system, &quot;사과&quot;));
+    assertEquals(POS.Tag.NNG, leftPOS(c.system, &quot;나무&quot;));
+    assertEquals(List.of(&quot;사과&quot;), analyze(c, &quot;사과&quot;));
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-3-h'>TestNoriBuilderLeftIdPosCollision9x.java (9.1.0 to 9.12.3)</h3><a class="hlink" href="#code-3-h" target="_self" aria-label="Link to this section" aria-describedby="code-3-h"><span aria-hidden="true">#</span></a></div><p>The same test for the 9.x package layout; the particle tag there is <code class='nw'>J</code>.</p><figure class='code'><figcaption><span class='fname'>TestNoriBuilderLeftIdPosCollision9x.java (9.1.0 to 9.12.3)</span><span class='meta'>127 lines</span><button type='button' class='copy' data-copy='code-3' data-status='code-3-st'>Copy</button><span class='copy-st' id='code-3-st' role='status' aria-live='polite'></span></figcaption><pre id='code-3' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.ko.dict;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.ko.KoreanPartOfSpeechStopFilter;
+import org.apache.lucene.analysis.ko.KoreanTokenizer;
+import org.apache.lucene.analysis.ko.POS;
+import org.apache.lucene.analysis.ko.util.DictionaryBuilder;
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.IntsRef;
+
+/**
+ * Variant for 9.x (DictionaryBuilder in ko.util). Nori stores one part of speech per left context id. Two dictionary rows with the same left id but
+ * different parts of speech are checked only by a Java assert in the dictionary builder, so a build
+ * without -ea silently gives every word with that left id the part of speech of the last row
+ * written. (Kuromoji&#x27;s builder throws IllegalArgumentException for the same situation.) Uses only
+ * public API: DictionaryBuilder.build, the path constructors of the dictionaries, KoreanTokenizer
+ * and KoreanPartOfSpeechStopFilter.
+ */
+public class TestNoriBuilderLeftIdPosCollision9x extends LuceneTestCase {
+
+  private static Path file(Path dir, Class&lt;?&gt; clazz, String suffix) {
+    return dir.resolve(clazz.getName().replace(&#x27;.&#x27;, &#x27;/&#x27;) + suffix);
+  }
+
+  /** 가 (a noun, NNG) and 는 (a topic particle, JX) share left id 1. */
+  private Path build() throws IOException {
+    Path dir = createTempDir();
+    Files.write(
+        dir.resolve(&quot;test.csv&quot;),
+        List.of(&quot;가,1,1,0,NNG,*,F,가,*,*,*,*&quot;, &quot;는,1,1,0,J,*,T,는,*,*,*,*&quot;),
+        StandardCharsets.UTF_8);
+    Files.write(dir.resolve(&quot;char.def&quot;), List.of(&quot;DEFAULT 0 1 0&quot;, &quot;SPACE 0 1 0&quot;, &quot;0x0020 SPACE&quot;));
+    Files.write(
+        dir.resolve(&quot;unk.def&quot;),
+        List.of(&quot;DEFAULT,2,2,10000,SY,*,*,*,*,*,*,*&quot;, &quot;SPACE,3,3,0,SP,*,*,*,*,*,*,*&quot;),
+        StandardCharsets.UTF_8);
+    Files.write(dir.resolve(&quot;matrix.def&quot;), List.of(&quot;4 4&quot;), StandardCharsets.US_ASCII);
+    DictionaryBuilder.build(dir, dir, &quot;utf-8&quot;, false);
+    return dir;
+  }
+
+  private static TokenInfoDictionary systemDict(Path dir) throws IOException {
+    return new TokenInfoDictionary(
+        file(dir, TokenInfoDictionary.class, &quot;$targetMap.dat&quot;),
+        file(dir, TokenInfoDictionary.class, &quot;$posDict.dat&quot;),
+        file(dir, TokenInfoDictionary.class, &quot;$buffer.dat&quot;),
+        file(dir, TokenInfoDictionary.class, &quot;$fst.dat&quot;));
+  }
+
+  /** Either the builder rejects the rows, or each word keeps the part of speech of its row. */
+  public void testEachWordKeepsItsPartOfSpeech() throws Exception {
+    Path dir;
+    try {
+      dir = build();
+    } catch (IllegalArgumentException rejected) {
+      return; // rejecting the dictionary, as kuromoji does, is a correct outcome
+    }
+    TokenInfoDictionary dict = systemDict(dir);
+    IntsRef ref = new IntsRef();
+    dict.lookupWordIds(0, ref); // source id 0 = 가 (surfaces are sorted)
+    assertEquals(POS.Tag.NNG, dict.getLeftPOS(ref.ints[ref.offset]));
+    dict.lookupWordIds(1, ref); // source id 1 = 는
+    assertEquals(POS.Tag.J, dict.getLeftPOS(ref.ints[ref.offset]));
+  }
+
+  /** The noun 가 must survive the default part-of-speech stop filter (J is a stop tag in 9.x, NNG is not). */
+  public void testNounSurvivesDefaultStopTags() throws Exception {
+    Path dir;
+    try {
+      dir = build();
+    } catch (IllegalArgumentException rejected) {
+      return;
+    }
+    UnknownDictionary unk =
+        new UnknownDictionary(
+            file(dir, UnknownDictionary.class, &quot;$targetMap.dat&quot;),
+            file(dir, UnknownDictionary.class, &quot;$posDict.dat&quot;),
+            file(dir, UnknownDictionary.class, &quot;$buffer.dat&quot;));
+    ConnectionCosts costs = new ConnectionCosts(file(dir, ConnectionCosts.class, &quot;.dat&quot;));
+    KoreanTokenizer tok =
+        new KoreanTokenizer(
+            TokenStream.DEFAULT_TOKEN_ATTRIBUTE_FACTORY,
+            systemDict(dir),
+            unk,
+            costs,
+            null,
+            KoreanTokenizer.DecompoundMode.DISCARD,
+            false,
+            true);
+    List&lt;String&gt; out = new ArrayList&lt;&gt;();
+    try (TokenStream ts =
+        new KoreanPartOfSpeechStopFilter(tok, KoreanPartOfSpeechStopFilter.DEFAULT_STOP_TAGS)) {
+      CharTermAttribute term = ts.addAttribute(CharTermAttribute.class);
+      tok.setReader(new StringReader(&quot;가&quot;));
+      ts.reset();
+      while (ts.incrementToken()) {
+        out.add(term.toString());
+      }
+      ts.end();
+    }
+    assertEquals(List.of(&quot;가&quot;), out);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-4-h'>TestLeftIdPosIntent.java (the mecab-ko-dic wildcard left id 1 path)</h3><a class="hlink" href="#code-4-h" target="_self" aria-label="Link to this section" aria-describedby="code-4-h"><span aria-hidden="true">#</span></a></div><p>Two <code class='nw'>Preanalysis</code> rows on left id 1 with column-4 tags NNG and NNP: accepted with assertions off and the NNG word reports NNP; <code class='nw'>AssertionError</code> with them on. Also a same-tag, different-semantic-class case that the assert rejects although the format can store it.</p><figure class='code'><figcaption><span class='fname'>TestLeftIdPosIntent.java (the mecab-ko-dic wildcard left id 1 path)</span><span class='meta'>109 lines</span><button type='button' class='copy' data-copy='code-4' data-status='code-4-st'>Copy</button><span class='copy-st' id='code-4-st' role='status' aria-live='polite'></span></figcaption><pre id='code-4' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.lucene.analysis.ko.dict;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import org.apache.lucene.analysis.ko.POS;
+import org.apache.lucene.analysis.morph.BinaryDictionary;
+import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.util.IntsRef;
+
+/**
+ * Intended-behaviour probe. Each test prints what the builder did (rejected, or which left POS each
+ * word got) and asserts the &quot;each word keeps its own POS, or the build is rejected&quot; contract.
+ */
+public class TestLeftIdPosIntent extends LuceneTestCase {
+
+  private static Path file(Path dir, Class&lt;?&gt; clazz, String suffix) {
+    return dir.resolve(clazz.getName().replace(&#x27;.&#x27;, &#x27;/&#x27;) + suffix);
+  }
+
+  private static TokenInfoDictionary build(Path dir, String... rows) throws IOException {
+    Files.write(dir.resolve(&quot;test.csv&quot;), List.of(rows), StandardCharsets.UTF_8);
+    Files.createFile(dir.resolve(&quot;unk.def&quot;));
+    Files.createFile(dir.resolve(&quot;char.def&quot;));
+    Files.write(dir.resolve(&quot;matrix.def&quot;), List.of(&quot;3 3&quot;), StandardCharsets.US_ASCII);
+    DictionaryBuilder.build(dir, dir, &quot;utf-8&quot;, false);
+    return new TokenInfoDictionary(
+        file(dir, TokenInfoDictionary.class, BinaryDictionary.TARGETMAP_FILENAME_SUFFIX),
+        file(dir, TokenInfoDictionary.class, BinaryDictionary.POSDICT_FILENAME_SUFFIX),
+        file(dir, TokenInfoDictionary.class, BinaryDictionary.DICT_FILENAME_SUFFIX),
+        file(dir, TokenInfoDictionary.class, TokenInfoDictionary.FST_FILENAME_SUFFIX));
+  }
+
+  private static POS.Tag leftPos(TokenInfoDictionary dict, int sourceId) {
+    IntsRef ref = new IntsRef();
+    dict.lookupWordIds(sourceId, ref);
+    return dict.getMorphAttributes().getLeftPOS(ref.ints[ref.offset]);
+  }
+
+  private void check(String label, String[] rows, POS.Tag... expected) throws IOException {
+    TokenInfoDictionary dict;
+    try {
+      dict = build(createTempDir(), rows);
+    } catch (IllegalArgumentException | IllegalStateException rejected) {
+      System.out.println(&quot;V3 &quot; + label + &quot;: REJECTED &quot; + rejected);
+      return;
+    }
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i &lt; expected.length; i++) {
+      sb.append(&#x27; &#x27;).append(leftPos(dict, i));
+    }
+    System.out.println(&quot;V3 &quot; + label + &quot;: accepted, left POS =&quot; + sb);
+    for (int i = 0; i &lt; expected.length; i++) {
+      assertEquals(label + &quot; source id &quot; + i, expected[i], leftPos(dict, i));
+    }
+  }
+
+  /** Control: distinct left ids, each word keeps its POS. */
+  public void testControlDistinctIds() throws Exception {
+    check(
+        &quot;control-distinct-ids&quot;,
+        new String[] {&quot;가,1,1,0,NNG,*,F,가,*,*,*,*&quot;, &quot;는,2,1,0,JX,*,T,는,*,*,*,*&quot;},
+        POS.Tag.NNG,
+        POS.Tag.JX);
+  }
+
+  /** Same left id, same POS, different semantic class: harmless (semantic class is not stored). */
+  public void testSamePosDifferentSemanticClass() throws Exception {
+    check(
+        &quot;same-pos-diff-semantic&quot;,
+        new String[] {&quot;가,1,1,0,NNP,지명,F,가,*,*,*,*&quot;, &quot;나,1,1,0,NNP,인명,F,나,*,*,*,*&quot;},
+        POS.Tag.NNP,
+        POS.Tag.NNP);
+  }
+
+  /**
+   * The mecab-ko-dic wildcard path: Preanalysis rows whose first-POS column is &#x27;*&#x27; with semantic
+   * class 지명 get left id 1 from mecab-ko-dic&#x27;s own rewrite.def/left-id.def, while nori takes the
+   * POS from column 4. Two such rows with different column-4 POS.
+   */
+  public void testPreanalysisWildcardLeftId() throws Exception {
+    check(
+        &quot;preanalysis-wildcard-left-id-1&quot;,
+        new String[] {
+          &quot;가역,1,1,0,NNG,지명,T,가역,Preanalysis,*,*,가/NNG/*+역/NNG/*&quot;,
+          &quot;나역,1,1,0,NNP,지명,T,나역,Preanalysis,*,*,나/NNP/지명+역/NNG/*&quot;
+        },
+        POS.Tag.NNG,
+        POS.Tag.NNP);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='code-5-h'>NoriHistoryBuild.java + NoriHistoryLoad.java (version-independent drivers for the release sweep)</h3><a class="hlink" href="#code-5-h" target="_self" aria-label="Link to this section" aria-describedby="code-5-h"><span aria-hidden="true">#</span></a></div><p>Phase 1 builds the two-row source with the release's own <code>DictionaryBuilder.main</code> (<code class='nw'>-da</code> and <code class='nw'>-ea</code>); phase 2 (<code>NoriHistoryLoad.java</code>, same directory) loads it from the classpath through the default <code>KoreanTokenizer()</code> and applies the default stop tags.</p><figure class='code'><figcaption><span class='fname'>NoriHistoryBuild.java + NoriHistoryLoad.java (version-independent drivers for the release sweep)</span><span class='meta'>92 lines</span><button type='button' class='copy' data-copy='code-5' data-status='code-5-st'>Copy</button><span class='copy-st' id='code-5-st' role='status' aria-live='polite'></span></figcaption><pre id='code-5' tabindex='0'><code>/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the &quot;License&quot;); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package history;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * History-sweep driver, phase 1 (works on every nori release, 7.4.0 to main): writes a tiny mecab-ko-dic
+ * style source and compiles it with the release&#x27;s own DictionaryBuilder.main (org.apache.lucene.analysis.ko.dict
+ * from 10.0, org.apache.lucene.analysis.ko.util before). DictionaryBuilder.main is the documented entry point
+ * of the builder in every release, so it is looked up by name; no private state is touched.
+ *
+ * &lt;p&gt;args: mode (collision | control), particle tag (J before 10.0, JX from 10.0), input dir, output dir.
+ * collision: 가 (NNG) and 는 (particle) share left id 1. control: the same rows with distinct left ids (1, 4).
+ *
+ * &lt;p&gt;Exit codes: 0 builder accepted the source; 3 builder failed with AssertionError; 4 builder rejected the
+ * source with IllegalArgumentException/IllegalStateException; 5 any other error.
+ */
+public class NoriHistoryBuild {
+  public static void main(String[] args) throws Exception {
+    String mode = args[0];
+    String particle = args[1];
+    Path in = Paths.get(args[2]);
+    Path out = Paths.get(args[3]);
+    int particleLeftId = mode.equals(&quot;collision&quot;) ? 1 : 4;
+    int matrixSize = 5;
+    Files.createDirectories(in);
+    Files.createDirectories(out);
+    List&lt;String&gt; rows =
+        Arrays.asList(
+            &quot;가,1,1,0,NNG,*,F,가,*,*,*,*&quot;,
+            &quot;는,&quot; + particleLeftId + &quot;,&quot; + particleLeftId + &quot;,0,&quot; + particle + &quot;,*,T,는,*,*,*,*&quot;);
+    Files.write(in.resolve(&quot;test.csv&quot;), rows, StandardCharsets.UTF_8);
+    Files.write(in.resolve(&quot;char.def&quot;), Arrays.asList(&quot;DEFAULT 0 1 0&quot;, &quot;SPACE 0 1 0&quot;, &quot;0x0020 SPACE&quot;));
+    Files.write(
+        in.resolve(&quot;unk.def&quot;),
+        Arrays.asList(&quot;DEFAULT,2,2,10000,SY,*,*,*,*,*,*,*&quot;, &quot;SPACE,3,3,0,SP,*,*,*,*,*,*,*&quot;),
+        StandardCharsets.UTF_8);
+    Files.write(
+        in.resolve(&quot;matrix.def&quot;),
+        Arrays.asList(matrixSize + &quot; &quot; + matrixSize),
+        StandardCharsets.US_ASCII);
+    System.out.println(&quot;source rows: &quot; + rows);
+
+    Class&lt;?&gt; builder;
+    try {
+      builder = Class.forName(&quot;org.apache.lucene.analysis.ko.dict.DictionaryBuilder&quot;);
+    } catch (ClassNotFoundException e) {
+      builder = Class.forName(&quot;org.apache.lucene.analysis.ko.util.DictionaryBuilder&quot;);
+    }
+    System.out.println(&quot;builder: &quot; + builder.getName());
+    Method main = builder.getMethod(&quot;main&quot;, String[].class);
+    try {
+      main.invoke(null, (Object) new String[] {in.toString(), out.toString(), &quot;utf-8&quot;, &quot;false&quot;});
+    } catch (InvocationTargetException wrapped) {
+      Throwable t = wrapped.getCause();
+      t.printStackTrace(System.out);
+      if (t instanceof AssertionError) {
+        System.out.println(&quot;RESULT builder-assertion-error: &quot; + t);
+        System.exit(3);
+      }
+      if (t instanceof IllegalArgumentException || t instanceof IllegalStateException) {
+        System.out.println(&quot;RESULT builder-rejected: &quot; + t);
+        System.exit(4);
+      }
+      System.out.println(&quot;RESULT builder-other-error: &quot; + t);
+      System.exit(5);
+    }
+    System.out.println(&quot;RESULT builder-accepted (mode=&quot; + mode + &quot;)&quot;);
+  }
+}
+</code></pre></figure><div class="hd hd-3"><h3 id='environment'>Environment</h3><a class="hlink" href="#environment" target="_self" aria-label="Link to this section" aria-describedby="environment"><span aria-hidden="true">#</span></a></div><div class='tbl'><table class='env'><tbody><tr><th scope='row'>lucene</th><td><code>main a9779ef3c193 (11.0.0-SNAPSHOT); also 10.5.2 (release jars)</code></td></tr><tr><th scope='row'>jdk</th><td><code>OpenJDK 25.0.3 (build 25.0.3+9-LTS)</code></td></tr><tr><th scope='row'>os</th><td><code>Linux aarch64 (pure Java; only this platform was run)</code></td></tr></tbody></table></div><figure class='code cmd'><figcaption><span class='fname'>Command (environment)</span><button type='button' class='copy' data-copy='command-env' data-status='command-env-st'>Copy</button><span class='copy-st' id='command-env-st' role='status' aria-live='polite'></span></figcaption><pre id='command-env' tabindex='0'><code>cp $REPRO/TestNoriBuilderLeftIdPosCollision.java $LUCENE/lucene/analysis/nori/src/test/org/apache/lucene/analysis/ko/dict/
+cd $LUCENE &amp;&amp; ./gradlew :lucene:analysis:nori:test --tests TestNoriBuilderLeftIdPosCollision -Ptests.asserts=false
+# also with -Ptests.asserts=true (bare AssertionError in the builder)
+</code></pre></figure><div class="hd hd-3"><h3 id='observed'>Observed output</h3><a class="hlink" href="#observed" target="_self" aria-label="Link to this section" aria-describedby="observed"><span aria-hidden="true">#</span></a></div><pre class='observed' tabindex='0'><code># gradle, stock main, -Ptests.asserts=false
+TestNoriBuilderLeftIdPosCollision &gt; testEachWordKeepsItsPartOfSpeech FAILED
+    java.lang.AssertionError: expected:&lt;NNG&gt; but was:&lt;JX&gt;
+TestNoriBuilderLeftIdPosCollision &gt; testNounSurvivesDefaultStopTags FAILED
+    java.lang.AssertionError: expected:&lt;[가]&gt; but was:&lt;[]&gt;
+
+# gradle, stock main, -Ptests.asserts=true (both tests)
+    java.lang.AssertionError
+        at org.apache.lucene.analysis.ko.dict.TokenInfoDictionaryEntryWriter.putEntry(TokenInfoDictionaryEntryWriter.java:100)
+        at org.apache.lucene.analysis.common@11.0.0-SNAPSHOT/org.apache.lucene.analysis.morph.BinaryDictionaryWriter.put(BinaryDictionaryWriter.java:48)
+        at org.apache.lucene.analysis.ko.dict.TokenInfoDictionaryBuilder.buildDictionary(TokenInfoDictionaryBuilder.java:105)
+        at org.apache.lucene.analysis.ko.dict.TokenInfoDictionaryBuilder.build(TokenInfoDictionaryBuilder.java:56)
+        at org.apache.lucene.analysis.ko.dict.DictionaryBuilder.build(DictionaryBuilder.java:31)
+
+# the same 2 failures: standalone runner on main (-ea and -da) and on 10.5.2 (-ea and -da)
+# with the fix: 2 of 2 pass; the builder throws
+#   java.lang.IllegalArgumentException: Multiple parts of speech found for leftId=1: NNG,* vs JX,*
+
+# release sweep, colliding source loaded through the default KoreanTokenizer()
+7.4.0 ... 9.12.3:      가 -&gt; [가/J]    는 -&gt; [는/J]    가 after DEFAULT_STOP_TAGS -&gt; []
+10.0.0, 10.5.2, main:  가 -&gt; [가/JX]   는 -&gt; [는/JX]   가 after DEFAULT_STOP_TAGS -&gt; []
+control (ids 1 and 4): 가 -&gt; [가/NNG], kept, on every version</code></pre></div></details></section><section id='not-intended' aria-labelledby='not-intended-h'><div class="hd hd-2"><h2 id='not-intended-h'>Why it is a bug, not intended</h2><a class="hlink" href="#not-intended" target="_self" aria-label="Link to this section" aria-describedby="not-intended-h"><span aria-hidden="true">#</span></a></div><ul class='short'><li>The assert shows that the authors treated a collision as invalid input; no javadoc documents a silent last-writer-wins.</li><li>Kuromoji's builder throws <code>IllegalArgumentException</code> for this exact case since LUCENE-8863; LUCENE-8904, "the Nori version" of that change, converted nori's neighbouring asserts but not this one.</li><li><code class='nw'>KoreanTokenizer</code> documents custom <code>DictionaryBuilder</code> dictionaries as a supported entry point.</li></ul><details class='more'><summary><span class='t'>The full argument</span><span class='n'>285 words</span></summary><div class='body'><ul><li><strong>Contract.</strong> No javadoc states the one-part-of-speech-per-left-id rule or what the builder does with a source that breaks it (<code>DictionaryBuilder</code> has a one-line javadoc, "Tool to build dictionaries."). The assert shows that the authors treat the collision as an error, not as something to merge. <code>KoMorphData.getLeftPOS</code> is documented to return the left part of speech "of specified word" (<code>KoMorphData.java:34-39</code>); here it returns another word's.</li><li><strong>Neighbouring checks are exceptions.</strong> In the same method the left-id limit and the POS-type checks throw <code>IllegalArgumentException</code> (<code>TokenInfoDictionaryEntryWriter.java:130-135</code>); kuromoji's writer throws for this very case (<code>ja/dict/TokenInfoDictionaryEntryWriter.java:129-133</code>, still marked <code>// TODO: test me</code>).</li><li><strong>History.</strong> LUCENE-8863 (<code class='nw'>4502065f036</code>, 2019, #9906, 8.2.0) turned kuromoji's identical assert into the exception. LUCENE-8904 (<code class='nw'>2ac5fb668a8</code>, 2019, #9947, 8.3.0): "It is the Nori version of @msokolov's #9906. ... 1) Improve exception handling ... Overall, it is the same as #9906." Its diff converted the left-id limit, POS-type, word-order, source-id-order and posDict-format asserts; this one stayed without discussion (other <code class='nw'>putEntry</code> input asserts stayed too, so it was not singled out).</li><li><strong>Maintainers on builder asserts.</strong> In #9860 (LUCENE-8816, about kuromoji), @rmuir: "the various <code class='nw'>assert</code>s in the current tooling should be fixed to be real <code class='nw'>if</code> statements+exception messages" and "The use of assert was laziness on my part: we should treat it as technical debt and fix it"; @mocobeta asked to "change the all assertions to some Exceptions so that users can figure out the problem with their customized dictionary".</li><li><strong>Supported path.</strong> The custom-dictionary <code class='nw'>KoreanTokenizer</code> constructor (<code>KoreanTokenizer.java:138-152</code>, <code>@lucene.experimental</code>) names <code>DictionaryBuilder</code> output as its input.</li><li><strong>Tests.</strong> No nori or kuromoji test builds a left-id collision; <code>TestTokenInfoDictionary.testPutException</code> covers only too few columns and too large an id (<code class='nw'>:92-99</code>).</li></ul></div></details><details class='more' id='devils-advocate'><summary><span class='t'>The devil's-advocate check</span><span class='n'>227 words</span></summary><div class='body'><p>The strongest "intended" case (rated moderate by the cross-model reviews and the adjudication; the devil's-advocate verifier built it too and rejected it, without a rating): one part of speech per left id is a deliberate format choice. In LUCENE-8231 (#9278) @jimczi wrote "The semantic class + POS is unique per leftId so this could also save 1 byte in the binary dictionary" and then "added a POS dict that maps the left id and the part of speech tag". Read that way, the assert is a developer precondition on mecab-ko-dic-shaped data and a colliding custom source is garbage in, garbage out; <code>DictionaryBuilder</code> states no input contract, the custom-dictionary constructor is experimental, and the open kuromoji UniDic PR #12517 would relax kuromoji's check rather than enforce it.</p><p>Why it fails: the format choice is fine, but silently overwriting the slot is documented nowhere; the project turned the identical kuromoji line into an exception, set out to do the same for nori, and its maintainers called builder asserts technical debt; <code class='nw'>KoreanTokenizer</code> documents custom dictionaries as an entry point. Relaxing the rule, as #12517 does for kuromoji, would mean storing the tag per entry, not overwriting it. <strong>Verdict: a defect</strong> (adjudication: confirmed, medium). What the counter-case gets right: the reach is narrow and the impact low, so it reads best as a missing input check, a hardening fix like LUCENE-8904.</p></div></details></section><section id='fixes' aria-labelledby='fixes-h'><div class="hd hd-2"><h2 id='fixes-h'>Suggested fix</h2><a class="hlink" href="#fixes" target="_self" aria-label="Link to this section" aria-describedby="fixes-h"><span aria-hidden="true">#</span></a></div><p class='rec'><span class='k'>Recommended</span> <strong>Throw when the stored part of speech differs (POS-only check)</strong></p><p class='short'>Replace the assert at <code>TokenInfoDictionaryEntryWriter.java:100</code> with an <code>IllegalArgumentException</code> when the stored part of speech differs, comparing the part of speech only, the one value the format stores. The repro and two <code>TestTokenInfoDictionary</code> test changes pass, the nori module runs 90 tests with 0 failures (4 skipped) with assertions on and off, and the bundled dictionary rebuilds byte-identical.</p><pre class='snippet' tabindex='0'><code>     String existing = posDict.get(leftId);
+-    assert existing == null || existing.equals(fullPOSData);
++    // only the part of speech is stored per left id (see writePosDict), so all entries that share
++    // a left id must have the same part of speech; the semantic class may differ
++    if (existing != null &amp;&amp; existing.startsWith(leftPOS.name() + &quot;,&quot;) == false) {
++      throw new IllegalArgumentException(
++          &quot;Multiple parts of speech found for leftId=&quot;
++              + leftId
++              + &quot;: &quot;
++              + existing
++              + &quot; vs &quot;
++              + fullPOSData);
++    }
+     posDict.set(leftId, fullPOSData);</code></pre><details class='more'><summary><span class='t'>All options and trade-offs</span><span class='n'>4 options · 671 words</span></summary><div class='body'><p>Option A keeps the format and turns the silent overwrite into a clear build error; option B lifts the restriction instead and is the larger change. Do not copy kuromoji's check literally (option C): it also compares the semantic class, which the format drops. Whatever is chosen, extend <code>TestTokenInfoDictionary.testPutException</code> with the collision, as the validated diff does.</p><div class="hd hd-3"><h3 id='fix-throw-on-pos-mismatch'>Throw when the stored part of speech differs (POS-only check) <span class='n'>(validated by the checks)</span> <span class='n'>(recommended)</span></h3><a class="hlink" href="#fix-throw-on-pos-mismatch" target="_self" aria-label="Link to this section" aria-describedby="fix-throw-on-pos-mismatch"><span aria-hidden="true">#</span></a></div><p>+11/-1 in <code>TokenInfoDictionaryEntryWriter.java</code> (the finder's logic, formatted with <code>applyGoogleJavaFormat</code>, its one-line comment rewritten as two lines), plus two tests in the existing <code>TestTokenInfoDictionary</code>: <code class='nw'>testPutException</code> gains the 가 NNG / 는 JX collision with <code>expectThrows(IllegalArgumentException.class, ...)</code> and a check that the message names <code class='nw'>leftId=1</code>; the new <code>testPutSameLeftIdDifferentSemanticClass</code> builds 서울 <code class='nw'>NNP,지명</code> and 철수 <code class='nw'>NNP,인명</code> on left id 1 and asserts NNP for both.</p><pre class='snippet' tabindex='0'><code>     String existing = posDict.get(leftId);
+-    assert existing == null || existing.equals(fullPOSData);
++    // only the part of speech is stored per left id (see writePosDict), so all entries that share
++    // a left id must have the same part of speech; the semantic class may differ
++    if (existing != null &amp;&amp; existing.startsWith(leftPOS.name() + &quot;,&quot;) == false) {
++      throw new IllegalArgumentException(
++          &quot;Multiple parts of speech found for leftId=&quot;
++              + leftId
++              + &quot;: &quot;
++              + existing
++              + &quot; vs &quot;
++              + fullPOSData);
++    }
+     posDict.set(leftId, fullPOSData);</code></pre><p class='k'>Trade-offs</p><ul><li>A custom source that built "successfully" before, with wrong tags, now fails to build with a message naming the id and both values: the intended behaviour change, worth a CHANGES entry.</li><li>Keeps the one-part-of-speech-per-left-id restriction rather than lifting it; no format change, nothing on the analysis hot path (the check runs only while building).</li><li><code>startsWith(leftPOS.name() + ",")</code> is exact because tag names contain no comma; a reviewer may prefer to keep the <code class='nw'>POS.Tag</code> per left id in a separate list.</li></ul><p class='k'>What the checks validated</p><ul><li>Scratch worktree at <code class='nw'>a9779ef3c193</code>, gradle, JDK 25: on stock, the repro and the two test changes (7 tests) fail 4 of 7 with assertions on (the 2 repro tests, the extended <code class='nw'>testPutException</code> and the new <code>testPutSameLeftIdDifferentSemanticClass</code>, each a bare <code class='nw'>AssertionError</code> at <code class='nw'>:100</code>) and 3 of 7 with assertions off (the semantic-class test passes there); with the fix, 7 of 7 pass both ways.</li><li>With the fix: the whole <code>:lucene:analysis:nori:test</code>, 14 suites, 90 tests, 0 failures, 4 skipped (3 <code class='nw'>@Nightly</code>, 1 <code class='nw'>@Ignore</code>), with assertions on and off; <code>:lucene:analysis:nori:checkGoogleJavaFormat</code> passes.</li><li>The bundled mecab-ko-dic 2.1.1 rebuilt with the fix, <code class='nw'>-ea</code> and <code class='nw'>-da</code>: all 9 resource files byte-identical to the shipped ones.</li><li>Earlier, with the finder's copy of the same logic: the independent reproducer's test 5 of 5, the cross-model reviewers' tests, upstream <code>TestTokenInfoDictionary</code> and <code>TestUnknownDictionary</code> 6 of 6; the release-sweep driver rejects the colliding source and still builds the control.</li></ul><div class="hd hd-3"><h3 id='fix-pos-per-entry'>Store the part of speech per entry</h3><a class="hlink" href="#fix-pos-per-entry" target="_self" aria-label="Link to this section" aria-describedby="fix-pos-per-entry"><span aria-hidden="true">#</span></a></div><p>Write the left part of speech into each entry instead of the per-left-id table, so rows that share a left id may differ. Not run.</p><p class='k'>Trade-offs</p><p>Lifts the restriction, the direction the open kuromoji UniDic PR #12517 takes for kuromoji. But it changes the binary format (a format version bump and a rebuild of every dictionary), adds a byte to entries and touches <code>TokenInfoMorphData</code>, and no known nori dictionary needs it. Bigger than a bug fix; could follow option A.</p><div class="hd hd-3"><h3 id='fix-kuromoji-literal'>Copy kuromoji's check literally (not recommended)</h3><a class="hlink" href="#fix-kuromoji-literal" target="_self" aria-label="Link to this section" aria-describedby="fix-kuromoji-literal"><span aria-hidden="true">#</span></a></div><p><code>if (existing != null &amp;&amp; existing.equals(fullPOSData) == false) throw new IllegalArgumentException(...)</code>.</p><p class='k'>Trade-offs</p><p>Compares the semantic class too, which <code class='nw'>writePosDict</code> discards, so it would reject rows with one tag and different semantic classes that the format stores correctly. Today's assert already does that with <code class='nw'>-ea</code>: two NNP rows with semantic classes 지명 and 인명 fail with <code class='nw'>AssertionError</code> under <code class='nw'>-ea</code> and build correctly under <code class='nw'>-da</code>, and <code>testPutSameLeftIdDifferentSemanticClass</code> fails on stock with assertions on.</p><div class="hd hd-3"><h3 id='fix-document-only'>Document the restriction only (not recommended)</h3><a class="hlink" href="#fix-document-only" target="_self" aria-label="Link to this section" aria-describedby="fix-document-only"><span aria-hidden="true">#</span></a></div><p>A javadoc note on <code>DictionaryBuilder</code> that rows sharing a left id must share a part of speech.</p><p class='k'>Trade-offs</p><p>Changes nothing for a build without <code class='nw'>-ea</code>, which stays silent.</p></div></details></section><section id='downstream' aria-labelledby='downstream-h'><div class="hd hd-2"><h2 id='downstream-h'>Downstream note</h2><a class="hlink" href="#downstream" target="_self" aria-label="Link to this section" aria-describedby="downstream-h"><span aria-hidden="true">#</span></a></div><p class='short'>A product that compiles nori system dictionaries from rows its users supply cannot rely on <code>DictionaryBuilder</code> to reject conflicting rows today, and should check them itself.</p></section><section id='how-it-was-found' aria-labelledby='how-it-was-found-h'><div class="hd hd-2"><h2 id='how-it-was-found-h'>How it was found</h2><a class="hlink" href="#how-it-was-found" target="_self" aria-label="Link to this section" aria-describedby="how-it-was-found-h"><span aria-hidden="true">#</span></a></div><p class='short'>A bounded-exhaustive round trip of the bundled nori dictionary against its source found the shipped data clean (no left id with two parts of speech in 816,283 rows); reading how that table is written then showed that an assert is the only guard, and a JUnit with a two-row custom dictionary witnessed it.</p><details class='more'><summary><span class='t'>The method in full</span><span class='n'>143 words</span></summary><div class='body'><p><strong>Method: bounded-exhaustive translation validation, then a targeted JUnit</strong> (the hunt's "semi-formal" tier). A hunt unit, "CJK compiled-dictionary source round trip", lead 9.1 of the unit plan (builder asserts as the only guard on the source data), 2026-10-27.</p><ul><li>The finder rebuilt the bundled mecab-ko-dic 2.1.1 with <code class='nw'>-ea</code>: no builder assert fired and the resources were byte-identical to the shipped ones.</li><li>A round-trip harness compared the shipped nori resources with the source over all 816,283 lexicon rows on the stock jars: 0 left ids with more than one part of speech, so the bundled dictionary is unaffected.</li><li>Reading how <code class='nw'>posDict</code> is written showed that the only guard against such a collision is the assert at <code>TokenInfoDictionaryEntryWriter.java:100</code>; the finder then wrote the two-row JUnit (found 2026-10-27).</li><li>Independent AI tools and reviews by another model family then reproduced, challenged and judged it (see the checks).</li></ul></div></details></section><section id='record' aria-labelledby='record-h'><div class="hd hd-2"><h2 id='record-h'>Prior reports, history and checks</h2><a class="hlink" href="#record" target="_self" aria-label="Link to this section" aria-describedby="record-h"><span aria-hidden="true">#</span></a></div><div class='part' id='prior-reports'><div class="hd hd-3"><h3 id='prior-reports-h'>Prior reports</h3><a class="hlink" href="#prior-reports" target="_self" aria-label="Link to this section" aria-describedby="prior-reports-h"><span aria-hidden="true">#</span></a></div><p class='short'>No prior report found (best-effort search, 2026-10-27): 152 logged queries and two runs of a scripted prior-report search over GitHub issues, PRs and commits, downstream projects, the mailing lists, JIRA and the web, plus all 409 open PRs. The nearest items are precedents: the same fix in kuromoji (LUCENE-8863) and nori's partial conversion of builder asserts (LUCENE-8904).</p><details class='more'><summary><span class='t'>Searches</span><span class='n'>4 searches</span></summary><div class='body'><p>Nothing found reports that the check is assert-only or that a build without <code class='nw'>-ea</code> gives words another row's part of speech. Upstream main <code class='nw'>a95c754ee003</code> (2026-10-26), <code class='nw'>branch_10x</code> and <code class='nw'>branch_10_6</code> still have the assert; no open PR changes it (#16911 only deletes <code class='nw'>branch_10x</code>).</p><p><strong>Related, not the same bug:</strong> #9947 / LUCENE-8904 (closed; converted nori's other builder asserts, left this one without discussion); #9906 / LUCENE-8863 (closed; the same fix in kuromoji); #9860 / LUCENE-8816 (open; the general agreement that builder asserts should be exceptions, about kuromoji's builder tooling; the thread also discusses nori, but no comment names nori's builder asserts or this check); #9278 / LUCENE-8231 (the design note on one part of speech per left id); #12517 (open kuromoji UniDic PR that stops throwing on kuromoji's check, a counter-signal for a throwing fix); jimczi/nori#1 (a 2018 builder <code class='nw'>AssertionError</code> at a different assert). Re-run the GitHub searches before filing.</p><div class='tbl'><table><caption>What was searched, when, and what turned up</caption><thead><tr><th scope='col'>Where</th><th scope='col'>When</th><th scope='col'>How</th><th scope='col'>Found</th></tr></thead><tbody><tr><th scope='row'>GitHub issues, PRs and commits (apache/lucene, apache/lucene-solr)</th><td class='when'>2026-10-27</td><td>152 logged queries and 21 hits judged, plus two runs of a scripted prior-report search (43 and 51 queries; the second: 16 GitHub, 3 commit, 2 downstream, 20 list, 4 JIRA, 6 web, 171 distinct hits, 0 rated high, every medium hit read)</td><td>no report; precedents #9947, #9906, #9860, #9278, #12517</td></tr><tr><th scope='row'>Open PRs</th><td class='when'>2026-10-27</td><td>the changed files of all 409 open apache/lucene PRs</td><td>none changes the assert; #16911 deletes branch_10x</td></tr><tr><th scope='row'>Mailing lists and JIRA</th><td class='when'>2026-10-27</td><td>dev@, java-user@ and issues@ (30 manual queries plus 20 through the tool, which also covered commits@); JIRA queries</td><td>only LUCENE-8231/8816/8817/8863/8904 traffic; no report</td></tr><tr><th scope='row'>Downstream projects and the web</th><td class='when'>2026-10-27</td><td>downstream issue trackers (three issues read, others screened by title) and 9 web queries, one in Korean</td><td>no report</td></tr></tbody></table></div></div></details></div><div class='part' id='version-history'><div class="hd hd-3"><h3 id='version-history-h'>History</h3><a class="hlink" href="#version-history" target="_self" aria-label="Link to this section" aria-describedby="version-history-h"><span aria-hidden="true">#</span></a></div><p class='short'>Present since nori's first commit <code class='nw'>e851b89cbeb</code> (LUCENE-8231, 2018-04-13), first released in 7.4.0, and never fixed. A uniform build-then-load driver reproduces it on 20 releases from 7.4.0 to 10.5.2 and on main, each with a passing control.</p><details class='more'><summary><span class='t'>Versions tested</span><span class='n'>7 rows</span></summary><div class='body'><p><strong>Introduced by</strong> <code class='nw'>e851b89cbeb</code> "LUCENE-8231: Add a new analysis module (nori) similar to Kuromoji but to handle Korean" (Jim Ferenczi, 2018-04-13; branch_7x <code class='nw'>8651fbaa8bc</code> the same day; JIRA patch workflow, no PR; now issue #9278). CHANGES lists it under 7.4.0. The line was moved but never changed: LUCENE-8904 (<code class='nw'>2ac5fb668a8</code>, 8.3.0) left it, LUCENE-8934 (<code class='nw'>2c0d8996cf9</code>, 8.3.0) put the builder into the jar, LUCENE-9253 (8.5.0) added the custom-dictionary constructor, LUCENE-10400 (9.1.0) the public <code class='nw'>Path</code> constructors, and LUCENE-10393 / LUCENE-10475 (10.0.0) renamed and moved the writer. In 7.4.0-8.2.0 the builder shipped only as source, and its <code>ant build-dict</code> target (which <code>ant regenerate</code> runs) enables assertions (<code class='nw'>build.xml:77-96</code> at 7.4.0), so on that path a collision crashed the build; from 8.3.0 a call without <code class='nw'>-ea</code> is silent. The sweep's load phase puts the compiled files ahead of the nori jar on the classpath so the default <code>KoreanTokenizer()</code> loads them, a harness technique that works on every release; a constructor for a custom system dictionary exists only from 8.5.0. Read sweep: every release tag from 7.4.0 to 10.5.2 (58 tags) has the assert-only check; 67 releases in total, 7.3.1 has no nori. Not a regression.</p><div class='tbl'><table><caption>Versions and branches executed, with results</caption><thead><tr><th scope='col'>Version or commit</th><th scope='col'>Verdict</th><th scope='col'>Result</th></tr></thead><tbody><tr><th scope='row'>main <code class='nw'>a9779ef3c193</code></th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the repro fails 2 of 2 through gradle and the standalone runner, assertions on and off; a separate run: noun reports JX and is dropped</td></tr><tr><th scope='row'>10.0.0, 10.5.2</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>the JUnit fails 2 of 2 (-ea and -da); a separate run: 가 -&gt; [가/JX], dropped</td></tr><tr><th scope='row'>9.0.0, 9.1.0, 9.12.3</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>A separate run: 가 -&gt; [가/J], dropped; the 9.x JUnit fails 2 of 2 on 9.1.0 and 9.12.3</td></tr><tr><th scope='row'>8.3.0, 8.4.1, 8.5.0, 8.8.2, 8.9.0, 8.10.0, 8.10.1, 8.11.0-8.11.4</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> affected</span></td><td>A separate run: -da build accepted, -ea AssertionError, 가 -&gt; [가/J], dropped</td></tr><tr><th scope='row'>7.4.0, 7.7.3, 8.2.0</th><td><span class='v bad'><span aria-hidden='true'>&#9679;</span> tool sources</span></td><td>builder compiled from the tag's unmodified tool sources: -da accepted, 가 dropped; -ea AssertionError (the ant build-dict target enables -ea)</td></tr><tr><th scope='row'>7.3.1</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> API absent</span></td><td>no nori module</td></tr><tr><th scope='row'>main + fix</th><td><span class='v ok'><span aria-hidden='true'>&#9675;</span> not affected</span></td><td>the colliding source is rejected with IllegalArgumentException; the control builds; the nori module runs 90 tests with 0 failures (4 skipped)</td></tr></tbody></table></div></div></details></div><div class='part' id='independent-checks'><div class="hd hd-3"><h3 id='independent-checks-h'>Independent checks</h3><a class="hlink" href="#independent-checks" target="_self" aria-label="Link to this section" aria-describedby="independent-checks-h"><span aria-hidden="true">#</span></a></div><p class='short'>An independent reproducer, a devil's advocate, an adjudication and reviews by another model family (which ran their own tests) all found it real; the adjudication confirmed it with medium confidence and low severity. A registry re-run, an audit and this doc's fix validation reproduced it with new seeds.</p><details class='more'><summary><span class='t'>Checks and verdicts</span><span class='n'>373 words</span></summary><div class='body'><p>Every check wrote or ran its own test against the stock jars, with assertions on and off unless noted.</p><div class='tbl'><table class='checks'><caption>Each independent check and its verdict</caption><thead><tr><th scope='col'>Check</th><th scope='col'>Verdict</th><th scope='col'>What it found</th></tr></thead><tbody><tr><th scope='row'>finder</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> candidate</span></td><td>Two-row JUnit fails 2 of 2 on main (<code class='nw'>-da</code> wrong tag and dropped noun; <code class='nw'>-ea</code> AssertionError), 10.5.2 and 9.12.3; with the fix 2 of 2 pass and upstream dictionary tests 6 of 6.</td></tr><tr><th scope='row'>cross-model review, refute lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>An independent reviewer from another model family (OpenAI GPT-5.6) wrote its own test (a VV row and a JKO row on one left id): fails with <code class='nw'>-da</code> and <code class='nw'>-ea</code>, controls pass, the fix passes; rated the by-design argument moderate.</td></tr><tr><th scope='row'>Independent reproducer</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Own 5-test JUnit in both directions fails 3 of 5 on main, 10.5.2 and 9.12.3 with <code class='nw'>-ea</code> and <code class='nw'>-da</code>; controls pass; 5 of 5 with the fix; found that the assert also rejects same-tag rows with different semantic classes.</td></tr><tr><th scope='row'>Cross-model review, intended lens</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real (high)</span></td><td>OpenAI GPT-5.6: its own test fails on main and 10.5.2, its 9.x test on 9.12.3, its fix test passes 3 of 3; the cross-model review step re-ran these and the finder's test on <code class='nw'>a9779ef3c193</code> with the same results.</td></tr><tr><th scope='row'>Devil's advocate</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> real</span></td><td>Built the strongest by-design case (the format choice in LUCENE-8231) and showed why it fails; found the mecab-ko-dic wildcard-left-id path.</td></tr><tr><th scope='row'>adjudication</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> confirmed (medium)</span></td><td>Re-ran the independent reproduction's test with new seeds (3 of 5 fail, <code class='nw'>-ea</code> and <code class='nw'>-da</code>; 5 of 5 with the fix); class silent wrong results, severity low; filing corrections on wording and the POS-only fix.</td></tr><tr><th scope='row'>registry re-run and audit</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> keep</span></td><td>The finder's test fails 2 of 2 with <code class='nw'>-da</code> and <code class='nw'>-ea</code> and passes with the fix (fresh seeds, twice); the independent reproduction's test fails 3 of 5 and passes 5 of 5 with the fix.</td></tr><tr><th scope='row'>security assessment</th><td><span class='v info'><span aria-hidden='true'>&#9675;</span> none</span></td><td>The trigger is the operator's own dictionary source, trusted configuration under Lucene's threat model.</td></tr><tr><th scope='row'>doc fix validation</th><td><span class='v ok'><span aria-hidden='true'>&#10003;</span> fix validated</span></td><td>Gradle in a scratch worktree: stock fails, the fix passes the repro and the two test changes, and the nori module runs 90 tests with 0 failures (4 skipped), with assertions on and off; format check passes; bundled dictionary rebuilds byte-identical.</td></tr></tbody></table></div></div></details></div></section><section id='diagrams' aria-labelledby='diagrams-h'><div class="hd hd-2"><h2 id='diagrams-h'>Diagram file</h2><a class="hlink" href="#diagrams" target="_self" aria-label="Link to this section" aria-describedby="diagrams-h"><span aria-hidden="true">#</span></a></div><p>The diagram as a still image, generated with AI and checked against the code. It is under 10 MB, the limit for a GitHub attachment.</p><ul class='files'><li><a id='dl-png' href='../assets/LFV-717/bug.png' download='nori-builder-left-id-pos-collision-assert-only-bug.png' target='_self'>PNG</a> <span class='n'>445 KB</span></li></ul></section><section id='sources' aria-labelledby='sources-h'><div class="hd hd-2"><h2 id='sources-h'>Sources and provenance</h2><a class="hlink" href="#sources" target="_self" aria-label="Link to this section" aria-describedby="sources-h"><span aria-hidden="true">#</span></a></div><details class='sources'><summary><span class='t'>Bug record, Lucene and upstream sources, repro files and diagram notes</span><span class='n'>1,542 words</span></summary><div class='body'><div class="hd hd-3"><h3 id='registry-card'>Bug record</h3><a class="hlink" href="#registry-card" target="_self" aria-label="Link to this section" aria-describedby="registry-card"><span aria-hidden="true">#</span></a></div><p class='meta'>LFV-717, snapshot of 2026-10-29</p><dl class='card'><div><dt>Registry title</dt><dd>Nori's DictionaryBuilder checks that rows sharing a left context id have the same part of speech only with a Java assert, so with assertions off a custom system dictionary silently gives those words the part of speech of another row and KoreanPartOfSpeechStopFilter drops or keeps them wrongly</dd></div><div><dt>Area</dt><dd>analysis / nori system dictionary builder (DictionaryBuilder, TokenInfoDictionaryEntryWriter; custom system dictionaries)</dd></div><div><dt>Priority</dt><dd>Low, rank 435: Nori&#x27;s DictionaryBuilder checks for left-id part-of-speech collisions only with an assert, which matters only for custom dictionaries with hand-assigned ids.</dd></div><div><dt>Impact class</dt><dd>silent wrong results</dd></div><div><dt>Impact note</dt><dd>Hits only applications that compile their own nori system dictionary with the public DictionaryBuilder and load it through the @lucene.experimental custom-dictionary KoreanTokenizer constructor (opt-in), and only when two source rows share a left context id but carry different parts of speech: with assertions off (the JVM default, and how the build's own regenerate task runs) the build succeeds, every word on that left id reports the part of speech of the row written last in surface-sorted order, and KoreanPartOfSpeechStopFilter with DEFAULT_STOP_TAGS then drops a noun or keeps a particle, while with -ea the build stops with a bare AssertionError; the bundled mecab-ko-dic 2.1.1 has no such collision (all 816,283 rows checked), so the default KoreanTokenizer and KoreanAnalyzer are not affected; no scale needed, deterministic, every release 7.4.0 to 10.5.2 and main.</dd></div><div><dt>Summary</dt><dd>You compile a custom nori system dictionary with DictionaryBuilder from MeCab-format rows in which the noun 가 (NNG) and the particle 는 (JX) share left context id 1, and expect the builder either to reject the source (the compiled format keeps only one part of speech per left id, and kuromoji's builder throws 'Multiple entries found for leftID' for the same case) or each word to keep its own part of speech. Instead, with assertions off, the builder overwrites the single slot for left id 1 with the part of speech of the row it writes last, because the only check is an assert (TokenInfoDictionaryEntryWriter.java:100): 가 then reports left POS JX, and KoreanTokenizer followed by KoreanPartOfSpeechStopFilter with DEFAULT_STOP_TAGS returns no token instead of [가]. With -ea the build fails with a bare AssertionError rather than an IllegalArgumentException that names the problem.</dd></div><div><dt>Introduced</dt><dd>e851b89cbeb1f55edc0f2c1276e2ae812eca2643 (LUCENE-8231 'Nori, a Korean analyzer based on mecab-ko-dic', by jimczi; JIRA patch workflow, no pull request; the issue is now apache/lucene#9278) and its same-day branch_7x backport 8651fbaa8bc65fdfec397ad4e7ebe2b5acf78d7b, which shipped in 7.4.0 [read: git log -S 'existing.equals(fullPOSData)' -- lucene/analysis and git blame -w -M -C at the study base attribute today's TokenInfoDictionaryEntryWriter.java:98-100 to e851b89cbeb, across the rename from ko/util/BinaryDictionaryWriter.java; LUCENE-8904 (2ac5fb668a8, 8.3.0) converted nori's other builder asserts to exceptions but left this one; kuromoji's identical assert became an IllegalArgumentException in LUCENE-8863 (4502065f036, 8.2.0)]. Not a regression: the assert-only check dates from the module's first commit (2018-04-13)</dd></div><div><dt>First affected version</dt><dd>7.4.0 [exec] (nori's first release; 7.3.1 has no nori module [exec: no artifact on Maven Central, no lucene/analysis/nori in the tag]). Reach by version: 7.4.0-8.2.0 ship the builder only as source (src/tools), and the documented ant build-dict target ran it with assertions on, so on that path a collision failed with AssertionError instead of silently [read]; 8.3.0 puts DictionaryBuilder in the jar (LUCENE-8934), where a call without -ea is silent; 8.5.0 adds the public custom-dictionary KoreanTokenizer constructor (LUCENE-9253); from 9.0.0 the project's gradle regenerate task runs the builder with only -Xmx1G, assertions off [read]</dd></div><div><dt>Affected versions</dt><dd>Every release from 7.4.0 through 10.5.2 (67 releases; latest 9.x 9.12.3) and main a9779ef3c193; never fixed. [exec] the uniform history sweep (release DictionaryBuilder.main builds a two-row colliding source, then the default KoreanTokenizer loads it from the classpath and DEFAULT_STOP_TAGS is applied) fails on 20 releases and main: 7.4.0, 7.7.3 and 8.2.0 (builder compiled from the tag's unmodified tool sources), 8.3.0, 8.4.1, 8.5.0, 8.8.2, 8.9.0, 8.10.0, 8.10.1, 8.11.0-8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main (-da build accepted, the noun reports the particle's tag J or JX and is dropped; -ea build stops with AssertionError), each with a passing distinct-left-id control; the public-API JUnit fails 2 of 2 with -ea and -da on 9.1.0, 9.12.3 (9.x variant), 10.0.0, 10.5.2 and main; the independent reproduction's test fails 3 of 5 on 10.5.2 and 9.12.3 (-ea and -da). [read] every release tag from 7.4.0 to 10.5.2 in the history clone (58 tags) has the assert-only check; 8.8.2-8.11.4 are not tagged locally and were executed instead. TokenInfoDictionaryEntryWriter.java is unchanged on upstream main a95c754ee003 (2026-10-26), branch_10x and branch_10_6, and lucene/analysis/nori is identical at ea57360912ed. All runs on JDK 25, aarch64</dd></div><div><dt>Status</dt><dd>documented <span class='n'>(brief, checks and a per-bug doc exist)</span></dd></div><div><dt>Verification</dt><dd>Confirmed by AI-run checks: an independent repro, a cross-model review that agreed, an intended-behaviour check, a prior-report search and a skeptical audit; not yet triaged by a person.</dd></div><div><dt>Found by</dt><dd>semi-formal</dd></div><div><dt>Upstream and prior reports</dt><dd>none found (2026-10-27, plus the finder's scripted prior-report search with 43 queries, read-only; the prior-report record, verdict new, confidence high): 152 logged queries and 21 hits judged, a second scripted prior-report search with 51 queries (16 GitHub, 3 commit, 2 downstream, 20 list, 4 JIRA, 6 web; 171 distinct hits, 0 high, every medium hit read), the changed files of all 409 open apache/lucene PRs, the dev@, java-user@ and issues@ lists (30 manual queries), JIRA and 9 web queries (one in Korean). Related, not this bug: #9947 / LUCENE-8904 (closed; 'the Nori version of #9906', converted nori's left-id limit, POS-type, ordering and posDict-format asserts to exceptions but left this one, with no discussion of it), #9906 / LUCENE-8863 (closed, kuromoji: the identical assert became IllegalArgumentException 'Multiple entries found for leftID'), #9860 / LUCENE-8816 (open, kuromoji: committers agreed that builder asserts should become exceptions so users of customized dictionaries see the problem; nori and this check are not named), #9278 / LUCENE-8231 (design note 'The semantic class + POS is unique per leftId', said of mecab-ko-dic), #12517 (open kuromoji UniDic PR that stops throwing on the kuromoji check, predecessor apache/lucene-solr#935; a counter-signal for a throwing fix), jimczi/nori#1 (2018 nori builder AssertionError at a different assert, by its line numbers). Not fixed: the assert is on upstream main a95c754ee003, branch_10x and branch_10_6, and no open PR changes it (#16911 only deletes branch_10x). Nothing by the owner (shbhar). Gaps: lexical, rate-limited first-page GitHub search; private trackers not visible; re-run the GitHub searches before filing</dd></div><div><dt>Lucene commit tested</dt><dd>main <code class='nw'>a9779ef3c193</code> (commit of 2026-10-26) through gradle in a scratch worktree with assertions on and off (2026-10-28), and through the standalone JUnit runner (2026-10-27 and 2026-10-28, including a registry re-run and an audit with fresh seeds); the 10.5.2 and 9.12.3 release jars (JUnit); a version-independent two-phase driver on 7.4.0, 7.7.3, 8.2.0, 8.3.0, 8.4.1, 8.5.0, 8.8.2, 8.9.0, 8.10.0, 8.10.1, 8.11.0-8.11.4, 9.0.0, 9.1.0, 9.12.3, 10.0.0, 10.5.2 and main (2026-10-27); <code>lucene/analysis/nori</code> is identical at <code class='nw'>ea57360912ed</code>, where the cross-model reviews ran. The recommended fix was validated in the scratch worktree: the repro and two upstream-style test changes (one extended test, one new test), the whole nori module (90 tests: 0 failures, 4 skipped) with assertions on and off, <code>checkGoogleJavaFormat</code>, and a byte-for-byte rebuild of the bundled dictionary.</dd></div></dl><div class="hd hd-3"><h3 id='section-sources'>Lucene and upstream sources</h3><a class="hlink" href="#section-sources" target="_self" aria-label="Link to this section" aria-describedby="section-sources"><span aria-hidden="true">#</span></a></div><dl class='card'><div><dt>Bug record</dt><dd><ul class='paths'><li><code>lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/dict/TokenInfoDictionaryEntryWriter.java:94-101 (at a9779ef3c193) (posDict filled per left id; fullPOSData = leftPOS + &#x27;,&#x27; + semantic class; &#x27;assert existing == null || existing.equals(fullPOSData)&#x27; at :100; posDict.set overwrites at :101) and :176-189 (writePosDict writes one POS byte per left id); dict/TokenInfoMorphData.java:74-75 (getLeftPOS returns posDict[getLeftId(morphId)]); dict/TokenInfoDictionaryBuilder.java:89-90 (stable sort by surface before writing, so the last row is last in surface order); dict/DictionaryBuilder.java:23-28 (public class &#x27;Tool to build dictionaries.&#x27;, public static build); ko/KoreanTokenizer.java:138-152 (custom-dictionary constructor, &#x27;an entry point for users that want to construct custom language models that can be used as input to DictionaryBuilder&#x27;, @lucene.experimental); ko/KoreanPartOfSpeechStopFilter.java:92-94 (accept tests getLeftPOS); lucene/analysis/nori/build.gradle:34-39 (regenerate javaexec with jvmArgs &#x27;-Xmx1G&#x27; only); lucene/analysis/kuromoji/src/java/org/apache/lucene/analysis/ja/dict/TokenInfoDictionaryEntryWriter.java:129-133 (kuromoji throws IllegalArgumentException &#x27;Multiple entries found for leftID=&#x27; for the same condition)</code></li></ul></dd></div><div><dt>The bug in 30 seconds</dt><dd><ul class='paths'><li><code>lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/dict/TokenInfoDictionaryEntryWriter.java:39-60 (at a9779ef3c193) (columns), :67-77 (left POS choice), :93-101 (posDict check and overwrite), :174-189 (writePosDict)</code></li><li><code>lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/dict/TokenInfoMorphData.java:73-87; (at a9779ef3c193) dict/TokenInfoDictionaryBuilder.java:89-90, :100-124; dict/DictionaryBuilder.java:23-39</code></li><li><code>lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/KoreanPartOfSpeechStopFilter.java:36-68, (at a9779ef3c193) :91-95; Viterbi.java:343-346</code></li><li><code>Lucene main a9779ef3c193 build-tools/build-infra/src/main/java/org/apache/lucene/gradle/plugins/java/TestsAndRandomizationPlugin.java:240-249 (tests.asserts default: on for about 75% of seeds)</code></li></ul></dd></div><div><dt>Who is affected</dt><dd><ul class='paths'><li><code>lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/KoreanTokenizer.java:138-162; (at a9779ef3c193) KoreanTokenizerFactory.java:44-57, :73-74; dict/UserMorphData.java:25-26, :62-63</code></li><li><code>lucene/analysis/nori/build.gradle:34-42 (at a9779ef3c193) (regenerate javaexec, jvmArgs &#x27;-Xmx1G&#x27; only)</code></li></ul></dd></div><div><dt>Minimal repro</dt><dd><ul class='paths'><li><code>Lucene main a9779ef3c193 build-tools/build-infra/src/main/java/org/apache/lucene/gradle/plugins/java/TestsAndRandomizationPlugin.java:240-249 (tests.asserts default)</code></li></ul></dd></div><div><dt>Why it is a bug, not intended</dt><dd><ul class='paths'><li><code>lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/dict/DictionaryBuilder.java:23; (at a9779ef3c193) dict/KoMorphData.java:34-39; lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/dict/TokenInfoDictionaryEntryWriter.java:100, :130-135; KoreanTokenizer.java:138-152</code></li><li><code>lucene/analysis/kuromoji/src/java/org/apache/lucene/analysis/ja/dict/TokenInfoDictionaryEntryWriter.java:129-133 (at a9779ef3c193)</code></li><li><code>lucene/analysis/nori/src/test/org/apache/lucene/analysis/ko/dict/TestTokenInfoDictionary.java:92-99 (at a9779ef3c193)</code></li></ul></dd></div><div><dt>Suggested fix</dt><dd><ul class='paths'><li><code>lucene/analysis/nori/src/java/org/apache/lucene/analysis/ko/dict/TokenInfoDictionaryEntryWriter.java:174-189 (at a9779ef3c193) (writePosDict stores the POS byte only)</code></li></ul></dd></div><div><dt>History</dt><dd><ul class='paths'><li><code>lucene/CHANGES.txt:7393 (at a9779ef3c193) (LUCENE-8231 under 7.4.0, heading :7322), :5946 (LUCENE-9253 under 8.5.0, heading :5882)</code></li></ul></dd></div></dl><p class='meta'>Other statements trace to the hunt's working files (models, logs, reviews and briefs), which are not published.</p><div class="hd hd-3"><h3 id='repro-files'>Repro files</h3><a class="hlink" href="#repro-files" target="_self" aria-label="Link to this section" aria-describedby="repro-files"><span aria-hidden="true">#</span></a></div><ul class='paths'><li>TestNoriBuilderLeftIdPosCollision.java (lucene/analysis/nori, dict test package): <a href='../repro/LFV-717/TestNoriBuilderLeftIdPosCollision.java'><code>repro/LFV-717/TestNoriBuilderLeftIdPosCollision.java</code></a> (129 lines)</li><li>TestNoriLeftIdPosCollision.java (independent reproducer, both directions, with controls): <a href='../repro/LFV-717/TestNoriLeftIdPosCollision.java'><code>repro/LFV-717/TestNoriLeftIdPosCollision.java</code></a> (212 lines)</li><li>TestNoriBuilderLeftIdPosCollision9x.java (9.1.0 to 9.12.3): <a href='../repro/LFV-717/TestNoriBuilderLeftIdPosCollision9x.java'><code>repro/LFV-717/TestNoriBuilderLeftIdPosCollision9x.java</code></a> (127 lines)</li><li>TestLeftIdPosIntent.java (the mecab-ko-dic wildcard left id 1 path): <a href='../repro/LFV-717/TestLeftIdPosIntent.java'><code>repro/LFV-717/TestLeftIdPosIntent.java</code></a> (109 lines)</li><li>NoriHistoryBuild.java + NoriHistoryLoad.java (version-independent drivers for the release sweep): <a href='../repro/LFV-717/NoriHistoryBuild.java'><code>repro/LFV-717/NoriHistoryBuild.java</code></a> (92 lines)</li></ul><div class="hd hd-3"><h3 id='diagram-notes'>About the diagrams</h3><a class="hlink" href="#diagram-notes" target="_self" aria-label="Link to this section" aria-describedby="diagram-notes"><span aria-hidden="true">#</span></a></div><p>A light, step-by-step picture of the repro (the two rows, the shared slot, the overwrite and the dropped noun), made in parallel with this doc from the executed runs on main <code class='nw'>a9779ef3c193</code> and the code.</p><ul class='paths'><li><a href='../assets/LFV-717/bug.png'><code>assets/LFV-717/bug.png</code></a> (445 KB)</li></ul><p class='meta built'>Built 2026-10-29 from the hunt's bug record and this bug's doc file. Lucene main under test in this hunt: <code class='nw'>ea57360912ed</code>.</p></div></details></section></main><footer><p>AI-assisted page, a dated snapshot built 2026-10-29. It is not an upstream report: Lucene's AI policy asks for issues, pull requests and comments written by a person, and this site files nothing upstream.</p><p><a href='../index.html' target='_self'>All bugs</a></p><p class='sitefiles'><a href='../repro/index.html' target='_self'>All repro files</a> &middot; <a href='../models/index.html' target='_self'>Formal models and scripts</a> &middot; <a href='../data/bugs.csv' target='_self'>Data (CSV)</a> &middot; <a href='../data/bugs.json' target='_self'>Data (JSON)</a></p></footer></div><script>
+(function () {
+  function copyText(btn) {
+    var pre = document.getElementById(btn.getAttribute('data-copy'));
+    var st = document.getElementById(btn.getAttribute('data-status'));
+    var text = pre ? pre.textContent : '';
+    var lines = text.split('\n').length - 1;
+    function done(ok) {
+      if (ok) { st.textContent = 'Copied ' + lines + ' lines.'; return; }
+      var r = document.createRange(); r.selectNodeContents(pre);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      st.textContent = 'Copying is blocked here: the code is selected, press Ctrl+C (or Cmd+C).';
+    }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta); done(ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else { fallback(); }
+  }
+  document.querySelectorAll('button[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () { copyText(b); });
+  });
+  // A link to an id inside a collapsed block opens the block (and the blocks around it) first.
+  function reveal(id) {
+    var el = id && document.getElementById(id);
+    if (!el) { return; }
+    var opened = false;
+    for (var p = el; p; p = p.parentElement) {
+      if (p.tagName === 'DETAILS' && !p.open) { p.open = true; opened = true; }
+    }
+    if (opened) { el.scrollIntoView(); }
+  }
+  function fromHash() { try { reveal(decodeURIComponent(location.hash.slice(1))); } catch (e) { } }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if (a) { reveal(a.getAttribute('href').slice(1)); }
+  });
+  var all = document.getElementById('toggle-all');
+  if (all) {
+    all.addEventListener('click', function () {
+      var open = all.getAttribute('aria-pressed') !== 'true';
+      document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+      all.setAttribute('aria-pressed', open ? 'true' : 'false');
+      all.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+})();
+</script><script>
+(function () {
+  'use strict';
+  var base = '', node = document.getElementById('share-base');
+  try { base = node ? String(JSON.parse(node.textContent) || '') : ''; } catch (e) { base = ''; }
+  if (!/^https:\/\/[^\s"'<>#?]+$/.test(base)) base = '';
+  if (!base && window.top === window && /^(https?|file):$/.test(location.protocol)) base = String(location.href).split('#')[0];
+  var live = document.getElementById('hlink-live'), note = null, timer = 0;
+  function say(t) { if (live) { live.textContent = ''; setTimeout(function () { live.textContent = t; }, 30); } }
+  function close(refocus) {
+    clearTimeout(timer);
+    if (!note) return;
+    var n = note; note = null;
+    if (refocus && n._link) n._link.focus({ preventScroll: true });
+    if (n.parentNode) n.parentNode.removeChild(n);
+  }
+  function place(n, a) {   // below the link, kept inside the heading row
+    var W = a.parentElement.clientWidth;
+    n.style.left = '0px';
+    n.style.left = Math.max(0, Math.min(a.offsetLeft, W - Math.min(n.offsetWidth, W))) + 'px';
+  }
+  function show(a, url, ok) {
+    close(false);
+    var n = document.createElement('span');
+    n.className = 'hlink-note' + (ok ? '' : ' is-manual');
+    n._link = a;
+    if (ok) {
+      n.textContent = 'Link copied';
+      n.setAttribute('aria-hidden', 'true');   // the live region says it
+      say('Link copied');
+      timer = setTimeout(function () { close(false); }, 2500);
+    } else {
+      var lab = document.createElement('label'), inp = document.createElement('input');
+      lab.appendChild(document.createTextNode('Copy this link:'));
+      inp.type = 'text'; inp.readOnly = true; inp.value = url; inp.spellcheck = false;
+      inp.setAttribute('autocomplete', 'off');
+      lab.appendChild(inp); n.appendChild(lab);
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); close(true); } });
+      inp.addEventListener('blur', function () { setTimeout(function () { if (note === n && document.activeElement !== inp) close(false); }, 150); });
+      say('Copying is blocked here. The link is selected in a text field: press Control+C or Command+C to copy it.');
+    }
+    a.parentElement.appendChild(n);
+    note = n;
+    place(n, a);
+    if (!ok) { var f = n.querySelector('input'); f.focus({ preventScroll: true }); f.select(); }
+  }
+  function legacyCopy(text, a) {
+    var ta = document.createElement('textarea'), ok = false;
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.left = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { ok = !!document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    a.focus({ preventScroll: true });
+    return ok;
+  }
+  function copy(text, a) {
+    var c = null;
+    try { c = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : null; } catch (e) { c = null; }
+    if (!c || typeof c.then !== 'function') return Promise.resolve(legacyCopy(text, a));
+    return c.then(function () { return true; }, function () { return legacyCopy(text, a); });
+  }
+  function onClick(e) {
+    var a = e.currentTarget, id = a.getAttribute('href').slice(1);
+    e.preventDefault();
+    try { if (location.hash !== '#' + id) history.replaceState(history.state, '', '#' + id); }
+    catch (err) { try { location.hash = id; } catch (e2) { /* the copy below still works */ } }
+    var url = base + '#' + id;
+    copy(url, a).then(function (ok) { show(a, url, ok); });
+  }
+  document.querySelectorAll('a.hlink').forEach(function (a) { a.addEventListener('click', onClick); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && note) close(note.classList.contains('is-manual')); });
+  document.addEventListener('pointerdown', function (e) { if (note && !note.contains(e.target)) close(false); }, true);
+})();
+</script></body></html>

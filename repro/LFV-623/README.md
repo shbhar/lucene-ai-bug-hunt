@@ -2,6 +2,8 @@
 
 Bug LFV-623 · Area: analysis-opennlp / OpenNLPSentenceBreakIterator (public java.text.BreakIterator over OpenNLP sentence spans: setText, previous, following, moveToSentenceAt) · Priority: low · Impact: crash · Novelty: new
 
+Bug page: [../../bugs/LFV-623.html](../../bugs/LFV-623.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You create an OpenNLPSentenceBreakIterator, give it a text that starts with whit
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: previous returns 2, which is not a boundary, and the next previous throws ArrayIndexOutOfBoundsException (Index -1); following(0) on a one-sentence text with leading whitespace recurses until StackOverflowError.
+- Expected: The backward walk gives 60, 33, 0, then `DONE`; `following(0)` returns a boundary (32 or 33) or `DONE`.
+- Actual: The backward walk gives 60, 33, 2, then `ArrayIndexOutOfBoundsException: Index -1`; `following(0)` on one sentence throws `StackOverflowError` (3 of 3 tests fail with assertions on, 2 of 3 off).
 
 ## Files
 
@@ -45,6 +47,13 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-opennlp also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestOpenNLPSentenceBreakIteratorLeadingWhitespace.java](TestOpenNLPSentenceBreakIteratorLeadingWhitespace.java)
+- [fix-option-A.diff](fix-option-A.diff)
+- [TestSentenceBreakIteratorLeadingWhitespace.java](TestSentenceBreakIteratorLeadingWhitespace.java)
+- [TestSentenceBreakIteratorLeadingBlank.java](TestSentenceBreakIteratorLeadingBlank.java)
 
 ## Feedback
 

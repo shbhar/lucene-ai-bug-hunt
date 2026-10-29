@@ -2,6 +2,8 @@
 
 Bug LFV-533 · Area: analysis-common / miscellaneous (CapitalizationFilter case mapping) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-533.html](../../bugs/LFV-533.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You add CapitalizationFilter, documented to 'make the first letter capital and t
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: Every supplementary letter keeps its case: U+1E922 U+1E923 comes out unchanged, U+1E900 U+1E901 is not lower-cased to U+1E900 U+1E923, and 'aB' followed by the Osage capital U+104B0 gives 'Ab' + U+104B0, because processWord applies Character.toUpperCase(char) and toLowerCase(char) to single UTF-16 units and a surrogate unit maps to itself.
+- Expected: `PARIS`/`paris` and the two Adlam spellings give 2 terms, `Paris` and U+1E900 U+1E923, and the query U+1E922 U+1E923 finds 2 documents; every token gets a capital first letter and a lower-case rest.
+- Actual: 3 of 4 tests fail: 3 terms (both Adlam spellings kept, neither capitalized), the Adlam query finds 1 document, and every supplementary letter in the token cases keeps its case.
 
 ## Files
 
@@ -47,6 +49,10 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 ```
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestCapitalizationFilterSupplementary.java](TestCapitalizationFilterSupplementary.java)
 
 ## Feedback
 

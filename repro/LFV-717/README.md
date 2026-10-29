@@ -2,6 +2,8 @@
 
 Bug LFV-717 · Area: analysis / nori system dictionary builder (DictionaryBuilder, TokenInfoDictionaryEntryWriter; custom system dictionaries) · Priority: low · Impact: silent wrong results · Novelty: new
 
+Bug page: [../../bugs/LFV-717.html](../../bugs/LFV-717.html)
+
 AI-assisted finding, confirmed by automated checks, not yet triaged by a human Lucene committer. This site files nothing upstream.
 
 ## What it shows
@@ -10,8 +12,8 @@ You compile a custom nori system dictionary with DictionaryBuilder from MeCab-fo
 
 ## Expected vs actual
 
-- Expected: The test passes: it asserts the documented behaviour.
-- Actual: With assertions off, the builder overwrites the single slot for left id 1 with the part of speech of the row it writes last, because the only check is an assert (TokenInfoDictionaryEntryWriter.java:100): 가 then reports left POS JX, and KoreanTokenizer followed by KoreanPartOfSpeechStopFilter with DEFAULT_STOP_TAGS returns no token instead of [가].
+- Expected: The builder rejects the two rows with an exception naming left id 1, or 가 keeps NNG and survives the default stop tags as `[가]`.
+- Actual: Assertions off: the build succeeds, 가 reports JX and the stop filter returns ``; assertions on: a bare `AssertionError` at `TokenInfoDictionaryEntryWriter.java:100`.
 
 ## Files
 
@@ -51,6 +53,14 @@ java -ea -esa --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNA
 The module(s) analysis-nori also need their third-party runtime jars; `./gradlew -p lucene/<module> dependencies` lists them.
 
 Gradle alternative: copy the test into the matching module's `src/test/` tree of the checkout and run `./gradlew -p lucene/<module> test --tests <class> -Ptests.seed=<seed>` (add `-Ptests.asserts=false` for a run without assertions).
+
+## Files shown on the bug page
+
+- [TestNoriBuilderLeftIdPosCollision.java](TestNoriBuilderLeftIdPosCollision.java)
+- [TestNoriLeftIdPosCollision.java](TestNoriLeftIdPosCollision.java)
+- [TestNoriBuilderLeftIdPosCollision9x.java](TestNoriBuilderLeftIdPosCollision9x.java)
+- [TestLeftIdPosIntent.java](TestLeftIdPosIntent.java)
+- [NoriHistoryBuild.java](NoriHistoryBuild.java)
 
 Formal models and scripts this bug's part of the hunt used: [../../models/cjk-compiled-dictionary-source-round-trip/](../../models/cjk-compiled-dictionary-source-round-trip/)
 
